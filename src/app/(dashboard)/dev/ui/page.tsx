@@ -21,6 +21,15 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import {
+  StatusDisplay,
+  type BusinessStatus,
+} from "@/components/shared/status-display";
+import {
+  KpiDataAvailabilityDisplay,
+  KpiDataTable,
+} from "@/features/kpi/kpi-data-table";
+import { demoKpiRows } from "./kpi-demo-data";
 import { SidebarStateDemo } from "./sidebar-state-demo";
 
 const tokenSamples = [
@@ -36,6 +45,20 @@ const tokenSamples = [
   { name: "border", className: "bg-border" },
   { name: "input", className: "bg-input" },
   { name: "ring", className: "bg-ring" },
+];
+
+const businessStatuses: readonly BusinessStatus[] = [
+  "ACHIEVED",
+  "NOT_ACHIEVED",
+  "UNDETERMINED",
+  "OCCURRED",
+  "NOT_OCCURRED",
+  "OPEN",
+  "CLOSED",
+  "EXCLUDED",
+  "UNKNOWN",
+  "NORMAL",
+  "ABNORMAL",
 ];
 
 function LabSection({ title, children }: { title: string; children: ReactNode }) {
@@ -94,6 +117,50 @@ export default function UiLabPage() {
             <Button variant="destructive">Destructive</Button>
             <Button disabled>Disabled</Button>
           </div>
+        </LabSection>
+
+        <Separator />
+
+        <LabSection title="Business status">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {businessStatuses.map((status) => (
+              <div
+                key={status}
+                className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                <code className="text-xs">{status}</code>
+                <StatusDisplay status={status} />
+              </div>
+            ))}
+          </div>
+        </LabSection>
+
+        <Separator />
+
+        <LabSection title="Data availability">
+          <div className="flex flex-wrap gap-3">
+            <KpiDataAvailabilityDisplay availability="AVAILABLE" />
+            <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
+            <KpiDataAvailabilityDisplay availability="UNAVAILABLE" />
+          </div>
+        </LabSection>
+
+        <Separator />
+
+        <LabSection title="KPI data table">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Sort columns, filter abnormal rows, change column visibility, page through
+              stores, scroll horizontally, and open an Actions value.
+            </p>
+            <KpiDataTable rows={demoKpiRows} />
+          </div>
+        </LabSection>
+
+        <Separator />
+
+        <LabSection title="KPI data table empty state">
+          <KpiDataTable rows={[]} />
         </LabSection>
 
         <Separator />

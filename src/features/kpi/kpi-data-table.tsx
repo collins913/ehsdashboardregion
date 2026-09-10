@@ -1,0 +1,475 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  columnVisibilityFeature,
+  type ColumnVisibilityState,
+  createColumnHelper,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  type PaginationState,
+  rowPaginationFeature,
+  rowSortingFeature,
+  type SortingState,
+  sortFn_basic,
+  sortFn_text,
+  tableFeatures as defineTableFeatures,
+  useTable,
+} from "@tanstack/react-table";
+import { ListFilter } from "lucide-react";
+import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import {
+  getStatusIntent,
+  getStatusLabel,
+  StatusDisplay,
+} from "@/components/shared/status-display";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { DataAvailability } from "@/data/contracts/kpi";
+import type {
+  ActionKpiValue,
+  AstmKpiValue,
+  KpiRow,
+  PerformanceKpiValue,
+} from "@/features/kpi/types";
+import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
+import type {
+  OccurrenceResult,
+  PerformanceResult,
+} from "@/lib/rules/result-types";
+
+const kpiTableFeatures = defineTableFeatures({
+  columnVisibilityFeature,
+  rowPaginationFeature,
+  rowSortingFeature,
+  paginatedRowModel: createPaginatedRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    basic: sortFn_basic,
+    text: sortFn_text,
+  },
+});
+
+type KpiTableFeatures = typeof kpiTableFeatures;
+
+const columnHelper = createColumnHelper<KpiTableFeatures, KpiRow>();
+
+const columnLabels: Record<string, string> = {
+  store: "Store",
+  training: "Training",
+  drill: "Drill",
+  actions: "Actions",
+  inspections: "Inspections",
+  astmEvents: "ASTM Events",
+};
+
+const availabilityLabels: Record<DataAvailability, string> = {
+  AVAILABLE: "Available",
+  CONFIRMED_EMPTY: "No data",
+  INCOMPLETE: "Incomplete",
+  UNAVAILABLE: "Unavailable",
+};
+
+const availabilityDescriptions: Record<DataAvailability, string> = {
+  AVAILABLE: "The requested data is available.",
+  CONFIRMED_EMPTY: "The requested scope is confirmed to contain no records.",
+  INCOMPLETE: "The requested data is incomplete and cannot support a conclusion.",
+  UNAVAILABLE: "The requested data is unavailable.",
+};
+
+type KpiDataAvailabilityDisplayProps = {
+  availability: DataAvailability;
+};
+
+export function KpiDataAvailabilityDisplay({
+  availability,
+}: KpiDataAvailabilityDisplayProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="outline"
+          data-availability={availability.toLowerCase()}
+          className="border-dashed bg-background text-muted-foreground"
+        >
+          {availabilityLabels[availability]}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{availabilityDescriptions[availability]}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ResultCell({ value }: { value: PerformanceKpiValue }) {
+  if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
+    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+  }
+
+  return <StatusDisplay status={value.result} />;
+}
+
+function AstmResultCell({ value }: { value: AstmKpiValue }) {
+  if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
+    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+  }
+
+  return value.result ? <StatusDisplay status={value.result} /> : null;
+}
+
+function statusSortValue(
+  availability: DataAvailability,
+  result: PerformanceResult | OccurrenceResult | null,
+): string {
+  if (availability === "INCOMPLETE" || availability === "UNAVAILABLE") {
+    return availabilityLabels[availability];
+  }
+
+  return result ? getStatusLabel(result) : "";
+}
+
+function rowHasNegativeResult(row: KpiRow): boolean {
+  const statuses = [
+    row.training.result,
+    row.drill.result,
+    row.actions.result,
+    row.inspections.result,
+    row.astmEvents.result,
+  ].filter((status): status is PerformanceResult | OccurrenceResult => status !== null);
+
+  return statuses.some((status) => getStatusIntent(status) === "NEGATIVE");
+}
+
+function ActionsCell({
+  value,
+  onOpen,
+}: {
+  value: ActionKpiValue;
+  onOpen: () => void;
+}) {
+  if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
+    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+  }
+
+  return (
+    <Button
+      variant="link"
+      className="h-auto p-0 font-medium"
+      onClick={onOpen}
+      aria-label={`View open Actions, closure rate ${formatActionClosureRate(value.value)}`}
+    >
+      {formatActionClosureRate(value.value)}
+    </Button>
+  );
+}
+
+function ActionsSheet({
+  row,
+  open,
+  onOpenChange,
+}: {
+  row: KpiRow | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const actions = row?.actions.openActions;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+        <SheetHeader>
+          <SheetTitle>Open Actions</SheetTitle>
+          <SheetDescription>
+            {row ? `${row.store.displayName} · ${row.store.storeId}` : ""}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="px-4 pb-4">
+          {!actions || actions.availability === "UNAVAILABLE" ? (
+            <p className="text-sm text-muted-foreground">Action details are unavailable.</p>
+          ) : actions.availability === "INCOMPLETE" ? (
+            <div className="space-y-3">
+              <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
+              <p className="text-sm text-muted-foreground">
+                Available records may not represent the complete scope.
+              </p>
+            </div>
+          ) : actions.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No open Actions.</p>
+          ) : (
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Due</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {actions.items.map((action) => (
+                    <TableRow key={action.actionId}>
+                      <TableCell className="max-w-56 whitespace-normal">
+                        <span className="font-medium">{action.actionTitle}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {action.actionId}
+                        </span>
+                      </TableCell>
+                      <TableCell>{action.owner}</TableCell>
+                      <TableCell>{action.dueDate}</TableCell>
+                      <TableCell>{action.sourceStatus}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+type KpiDataTableProps = {
+  rows: readonly KpiRow[];
+};
+
+export function KpiDataTable({ rows }: KpiDataTableProps) {
+  const [abnormalOnly, setAbnormalOnly] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<KpiRow | null>(null);
+  const [isActionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibilityState>({});
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 5,
+  });
+  const data = useMemo(
+    () => (abnormalOnly ? rows.filter(rowHasNegativeResult) : rows),
+    [abnormalOnly, rows],
+  );
+  const columns = useMemo(
+    () =>
+      columnHelper.columns([
+        columnHelper.accessor((row) => row.store.displayName, {
+          id: "store",
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Store" />
+          ),
+          cell: ({ row }) => (
+            <div className="min-w-44">
+              <p className="font-medium">{row.original.store.displayName}</p>
+              <p className="text-xs text-muted-foreground">
+                {row.original.store.storeId}
+              </p>
+            </div>
+          ),
+          enableHiding: false,
+          sortFn: "text",
+        }),
+        columnHelper.accessor(
+          (row) => statusSortValue(row.training.availability, row.training.result),
+          {
+            id: "training",
+            header: ({ column }) => (
+              <DataTableColumnHeader column={column} title="Training" />
+            ),
+            cell: ({ row }) => <ResultCell value={row.original.training} />,
+            sortFn: "text",
+          },
+        ),
+        columnHelper.accessor(
+          (row) => statusSortValue(row.drill.availability, row.drill.result),
+          {
+            id: "drill",
+            header: ({ column }) => (
+              <DataTableColumnHeader column={column} title="Drill" />
+            ),
+            cell: ({ row }) => <ResultCell value={row.original.drill} />,
+            sortFn: "text",
+          },
+        ),
+        columnHelper.accessor((row) => row.actions.value ?? undefined, {
+          id: "actions",
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="Actions" />
+          ),
+          cell: ({ row }) => (
+            <ActionsCell
+              value={row.original.actions}
+              onOpen={() => {
+                setSelectedRow(row.original);
+                setActionsSheetOpen(true);
+              }}
+            />
+          ),
+          sortFn: "basic",
+          sortUndefined: "last",
+        }),
+        columnHelper.accessor(
+          (row) =>
+            statusSortValue(row.inspections.availability, row.inspections.result),
+          {
+            id: "inspections",
+            header: ({ column }) => (
+              <DataTableColumnHeader column={column} title="Inspections" />
+            ),
+            cell: ({ row }) => <ResultCell value={row.original.inspections} />,
+            sortFn: "text",
+          },
+        ),
+        columnHelper.accessor(
+          (row) => statusSortValue(row.astmEvents.availability, row.astmEvents.result),
+          {
+            id: "astmEvents",
+            header: ({ column }) => (
+              <DataTableColumnHeader column={column} title="ASTM Events" />
+            ),
+            cell: ({ row }) => <AstmResultCell value={row.original.astmEvents} />,
+            sortFn: "text",
+          },
+        ),
+      ]),
+    [],
+  );
+  const table = useTable({
+    features: kpiTableFeatures,
+    columns,
+    data,
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
+    state: {
+      sorting,
+      columnVisibility,
+      pagination,
+    },
+  });
+  const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const displayedRows = table.getRowModel().rows;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button
+          variant={abnormalOnly ? "secondary" : "outline"}
+          aria-pressed={abnormalOnly}
+          onClick={() => {
+            table.firstPage();
+            setAbnormalOnly((current) => !current);
+          }}
+        >
+          <ListFilter aria-hidden="true" />
+          Abnormal only
+        </Button>
+        <DataTableColumnVisibility table={table} labels={columnLabels} />
+      </div>
+
+      <div className="overflow-hidden rounded-lg border">
+        <Table className="min-w-224">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className={
+                      header.column.id === "store"
+                        ? "sticky left-0 z-20 border-r bg-background"
+                        : undefined
+                    }
+                  >
+                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {displayedRows.length > 0 ? (
+              displayedRows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={
+                        cell.column.id === "store"
+                          ? "sticky left-0 z-10 border-r bg-background"
+                          : undefined
+                      }
+                    >
+                      <table.FlexRender cell={cell} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={visibleColumnCount}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  {abnormalOnly ? "No abnormal KPI rows." : "No KPI rows."}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {data.length} {data.length === 1 ? "store" : "stores"}
+        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            Page {table.state.pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+
+      <ActionsSheet
+        row={selectedRow}
+        open={isActionsSheetOpen}
+        onOpenChange={setActionsSheetOpen}
+      />
+    </div>
+  );
+}
