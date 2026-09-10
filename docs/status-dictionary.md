@@ -235,7 +235,9 @@ Allowed values:
 - `EXCLUDED`
 - `UNKNOWN`
 
-RecordState is used for filtering and aggregation.
+RecordState is used to normalize record lifecycle and filter record details.
+
+It must not be used to calculate KPI aggregate values, numerators, or denominators.
 
 It does not overwrite the original source `Status`.
 
@@ -349,6 +351,11 @@ Current confirmed mapping:
 | `Closed` | `CLOSED` |
 | `Cancelled` | `EXCLUDED` |
 | Any other value | `UNKNOWN` |
+
+`EXCLUDED` applies only to Action record lifecycle and the `OPEN_ONLY` detail
+filter. It means a cancelled Action is omitted from open Action details. It does
+not define whether that Action participates in Action Closure Rate because that
+KPI is supplied directly by the source data.
 
 Important:
 

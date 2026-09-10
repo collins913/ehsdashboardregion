@@ -280,6 +280,12 @@ valid numeric value
 missing/invalid value
 → `UNDETERMINED`
 
+Display boundary:
+
+- `null` or an empty source value normalized to `null` → `无`;
+- numeric `0` → `0%`;
+- missing values must never be coerced to numeric `0`.
+
 ### Result Type
 
 `PerformanceResult`
@@ -466,6 +472,11 @@ Action lifecycle classification is defined in:
 Action detail records do NOT determine the Performance → KPI → Action Closure Rate.
 
 Action Closure Rate remains a source-provided aggregate value.
+
+Action `RecordState` is used only for Action detail lifecycle and filtering.
+`Cancelled → EXCLUDED` means the record is omitted from `OPEN_ONLY` Action
+details. It must not be interpreted as a rule for the Action Closure Rate
+numerator or denominator.
 
 Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
 

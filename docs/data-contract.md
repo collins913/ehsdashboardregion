@@ -125,9 +125,11 @@ Source Reference 为可选结构，可包含：
 
 - Store Reference
 - Period
-- Action Closure Rate Value
+- Action Closure Rate Value：规范化类型为 `number | null`；数据源空值由 Repository / Adapter 转换为 `null`
 
 Value 使用 0–100。
+
+`null` 在页面显示为“无”，不得转换为数值 `0`；实际数值 `0` 显示为 `0%`。
 
 以下尚未确认：
 
@@ -237,7 +239,7 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 | Created Date | 数据源提供 |
 | Due Date | 数据源提供 |
 | Closed Date | 数据源提供；可为 null，表示未提供关闭日期；不得用于推断 Status |
-| Status | 数据源提供 |
+| Status | 数据源提供原始 `string`；Repository / Adapter 解析为 `ParsedActionStatus`，未知值保留原文并标记为 `UNKNOWN` |
 | Source Reference | 数据源可选提供 |
 
 当前已知 Status：
@@ -260,7 +262,7 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 - Certificate Type
 - Person
 - Role / Title
-- Expiry Date；mock 可为 null，以覆盖缺失数据，业务判定仍为 TBD
+- Expiry Date；可为 null。缺失且没有更早的异常结论时，业务结果为 `UNDETERMINED`，原因为 `MISSING_EXPIRY_DATE`
 - Source Reference（可选）
 
 数据源如有可额外提供：
@@ -268,7 +270,7 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 - Certificate Number
 - Issue Date
 
-最终 Display Status 与 Business Result 不由数据源提供，由证件规则计算。
+数据源不提供最终业务结论。证件规则只返回规范化 Business Result 与 Reason Code；Display Status 由展示层映射。
 
 ### 8.2 Certificate Requirement
 
@@ -377,8 +379,8 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 |---|---|
 | KPI Result | 达成/未达成、发生/未发生或直接数值 |
 | Goal Result | 直接值及按已确认阈值得出的达成结果 |
-| Certificate Display Status | 无、异常、正常 |
-| Certificate Business Result | 异常、正常 |
+| Certificate Display Status | 由展示层根据规范化结果与原因映射 |
+| Certificate Business Result | `NORMAL`、`ABNORMAL`、`UNDETERMINED`，并附标准 Reason Code |
 | Environment Display Status | 类别结果；监测为无/查看 |
 | Environment Business Result | 已定义类别的正常/异常；Environmental Monitoring 不因记录存在性输出此结果 |
 

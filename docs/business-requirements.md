@@ -102,6 +102,8 @@ Global Filters 属于全局应用框架，包含：
 | Inspections | 达成 / 未达成 | Inspection 记录 |
 | Events | 发生 / 未发生 ASTM Incident | Events 记录中的 `ASTMInjuryIllness` |
 
+Action Closure Rate 为 `null` 或空值时显示“无”，不得转换为 `0%`；只有实际数值 `0` 显示 `0%`。
+
 目标、阈值和视觉状态：
 
 - Actions 的目标值及达标状态：TBD
@@ -412,5 +414,5 @@ Stores 列表默认勾选并显示七个字段：
 - 数据库表、物理字段名、字段类型、约束与索引
 - API 路由、请求和响应格式
 - 数据刷新频率与持久化方式
-- 时区、日期边界和 Expiry Date 的比较基准
+- 时区、日期边界和生产环境 Reference Date 的来源
 - 未明确的状态字典与视觉颜色

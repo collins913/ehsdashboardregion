@@ -29,7 +29,7 @@
 - Global Filters 数据源、默认值、单/多选、联动和 Period 边界
 - Training 与 Inspection 的 Requirement 集合、缺记录处理和完成状态
 - Action Closure Rate 目标
-- 证件与许可有效期边界和空值结果
+- 生产环境 Reference Date 的来源
 - 环境合同适用关系、组合结果列映射、许可空值处理
 - Environmental Monitoring 明细、频次和达标规则
 - Store Resolution 匹配优先级、冲突与未匹配处理
@@ -38,4 +38,4 @@
 ## 需注意的表达边界
 
 - Goal 汇总值可随 Region、Area、Store、Period 变化，但 `Goal Summary` 如何表达多门店汇总结果尚未形成 API Schema；实现时不得把单一 `Store Reference` 结构当作已冻结方案。
-- “缺失 Expiry Date”仍为 TBD。不得因其它分支已定义，就默认把缺失日期视为有效或过期。
+- 缺失必要 Expiry Date 且没有更早异常结论时返回 `UNDETERMINED`；不得将缺失日期视为有效或过期。

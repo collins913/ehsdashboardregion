@@ -150,6 +150,9 @@ Actions 页面展示明细；KPI 页面读取数据源提供的 Action Closure R
 
 有记录但缺 Required Slot 或存在过期证件时显示异常；全部满足且有效时显示正常。
 
+缺失必要 Expiry Date 且没有更早异常结论时，Business Result 为
+`UNDETERMINED`，Reason Code 为 `MISSING_EXPIRY_DATE`。规则层不返回中文文案。
+
 ### D-022 不提供证件到期提醒
 
 V1 不设置“即将到期”状态，不定义提前提醒天数，也不实现到期提醒功能。
@@ -187,6 +190,13 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 
 “无”仅表示没有记录，不进行正常或异常判断。监测结果和监测频次规则尚未确认。
 
+### D-028 有效期统一边界
+
+- `Expiry Date < Reference Date`：过期。
+- `Expiry Date >= Reference Date`：有效，到期日当天仍有效。
+- 缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`。
+- 生产环境如何确定 Reference Date：TBD。
+
 ## 9. 明确未决事项
 
 以下内容没有默认答案：
@@ -195,7 +205,7 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 - 非完整自然月和自定义日期区间的 KPI 规则
 - Training 与 Inspection 的 Requirement 集合来源及缺记录处理
 - Action Closure Rate 的目标及达标规则
-- 证件和许可有效期的比较基准与空值处理
+- 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
 - Store Resolution 的优先级、冲突与未匹配处理
