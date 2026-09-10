@@ -1,6 +1,7 @@
 export type IsoDate = `${number}-${number}-${number}`;
 export type IsoDateTime = `${string}T${string}`;
 export type Month = `${number}-${number}`;
+export type StoreId = string;
 
 export type StoreReference =
   | { trtid: string }

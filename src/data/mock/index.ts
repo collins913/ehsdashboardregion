@@ -5,6 +5,7 @@ export * from "@/data/mock/environment";
 export * from "@/data/mock/events";
 export * from "@/data/mock/goals";
 export * from "@/data/mock/inspections";
+export * from "@/data/mock/kpi-coverage";
 export * from "@/data/mock/stores";
 export * from "@/data/mock/take-charge";
 export * from "@/data/mock/training";

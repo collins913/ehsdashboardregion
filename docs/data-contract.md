@@ -29,7 +29,15 @@
 - Store
 - Period
 
-其中 Period 的表达格式、时区、起止边界和月份纳入规则：TBD。
+KPI 组装层当前使用最小规范化查询契约：
+
+- Region、Area、Store 均显式表达 `ALL` 或非空选择集合；
+- Store 使用规范化 `storeId`；
+- Period 提供半开区间 `[startInclusive, endExclusive)`；
+- `startInclusive`、`endExclusive` 必须携带 `Z` 或明确 UTC offset；
+- Period 必须显式提供 `includedMonths`。
+
+Filter UI 如何生成该契约、采用哪个业务时区、默认值、联动关系和部分月份纳入规则仍为 TBD。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
 
 ### 2.2 Store Reference
 
@@ -46,8 +54,24 @@
 - TRTID 不保证是所有数据源的唯一关联键。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
 - 每个数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
+- Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
-### 2.3 Source Reference
+### 2.3 Data Availability
+
+KPI scoped data 必须显式区分：
+
+| Availability | 含义 |
+|---|---|
+| `AVAILABLE` | 请求范围完整且存在数据 |
+| `CONFIRMED_EMPTY` | 请求范围完整且确认无数据 |
+| `INCOMPLETE` | 仅有部分数据或完整性无法确认 |
+| `UNAVAILABLE` | 数据未提供或不可用 |
+
+过滤后数组为空本身不能证明 `CONFIRMED_EMPTY`。ASTM 仅在完整数据集确认为空时返回 `NOT_OCCURRED`；`INCOMPLETE` 或 `UNAVAILABLE` 不产生 `OccurrenceResult`。
+
+当 Store 为 `ALL` 时，完整性校验必须展开当前 Region / Area 范围内实际规范化 `storeId`；任一门店没有覆盖声明时，请求数据集不得标记为 `CONFIRMED_EMPTY`。
+
+### 2.4 Source Reference
 
 原文件中的 `Source / Link` 统一称为 `Source Reference`。其目的仅为追溯业务记录来源。
 
@@ -59,7 +83,7 @@ Source Reference 为可选结构，可包含：
 
 各字段可缺失或为空，不要求每条记录提供 URL。不得在 mock 数据中创建虚假生产 URL。链接格式和访问权限仍为 TBD。
 
-### 2.4 Status 分层
+### 2.5 Status 分层
 
 数据契约区分：
 
@@ -135,6 +159,8 @@ Value 使用 0–100。
 
 - Numerator、Denominator 是否一并提供：TBD
 - Source Reference 和更新时间：TBD
+
+Repository 必须返回与完整请求 Period 对应的单一源汇总值。不得将月度值平均或重算为多月结果；没有对应汇总时返回 `value = null`，业务结果为 `UNDETERMINED`。
 
 ### 4.4 Inspection Record
 
@@ -385,3 +411,5 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 | Environment Business Result | 已定义类别的正常/异常；Environmental Monitoring 不因记录存在性输出此结果 |
 
 字段命名、枚举编码和错误返回结构：TBD。
+
+KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 同时提供该门店 `RecordState = OPEN` 的明细；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入 `openActions`。

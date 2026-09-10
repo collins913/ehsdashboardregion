@@ -17,8 +17,13 @@ import type {
   TrainingRecord,
   WasteContractRecord,
 } from "@/types/ehs";
+import type {
+  KpiDataSnapshot,
+  KpiFilterContext,
+} from "@/data/contracts/kpi";
 
 export interface EhsRepository {
+  getKpiData(context: KpiFilterContext): KpiDataSnapshot;
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];
   listTrainingRecords(): readonly TrainingRecord[];

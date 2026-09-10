@@ -197,6 +197,26 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 - 缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`。
 - 生产环境如何确定 Reference Date：TBD。
 
+### D-029 KPI 使用集中数据组装契约
+
+KPI 页面只消费 `KpiRow[]`。Repository 根据 `KpiFilterContext` 返回规范化 scoped snapshot，KPI Builder 分组输入并调用现有 Rule Engine。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
+
+### D-030 数据可用性必须显式表达
+
+KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`。零条过滤结果不能自行证明数据完整；ASTM 只有在完整空集时才返回 `NOT_OCCURRED`。
+
+### D-031 KPI 使用规范化 Store ID
+
+页面和 KPI Builder 只消费 `storeId`。TRTID、Store Name CN、Store Name EN 到 `storeId` 的解析属于 Adapter / Repository；生产解析策略保持 TBD。
+
+### D-032 Action KPI 汇总与明细边界
+
+Action Closure Rate 只读取请求 Period 对应的源汇总值，不计算或平均。缺少对应汇总时值为 `null` 且结果为 `UNDETERMINED`。KPI 下钻的 `openActions` 仅包含 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。
+
+### D-033 KPI 查询契约采用显式时区与实际门店覆盖
+
+KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校验时间范围和 `includedMonths` 一致性；无效输入安全降级，不产生正常 KPI 结论。`Store = ALL` 时覆盖校验使用筛选范围内实际规范化 `storeId`。
+
 ## 9. 明确未决事项
 
 以下内容没有默认答案：

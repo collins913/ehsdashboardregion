@@ -1,8 +1,10 @@
 import type { ActionRecord } from "@/types/ehs";
 import type { RecordState } from "./result-types";
 
+export type ActionStateInput = Pick<ActionRecord, "Status">;
+
 export function classifyActionRecordState(
-  action: ActionRecord,
+  action: ActionStateInput,
 ): RecordState {
   if (action.Status.kind === "UNKNOWN") {
     return "UNKNOWN";
