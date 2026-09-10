@@ -1,331 +1,828 @@
-# EHS Dashboard 指标与状态规则
+# EHS Dashboard — Metric & Business Rules
 
-- 版本：V1（整理版）
-- 日期：2026-09-10
-- 状态：已确认规则与明确 TBD 的业务判定依据
+- Version: V1.1
+- Date: 2026-09-10
+- Status: Confirmed rules with explicitly identified TBD items
 
-## 1. 文档职责
+---
 
-本文只定义“如何计算、如何判定”。页面结构见 `business-requirements.md`，输入数据见 `data-contract.md`。
+## 1. Document Responsibility
 
-## 2. 共同规则
+This document defines only:
 
-1. 除 Store Master Data 外，所有结果均基于 Global Filters 当前 Region、Area、Store、Period。
-2. 规则在集中业务逻辑中执行，页面组件不得自行计算。
-3. 数据源直接提供的汇总值只负责格式化展示与已确认阈值判定，不从明细重算。
-4. 原始数据缺失、空值或未知枚举不得自动视为 No、0、正常或已关闭；未定义情况返回 TBD/不可判定的具体处理方式仍为 TBD。
-5. 日期有效性的比较基准、时区和边界包含关系：TBD。
-6. 状态颜色、图标、严重等级和 Overview 汇总权重：TBD。
-7. 百分比值在应用内部统一使用 0–100；外部数据源如使用其它表示，由 repository/adapter 转换。
+- how business results are calculated;
+- how KPI / Goal results are evaluated;
+- how compliance rules are evaluated;
+- which inputs participate in each rule.
 
-## 3. Performance → KPI
+This document does NOT define:
 
-### 3.1 Training
+- page layout or interaction;
+- Badge / Card / Table appearance;
+- colors or icons;
+- raw data schemas;
+- database structure;
+- source-system field mapping;
+- navigation.
 
-判定对象：纳入当前 Period 的每个自然月、每家 Store 的月度必修培训。
+Related documents:
 
-```text
-每个纳入月份的必修培训均为全员完成
-→ 达成
+- Page behavior: `business-requirements.md`
+- Input data structure: `data-contract.md`
+- Status semantics and mappings: `status-dictionary.md`
+- Architecture decisions: `decisions.md`
 
-任一纳入月份存在未全员完成的必修培训
-→ 未达成
-```
+---
 
-以下情况尚未定义：
+## 2. Common Rule Principles
 
-- 非完整自然月是否纳入：TBD
-- 自定义日期区间的首尾月份如何处理：TBD
-- “必修培训集合”由哪个数据源界定：TBD
-- 完全没有培训记录时如何判定：TBD
-- 全员完成对应的源状态值：TBD
+### 2.1 Global Filter Scope
 
-### 3.2 Drill
+Except for Store Master Data, business results are evaluated within the current Global Filters scope:
 
-要求：每家 Store 每个纳入月份至少完成 1 次演练。
+- Region
+- Area
+- Store
+- Period
 
-```text
-所有纳入月份的已完成演练数 >= 1
-→ 达成
+The rule layer receives the already-filtered business data and does not implement UI filtering itself.
 
-任一纳入月份的已完成演练数 = 0
-→ 未达成
-```
+---
 
-- Drill Name 仅用于明细展示，不参与判定。
-- 非完整月份处理沿用 3.1 的 Period Rule，当前为 TBD。
-- 哪些源状态计为“已完成”：TBD。
+### 2.2 Business Logic Boundary
 
-### 3.3 Actions
+All calculation and evaluation logic must be implemented in centralized business-rule functions.
 
-- 指标：Action Closure Rate。
-- Value：数据源直接提供的百分比。
-- Dashboard 不计算 Numerator 或 Denominator。
-- 页面格式：百分比。
-- Target：TBD。
-- 达成/未达成规则：TBD。
+UI components must not independently:
 
-### 3.4 Inspections
+- calculate KPI results;
+- infer compliance;
+- interpret raw Status values;
+- determine expiry;
+- infer missing values;
+- recreate thresholds.
 
-判定对象：数据源提供的当前筛选范围内、该 Store 要求完成的全部 Inspection。
+Conceptual flow:
 
-```text
-全部 Inspection 完成
-→ 达成
+Raw Data
+→ Repository / Adapter
+→ Rule Engine
+→ Business Result
+→ View Model
+→ UI
 
-任一 Inspection 未完成
-→ 未达成
-```
+---
 
-以下情况尚未定义：
+### 2.3 Direct-source Aggregated Metrics
 
-- 哪些源状态计为完成：TBD
-- 没有 Inspection 记录时如何判定：TBD
-- Requirement 集合由哪个数据源界定：TBD
+When a KPI or Goal value is explicitly defined as being provided directly by the source data:
 
-### 3.5 Events / ASTM Incident
+- Dashboard must not recalculate it from detail records;
+- detail records may be used for drill-down only;
+- source representation normalization belongs in Repository / Adapter.
 
-判定对象：当前筛选范围内的 Event 记录。
+---
 
-```text
-存在至少一条 ASTMInjuryIllness = "Yes" 的记录
-→ 发生
+### 2.4 Percentage Representation
 
-不存在 ASTMInjuryIllness = "Yes" 的记录
-→ 未发生
-```
+Application-internal percentage values use the range:
 
-- ASTM KPI 不维护独立数据源。
-- ASTM 判定只读取数据源字段 `ASTMInjuryIllness`。
-- `ASTMInjuryIllness = "Yes"` 表示 ASTM Incident；其它值均不表示 ASTM Incident。
-- Severity 仅用于描述和展示，不参与 ASTM 判定。
-- 页面展示“发生 / 未发生”，不展示事故数量。
+`0–100`
 
-## 4. Performance → Goals
+Examples:
 
-三个值均由数据源直接提供，Dashboard 不重算。
+- `90` = 90%
+- `50` = 50%
+- `97.5` = 97.5%
 
-### 4.1 Take Charge Submissions per Capita
+External sources using another representation must be normalized before entering the rule layer.
 
-```text
+---
+
+### 2.5 Missing / Unknown Data
+
+Missing, null, malformed, or unknown values must never be silently converted to:
+
+- `0`
+- `No`
+- `Normal`
+- `Achieved`
+- `Closed`
+
+When a rule cannot safely produce a business conclusion, return:
+
+`UNDETERMINED`
+
+unless a module-specific rule explicitly defines another result.
+
+---
+
+### 2.6 Date-based Rules
+
+Expiry rules must receive an explicit `referenceDate`.
+
+Expiry calculation:
+
+`expiryDate < referenceDate`
+→ Expired
+
+`expiryDate >= referenceDate`
+→ Valid
+
+Therefore, a certificate / permit remains valid on its stated Expiry Date.
+
+Dates used for expiry evaluation should be date-only values such as:
+
+`YYYY-MM-DD`
+
+The rule function must not read the browser/system current time directly.
+
+How production determines `referenceDate` is an application-level policy and remains:
+
+`TBD`
+
+This does not prevent deterministic testing because tests can inject a reference date.
+
+---
+
+# 3. Performance → KPI
+
+## 3.1 Training
+
+### Purpose
+
+Determine whether all required monthly Training within the selected Period has been fully completed by the Store.
+
+### Input
+
+For each included natural month:
+
+- required Training records;
+- whether each required Training achieved full-person completion.
+
+### Rule
+
+For every included month:
+
+All required Training = fully completed
+→ month passes
+
+Any required Training != fully completed
+→ month fails
+
+Period result:
+
+All included months pass
+→ `ACHIEVED`
+
+Any included month fails
+→ `NOT_ACHIEVED`
+
+### Result Type
+
+`PerformanceResult`
+
+### Explicit TBD
+
+- how partial months are included;
+- how custom Period start/end months are handled;
+- how the required Training set is identified;
+- how a month with no Training records is evaluated;
+- source-system mapping to “fully completed”.
+
+These Period/source mappings must be resolved outside the UI.
+
+---
+
+## 3.2 Drill
+
+### Purpose
+
+Determine whether the Store completed the required monthly Drill activity.
+
+### Requirement
+
+Each Store must complete at least:
+
+`1 Drill per included month`
+
+### Rule
+
+For each included month:
+
+Completed Drill count >= 1
+→ month passes
+
+Completed Drill count = 0
+→ month fails
+
+Period result:
+
+All included months pass
+→ `ACHIEVED`
+
+Any included month fails
+→ `NOT_ACHIEVED`
+
+### Result Type
+
+`PerformanceResult`
+
+### Notes
+
+- Drill Name is descriptive and does not participate in KPI evaluation.
+- Multiple completed Drills in one month still satisfy the same monthly requirement.
+
+### Explicit TBD
+
+- partial-month inclusion follows the Period policy;
+- mapping of source Drill Status to “completed”.
+
+---
+
+## 3.3 Actions
+
+### Metric
+
+`Action Closure Rate`
+
+### Source
+
+Value is provided directly by the source data.
+
+Dashboard must NOT calculate:
+
+- Numerator
+- Denominator
+- Closure Rate
+
+from Action detail records.
+
+### Input
+
+`Action Closure Rate: number | null`
+
+Internal percentage range:
+
+`0–100`
+
+### Target
+
+`TBD`
+
+### Result
+
+Until Target is defined:
+
+valid numeric value
+→ value may be displayed but evaluation result = `UNDETERMINED`
+
+missing/invalid value
+→ `UNDETERMINED`
+
+### Result Type
+
+`PerformanceResult`
+
+---
+
+## 3.4 Inspections
+
+### Purpose
+
+Determine whether all required Inspections within the selected Period were completed.
+
+### Rule
+
+All required Inspections completed
+→ `ACHIEVED`
+
+Any required Inspection not completed
+→ `NOT_ACHIEVED`
+
+### Result Type
+
+`PerformanceResult`
+
+### Explicit TBD
+
+- mapping of source Inspection Status to “completed”;
+- result when no Inspection records exist;
+- source of the required Inspection set.
+
+---
+
+## 3.5 Events / ASTM Incident
+
+### Purpose
+
+Determine whether any ASTM Incident occurred within the selected scope.
+
+### ASTM Source Field
+
+`ASTMInjuryIllness`
+
+### Rule
+
+At least one Event has:
+
+`ASTMInjuryIllness = "Yes"`
+
+→ `OCCURRED`
+
+No Event has:
+
+`ASTMInjuryIllness = "Yes"`
+
+→ `NOT_OCCURRED`
+
+### Important Constraints
+
+- Do not use `Severity` to determine ASTM status.
+- Severity is descriptive only.
+- Do not maintain a separate ASTM Incident dataset.
+- Do not count ASTM incidents for KPI presentation.
+- KPI represents whether ASTM occurred, not how many occurred.
+
+### Result Type
+
+`OccurrenceResult`
+
+---
+
+# 4. Performance → Goals
+
+All Goal values are provided directly by the source data.
+
+Dashboard does not recalculate these values from detail records.
+
+---
+
+## 4.1 Take Charge Submissions per Capita
+
+### Input
+
+Numeric value.
+
+### Target
+
+`>= 4`
+
+### Rule
+
 Value >= 4
-→ 达成
+→ `ACHIEVED`
 
 Value < 4
-→ 未达成
-```
+→ `NOT_ACHIEVED`
 
-- 展示精度：1 位小数。
-- Value 缺失时的显示与业务结果：TBD。
+Value missing / invalid
+→ `UNDETERMINED`
 
-### 4.2 Take Charge Close Rate
+### Result Type
 
-```text
-Value >= 90%
-→ 达成
+`PerformanceResult`
 
-Value < 90%
-→ 未达成
-```
+---
 
-- 展示精度：0 位小数。
-- 百分比值使用 0–100。
-- Value 缺失时的显示与业务结果：TBD。
+## 4.2 Take Charge Close Rate
 
-### 4.3 Take Charge Participate Rate
+### Input
 
-```text
-Value >= 50%
-→ 达成
+Percentage value using internal `0–100` representation.
 
-Value < 50%
-→ 未达成
-```
+### Target
 
-- 展示精度：0 位小数。
-- 百分比值使用 0–100。
-- Value 缺失时的显示与业务结果：TBD。
+`>= 90`
 
-### 4.4 Take Charge Record Open / Closed
+### Rule
 
-- `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 归类为 Closed。
-- 其它任意 Take Charge `Status` 归类为 Open。
-- 分类由集中业务规则维护；Take Charge Close Rate 仍由数据源直接提供，不从明细重算。
+Value >= 90
+→ `ACHIEVED`
 
-## 5. Risk & Compliance → Events
+Value < 90
+→ `NOT_ACHIEVED`
 
-### 5.1 Event Type
+Value missing / invalid
+→ `UNDETERMINED`
 
-规范值：
+### Important Constraint
 
-- `Agency`：政府检查
-- `Non-Agency Event`：非政府检查事件
+Take Charge Close Rate is supplied directly by the source data.
 
-`Agency` 在内部业务中固定表示政府检查。原文件中的 `Non-Agency` 统一规范为 `Non-Agency Event`。
+Do not calculate it from Take Charge records.
 
-### 5.2 Open / All
+### Result Type
 
-- 默认视图：Open。
-- All：不过滤关闭状态。
-- `Status = "Closed"` 时归类为 Closed。
-- 其它任意 `Status` 值均归类为 Open。
-- 页面保留原始 `Status`，不得覆盖或自行维护 Open 状态列表。
+`PerformanceResult`
 
-页面不得复制 Actions 的状态映射，也不得通过其它字段猜测。
+---
 
-## 6. Risk & Compliance → Actions
+## 4.3 Take Charge Participate Rate
 
-Source Status 由数据源提供，不由前端生成。
+### Input
 
-| Source Status | Open 分类 |
-|---|---|
-| Assigned | 未关闭 |
-| InProgress | 未关闭 |
-| Closed | 已关闭 |
-| Cancelled | 不属于未关闭 |
-| 其它值 | TBD |
+Percentage value using internal `0–100` representation.
 
-- 默认视图：Open。
-- All：显示全部源状态。
-- 不根据 Due Date 派生 Overdue，除非后续另行确认。
-- Action Closure Rate 不由上述明细重算。
+### Target
 
-## 7. Risk & Compliance → Certificates
+`>= 50`
 
-### 7.1 输入与输出
+### Rule
 
-- 输入：Certificate Record、Certificate Category、Required Slot、Expiry Date 及 Slot 匹配规则。
-- Display Status：无、异常、正常。
-- Business Result：异常、正常。
-- 数据源不直接提供最终证件汇总状态。
+Value >= 50
+→ `ACHIEVED`
 
-### 7.2 判定顺序
+Value < 50
+→ `NOT_ACHIEVED`
 
-```text
-1. 该 Store × Certificate Category 是否存在任何证件记录？
-   否 → Display Status = 无；Business Result = 异常
-   是 → 进入 Required Slot 匹配
+Value missing / invalid
+→ `UNDETERMINED`
 
-2. 是否存在未满足的 Required Slot？
-   是 → Display Status = 异常；Business Result = 异常
+### Result Type
 
-3. 该类别内任一相关证件是否已过期？
-   是 → Display Status = 异常；Business Result = 异常
+`PerformanceResult`
 
-4. Required Slot 均满足且相关证件均有效
-   → Display Status = 正常；Business Result = 正常
-```
+---
 
-### 7.3 边界
+# 5. Risk & Compliance → Events
 
-- 不设置“即将到期”状态。
-- 不提供到期提醒。
-- Required Slot 与 Certificate Type 精确匹配如下：
+Event open/closed classification is defined in:
 
-| Certificate Category | Required Slot | 可匹配 Certificate Type |
+`status-dictionary.md`
+
+The Metric Rule layer does not maintain a second Event Status mapping.
+
+ASTM evaluation follows section `3.5`.
+
+---
+
+# 6. Risk & Compliance → Actions
+
+Action lifecycle classification is defined in:
+
+`status-dictionary.md`
+
+Action detail records do NOT determine the Performance → KPI → Action Closure Rate.
+
+Action Closure Rate remains a source-provided aggregate value.
+
+Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
+
+---
+
+# 7. Risk & Compliance → Certificates
+
+## 7.1 Purpose
+
+Evaluate each:
+
+`Store × Certificate Category`
+
+for certificate completeness and validity.
+
+---
+
+## 7.2 Result Type
+
+`ComplianceResult`
+
+Possible rule results:
+
+- `NORMAL`
+- `ABNORMAL`
+- `UNDETERMINED`
+
+Display reasons are defined separately in:
+
+`status-dictionary.md`
+
+---
+
+## 7.3 Required Slot Definitions
+
+Certificate Type matching is exact against the explicitly accepted values below.
+
+No additional alias, fuzzy matching, Person, Role, or Title matching is permitted.
+
+| Certificate Category | Required Slot | Accepted Certificate Type |
 |---|---|---|
-| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
-| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
-| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
-| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
-| 急救员 | First Aid | `急救员证`、`红十字急救员` |
-| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
+| 安全证书 | S | `主要负责人安全生产培训合格证书-S` |
+| 安全证书 | S | `店长安全证` |
+| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M` |
+| 安全证书 | M | `EHS RN安全证` |
+| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1` |
+| 职业卫生证书 | H1 | `职业健康证` |
+| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2` |
+| 职业卫生证书 | H2 | `职业健康证` |
+| 急救员 | First Aid | `急救员证` |
+| 急救员 | First Aid | `红十字急救员` |
+| 焊工证 | Welding | `熔化焊接与热切割作业` |
+| 焊工证 | Welding | `焊工证` |
 | 内驾证 | Trainer | `内训师` |
 | 内驾证 | Internal Driving | `内驾证` |
 
-- Slot 不使用 Person、Role / Title。
-- 一个证件记录只能匹配一个 Slot；匹配不得使用别名或模糊规则。
-- 未用于 Slot 匹配的额外证件继续展示，且其过期状态参与整个类别判定。
-- Expiry Date 等于比较基准日时是否有效：TBD。
-- 缺少 Expiry Date 时如何判定：TBD。
+---
 
-## 8. Risk & Compliance → Environment
+## 7.4 Slot Matching Rules
 
-### 8.1 危废与一般固废合同组合判定
+1. Retrieve all Certificate records belonging to the Store and Certificate Category.
+2. Match Required Slots using exact Certificate Type values listed in section 7.3.
+3. One Certificate record may satisfy only one Required Slot.
+4. A Certificate record already assigned to one Slot cannot be reused.
+5. Person, Role and Title do not participate in Slot matching.
+6. Explicit accepted values in section 7.3 are the complete matching dictionary.
+7. No additional aliases or fuzzy text matching may be introduced.
+8. Certificate records not used by a Required Slot remain additional Certificate records for that category.
 
-判定对象：同一 Store 的 Hazardous Waste Contract 与 General Solid Waste Contract。
+Special case:
 
-```text
-缺少任一合同类别
-→ 异常
+Both H1 and H2 accept:
 
-任一相关合同已过期
-→ 异常
+`职业健康证`
 
-两类合同均存在，且所有相关合同均有效
-→ 正常
-```
+Therefore:
 
-- 多份合同中哪些属于“相关合同”：TBD。
-- 组合结果如何映射到两个独立 Environment Category 单元格：TBD。
-- Expiry Date 缺失或合同重复时如何处理：TBD。
+- one `职业健康证` record can satisfy only H1 or H2;
+- two separate `职业健康证` records may satisfy both H1 and H2.
 
-### 8.2 Car Wash / Drainage Permit
+---
 
-```text
-Has Car Wash = No
-→ 正常
+## 7.5 Certificate Category Evaluation
 
-Has Car Wash = Yes 且 Has Drainage Permit = No
-→ 异常
+Evaluation order:
 
-Has Car Wash = Yes 且 Has Drainage Permit = Yes 且许可已过期
-→ 异常
+### Step 1 — No Records
 
-Has Car Wash = Yes 且 Has Drainage Permit = Yes 且许可有效
-→ 正常
-```
+No Certificate records exist for the category
+→ `ABNORMAL`
 
-任一布尔值或 Permit Expiry Date 缺失时如何处理：TBD。
+Reason:
+`NO_RECORD`
 
-### 8.3 EIA
+### Step 2 — Required Slot Completeness
 
-```text
-EIA Required = No
-→ 正常
+One or more Required Slots cannot be matched
+→ `ABNORMAL`
 
-EIA Required = Yes 且无 EIA Information
-→ 异常
+Reason:
+`MISSING_REQUIRED_SLOT`
 
-EIA Required = Yes 且有 EIA Information
-→ 正常
-```
+### Step 3 — Expiry Validation
 
-- EIA 不进行有效期判断。
-- EIA Required 缺失时如何处理：TBD。
-- “存在 EIA Information”的最小有效内容：TBD。
+Evaluate ALL Certificate records in the category, including:
 
-### 8.4 Discharge Permit
+- records used for Required Slots;
+- additional/unmatched records.
 
-```text
-Discharge Permit Required = No
-→ 正常
+Any Certificate is expired
+→ `ABNORMAL`
 
-Discharge Permit Required = Yes 且无 Permit Information
-→ 异常
+Reason:
+`EXPIRED_CERTIFICATE`
 
-Discharge Permit Required = Yes 且许可已过期
-→ 异常
+Therefore, an expired additional Certificate also makes the entire category abnormal.
 
-Discharge Permit Required = Yes 且许可有效
-→ 正常
-```
+### Step 4 — Missing Expiry Date
 
-- Required、Permit Information 或 Expiry Date 缺失时如何处理：TBD。
+If an expiry date required for evaluation is missing and no earlier rule has already produced `ABNORMAL`
+→ `UNDETERMINED`
 
-### 8.5 Environmental Monitoring
+Reason:
+`MISSING_EXPIRY_DATE`
 
-```text
-当前筛选范围内没有记录
-→ Display Status = 无
+### Step 5 — Normal
 
-存在记录
-→ Display Status = 查看
-```
+All Required Slots are matched AND all Certificate records are valid
+→ `NORMAL`
 
-以下业务规则尚未确认：
+Reason:
+`NORMAL`
 
-- 监测结果是否达标以及如何判定：TBD
-- 监测周期、频次与应有记录集合：TBD
+---
 
-Display Status“无”仅表示没有记录，不映射为正常或异常。Environmental Monitoring 不因记录存在性输出正常/异常 Business Result。
+## 7.6 Certificate Exclusions
+
+The system does NOT implement:
+
+- expiring-soon status;
+- expiry reminders;
+- role-based Slot matching;
+- fuzzy matching;
+- automatic alias discovery.
+
+---
+
+# 8. Risk & Compliance → Environment
+
+## 8.1 Result Type
+
+Compliance rules return:
+
+`ComplianceResult`
+
+unless otherwise stated.
+
+---
+
+## 8.2 Hazardous Waste Contract
+
+### Rule
+
+No Hazardous Waste Contract exists
+→ `ABNORMAL`
+
+Any Hazardous Waste Contract is expired
+→ `ABNORMAL`
+
+At least one contract exists and all Hazardous Waste Contracts are valid
+→ `NORMAL`
+
+Missing required Expiry Date with no earlier abnormal result
+→ `UNDETERMINED`
+
+---
+
+## 8.3 General Solid Waste Contract
+
+### Rule
+
+No General Solid Waste Contract exists
+→ `ABNORMAL`
+
+Any General Solid Waste Contract is expired
+→ `ABNORMAL`
+
+At least one contract exists and all General Solid Waste Contracts are valid
+→ `NORMAL`
+
+Missing required Expiry Date with no earlier abnormal result
+→ `UNDETERMINED`
+
+---
+
+## 8.4 Combined Waste Contract Compliance
+
+Both contract categories are mandatory.
+
+Combined result:
+
+Hazardous Waste Contract = NORMAL
+AND
+General Solid Waste Contract = NORMAL
+→ `NORMAL`
+
+Either category = ABNORMAL
+→ `ABNORMAL`
+
+If neither category is ABNORMAL but at least one category = UNDETERMINED
+→ `UNDETERMINED`
+
+This combined result ensures the confirmed requirement:
+
+- both contract categories must exist;
+- expiration of any relevant contract causes non-compliance.
+
+Individual category results remain available for detailed display.
+
+---
+
+## 8.5 Car Wash / Drainage Permit
+
+### Rule
+
+`Has Car Wash = No`
+→ `NORMAL`
+
+`Has Car Wash = Yes`
+AND
+`Has Drainage Permit = No`
+→ `ABNORMAL`
+
+`Has Car Wash = Yes`
+AND
+`Has Drainage Permit = Yes`
+AND
+permit expired
+→ `ABNORMAL`
+
+`Has Car Wash = Yes`
+AND
+`Has Drainage Permit = Yes`
+AND
+permit valid
+→ `NORMAL`
+
+Required boolean or expiry information missing such that the rule cannot be evaluated
+→ `UNDETERMINED`
+
+---
+
+## 8.6 EIA
+
+EIA has no expiry-date rule.
+
+### Rule
+
+`EIA Required = No`
+→ `NORMAL`
+
+`EIA Required = Yes`
+AND
+no EIA Information exists
+→ `ABNORMAL`
+
+`EIA Required = Yes`
+AND
+EIA Information exists
+→ `NORMAL`
+
+`EIA Required` missing / unknown
+→ `UNDETERMINED`
+
+The minimum source-data structure constituting valid `EIA Information` is defined in `data-contract.md`.
+
+---
+
+## 8.7 Discharge Permit
+
+### Rule
+
+`Discharge Permit Required = No`
+→ `NORMAL`
+
+`Discharge Permit Required = Yes`
+AND
+no Permit Information exists
+→ `ABNORMAL`
+
+`Discharge Permit Required = Yes`
+AND
+Permit exists but is expired
+→ `ABNORMAL`
+
+`Discharge Permit Required = Yes`
+AND
+Permit exists and is valid
+→ `NORMAL`
+
+Required information missing such that the rule cannot be evaluated
+→ `UNDETERMINED`
+
+---
+
+## 8.8 Environmental Monitoring
+
+Environmental Monitoring does not currently produce a compliance result.
+
+It only produces record availability:
+
+No monitoring records in the selected scope
+→ `NONE`
+
+One or more monitoring records exist
+→ `AVAILABLE`
+
+Result Type:
+
+`AvailabilityState`
+
+The following are NOT currently defined:
+
+- monitoring compliance;
+- pass/fail result;
+- required monitoring frequency;
+- required monitoring periods;
+- whether missing monitoring records constitute non-compliance.
+
+The rule layer must not infer these conditions.
+
+---
+
+# 9. Rule Output Contract
+
+Business rule functions should return explicit semantic results rather than UI colors or labels.
+
+Examples:
+
+Training
+→ `PerformanceResult`
+
+Certificate
+→ `ComplianceResult + reason`
+
+ASTM
+→ `OccurrenceResult`
+
+Environmental Monitoring
+→ `AvailabilityState`
+
+Record lifecycle status such as Event / Action / Take Charge Open/Closed is defined by `status-dictionary.md`.
+
+No Rule Engine function should return:
+
+- Tailwind classes;
+- color names;
+- Badge variants;
+- icons;
+- localized UI text.
