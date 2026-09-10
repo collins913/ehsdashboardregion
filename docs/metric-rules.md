@@ -16,6 +16,7 @@
 4. 原始数据缺失、空值或未知枚举不得自动视为 No、0、正常或已关闭；未定义情况返回 TBD/不可判定的具体处理方式仍为 TBD。
 5. 日期有效性的比较基准、时区和边界包含关系：TBD。
 6. 状态颜色、图标、严重等级和 Overview 汇总权重：TBD。
+7. 百分比值在应用内部统一使用 0–100；外部数据源如使用其它表示，由 repository/adapter 转换。
 
 ## 3. Performance → KPI
 
@@ -84,20 +85,20 @@
 
 ### 3.5 Events / ASTM Incident
 
-判定对象：当前筛选范围内的 `Non-Agency Event` 记录。
+判定对象：当前筛选范围内的 Event 记录。
 
 ```text
-存在至少一条 Severity 被归类为 ASTM Incident 的记录
+存在至少一条 ASTMInjuryIllness = "Yes" 的记录
 → 发生
 
-不存在被归类为 ASTM Incident 的记录
+不存在 ASTMInjuryIllness = "Yes" 的记录
 → 未发生
 ```
 
 - ASTM KPI 不维护独立数据源。
-- Events 记录中的 Severity 是统一判定输入。
-- Severity 到 ASTM Incident 的映射规则：TBD。
-- Severity 缺失时如何处理：TBD。
+- ASTM 判定只读取数据源字段 `ASTMInjuryIllness`。
+- `ASTMInjuryIllness = "Yes"` 表示 ASTM Incident；其它值均不表示 ASTM Incident。
+- Severity 仅用于描述和展示，不参与 ASTM 判定。
 - 页面展示“发生 / 未发生”，不展示事故数量。
 
 ## 4. Performance → Goals
@@ -128,7 +129,7 @@ Value < 90%
 ```
 
 - 展示精度：0 位小数。
-- 百分比原始值使用 0–1 还是 0–100：TBD。
+- 百分比值使用 0–100。
 - Value 缺失时的显示与业务结果：TBD。
 
 ### 4.3 Take Charge Participate Rate
@@ -142,8 +143,14 @@ Value < 50%
 ```
 
 - 展示精度：0 位小数。
-- 百分比原始值使用 0–1 还是 0–100：TBD。
+- 百分比值使用 0–100。
 - Value 缺失时的显示与业务结果：TBD。
+
+### 4.4 Take Charge Record Open / Closed
+
+- `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 归类为 Closed。
+- 其它任意 Take Charge `Status` 归类为 Open。
+- 分类由集中业务规则维护；Take Charge Close Rate 仍由数据源直接提供，不从明细重算。
 
 ## 5. Risk & Compliance → Events
 
@@ -160,9 +167,11 @@ Value < 50%
 
 - 默认视图：Open。
 - All：不过滤关闭状态。
-- Events 的源状态字典以及哪些状态属于 Open：TBD。
+- `Status = "Closed"` 时归类为 Closed。
+- 其它任意 `Status` 值均归类为 Open。
+- 页面保留原始 `Status`，不得覆盖或自行维护 Open 状态列表。
 
-页面不得复制 Actions 的状态映射，也不得通过非空 Closed Date 等未确认条件猜测。
+页面不得复制 Actions 的状态映射，也不得通过其它字段猜测。
 
 ## 6. Risk & Compliance → Actions
 
@@ -211,8 +220,22 @@ Source Status 由数据源提供，不由前端生成。
 
 - 不设置“即将到期”状态。
 - 不提供到期提醒。
-- Required Slot 完整清单：TBD。
-- Slot 与 Person、Role / Title、Certificate Type 的匹配规则：TBD。
+- Required Slot 与 Certificate Type 精确匹配如下：
+
+| Certificate Category | Required Slot | 可匹配 Certificate Type |
+|---|---|---|
+| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
+| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
+| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
+| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
+| 急救员 | First Aid | `急救员证`、`红十字急救员` |
+| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
+| 内驾证 | Trainer | `内训师` |
+| 内驾证 | Internal Driving | `内驾证` |
+
+- Slot 不使用 Person、Role / Title。
+- 一个证件记录只能匹配一个 Slot；匹配不得使用别名或模糊规则。
+- 未用于 Slot 匹配的额外证件继续展示，且其过期状态参与整个类别判定。
 - Expiry Date 等于比较基准日时是否有效：TBD。
 - 缺少 Expiry Date 时如何判定：TBD。
 

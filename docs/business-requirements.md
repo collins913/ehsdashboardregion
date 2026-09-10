@@ -73,11 +73,12 @@ Global Filters 属于全局应用框架，包含：
 |---|---|
 | Store | 门店业务实体 |
 | TRTID | 内部门店标识；不称为 Store ID，也不保证是所有数据源的唯一关联键 |
-| Source Reference | 原文 `Source / Link` 的统一名称；用于追溯来源，具体数据结构 TBD |
+| Source Reference | 原文 `Source / Link` 的统一名称；可选包含 sourceSystem、sourceRecordId、sourceUrl |
 | Source Status | 数据源提供的原始状态 |
 | Display Status | 页面显示的状态或文案 |
 | Business Result | 供汇总或业务判断使用的结果 |
 | Required Slot | 某证件类别必须满足的人员、岗位或证件要求 |
+| ASTMInjuryIllness | Event 数据源提供的 ASTM 标识；`Yes` 表示 ASTM Incident，其它值均表示非 ASTM Incident |
 
 ## 4. Performance → KPI
 
@@ -99,13 +100,13 @@ Global Filters 属于全局应用框架，包含：
 | Drill | 达成 / 未达成 | 月度演练记录 |
 | Actions | Action Closure Rate 百分比 | 数据源直接提供的汇总值 |
 | Inspections | 达成 / 未达成 | Inspection 记录 |
-| Events | 发生 / 未发生 ASTM Incident | Events 记录中的 Severity |
+| Events | 发生 / 未发生 ASTM Incident | Events 记录中的 `ASTMInjuryIllness` |
 
 目标、阈值和视觉状态：
 
 - Actions 的目标值及达标状态：TBD
 - 各 KPI 的最终标签与视觉规则：TBD
-- Events 的 Severity 如何映射为 ASTM Incident：TBD
+- Severity 仅用于描述和展示，不参与 ASTM Incident 判定。
 
 具体判定见 `metric-rules.md`。
 
@@ -129,7 +130,7 @@ Goals 均跟随 Region、Area、Store、Period。
 - 点击后：仅展示当前筛选范围内未关闭的 Take Charge 记录。
 - 明细至少包括：提交人、提交日期、摘要、Source Status、Source Reference。
 
-“未关闭”对应哪些源状态：TBD。
+Take Charge 的 `Status` 为 `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 时归类为 Closed；其它值归类为 Open。该分类由集中业务规则维护。
 
 ### 5.3 Take Charge Participate Rate
 
@@ -138,7 +139,7 @@ Goals 均跟随 Region、Area、Store、Period。
 - 点击后：区分已提交人员与未提交人员。
 - 明细至少包括：人员姓名、是否提交、Source Reference。
 
-三个 Goal 的数值均由数据源直接提供，Dashboard 不计算分子、分母或人均值。
+三个 Goal 的数值均由数据源直接提供，Dashboard 不计算分子、分母或人均值。百分比统一使用 0–100 表示。
 
 ## 6. Risk & Compliance → Events
 
@@ -160,7 +161,7 @@ Events 展示两类业务记录：
 - Event Type 筛选
 - Open / All 切换
 
-默认选择 Open，仅显示未关闭记录。Events 的源状态及 Open 分类规则：TBD。
+默认选择 Open，仅显示 `Status !== "Closed"` 的记录；All 不按关闭状态过滤。原始 `Status` 值保留用于详情展示。
 
 ### 6.2 事故事件
 
@@ -171,15 +172,17 @@ Events 展示两类业务记录：
 - Event Date Time
 - Event Type
 - Severity
+- ASTMInjuryIllness
 - Title / Summary
-- Source Status
+- Status
 - Source Reference
 
 要求：
 
 - Event Date Time 为一个完整日期时间字段，由数据源提供。
 - 不需要 Due Date 或 Closed Date。
-- Severity 同时作为 ASTM Incident 的判断输入。
+- `ASTMInjuryIllness = "Yes"` 表示 ASTM Incident；其它值均不表示 ASTM Incident。
+- Severity 仅用于描述和展示。
 - ASTM Incident 不在本页面单独建立模块。
 - 点击记录打开事件详情。
 
@@ -192,7 +195,7 @@ Events 展示两类业务记录：
 - Event Date Time
 - Event Type
 - Title / Summary
-- Source Status
+- Status
 - Source Reference
 
 点击记录打开政府检查详情。
@@ -221,7 +224,7 @@ Events 展示两类业务记录：
 - Owner
 - Created Date
 - Due Date
-- Source Status
+- Status
 
 Closed Date 默认作为表格列还是仅在详情中展示：TBD。
 
@@ -234,7 +237,7 @@ Closed Date 默认作为表格列还是仅在详情中展示：TBD。
 - Created Date
 - Due Date
 - Closed Date
-- Source Status
+- Status
 - Source Reference
 
 ### 7.4 与 KPI 的关系
@@ -283,9 +286,22 @@ Closed Date 默认作为表格列还是仅在详情中展示：TBD。
 
 - 每个 Certificate Category 可包含一个或多个 Required Slot。
 - Slot 规则保留，并由集中业务逻辑维护。
-- Required Slot 的完整清单：TBD
-- 人员与岗位匹配规则：TBD
-- 证件名称别名规则：TBD
+- Slot 仅按 Certificate Type 精确匹配，不使用 Person、Role / Title。
+- 一个证件记录只能匹配一个 Slot。
+- 不新增别名或模糊匹配。
+
+| Certificate Category | Required Slot | 可匹配 Certificate Type |
+|---|---|---|
+| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
+| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
+| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
+| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
+| 急救员 | First Aid | `急救员证`、`红十字急救员` |
+| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
+| 内驾证 | Trainer | `内训师` |
+| 内驾证 | Internal Driving | `内驾证` |
+
+所有 Required Slot 满足后，未用于 Slot 匹配的证件仍作为额外记录展示；任一 Required Slot 证件或额外证件过期，整个类别均为异常。
 
 ## 9. Risk & Compliance → Environment
 

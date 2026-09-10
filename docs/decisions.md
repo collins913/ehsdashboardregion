@@ -101,7 +101,7 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 Events KPI 展示“发生 / 未发生”，不展示事故数量。
 
-ASTM 不维护独立数据源；以 Events 的 Severity 作为判断输入。Severity 的具体映射仍为 TBD。
+ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。值为 `Yes` 时表示 ASTM Incident，其它值均不表示 ASTM Incident。Severity 仅用于描述和展示。
 
 ### D-016 Goal 名称、目标和精度
 
@@ -129,7 +129,7 @@ ASTM 不维护独立数据源；以 Events 的 Severity 作为判断输入。Sev
 两个页面均提供 Open / All 切换，并默认 Open。
 
 - Actions 已确认 `Assigned`、`InProgress` 为未关闭，`Closed` 为已关闭，`Cancelled` 不属于未关闭。
-- Events 的 Open 状态映射尚未确认。
+- Events 的 `Status` 为 `Closed` 时归类为 Closed，其它值归类为 Open。
 
 ### D-019 Action Closure Rate 与 Action 明细分离
 
@@ -139,7 +139,7 @@ Actions 页面展示明细；KPI 页面读取数据源提供的 Action Closure R
 
 ### D-020 默认五类证件并保留 Required Slot
 
-默认类别为安全证书、职业卫生证书、急救员、焊工证、内驾证。类别允许扩展。Required Slot 由集中规则维护。
+默认类别为安全证书、职业卫生证书、急救员、焊工证、内驾证。类别允许扩展。Required Slot 及 Certificate Type 精确匹配表由集中规则维护；不使用 Person、Role / Title，不使用别名或模糊匹配。
 
 ### D-021 “无”是展示原因，同时归类为异常
 
@@ -195,9 +195,6 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 - 非完整自然月和自定义日期区间的 KPI 规则
 - Training 与 Inspection 的 Requirement 集合来源及缺记录处理
 - Action Closure Rate 的目标及达标规则
-- Events Source Status 的 Open 分类
-- Severity 到 ASTM Incident 的映射
-- Required Slot 完整清单及证件匹配规则
 - 证件和许可有效期的比较基准与空值处理
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则

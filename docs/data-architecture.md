@@ -52,3 +52,12 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 数据源系统、刷新频率与持久化方式
 - 权限模型
 - 日期格式、时区与边界
+
+## 当前测试数据实现
+
+- 领域类型：`src/types/ehs.ts`
+- Mock 数据：`src/data/mock/`
+- 数据访问接口与 mock 实现：`src/data/repositories/`
+- 集中状态及证件规则：`src/lib/rules/`
+
+页面不得直接导入 `src/data/mock/`。当前统一从 repository 入口访问；未来替换 API 或数据库实现时保持 repository 接口稳定。

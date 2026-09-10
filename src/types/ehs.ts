@@ -1,0 +1,181 @@
+export type IsoDate = `${number}-${number}-${number}`;
+export type IsoDateTime = `${string}T${string}`;
+export type Month = `${number}-${number}`;
+
+export type StoreReference =
+  | { trtid: string }
+  | { storeNameCn: string }
+  | { storeNameEn: string };
+
+export interface SourceReference {
+  sourceSystem?: string;
+  sourceRecordId?: string;
+  sourceUrl?: string;
+}
+
+export interface StoreMasterData {
+  region: string;
+  area: string;
+  storeNameCn: string;
+  storeNameEn: string;
+  trtid: string;
+  manager: string;
+  ehsAmbassador: string;
+}
+
+export interface TrainingRecord {
+  storeReference: StoreReference;
+  month: Month;
+  trainingName: string;
+  isRequired: boolean;
+  isFullyCompleted: boolean;
+  sourceReference?: SourceReference | null;
+}
+
+export interface DrillRecord {
+  storeReference: StoreReference;
+  month: Month;
+  drillName: string;
+  isCompleted: boolean;
+  sourceReference?: SourceReference | null;
+}
+
+export interface InspectionRecord {
+  storeReference: StoreReference;
+  period: Month;
+  isRequired: boolean;
+  isCompleted: boolean;
+  sourceReference?: SourceReference | null;
+}
+
+export interface ActionClosureRateRecord {
+  storeReference: StoreReference;
+  period: Month;
+  value: number;
+  sourceReference?: SourceReference | null;
+}
+
+export interface GoalSummary {
+  storeReference: StoreReference;
+  period: Month;
+  takeChargeSubmissionsPerCapita: number;
+  takeChargeCloseRate: number;
+  takeChargeParticipateRate: number;
+  sourceReference?: SourceReference | null;
+}
+
+export interface TakeChargeRecord {
+  storeReference: StoreReference;
+  submitter: string;
+  submittedDate: IsoDate;
+  summary: string;
+  Status: string;
+  sourceReference?: SourceReference | null;
+}
+
+export interface TakeChargeParticipationRecord {
+  storeReference: StoreReference;
+  personName: string;
+  hasSubmitted: boolean;
+  sourceReference?: SourceReference | null;
+}
+
+export type EventType = "Agency" | "Non-Agency Event";
+
+export interface EventRecord {
+  eventId: string;
+  storeReference: StoreReference;
+  eventDateTime: IsoDateTime;
+  eventType: EventType;
+  titleSummary: string;
+  Status: string;
+  ASTMInjuryIllness: string;
+  severity?: string;
+  sourceReference?: SourceReference | null;
+}
+
+export type KnownActionStatus =
+  | "Assigned"
+  | "InProgress"
+  | "Closed"
+  | "Cancelled";
+
+export interface ActionRecord {
+  actionId: string;
+  storeReference: StoreReference;
+  actionTitle: string;
+  owner: string;
+  createdDate: IsoDate;
+  dueDate: IsoDate;
+  closedDate: IsoDate | null;
+  Status: KnownActionStatus | string;
+  sourceReference?: SourceReference | null;
+}
+
+export type CertificateCategory =
+  | "安全证书"
+  | "职业卫生证书"
+  | "急救员"
+  | "焊工证"
+  | "内驾证";
+
+export interface CertificateRecord {
+  storeReference: StoreReference;
+  certificateCategory: CertificateCategory;
+  certificateType: string;
+  person: string;
+  roleTitle: string;
+  expiryDate: IsoDate | null;
+  sourceReference?: SourceReference | null;
+  certificateNumber?: string;
+  issueDate?: IsoDate;
+}
+
+export interface CertificateSlot {
+  requiredSlot: string;
+  certificateTypes: readonly string[];
+}
+
+export interface CertificateRequirement {
+  certificateCategory: CertificateCategory;
+  slots: readonly CertificateSlot[];
+}
+
+export type WasteContractCategory =
+  | "Hazardous Waste Contract"
+  | "General Solid Waste Contract";
+
+export interface WasteContractRecord {
+  storeReference: StoreReference;
+  contractCategory: WasteContractCategory;
+  supplierContractor: string;
+  expiryDate: IsoDate | null;
+  sourceReference?: SourceReference | null;
+}
+
+export interface CarWashDrainagePermitRecord {
+  storeReference: StoreReference;
+  hasCarWash: boolean;
+  hasDrainagePermit: boolean;
+  permitExpiryDate: IsoDate | null;
+  sourceReference?: SourceReference | null;
+}
+
+export interface EiaRecord {
+  storeReference: StoreReference;
+  eiaRequired: boolean;
+  eiaInformation: string | null;
+  sourceReference?: SourceReference | null;
+}
+
+export interface DischargePermitRecord {
+  storeReference: StoreReference;
+  dischargePermitRequired: boolean;
+  permitInformation: string | null;
+  expiryDate: IsoDate | null;
+  sourceReference?: SourceReference | null;
+}
+
+export interface EnvironmentalMonitoringRecord {
+  storeReference: StoreReference;
+}

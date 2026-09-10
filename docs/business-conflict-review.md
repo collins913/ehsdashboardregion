@@ -12,20 +12,24 @@
 | Goal 规则 | 目标、阈值全部 TBD | 4、90%、50% 已确认；展示精度分别为 1、0、0 位 | 以 V1 已确认规则替换旧占位说明 |
 | Store 的 Period | 全局筛选未来作用于所有业务页面 | Period 对 Store Master Data 无业务意义 | 已明确 Stores 只使用 Region、Area、Store |
 | 业务规则状态 | 所有公式与状态规则 TBD | Training、Drill、Inspections、ASTM、Actions Open、Certificates、Environment 已部分确认 | 已写入集中规则文档；未覆盖部分继续 TBD |
+| ASTM 输入 | Severity 映射 TBD | 使用 `ASTMInjuryIllness`；`Yes` 表示 ASTM Incident | Severity 降为描述字段 |
+| Event Open | 状态映射 TBD | 仅 `Closed` 为 Closed，其它值均为 Open | 已写入集中规则 |
+| Take Charge Open | 状态映射 TBD | 三个已确认状态为 Closed，其它值为 Open | 已写入集中规则 |
+| 百分比表示 | 0–1 或 0–100 TBD | 应用内部统一 0–100 | repository/adapter 负责未来外部转换 |
+| Certificate Slot | 清单及匹配规则 TBD | 五类证件、八个 Slot，仅按 Certificate Type 精确匹配 | 已写入业务、规则和数据契约 |
 
 ## 未发现直接冲突
 
 附件四份文档在信息架构、模块边界、数据源直接值、集中规则、Events/Actions 分层、Certificates 与 Environment 判定上相互一致。
 
-## 仍阻塞实现的 TBD
+## 剩余非阻塞 TBD
 
-以下不是冲突，但在实现相关功能前必须确认：
+以下不是本次 mock 数据的阻断项；实现对应生产逻辑前仍需确认：
 
 - Global Filters 数据源、默认值、单/多选、联动和 Period 边界
 - Training 与 Inspection 的 Requirement 集合、缺记录处理和完成状态
-- Action Closure Rate 目标；Events Open 状态；Severity 到 ASTM 的映射
-- Take Charge Close Rate 明细的“未关闭”状态映射
-- Required Slot 清单、证件匹配、有效期边界和空值处理
+- Action Closure Rate 目标
+- 证件与许可有效期边界和空值结果
 - 环境合同适用关系、组合结果列映射、许可空值处理
 - Environmental Monitoring 明细、频次和达标规则
 - Store Resolution 匹配优先级、冲突与未匹配处理

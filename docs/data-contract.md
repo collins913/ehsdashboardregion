@@ -51,11 +51,13 @@
 
 原文件中的 `Source / Link` 统一称为 `Source Reference`。其目的仅为追溯业务记录来源。
 
-以下结构尚未确认：
+Source Reference 为可选结构，可包含：
 
-- 是单一链接、来源系统标识，还是二者组合：TBD
-- 是否必填：TBD
-- 链接格式和访问权限：TBD
+- `sourceSystem`
+- `sourceRecordId`
+- `sourceUrl`
+
+各字段可缺失或为空，不要求每条记录提供 URL。不得在 mock 数据中创建虚假生产 URL。链接格式和访问权限仍为 TBD。
 
 ### 2.4 Status 分层
 
@@ -125,9 +127,10 @@
 - Period
 - Action Closure Rate Value
 
+Value 使用 0–100。
+
 以下尚未确认：
 
-- Value 使用 0–1 还是 0–100：TBD
 - Numerator、Denominator 是否一并提供：TBD
 - Source Reference 和更新时间：TBD
 
@@ -153,9 +156,9 @@
 - Store Reference
 - Event Date Time
 - Event Type
-- Severity
+- ASTMInjuryIllness
 
-Severity 到 ASTM Incident 的映射字典：TBD。
+`ASTMInjuryIllness = "Yes"` 表示 ASTM Incident，其它值表示非 ASTM Incident。Severity 不参与判定。
 
 ## 5. Performance → Goals 输入
 
@@ -174,7 +177,7 @@ Severity 到 ASTM Incident 的映射字典：TBD。
 - Store Reference
 - Period
 
-百分比编码、空值、更新时间与 Source Reference：TBD。
+百分比值统一使用 0–100。空值、更新时间与 Source Reference：TBD。
 
 ### 5.2 Take Charge Record
 
@@ -184,10 +187,10 @@ Severity 到 ASTM Incident 的映射字典：TBD。
 - 提交人
 - 提交日期
 - 摘要
-- Source Status
+- Status
 - Source Reference
 
-Close Rate 明细需要能够识别“未关闭”，但 Source Status 到未关闭的映射：TBD。
+Take Charge 使用源字段 `Status`。`ClosedWithAction`、`ClosedWithoutAction`、`Declined` 归类为 Closed，其它值归类为 Open。
 
 ### 5.3 Take Charge Participation Record
 
@@ -211,14 +214,15 @@ Close Rate 明细需要能够识别“未关闭”，但 Source Status 到未关
 | Event Date Time | 日期和时间为一个字段；格式与时区 TBD |
 | Event Type | `Agency`（政府检查）或 `Non-Agency Event`（非政府检查事件） |
 | Title / Summary | 事件或检查摘要 |
-| Source Status | 数据源原始状态；状态字典 TBD |
-| Source Reference | 追溯来源；结构 TBD |
+| Status | 数据源原始状态；`Closed` 表示 Closed，其它值表示 Open |
+| Source Reference | 可选追溯来源 |
+| ASTMInjuryIllness | 数据源原始字段；`Yes` 表示 ASTM Incident，其它值表示非 ASTM Incident |
 
 ### 6.2 Non-Agency Event 附加字段
 
 - Severity
 
-Severity 既用于事件详情，也作为 ASTM Incident 规则输入。Severity 字典与 ASTM 映射：TBD。
+Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 
 政府检查是否也可能提供 Severity：未要求，TBD。
 
@@ -232,11 +236,11 @@ Severity 既用于事件详情，也作为 ASTM Incident 规则输入。Severity
 | Owner | 数据源提供；人员标识方式 TBD |
 | Created Date | 数据源提供 |
 | Due Date | 数据源提供 |
-| Closed Date | 数据源提供；空值含义 TBD |
-| Source Status | 数据源提供 |
-| Source Reference | 数据源提供；结构 TBD |
+| Closed Date | 数据源提供；可为 null，表示未提供关闭日期；不得用于推断 Status |
+| Status | 数据源提供 |
+| Source Reference | 数据源可选提供 |
 
-当前已知 Source Status：
+当前已知 Status：
 
 - Closed
 - Cancelled
@@ -256,8 +260,8 @@ Severity 既用于事件详情，也作为 ASTM Incident 规则输入。Severity
 - Certificate Type
 - Person
 - Role / Title
-- Expiry Date
-- Source Reference
+- Expiry Date；mock 可为 null，以覆盖缺失数据，业务判定仍为 TBD
+- Source Reference（可选）
 
 数据源如有可额外提供：
 
@@ -272,14 +276,22 @@ Slot 匹配另需一套逻辑要求数据：
 
 - Certificate Category
 - Required Slot
-- Slot 所需的人员、岗位或证件条件
+- Slot 可匹配的 Certificate Type
 
-以下尚未确认：
+Required Slot 仅按 Certificate Type 精确匹配；不使用 Person、Role / Title。一个证件记录只能匹配一个 Slot。
 
-- 五类证件的完整 Required Slot 清单：TBD
-- Person、Role / Title、Certificate Type 的匹配优先级：TBD
-- 证件名称别名：TBD
-- Requirement 的来源与维护方式：TBD
+| Certificate Category | Required Slot | 可匹配 Certificate Type |
+|---|---|---|
+| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
+| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
+| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
+| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
+| 急救员 | First Aid | `急救员证`、`红十字急救员` |
+| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
+| 内驾证 | Trainer | `内训师` |
+| 内驾证 | Internal Driving | `内驾证` |
+
+不使用别名或模糊匹配。Requirement 的来源与维护方式仍为 TBD。
 
 ### 8.3 证件类别
 
@@ -302,8 +314,8 @@ V1 默认类别：
 - Store Reference
 - Contract Category
 - Supplier / Contractor
-- Expiry Date
-- Source Reference
+- Expiry Date；可为 null
+- Source Reference（可选）
 
 Contract Category 至少能区分：
 
@@ -319,8 +331,8 @@ Contract Category 至少能区分：
 - Store Reference
 - Has Car Wash
 - Has Drainage Permit
-- Permit Expiry Date
-- Source Reference
+- Permit Expiry Date；可为 null
+- Source Reference（可选）
 
 布尔值编码、空值与不适用值：TBD。
 
@@ -331,7 +343,7 @@ Contract Category 至少能区分：
 - Store Reference
 - EIA Required
 - EIA Information
-- Source Reference
+- Source Reference（可选）
 
 EIA Required 的布尔值编码，以及 EIA Information 的最小有效结构：TBD。
 
@@ -344,16 +356,16 @@ EIA 不需要 Expiry Date。
 - Store Reference
 - Discharge Permit Required
 - Permit Information
-- Expiry Date
-- Source Reference
+- Expiry Date；可为 null
+- Source Reference（可选）
 
 Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 ### 9.5 Environmental Monitoring Record
 
-当前只要求数据层能够回答：当前筛选范围是否存在记录，并支持点击后读取明细。
+当前只要求数据层能够按 Store Reference 表示记录存在，并支持点击后读取明细。
 
-明细字段、监测结果、频次、日期、机构和 Source Reference：TBD，待真实数据源确认。
+除 Store Reference 外，明细字段、监测结果、频次、日期、机构和 Source Reference：TBD，待真实数据源确认。
 
 ## 10. 规则结果输出边界
 
