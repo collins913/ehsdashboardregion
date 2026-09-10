@@ -3,7 +3,6 @@ import {
   mockActionRecords,
   mockCarWashDrainagePermitRecords,
   mockCertificateRecords,
-  mockCertificateRequirements,
   mockDischargePermitRecords,
   mockDrillRecords,
   mockEiaRecords,
@@ -17,8 +16,9 @@ import {
   mockTrainingRecords,
   mockWasteContractRecords,
 } from "@/data/mock";
+import { parseActionStatus } from "@/data/parse-action-status";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
-import type { StoreMasterData, StoreReference } from "@/types/ehs";
+import type { ActionRecord, StoreMasterData, StoreReference } from "@/types/ehs";
 
 function matchesStoreReference(
   store: StoreMasterData,
@@ -35,6 +35,13 @@ function matchesStoreReference(
   return store.storeNameEn === reference.storeNameEn;
 }
 
+const parsedActionRecords: readonly ActionRecord[] = mockActionRecords.map(
+  (record) => ({
+    ...record,
+    Status: parseActionStatus(record.Status),
+  }),
+);
+
 export const mockEhsRepository: EhsRepository = {
   listStores: () => mockStores,
   findStoreCandidates: (reference) =>
@@ -43,13 +50,12 @@ export const mockEhsRepository: EhsRepository = {
   listDrillRecords: () => mockDrillRecords,
   listInspectionRecords: () => mockInspectionRecords,
   listActionClosureRates: () => mockActionClosureRates,
-  listActionRecords: () => mockActionRecords,
+  listActionRecords: () => parsedActionRecords,
   listEventRecords: () => mockEventRecords,
   listGoalSummaries: () => mockGoalSummaries,
   listTakeChargeRecords: () => mockTakeChargeRecords,
   listTakeChargeParticipationRecords: () =>
     mockTakeChargeParticipationRecords,
-  listCertificateRequirements: () => mockCertificateRequirements,
   listCertificateRecords: () => mockCertificateRecords,
   listWasteContractRecords: () => mockWasteContractRecords,
   listCarWashDrainagePermitRecords: () =>

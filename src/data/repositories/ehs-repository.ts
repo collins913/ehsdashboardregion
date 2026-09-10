@@ -3,7 +3,6 @@ import type {
   ActionRecord,
   CarWashDrainagePermitRecord,
   CertificateRecord,
-  CertificateRequirement,
   DischargePermitRecord,
   DrillRecord,
   EiaRecord,
@@ -31,7 +30,6 @@ export interface EhsRepository {
   listGoalSummaries(): readonly GoalSummary[];
   listTakeChargeRecords(): readonly TakeChargeRecord[];
   listTakeChargeParticipationRecords(): readonly TakeChargeParticipationRecord[];
-  listCertificateRequirements(): readonly CertificateRequirement[];
   listCertificateRecords(): readonly CertificateRecord[];
   listWasteContractRecords(): readonly WasteContractRecord[];
   listCarWashDrainagePermitRecords(): readonly CarWashDrainagePermitRecord[];

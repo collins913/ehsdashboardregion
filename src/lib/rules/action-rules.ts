@@ -1,17 +1,27 @@
 import type { ActionRecord } from "@/types/ehs";
+import type { RecordState } from "./result-types";
 
-export type ActionOpenClassification = "open" | "closed" | "unknown";
-
-export function classifyActionOpen(
+export function classifyActionRecordState(
   action: ActionRecord,
-): ActionOpenClassification {
-  if (action.Status === "Assigned" || action.Status === "InProgress") {
-    return "open";
+): RecordState {
+  if (action.Status.kind === "UNKNOWN") {
+    return "UNKNOWN";
   }
 
-  if (action.Status === "Closed" || action.Status === "Cancelled") {
-    return "closed";
+  if (
+    action.Status.value === "Assigned" ||
+    action.Status.value === "InProgress"
+  ) {
+    return "OPEN";
   }
 
-  return "unknown";
+  if (action.Status.value === "Closed") {
+    return "CLOSED";
+  }
+
+  if (action.Status.value === "Cancelled") {
+    return "EXCLUDED";
+  }
+
+  return "UNKNOWN";
 }

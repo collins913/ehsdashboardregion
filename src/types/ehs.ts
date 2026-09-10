@@ -51,16 +51,16 @@ export interface InspectionRecord {
 export interface ActionClosureRateRecord {
   storeReference: StoreReference;
   period: Month;
-  value: number;
+  value: number | null;
   sourceReference?: SourceReference | null;
 }
 
 export interface GoalSummary {
   storeReference: StoreReference;
   period: Month;
-  takeChargeSubmissionsPerCapita: number;
-  takeChargeCloseRate: number;
-  takeChargeParticipateRate: number;
+  takeChargeSubmissionsPerCapita: number | null;
+  takeChargeCloseRate: number | null;
+  takeChargeParticipateRate: number | null;
   sourceReference?: SourceReference | null;
 }
 
@@ -100,7 +100,11 @@ export type KnownActionStatus =
   | "Closed"
   | "Cancelled";
 
-export interface ActionRecord {
+export type ParsedActionStatus =
+  | { kind: "KNOWN"; value: KnownActionStatus }
+  | { kind: "UNKNOWN"; value: string };
+
+interface ActionRecordBase {
   actionId: string;
   storeReference: StoreReference;
   actionTitle: string;
@@ -108,16 +112,27 @@ export interface ActionRecord {
   createdDate: IsoDate;
   dueDate: IsoDate;
   closedDate: IsoDate | null;
-  Status: KnownActionStatus | string;
   sourceReference?: SourceReference | null;
 }
 
-export type CertificateCategory =
+export interface RawActionRecord extends ActionRecordBase {
+  Status: string;
+}
+
+export interface ActionRecord extends ActionRecordBase {
+  Status: ParsedActionStatus;
+}
+
+export type DefaultCertificateCategory =
   | "安全证书"
   | "职业卫生证书"
   | "急救员"
   | "焊工证"
   | "内驾证";
+
+export type CertificateCategory =
+  | DefaultCertificateCategory
+  | (string & Record<never, never>);
 
 export interface CertificateRecord {
   storeReference: StoreReference;
@@ -155,22 +170,22 @@ export interface WasteContractRecord {
 
 export interface CarWashDrainagePermitRecord {
   storeReference: StoreReference;
-  hasCarWash: boolean;
-  hasDrainagePermit: boolean;
+  hasCarWash: boolean | null;
+  hasDrainagePermit: boolean | null;
   permitExpiryDate: IsoDate | null;
   sourceReference?: SourceReference | null;
 }
 
 export interface EiaRecord {
   storeReference: StoreReference;
-  eiaRequired: boolean;
+  eiaRequired: boolean | null;
   eiaInformation: string | null;
   sourceReference?: SourceReference | null;
 }
 
 export interface DischargePermitRecord {
   storeReference: StoreReference;
-  dischargePermitRequired: boolean;
+  dischargePermitRequired: boolean | null;
   permitInformation: string | null;
   expiryDate: IsoDate | null;
   sourceReference?: SourceReference | null;

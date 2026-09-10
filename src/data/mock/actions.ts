@@ -1,6 +1,6 @@
 import type {
   ActionClosureRateRecord,
-  ActionRecord,
+  RawActionRecord,
 } from "@/types/ehs";
 
 export const mockActionClosureRates = [
@@ -18,4 +18,4 @@ export const mockActionRecords = [
   { actionId: "ACT-006", storeReference: { trtid: "TEST-004" }, actionTitle: "更换破损插座", owner: "测试员工己", createdDate: "2026-03-02", dueDate: "2026-03-10", closedDate: "2026-03-09", Status: "Closed" },
   { actionId: "ACT-007", storeReference: { trtid: "TEST-005" }, actionTitle: "复核承包商资料", owner: "测试员工庚", createdDate: "2026-03-05", dueDate: "2026-03-22", closedDate: null, Status: "InProgress" },
   { actionId: "ACT-008", storeReference: { trtid: "TEST-006" }, actionTitle: "撤销误建记录", owner: "测试员工辛", createdDate: "2026-03-06", dueDate: "2026-03-24", closedDate: null, Status: "Cancelled", sourceReference: null },
-] satisfies readonly ActionRecord[];
+] satisfies readonly RawActionRecord[];

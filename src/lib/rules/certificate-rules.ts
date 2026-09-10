@@ -4,35 +4,36 @@ import type {
 } from "@/types/ehs";
 import type { ExpiryPolicy } from "./expiry";
 import { evaluateExpiry } from "./expiry";
+import type { ComplianceResult } from "./result-types";
 
 export interface CertificateSlotAssignment {
   requiredSlot: string;
   certificate: CertificateRecord;
 }
 
-export type CertificateCategoryEvaluation =
+export type CertificateReasonCode =
+  | "NO_RECORD"
+  | "MISSING_REQUIRED_SLOT"
+  | "EXPIRED_CERTIFICATE"
+  | "MISSING_EXPIRY_DATE"
+  | "NORMAL";
+
+type CertificateEvaluationResult =
+  | { businessResult: "NORMAL"; reason: "NORMAL" }
   | {
-      outcome: "normal";
-      displayStatus: "正常";
-      businessResult: "正常";
-      assignments: CertificateSlotAssignment[];
-      extraCertificates: CertificateRecord[];
+      businessResult: "ABNORMAL";
+      reason: "NO_RECORD" | "MISSING_REQUIRED_SLOT" | "EXPIRED_CERTIFICATE";
     }
   | {
-      outcome: "abnormal";
-      displayStatus: "无" | "异常";
-      businessResult: "异常";
-      reason: "no-records" | "missing-slots" | "expired";
-      missingSlots: string[];
-      assignments: CertificateSlotAssignment[];
-      extraCertificates: CertificateRecord[];
-    }
-  | {
-      outcome: "indeterminate";
-      reason: "expiry-undetermined";
-      assignments: CertificateSlotAssignment[];
-      extraCertificates: CertificateRecord[];
+      businessResult: "UNDETERMINED";
+      reason: "MISSING_EXPIRY_DATE";
     };
+
+export type CertificateCategoryEvaluation = CertificateEvaluationResult & {
+  assignments: CertificateSlotAssignment[];
+  missingSlots: string[];
+  extraCertificates: CertificateRecord[];
+};
 
 function assignSlots(
   records: readonly CertificateRecord[],
@@ -100,10 +101,8 @@ export function evaluateCertificateCategory(
 ): CertificateCategoryEvaluation {
   if (records.length === 0) {
     return {
-      outcome: "abnormal",
-      displayStatus: "无",
-      businessResult: "异常",
-      reason: "no-records",
+      businessResult: "ABNORMAL",
+      reason: "NO_RECORD",
       missingSlots: requirement.slots.map(({ requiredSlot }) => requiredSlot),
       assignments: [],
       extraCertificates: [],
@@ -114,10 +113,8 @@ export function evaluateCertificateCategory(
 
   if (matching.missingSlots.length > 0) {
     return {
-      outcome: "abnormal",
-      displayStatus: "异常",
-      businessResult: "异常",
-      reason: "missing-slots",
+      businessResult: "ABNORMAL",
+      reason: "MISSING_REQUIRED_SLOT",
       ...matching,
     };
   }
@@ -128,28 +125,23 @@ export function evaluateCertificateCategory(
 
   if (expiryStates.includes("expired")) {
     return {
-      outcome: "abnormal",
-      displayStatus: "异常",
-      businessResult: "异常",
-      reason: "expired",
+      businessResult: "ABNORMAL",
+      reason: "EXPIRED_CERTIFICATE",
       ...matching,
     };
   }
 
   if (expiryStates.includes("unknown")) {
     return {
-      outcome: "indeterminate",
-      reason: "expiry-undetermined",
-      assignments: matching.assignments,
-      extraCertificates: matching.extraCertificates,
+      businessResult: "UNDETERMINED",
+      reason: "MISSING_EXPIRY_DATE",
+      ...matching,
     };
   }
 
   return {
-    outcome: "normal",
-    displayStatus: "正常",
-    businessResult: "正常",
-    assignments: matching.assignments,
-    extraCertificates: matching.extraCertificates,
+    businessResult: "NORMAL",
+    reason: "NORMAL",
+    ...matching,
   };
 }
