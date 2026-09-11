@@ -2,6 +2,8 @@
 
 ## Theme
 
+- 全局主题支持浅色、深色和跟随系统，内部值保持为 `light`、`dark`、`system`。
+- 主题通过根级 ThemeProvider 写入 `html` class；组件只消费语义 token。
 - 使用 shadcn/ui CSS 变量主题，不在页面写业务语义颜色。
 - 可用通用语义色：`background`、`foreground`、`card`、`popover`、`primary`、`secondary`、`muted`、`accent`、`destructive`、`border`、`input`、`ring`。
 - `destructive` 只表达破坏性操作，不代表业务状态。

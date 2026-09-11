@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/shared/page-container";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -59,6 +60,9 @@ export function PageHeader({
               ))}
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto shrink-0">
+            <ThemeToggle />
+          </div>
         </div>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">

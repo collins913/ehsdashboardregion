@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import {
   StatusDisplay,
   type BusinessStatus,
@@ -83,6 +84,17 @@ export default function UiLabPage() {
         breadcrumbs={[{ label: "Development" }, { label: "UI Lab" }]}
       />
       <PageContainer className="space-y-8">
+        <LabSection title="主题模式">
+          <div className="flex flex-wrap items-center gap-3">
+            <ThemeToggle />
+            <p className="text-sm text-muted-foreground">
+              切换浅色、深色或跟随系统，检查本页全部组件的语义色表现。
+            </p>
+          </div>
+        </LabSection>
+
+        <Separator />
+
         <LabSection title="Typography">
           <div className="space-y-3">
             <p className="text-2xl font-semibold tracking-tight">Page title</p>

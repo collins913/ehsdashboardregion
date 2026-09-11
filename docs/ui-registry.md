@@ -22,6 +22,8 @@
 | --- | --- |
 | AppSidebar | Renders centralized navigation and active state |
 | DashboardShell | Composes SidebarProvider, AppSidebar and page inset |
+| ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
+| ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
 | PageHeader | Sidebar trigger, breadcrumb, title, description and optional actions |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
