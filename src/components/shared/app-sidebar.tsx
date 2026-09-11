@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { applicationName, navigationGroups } from "@/config/navigation";
+import { House } from "lucide-react";
+import { applicationName, navigationGroups, routes } from "@/config/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -25,12 +26,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b">
         <Link
-          href="/overview"
+          href={routes.overview.href}
           className="flex h-10 items-center gap-2 overflow-hidden rounded-md px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs text-primary-foreground">
-            E
-          </span>
+          <House className="size-4 shrink-0" aria-hidden="true" />
           <span className="truncate group-data-[collapsible=icon]:hidden">
             {applicationName}
           </span>

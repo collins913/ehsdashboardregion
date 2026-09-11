@@ -22,15 +22,15 @@ export type NavigationGroup = {
   items: NavigationItem[];
 };
 
-export const applicationName = "EHS Dashboard";
+export const applicationName = "EHS 管理看板";
 
 export const navigationLabels = {
-  performance: "Performance",
-  riskAndCompliance: "Risk & Compliance",
+  performance: "绩效",
+  riskAndCompliance: "风险与合规",
 } as const;
 
 export const routes = {
-  overview: { title: "Overview", href: "/overview", icon: LayoutDashboard },
+  overview: { title: "总览", href: "/overview", icon: LayoutDashboard },
   performanceKpi: {
     title: "KPI",
     href: "/performance/kpi",
@@ -38,37 +38,42 @@ export const routes = {
     section: navigationLabels.performance,
   },
   performanceGoals: {
-    title: "Goals",
+    title: "目标",
     href: "/performance/goals",
     icon: Target,
     section: navigationLabels.performance,
   },
   riskEvents: {
-    title: "Events",
+    title: "事件",
     href: "/risk/events",
     icon: FileText,
     section: navigationLabels.riskAndCompliance,
   },
   riskActions: {
-    title: "Actions",
+    title: "行动项",
     href: "/risk/actions",
     icon: ListChecks,
     section: navigationLabels.riskAndCompliance,
   },
   riskCertificates: {
-    title: "Certificates",
+    title: "证件",
     href: "/risk/certificates",
     icon: Award,
     section: navigationLabels.riskAndCompliance,
   },
   riskEnvironment: {
-    title: "Environment",
+    title: "环境",
     href: "/risk/environment",
     icon: Leaf,
     section: navigationLabels.riskAndCompliance,
   },
-  stores: { title: "Stores", href: "/stores", icon: Store },
+  stores: { title: "门店", href: "/stores", icon: Store },
 } satisfies Record<string, NavigationItem>;
+
+export const homeBreadcrumb = {
+  label: "首页",
+  href: routes.overview.href,
+} as const;
 
 export const navigationGroups: NavigationGroup[] = [
   { items: [routes.overview] },

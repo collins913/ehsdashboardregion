@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { homeBreadcrumb } from "@/config/navigation";
 
 type BreadcrumbEntry = {
   label: string;
@@ -41,7 +42,7 @@ export function PageHeader({
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/overview">Dashboard</Link>
+                  <Link href={homeBreadcrumb.href}>{homeBreadcrumb.label}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {breadcrumbs.map((entry, index) => (

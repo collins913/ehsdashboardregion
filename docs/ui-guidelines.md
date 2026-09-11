@@ -1,5 +1,11 @@
 # UI Guidelines
 
+## Language
+
+- 用户可见界面统一使用中文，不提供中英文切换，不引入 i18n 框架。
+- 业务枚举、类型名、变量名、文件名和路由继续使用英文。
+- 状态中文文案由统一的 status presentation mapping 管理，不在页面或单元格重复定义。
+
 ## Theme
 
 - 全局主题支持浅色、深色和跟随系统，内部值保持为 `light`、`dark`、`system`。
@@ -37,6 +43,7 @@
 ## Navigation
 
 - 侧栏只回答“去哪里”，页面内容回答“看什么”。
-- 侧栏层级为 `Overview`、`Performance / KPI / Goals`、`Risk & Compliance / Events / Actions / Certificates / Environment`、`Stores`。
+- 侧栏层级为“总览”、“绩效 / KPI / 目标”、“风险与合规 / 事件 / 行动项 / 证件 / 环境”、“门店”。
+- 全局面包屑统一从“首页”开始，并链接 Dashboard 总览页；侧栏名称仍为“总览”。
 - 单项 KPI 与 Goal 指标不进入侧栏。
 - 全局筛选占位由共享组件统一渲染，不包含数据、默认选择或筛选逻辑。

@@ -6,7 +6,7 @@ import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
-      aria-label="breadcrumb"
+      aria-label="面包屑导航"
       data-slot="breadcrumb"
       className={cn(className)}
       {...props}
@@ -105,7 +105,7 @@ function BreadcrumbEllipsis({
     >
       <MoreHorizontalIcon
       />
-      <span className="sr-only">More</span>
+      <span className="sr-only">更多</span>
     </span>
   )
 }

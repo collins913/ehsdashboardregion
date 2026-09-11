@@ -18,7 +18,7 @@ export function PlaceholderPage({ route }: PlaceholderPageProps) {
       <GlobalFiltersPlaceholder />
       <PageContainer>
         <p className="text-sm text-muted-foreground">
-          Business content will be defined later.
+          业务内容将在后续阶段定义。
         </p>
       </PageContainer>
     </>

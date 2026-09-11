@@ -30,6 +30,7 @@ import {
   KpiDataAvailabilityDisplay,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
+import { homeBreadcrumb } from "@/config/navigation";
 import { demoKpiRows } from "./_fixtures/kpi-ui-fixture";
 import { SidebarStateDemo } from "./sidebar-state-demo";
 
@@ -79,9 +80,9 @@ export default function UiLabPage() {
   return (
     <>
       <PageHeader
-        title="UI Lab"
-        description="Implemented design tokens and adopted UI components."
-        breadcrumbs={[{ label: "Development" }, { label: "UI Lab" }]}
+        title="UI 组件预览"
+        description="展示项目已经采用的设计令牌和界面组件。"
+        breadcrumbs={[{ label: "开发工具" }, { label: "UI 组件预览" }]}
       />
       <PageContainer className="space-y-8">
         <LabSection title="主题模式">
@@ -95,19 +96,19 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="Typography">
+        <LabSection title="排版">
           <div className="space-y-3">
-            <p className="text-2xl font-semibold tracking-tight">Page title</p>
-            <p className="text-lg font-semibold tracking-tight">Section heading</p>
-            <p className="text-base">Body text</p>
-            <p className="text-sm text-muted-foreground">Supporting text</p>
-            <p className="text-xs text-muted-foreground">Metadata</p>
+            <p className="text-2xl font-semibold tracking-tight">页面标题</p>
+            <p className="text-lg font-semibold tracking-tight">区块标题</p>
+            <p className="text-base">正文</p>
+            <p className="text-sm text-muted-foreground">辅助文字</p>
+            <p className="text-xs text-muted-foreground">元数据</p>
           </div>
         </LabSection>
 
         <Separator />
 
-        <LabSection title="Semantic tokens">
+        <LabSection title="语义令牌">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {tokenSamples.map((token) => (
               <div key={token.name} className="flex items-center gap-3 rounded-lg border p-3">
@@ -120,20 +121,20 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="Buttons">
+        <LabSection title="按钮">
           <div className="flex flex-wrap gap-2">
-            <Button>Primary</Button>
-            <Button variant="secondary">Secondary</Button>
-            <Button variant="outline">Outline</Button>
-            <Button variant="ghost">Ghost</Button>
-            <Button variant="destructive">Destructive</Button>
-            <Button disabled>Disabled</Button>
+            <Button>主要按钮</Button>
+            <Button variant="secondary">次要按钮</Button>
+            <Button variant="outline">描边按钮</Button>
+            <Button variant="ghost">幽灵按钮</Button>
+            <Button variant="destructive">危险操作</Button>
+            <Button disabled>禁用</Button>
           </div>
         </LabSection>
 
         <Separator />
 
-        <LabSection title="Business status">
+        <LabSection title="业务状态">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {businessStatuses.map((status) => (
               <div
@@ -149,7 +150,7 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="Data availability">
+        <LabSection title="数据可用性">
           <div className="flex flex-wrap gap-3">
             <KpiDataAvailabilityDisplay availability="AVAILABLE" />
             <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
@@ -159,11 +160,10 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="KPI data table">
+        <LabSection title="KPI 数据表">
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Sort columns, filter abnormal rows, change column visibility, page through
-              stores, scroll horizontally, and open an Actions value.
+              支持列排序、仅看异常、列显示、分页、横向滚动和行动项明细。
             </p>
             <KpiDataTable rows={demoKpiRows} />
           </div>
@@ -171,27 +171,29 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="KPI data table empty state">
+        <LabSection title="KPI 数据表空状态">
           <KpiDataTable rows={[]} />
         </LabSection>
 
         <Separator />
 
-        <LabSection title="Sidebar states">
+        <LabSection title="侧边栏状态">
           <SidebarStateDemo />
         </LabSection>
 
         <Separator />
 
-        <LabSection title="Breadcrumb">
+        <LabSection title="面包屑导航">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/overview">Dashboard</BreadcrumbLink>
+                <BreadcrumbLink href={homeBreadcrumb.href}>
+                  {homeBreadcrumb.label}
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>UI Lab</BreadcrumbPage>
+                <BreadcrumbPage>UI 组件预览</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -199,28 +201,28 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="Avatar and dropdown menu">
+        <LabSection title="头像和下拉菜单">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Avatar className="size-5">
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarFallback>用</AvatarFallback>
                 </Avatar>
-                Open menu
+                打开菜单
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuLabel>Example menu</DropdownMenuLabel>
+              <DropdownMenuLabel>示例菜单</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Menu item</DropdownMenuItem>
+              <DropdownMenuItem>菜单项</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </LabSection>
 
         <Separator />
 
-        <LabSection title="Loading skeleton">
-          <div className="max-w-md space-y-3" aria-label="Loading example">
+        <LabSection title="加载骨架">
+          <div className="max-w-md space-y-3" aria-label="加载示例">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
@@ -229,7 +231,7 @@ export default function UiLabPage() {
 
         <Separator />
 
-        <LabSection title="Spacing">
+        <LabSection title="间距">
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
               <span className="w-8">2</span><span className="h-2 w-2 bg-primary" />

@@ -1,6 +1,6 @@
 export const globalFilters = [
-  { key: "region", label: "Region" },
-  { key: "area", label: "Area" },
-  { key: "store", label: "Store" },
-  { key: "period", label: "Period" },
+  { key: "region", label: "区域" },
+  { key: "area", label: "片区" },
+  { key: "store", label: "门店" },
+  { key: "period", label: "周期" },
 ] as const;

@@ -4,13 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EHS Dashboard",
-  description: "EHS dashboard application shell",
+  title: "EHS 管理看板",
+  description: "EHS 管理看板应用",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning>
       <body>
         <ThemeProvider
           attribute="class"
