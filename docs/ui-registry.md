@@ -15,19 +15,24 @@
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
 | Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency and KPI Action detail |
+| Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
+| Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel |
+| Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
 
 ## Shared
 
 | Component | Responsibility |
 | --- | --- |
 | AppSidebar | Renders centralized navigation and active state |
-| DashboardShell | Composes SidebarProvider, AppSidebar and page inset |
+| DashboardShell | Composes SidebarProvider, AppSidebar, page inset and persistent Global Filter Provider |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
 | PageHeader | Sidebar trigger, breadcrumb, title, description and optional actions |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
-| GlobalFiltersPlaceholder | Reserves Region, Area, Store and Period controls without filtering logic |
+| GlobalFilters | Renders the full-width compact filter bar with Region, Area, searchable canonical Store multi-select and natural-month Period controls |
+| MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
+| OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |

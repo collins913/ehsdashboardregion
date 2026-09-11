@@ -20,3 +20,23 @@ describe("Action source status parsing", () => {
     });
   });
 });
+
+describe("normalized filter stores", () => {
+  it("exposes canonical storeId values through the Repository boundary", () => {
+    const stores = mockEhsRepository.listFilterStores();
+
+    expect(stores.length).toBeGreaterThan(0);
+    expect(stores[0]).toEqual({
+      storeId: expect.any(String),
+      displayName: expect.any(String),
+      region: expect.any(String),
+      area: expect.any(String),
+    });
+    expect(Object.keys(stores[0]).sort()).toEqual([
+      "area",
+      "displayName",
+      "region",
+      "storeId",
+    ]);
+  });
+});

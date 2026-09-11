@@ -20,10 +20,12 @@ import type {
 import type {
   KpiDataSnapshot,
   KpiFilterContext,
+  KpiStore,
 } from "@/data/contracts/kpi";
 
 export interface EhsRepository {
   getKpiData(context: KpiFilterContext): KpiDataSnapshot;
+  listFilterStores(): readonly KpiStore[];
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];
   listTrainingRecords(): readonly TrainingRecord[];

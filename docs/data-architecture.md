@@ -59,6 +59,14 @@ KpiFilterContext
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI Action 明细仅保留规则层归类为 `OPEN` 的记录。
 
+## Global Filters
+
+- Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
+- Region、Area、Store 沿用 `KpiFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
+- Repository 向筛选 UI 提供 `storeId`、`displayName`、Region、Area，不允许 UI 使用名称或 TRTID 自行关联。
+- Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
+- 当前未结束月份的业务完整性仍由既有 DataAvailability 机制表达；Global Filters 不增加 KPI 判定规则。
+
 ## Store Master Data
 
 默认显示：Region、Area、Store Name CN、Store Name EN、TRTID、Manager、EHS Ambassador。

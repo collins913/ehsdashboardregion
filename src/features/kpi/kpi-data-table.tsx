@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   columnVisibilityFeature,
   type ColumnVisibilityState,
@@ -19,6 +19,7 @@ import {
 import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import {
   getStatusIntent,
   getStatusLabel,
@@ -161,42 +162,7 @@ function rowHasNegativeResult(row: KpiRow): boolean {
 }
 
 function StoreNameCell({ name }: { name: string }) {
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
-
-  useEffect(() => {
-    const element = textRef.current;
-    if (!element) return;
-
-    const updateTruncation = () => {
-      setIsTruncated(element.scrollWidth > element.clientWidth);
-    };
-
-    updateTruncation();
-    const resizeObserver = new ResizeObserver(updateTruncation);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, [isTruncated, name]);
-
-  const label = (
-    <span
-      ref={textRef}
-      className="block w-44 truncate font-medium"
-      tabIndex={isTruncated ? 0 : undefined}
-    >
-      {name}
-    </span>
-  );
-
-  if (!isTruncated) return label;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{label}</TooltipTrigger>
-      <TooltipContent>{name}</TooltipContent>
-    </Tooltip>
-  );
+  return <OverflowTooltip text={name} className="w-44 font-medium" />;
 }
 
 function ActionsCell({

@@ -37,7 +37,7 @@ KPI 组装层当前使用最小规范化查询契约：
 - `startInclusive`、`endExclusive` 必须携带 `Z` 或明确 UTC offset；
 - Period 必须显式提供 `includedMonths`。
 
-Filter UI 如何生成该契约、采用哪个业务时区、默认值、联动关系和部分月份纳入规则仍为 TBD。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
+Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认本季度，并支持本年、本季度、本月及自定义月份范围。Region、Area 初始为 `ALL` 且为单选，Store 初始为 `ALL` 且支持多选；层级变化时清除无效下级选择。V1 不提供部分月份或日级日期输入。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
 
 ### 2.2 Store Reference
 

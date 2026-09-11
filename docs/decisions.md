@@ -34,6 +34,10 @@ Stores
 
 Store Master Data 不使用 Period；其它筛选关系仍按各模块需求执行。
 
+Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
+
+Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支持本年、本季度、本月及自定义月份范围，不提供日级日期或部分月份输入。
+
 ### D-004 先定义底层业务，再定义 Overview
 
 Overview 只汇总前述模块的统一结果，不产生另一套业务事实或重复计算。健康度、评分和汇总规则待底层业务稳定后另行定义。
@@ -221,7 +225,6 @@ KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校
 
 以下内容没有默认答案：
 
-- Global Filters 的数据源、默认值、单/多选与联动
 - 非完整自然月和自定义日期区间的 KPI 规则
 - Training 与 Inspection 的 Requirement 集合来源及缺记录处理
 - Action Closure Rate 的目标及达标规则

@@ -388,6 +388,7 @@ function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
 
 export const mockEhsRepository: EhsRepository = {
   getKpiData,
+  listFilterStores: () => mockStores.map(toKpiStore),
   listStores: () => mockStores,
   findStoreCandidates: (reference) =>
     mockStores.filter((store) => matchesStoreReference(store, reference)),

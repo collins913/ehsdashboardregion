@@ -52,12 +52,13 @@ Global Filters 属于全局应用框架，包含：
 - Stores 页面使用 Region、Area、Store。
 - Period 对 Store Master Data 没有业务意义，不参与门店主数据筛选、判断或计算。
 
-以下内容尚未确认：
+V1 已确认：
 
-- 各筛选器的数据源与默认值：TBD
-- 单选或多选能力：TBD
-- Region、Area、Store 的联动规则：TBD
-- Period 的可选粒度及自定义日期范围规则：TBD
+- Region、Area 初始为 `ALL`，支持 `ALL` 或单选。
+- Store 初始为 `ALL`，支持 `ALL`、单个或多个 canonical `storeId`。
+- Region 变化时清除无效 Area 与 Store；Area 变化时清除无效 Store。
+- Period 默认本季度，支持本年、本季度、本月及自定义完整自然月范围。
+- Period 使用 `Asia/Shanghai`，不支持具体日期、部分月份或自定义日范围。
 
 ### 3.2 规则执行边界
 

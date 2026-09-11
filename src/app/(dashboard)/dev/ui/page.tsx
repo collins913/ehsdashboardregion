@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { GlobalFilters } from "@/components/shared/global-filters";
 import {
   StatusDisplay,
   type BusinessStatus,
@@ -31,6 +32,11 @@ import {
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
 import { homeBreadcrumb } from "@/config/navigation";
+import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
+import {
+  crossYearGlobalFilterUiState,
+  globalFilterUiStores,
+} from "./_fixtures/global-filter-ui-fixture";
 import { demoKpiRows } from "./_fixtures/kpi-ui-fixture";
 import { SidebarStateDemo } from "./sidebar-state-demo";
 
@@ -92,6 +98,22 @@ export default function UiLabPage() {
               切换浅色、深色或跟随系统，检查本页全部组件的语义色表现。
             </p>
           </div>
+        </LabSection>
+
+        <Separator />
+
+        <LabSection title="全局筛选">
+          <GlobalFilterProvider
+            stores={globalFilterUiStores}
+            initialState={crossYearGlobalFilterUiState}
+            nowIso="2026-09-11T00:00:00.000Z"
+          >
+            <GlobalFilters />
+          </GlobalFilterProvider>
+          <p className="mt-3 text-sm text-muted-foreground">
+            使用实际全局筛选组件；宽屏为四列、中等宽度为两列、窄屏为一列。默认展示跨年月份范围和长门店名称，可检查溢出提示、统一月份 Popover 及筛选联动。
+            门店 Popover 支持按名称搜索、多选、清空恢复及无结果状态。
+          </p>
         </LabSection>
 
         <Separator />
