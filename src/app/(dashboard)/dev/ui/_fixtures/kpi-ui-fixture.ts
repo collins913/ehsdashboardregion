@@ -111,7 +111,7 @@ export const demoKpiRows: readonly KpiRow[] = storeNames.map((displayName, index
         : performance(index % 4 === 2 ? "NOT_ACHIEVED" : "ACHIEVED"),
     actions: actions(index),
     inspections: performance(
-      index % 5 === 3 ? "UNDETERMINED" : "ACHIEVED",
+      index % 5 === 3 ? "NOT_ACHIEVED" : "ACHIEVED",
       index % 5 === 3 ? "CONFIRMED_EMPTY" : "AVAILABLE",
     ),
     astmEvents: {

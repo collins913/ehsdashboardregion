@@ -13,6 +13,11 @@ const january: KpiPeriod = {
   endExclusive: "2026-02-01T00:00:00+08:00",
   includedMonths: ["2026-01"],
 };
+const firstQuarter: KpiPeriod = {
+  startInclusive: "2026-01-01T00:00:00+08:00",
+  endExclusive: "2026-04-01T00:00:00+08:00",
+  includedMonths: ["2026-01", "2026-02", "2026-03"],
+};
 const mockEhsRepository = createMockEhsRepository(
   new Date("2026-02-15T00:00:00+08:00"),
 );
@@ -88,5 +93,37 @@ describe("KPI Period validation", () => {
     expect(data.training.availability).toBe("INCOMPLETE");
     expect(data.drills.availability).toBe("INCOMPLETE");
     expect(data.events.availability).toBe("INCOMPLETE");
+  });
+
+  it("accepts the exact natural-month sequence for a multi-month Period", () => {
+    expect(parseKpiPeriod(firstQuarter)).not.toBeNull();
+  });
+
+  it.each([
+    ["missing a middle month", ["2026-01", "2026-03"]],
+    ["including an extra month", ["2026-01", "2026-02", "2026-03", "2026-04"]],
+    ["repeating a month", ["2026-01", "2026-02", "2026-02"]],
+    ["using a non-canonical order", ["2026-02", "2026-01", "2026-03"]],
+  ] as const)("rejects includedMonths %s", (_, includedMonths) => {
+    expect(
+      parseKpiPeriod({
+        ...firstQuarter,
+        includedMonths,
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts a single natural month", () => {
+    expect(parseKpiPeriod(january)).not.toBeNull();
+  });
+
+  it("accepts an exact cross-year natural-month sequence", () => {
+    expect(
+      parseKpiPeriod({
+        startInclusive: "2025-12-01T00:00:00+08:00",
+        endExclusive: "2026-02-01T00:00:00+08:00",
+        includedMonths: ["2025-12", "2026-01"],
+      }),
+    ).not.toBeNull();
   });
 });

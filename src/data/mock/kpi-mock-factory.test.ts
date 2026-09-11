@@ -65,7 +65,7 @@ describe("current-year KPI mock factory", () => {
     ).toBe(true);
   });
 
-  it("provides varied KPI results and one intentional incomplete input", () => {
+  it("provides varied KPI results for the supported Period", () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const context = contextFor(referenceDate);

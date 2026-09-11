@@ -164,43 +164,43 @@ export function parseTimezoneAwareInstant(value: string): number | null {
   return Number.isFinite(milliseconds) ? milliseconds : null;
 }
 
-function previousMonth(year: number, month: number): Month {
-  const value = new Date(Date.UTC(year, month - 2, 1));
-  return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}` as Month;
+function monthForShanghaiInstant(milliseconds: number): Month {
+  const { year, month } = shanghaiYearMonth(new Date(milliseconds));
+
+  return `${year}-${String(month).padStart(2, "0")}` as Month;
 }
 
-function lastTouchedMonth(value: TimezoneAwareIsoDateTime): Month | null {
-  const match = TIMEZONE_AWARE_ISO_PATTERN.exec(value);
+function hasConsistentIncludedMonths(
+  period: KpiPeriod,
+  startMilliseconds: number,
+  endMilliseconds: number,
+): boolean {
+  const startMonth = monthForShanghaiInstant(startMilliseconds);
+  const endBoundaryMonth = monthForShanghaiInstant(endMilliseconds);
+  const startMonthIndex = monthIndex(startMonth);
+  const endBoundaryMonthIndex = monthIndex(endBoundaryMonth);
 
-  if (match === null) {
-    return null;
+  if (startMonthIndex === null || endBoundaryMonthIndex === null) {
+    return false;
   }
 
-  const [, year, month, day, hour, minute, second, fraction] = match;
-  const isLocalMonthStart =
-    day === "01" &&
-    hour === "00" &&
-    minute === "00" &&
-    second === "00" &&
-    (fraction === undefined || /^0+$/.test(fraction));
-
-  return isLocalMonthStart
-    ? previousMonth(Number(year), Number(month))
-    : (`${year}-${month}` as Month);
-}
-
-function hasConsistentIncludedMonths(period: KpiPeriod): boolean {
-  const firstTouchedMonth = period.startInclusive.slice(0, 7) as Month;
-  const finalTouchedMonth = lastTouchedMonth(period.endExclusive);
-  const uniqueMonths = new Set(period.includedMonths);
+  const expectedStart = parseTimezoneAwareInstant(
+    `${startMonth}-01T00:00:00${SHANGHAI_OFFSET}`,
+  );
+  const expectedEnd = parseTimezoneAwareInstant(
+    `${endBoundaryMonth}-01T00:00:00${SHANGHAI_OFFSET}`,
+  );
+  const expectedMonths = includedMonthsBetween(
+    startMonth,
+    monthFromIndex(endBoundaryMonthIndex - 1),
+  );
 
   return (
-    finalTouchedMonth !== null &&
-    period.includedMonths.every((month) => MONTH_PATTERN.test(month)) &&
-    uniqueMonths.size === period.includedMonths.length &&
-    period.includedMonths.every(
-      (month) => month >= firstTouchedMonth && month <= finalTouchedMonth,
-    )
+    startMilliseconds === expectedStart &&
+    endMilliseconds === expectedEnd &&
+    expectedMonths !== null &&
+    period.includedMonths.length === expectedMonths.length &&
+    period.includedMonths.every((month, index) => month === expectedMonths[index])
   );
 }
 
@@ -212,7 +212,11 @@ export function parseKpiPeriod(period: KpiPeriod): ParsedKpiPeriod | null {
     startMilliseconds === null ||
     endMilliseconds === null ||
     startMilliseconds >= endMilliseconds ||
-    !hasConsistentIncludedMonths(period)
+    !hasConsistentIncludedMonths(
+      period,
+      startMilliseconds,
+      endMilliseconds,
+    )
   ) {
     return null;
   }
