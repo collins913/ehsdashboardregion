@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   columnVisibilityFeature,
   type ColumnVisibilityState,
   createColumnHelper,
   createPaginatedRowModel,
   createSortedRowModel,
+  type OnChangeFn,
   type PaginationState,
   rowPaginationFeature,
   rowSortingFeature,
@@ -55,6 +56,13 @@ import type {
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
+import {
+  type AdaptivePagination,
+  type AdaptiveTablePageSize,
+  clampTablePageIndex,
+  paginationForPageSize,
+  useAdaptiveTablePageSize,
+} from "@/hooks/use-adaptive-table-page-size";
 import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
 import type {
   OccurrenceResult,
@@ -166,7 +174,7 @@ function StoreNameCell({ name }: { name: string }) {
   return <OverflowTooltip text={name} className="w-44 font-medium" />;
 }
 
-function ActionsCell({
+export function ActionsCell({
   value,
   onOpen,
 }: {
@@ -263,6 +271,15 @@ type KpiDataTableProps = {
   rows: readonly KpiRow[];
 };
 
+type KpiPaginationState =
+  | { status: "UNMEASURED" }
+  | { status: "READY"; pagination: AdaptivePagination };
+
+const unmeasuredTablePagination: PaginationState = {
+  pageIndex: 0,
+  pageSize: 1,
+};
+
 export function KpiDataTable({ rows }: KpiDataTableProps) {
   const [abnormalOnly, setAbnormalOnly] = useState(false);
   const [selectedRow, setSelectedRow] = useState<KpiRow | null>(null);
@@ -270,14 +287,127 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({});
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 5,
-  });
+  const [paginationState, setPaginationState] =
+    useState<KpiPaginationState>({ status: "UNMEASURED" });
   const data = useMemo(
     () => (abnormalOnly ? rows.filter(rowHasNegativeResult) : rows),
     [abnormalOnly, rows],
   );
+  const isPaginationReady = paginationState.status === "READY";
+  const pagination = useMemo<PaginationState>(() => {
+    if (paginationState.status === "UNMEASURED") {
+      return unmeasuredTablePagination;
+    }
+
+    return {
+      pageIndex: clampTablePageIndex(
+        paginationState.pagination.pageIndex,
+        data.length,
+        paginationState.pagination.pageSize,
+      ),
+      pageSize: paginationState.pagination.pageSize,
+    };
+  }, [data.length, paginationState]);
+  const handleAdaptivePageSizeChange = useCallback(
+    (pageSize: AdaptiveTablePageSize) => {
+      setPaginationState((current) => {
+        const currentPagination =
+          current.status === "READY"
+            ? current.pagination
+            : { pageIndex: 0, pageSize };
+        const nextPagination = paginationForPageSize(
+          currentPagination,
+          data.length,
+          pageSize,
+        );
+
+        if (
+          current.status === "READY" &&
+          current.pagination.pageIndex === nextPagination.pageIndex &&
+          current.pagination.pageSize === nextPagination.pageSize
+        ) {
+          return current;
+        }
+
+        return { status: "READY", pagination: nextPagination };
+      });
+    },
+    [data.length],
+  );
+  const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
+    (updater) => {
+      setPaginationState((current) => {
+        if (current.status === "UNMEASURED") {
+          return current;
+        }
+
+        const currentPagination: PaginationState = {
+          pageIndex: clampTablePageIndex(
+            current.pagination.pageIndex,
+            data.length,
+            current.pagination.pageSize,
+          ),
+          pageSize: current.pagination.pageSize,
+        };
+        const proposedPagination =
+          typeof updater === "function" ? updater(currentPagination) : updater;
+        const nextPagination: AdaptivePagination = {
+          pageIndex: clampTablePageIndex(
+            proposedPagination.pageIndex,
+            data.length,
+            current.pagination.pageSize,
+          ),
+          pageSize: current.pagination.pageSize,
+        };
+
+        if (
+          current.pagination.pageIndex === nextPagination.pageIndex &&
+          current.pagination.pageSize === nextPagination.pageSize
+        ) {
+          return current;
+        }
+
+        return { status: "READY", pagination: nextPagination };
+      });
+    },
+    [data.length],
+  );
+  const {
+    tableFrameRef,
+    tableBodyRef,
+    rowMeasurementRef,
+    paginationRef,
+  } = useAdaptiveTablePageSize({
+    ready: isPaginationReady,
+    currentPageSize:
+      paginationState.status === "READY"
+        ? paginationState.pagination.pageSize
+        : null,
+    onPageSizeChange: handleAdaptivePageSizeChange,
+  });
+
+  useLayoutEffect(() => {
+    setPaginationState((current) => {
+      if (current.status === "UNMEASURED") {
+        return current;
+      }
+
+      const pageIndex = clampTablePageIndex(
+        current.pagination.pageIndex,
+        data.length,
+        current.pagination.pageSize,
+      );
+
+      if (pageIndex === current.pagination.pageIndex) {
+        return current;
+      }
+
+      return {
+        status: "READY",
+        pagination: { ...current.pagination, pageIndex },
+      };
+    });
+  }, [data.length]);
   const columns = useMemo(
     () =>
       columnHelper.columns([
@@ -363,7 +493,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
     data,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     state: {
       sorting,
       columnVisibility,
@@ -390,7 +520,10 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 
-      <div className="overflow-hidden rounded-lg border">
+      <div
+        ref={tableFrameRef}
+        className="overflow-hidden rounded-lg border"
+      >
         <Table className="min-w-224">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -410,10 +543,24 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {displayedRows.length > 0 ? (
-              displayedRows.map((row) => (
-                <TableRow key={row.id}>
+          <TableBody ref={tableBodyRef}>
+            {!isPaginationReady ? (
+              <TableRow
+                ref={rowMeasurementRef}
+                aria-hidden="true"
+                data-adaptive-table-measurement-row
+                className="pointer-events-none invisible hover:bg-transparent"
+              >
+                <TableCell colSpan={visibleColumnCount}>
+                  <div className="h-8" />
+                </TableCell>
+              </TableRow>
+            ) : displayedRows.length > 0 ? (
+              displayedRows.map((row, rowIndex) => (
+                <TableRow
+                  key={row.id}
+                  ref={rowIndex === 0 ? rowMeasurementRef : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
@@ -442,7 +589,13 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        ref={paginationRef}
+        aria-hidden={!isPaginationReady}
+        className={`flex flex-wrap items-center justify-between gap-3${
+          isPaginationReady ? "" : " invisible"
+        }`}
+      >
         <p className="text-sm text-muted-foreground">
           共 {data.length} 家门店
         </p>

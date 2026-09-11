@@ -2,7 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { KpiDataTable } from "@/features/kpi/kpi-data-table";
+import {
+  ActionsCell,
+  KpiDataTable,
+} from "@/features/kpi/kpi-data-table";
 import type { ActionKpiValue, KpiRow } from "@/features/kpi/types";
 
 function rowWithActions(actions: ActionKpiValue): KpiRow {
@@ -26,7 +29,7 @@ function renderActions(actions: ActionKpiValue): string {
     createElement(
       TooltipProvider,
       null,
-      createElement(KpiDataTable, { rows: [rowWithActions(actions)] }),
+      createElement(ActionsCell, { value: actions, onOpen: () => {} }),
     ),
   );
 }
@@ -62,4 +65,28 @@ describe("KPI Actions cell", () => {
       expect(markup).not.toContain("关闭率 无");
     },
   );
+});
+
+describe("KPI adaptive table hydration", () => {
+  it("renders a measurement shell without business rows before measurement", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(KpiDataTable, {
+          rows: [
+            rowWithActions({
+              availability: "AVAILABLE",
+              value: 92,
+              result: "ACHIEVED",
+              openActions: { availability: "CONFIRMED_EMPTY", items: [] },
+            }),
+          ],
+        }),
+      ),
+    );
+
+    expect(markup).toContain("data-adaptive-table-measurement-row");
+    expect(markup).not.toContain("测试门店");
+  });
 });

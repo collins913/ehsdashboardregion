@@ -38,11 +38,17 @@
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 
+## Shared hooks
+
+| Hook | Responsibility |
+| --- | --- |
+| useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
+
 ## Feature-specific
 
 | Component | Responsibility |
 | --- | --- |
-| KpiDataTable | KPI V1 table prototype, including status/availability cells, abnormal filtering, pagination, sticky Store column and Action detail Sheet |
+| KpiDataTable | KPI V1 table, including status/availability cells, abnormal filtering, single-state adaptive 5 / 7 / 10 pagination, sticky Store column and Action detail Sheet |
 | KpiPageContent | Connects shared Global Filter Context to the Repository, KPI builder and KpiDataTable |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.
