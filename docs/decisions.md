@@ -36,7 +36,7 @@ Store Master Data 不使用 Period；其它筛选关系仍按各模块需求执�
 
 Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
 
-Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支持本年、本季度、本月及自定义月份范围，不提供日级日期或部分月份输入。
+Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支持本年、本季度、本月及自定义月份范围。本季度为季度首月至当前月，本年为当年 1 月至当前月，不纳入未来月份；不提供日级日期或部分月份输入。
 
 ### D-004 先定义底层业务，再定义 Overview
 
@@ -95,9 +95,9 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 ### D-014 Training、Drill、Inspections 为达成型 KPI
 
-- Training：纳入 Period 的每个月必修培训均全员完成才达成。
-- Drill：纳入 Period 的每个月至少完成一次演练才达成。
-- Inspections：Period 内要求完成的 Inspection 全部完成才达成。
+- Training：只评价 Period 内实际存在的必修培训；全部完成或完整数据源内无培训记录时达成，任一未完成时未达成。
+- Drill：纳入 Period 的每个月必须有 Drill 记录，且当月所有记录均完成；缺月或存在未完成时未达成。
+- Inspections：纳入 Period 的每个月必须有需要评价的 Inspection，且当月全部完成；缺月或存在未完成时未达成。
 
 不为这三项强行生成未经确认的百分比。
 
@@ -207,7 +207,7 @@ KPI 页面只消费 `KpiRow[]`。Repository 根据 `KpiFilterContext` 返回规�
 
 ### D-030 数据可用性必须显式表达
 
-KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`。零条过滤结果不能自行证明数据完整；ASTM 只有在完整空集时才返回 `NOT_OCCURRED`。
+KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`。Data Availability 只表达数据源覆盖/同步是否完整，不把“没有业务记录”解释为数据不完整。零条过滤结果不能自行证明数据完整；已有完整 coverage 的空集可返回 `CONFIRMED_EMPTY`，ASTM 只有在该完整空集时才返回 `NOT_OCCURRED`。
 
 ### D-031 KPI 使用规范化 Store ID
 
@@ -215,7 +215,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-032 Action KPI 汇总与明细边界
 
-Action Closure Rate 只读取请求 Period 对应的源汇总值，不计算或平均。缺少对应汇总时值为 `null` 且结果为 `UNDETERMINED`。KPI 下钻的 `openActions` 仅包含 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。
+Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。缺少对应汇总时值为 `null` 且结果为 `UNDETERMINED`。KPI 下钻的 `openActions` 仅包含 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。
 
 ### D-033 KPI 查询契约采用显式时区与实际门店覆盖
 
@@ -226,7 +226,7 @@ KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校
 以下内容没有默认答案：
 
 - 非完整自然月和自定义日期区间的 KPI 规则
-- Training 与 Inspection 的 Requirement 集合来源及缺记录处理
+- Training 与 Inspection 的 Requirement 集合来源
 - Action Closure Rate 的目标及达标规则
 - 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式

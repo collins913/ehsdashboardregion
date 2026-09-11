@@ -28,6 +28,7 @@ import {
 type GlobalFiltersProviderValue = {
   state: GlobalFilterState;
   filterContext: KpiFilterContext | null;
+  referenceDateIso: string;
   readiness: "READY" | "INVALID_PERIOD" | "INVALID_SCOPE";
   options: ReturnType<typeof filterOptions>;
   setRegion: (scope: FilterScope<string>) => void;
@@ -120,6 +121,7 @@ export function GlobalFilterProvider({
     () => ({
       state,
       filterContext,
+      referenceDateIso: nowIso,
       readiness,
       options,
       setRegion,
@@ -131,6 +133,7 @@ export function GlobalFilterProvider({
     }),
     [
       filterContext,
+      nowIso,
       options,
       readiness,
       setArea,

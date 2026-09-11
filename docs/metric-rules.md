@@ -151,32 +151,27 @@ This does not prevent deterministic testing because tests can inject a reference
 
 ### Purpose
 
-Determine whether all required monthly Training within the selected Period has been fully completed by the Store.
+Determine whether all required Training records that exist within the selected Period have been fully completed by the Store.
 
 ### Input
 
-For each included natural month:
-
-- required Training records;
-- whether each required Training achieved full-person completion.
+- required Training records that exist within the selected Period;
+- whether each required Training achieved full-person completion;
+- Training source coverage for the requested Store × Period.
 
 ### Rule
 
-For every included month:
-
-All required Training = fully completed
-→ month passes
-
-Any required Training != fully completed
-→ month fails
-
-Period result:
-
-All included months pass
+All existing required Training records are fully completed
 → `ACHIEVED`
 
-Any included month fails
+Any existing required Training record is not fully completed
 → `NOT_ACHIEVED`
+
+Complete source coverage with no Training records
+→ `ACHIEVED`
+
+Incomplete or unavailable source coverage
+→ `UNDETERMINED`
 
 ### Result Type
 
@@ -184,10 +179,7 @@ Any included month fails
 
 ### Explicit TBD
 
-- how partial months are included;
-- how custom Period start/end months are handled;
 - how the required Training set is identified;
-- how a month with no Training records is evaluated;
 - source-system mapping to “fully completed”.
 
 These Period/source mappings must be resolved outside the UI.
@@ -210,10 +202,10 @@ Each Store must complete at least:
 
 For each included month:
 
-Completed Drill count >= 1
+At least one Drill exists and all Drill records are completed
 → month passes
 
-Completed Drill count = 0
+No Drill record exists, or any Drill is incomplete
 → month fails
 
 Period result:
@@ -232,6 +224,7 @@ Any included month fails
 
 - Drill Name is descriptive and does not participate in KPI evaluation.
 - Multiple completed Drills in one month still satisfy the same monthly requirement.
+- Incomplete or unavailable Drill source coverage returns `UNDETERMINED`; record absence under complete coverage returns `NOT_ACHIEVED`.
 
 ### Explicit TBD
 
@@ -300,11 +293,22 @@ Determine whether all required Inspections within the selected Period were compl
 
 ### Rule
 
-All required Inspections completed
+For every included month:
+
+At least one required Inspection exists and all required Inspections are completed
+→ month passes
+
+No required Inspection exists, or any required Inspection is incomplete
+→ month fails
+
+All included months pass
 → `ACHIEVED`
 
-Any required Inspection not completed
+Any included month fails
 → `NOT_ACHIEVED`
+
+Incomplete or unavailable Inspection source coverage
+→ `UNDETERMINED`
 
 ### Result Type
 
@@ -313,7 +317,6 @@ Any required Inspection not completed
 ### Explicit TBD
 
 - mapping of source Inspection Status to “completed”;
-- result when no Inspection records exist;
 - source of the required Inspection set.
 
 ---

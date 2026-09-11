@@ -6,51 +6,33 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-export interface TrainingMonthInput {
-  requiredTrainingCompletion: readonly CompletionState[] | null;
-}
-
 export function evaluateTrainingPerformance(
-  includedMonths: readonly TrainingMonthInput[] | null,
+  requiredTrainingCompletion: readonly CompletionState[] | null,
 ): PerformanceResult {
-  if (
-    includedMonths === null ||
-    includedMonths.length === 0 ||
-    includedMonths.some(
-      ({ requiredTrainingCompletion }) =>
-        requiredTrainingCompletion === null ||
-        requiredTrainingCompletion.length === 0,
-    )
-  ) {
+  if (requiredTrainingCompletion === null) {
     return "UNDETERMINED";
   }
 
-  return includedMonths.every(({ requiredTrainingCompletion }) =>
-    requiredTrainingCompletion?.every(Boolean),
-  )
+  return requiredTrainingCompletion.every(Boolean)
     ? "ACHIEVED"
     : "NOT_ACHIEVED";
 }
 
 export interface DrillMonthInput {
-  completedDrillCount: number;
+  drillCompletion: readonly CompletionState[];
 }
 
 export function evaluateDrillPerformance(
   includedMonths: readonly DrillMonthInput[] | null,
 ): PerformanceResult {
-  if (
-    includedMonths === null ||
-    includedMonths.length === 0 ||
-    includedMonths.some(
-      ({ completedDrillCount }) =>
-        !Number.isInteger(completedDrillCount) || completedDrillCount < 0,
-    )
-  ) {
+  if (includedMonths === null || includedMonths.length === 0) {
     return "UNDETERMINED";
   }
 
-  return includedMonths.every(({ completedDrillCount }) => completedDrillCount >= 1)
+  return includedMonths.every(
+    ({ drillCompletion }) =>
+      drillCompletion.length > 0 && drillCompletion.every(Boolean),
+  )
     ? "ACHIEVED"
     : "NOT_ACHIEVED";
 }
@@ -73,17 +55,25 @@ export function evaluateActionClosureRate(
   return value >= target ? "ACHIEVED" : "NOT_ACHIEVED";
 }
 
+export interface InspectionMonthInput {
+  requiredInspectionCompletion: readonly CompletionState[];
+}
+
 export function evaluateInspectionPerformance(
-  requiredInspectionCompletion: readonly CompletionState[] | null,
+  includedMonths: readonly InspectionMonthInput[] | null,
 ): PerformanceResult {
   if (
-    requiredInspectionCompletion === null ||
-    requiredInspectionCompletion.length === 0
+    includedMonths === null ||
+    includedMonths.length === 0
   ) {
     return "UNDETERMINED";
   }
 
-  return requiredInspectionCompletion.every(Boolean)
+  return includedMonths.every(
+    ({ requiredInspectionCompletion }) =>
+      requiredInspectionCompletion.length > 0 &&
+      requiredInspectionCompletion.every(Boolean),
+  )
     ? "ACHIEVED"
     : "NOT_ACHIEVED";
 }

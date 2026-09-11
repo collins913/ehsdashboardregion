@@ -2,17 +2,16 @@ import type {
   ActionRecord,
   Month,
   StoreId,
+  TimezoneAwareIsoDateTime,
 } from "@/types/ehs";
+
+export type { TimezoneAwareIsoDateTime } from "@/types/ehs";
 
 export type NonEmptySelection<T> = readonly [T, ...T[]];
 
 export type FilterScope<T> =
   | { kind: "ALL" }
   | { kind: "INCLUDE"; values: NonEmptySelection<T> };
-
-export type TimezoneAwareIsoDateTime =
-  | `${string}T${string}Z`
-  | `${string}T${string}${"+" | "-"}${string}:${string}`;
 
 export interface KpiPeriod {
   startInclusive: TimezoneAwareIsoDateTime;

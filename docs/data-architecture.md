@@ -58,6 +58,10 @@ KpiFilterContext
 - Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI Action 明细仅保留规则层归类为 `OPEN` 的记录。
+- 当前 mock 阶段由 KPI feature client component 读取 Dashboard 共享 Filter Context，再调用 Repository 与 Builder；页面本身不读取 mock、不组装筛选参数、不执行业务计算。
+- Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
+- Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
+- Mock Action Closure Rate 使用显式 `[startInclusive, endExclusive)` 标识源汇总周期；每个值均为源 fixture 直接提供，不从月度值或 Action 明细计算。
 
 ## Global Filters
 
@@ -89,6 +93,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 集中状态及证件规则：`src/lib/rules/`
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`
 - KPI View Model 与组装：`src/features/kpi/`
-- Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`
+- 当前季度 KPI Mock factory：`src/data/mock/kpi-mock-factory.ts`
+- Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成
 
 页面不得直接导入 `src/data/mock/`。当前统一从 repository 入口访问；未来替换 API 或数据库实现时保持 repository 接口稳定。

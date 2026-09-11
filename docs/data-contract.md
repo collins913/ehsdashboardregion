@@ -37,7 +37,7 @@ KPI 组装层当前使用最小规范化查询契约：
 - `startInclusive`、`endExclusive` 必须携带 `Z` 或明确 UTC offset；
 - Period 必须显式提供 `includedMonths`。
 
-Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认本季度，并支持本年、本季度、本月及自定义月份范围。Region、Area 初始为 `ALL` 且为单选，Store 初始为 `ALL` 且支持多选；层级变化时清除无效下级选择。V1 不提供部分月份或日级日期输入。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
+Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认本季度，并支持本年、本季度、本月及自定义月份范围。本季度从当前自然季度首月至当前月，本年从当年 1 月至当前月，均不纳入未来月份。Region、Area 初始为 `ALL` 且为单选，Store 初始为 `ALL` 且支持多选；层级变化时清除无效下级选择。V1 不提供部分月份或日级日期输入。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
 
 ### 2.2 Store Reference
 
@@ -67,7 +67,7 @@ KPI scoped data 必须显式区分：
 | `INCOMPLETE` | 仅有部分数据或完整性无法确认 |
 | `UNAVAILABLE` | 数据未提供或不可用 |
 
-过滤后数组为空本身不能证明 `CONFIRMED_EMPTY`。ASTM 仅在完整数据集确认为空时返回 `NOT_OCCURRED`；`INCOMPLETE` 或 `UNAVAILABLE` 不产生 `OccurrenceResult`。
+Data Availability 只描述请求 Store × Period 范围内的数据源覆盖与同步完整性，不描述该范围是否发生业务记录。过滤后数组为空本身不能证明 `CONFIRMED_EMPTY`；但数据源已明确覆盖完整时，零记录是有效业务事实并返回 `CONFIRMED_EMPTY`。ASTM 仅在完整数据集确认为空时返回 `NOT_OCCURRED`；`INCOMPLETE` 或 `UNAVAILABLE` 不产生 `OccurrenceResult`。
 
 当 Store 为 `ALL` 时，完整性校验必须展开当前 Region / Area 范围内实际规范化 `storeId`；任一门店没有覆盖声明时，请求数据集不得标记为 `CONFIRMED_EMPTY`。
 
@@ -148,7 +148,8 @@ Source Reference 为可选结构，可包含：
 数据源直接提供：
 
 - Store Reference
-- Period
+- `startInclusive`：包含时区的统计周期起点
+- `endExclusive`：包含时区的统计周期终点
 - Action Closure Rate Value：规范化类型为 `number | null`；数据源空值由 Repository / Adapter 转换为 `null`
 
 Value 使用 0–100。

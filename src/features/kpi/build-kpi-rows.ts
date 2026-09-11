@@ -45,41 +45,23 @@ function scopedAvailability<T>(
 }
 
 function buildTraining(
-  context: KpiFilterContext,
   data: KpiDataSnapshot["training"],
   storeId: StoreId,
 ): PerformanceKpiValue {
   const records = recordsForStore(data, storeId);
-  const baseAvailability = scopedAvailability(data, records.length);
+  const availability = scopedAvailability(data, records.length);
 
-  if (baseAvailability === "UNAVAILABLE" || baseAvailability === "INCOMPLETE") {
-    return { availability: baseAvailability, result: "UNDETERMINED" };
+  if (availability === "UNAVAILABLE" || availability === "INCOMPLETE") {
+    return { availability, result: "UNDETERMINED" };
   }
 
-  const monthInputs = context.period.includedMonths.map((month) => {
-    const requiredRecords = records.filter(
-      (record) => record.month === month && record.isRequired,
-    );
-
-    return {
-      requiredTrainingCompletion:
-        requiredRecords.length === 0
-          ? null
-          : requiredRecords.map((record) => record.isFullyCompleted),
-    };
-  });
-  const hasMissingMonth = monthInputs.some(
-    ({ requiredTrainingCompletion }) => requiredTrainingCompletion === null,
-  );
-
   return {
-    availability:
-      records.length === 0
-        ? "CONFIRMED_EMPTY"
-        : hasMissingMonth
-          ? "INCOMPLETE"
-          : "AVAILABLE",
-    result: evaluateTrainingPerformance(monthInputs),
+    availability,
+    result: evaluateTrainingPerformance(
+      records
+        .filter((record) => record.isRequired)
+        .map((record) => record.isFullyCompleted),
+    ),
   };
 }
 
@@ -96,9 +78,9 @@ function buildDrill(
   }
 
   const monthInputs = context.period.includedMonths.map((month) => ({
-    completedDrillCount: records.filter(
-      (record) => record.month === month && record.isCompleted,
-    ).length,
+    drillCompletion: records
+      .filter((record) => record.month === month)
+      .map((record) => record.isCompleted),
   }));
 
   return {
@@ -108,6 +90,7 @@ function buildDrill(
 }
 
 function buildInspections(
+  context: KpiFilterContext,
   data: KpiDataSnapshot["inspections"],
   storeId: StoreId,
 ): PerformanceKpiValue {
@@ -121,7 +104,11 @@ function buildInspections(
   return {
     availability,
     result: evaluateInspectionPerformance(
-      records.filter((record) => record.isRequired).map((record) => record.isCompleted),
+      context.period.includedMonths.map((month) => ({
+        requiredInspectionCompletion: records
+          .filter((record) => record.period === month && record.isRequired)
+          .map((record) => record.isCompleted),
+      })),
     ),
   };
 }
@@ -212,14 +199,14 @@ export function buildKpiRows(
 ): readonly KpiRow[] {
   return snapshot.stores.map((store) => ({
     store,
-    training: buildTraining(context, snapshot.training, store.storeId),
+    training: buildTraining(snapshot.training, store.storeId),
     drill: buildDrill(context, snapshot.drills, store.storeId),
     actions: buildActions(
       snapshot.actionClosureRates,
       snapshot.actions,
       store.storeId,
     ),
-    inspections: buildInspections(snapshot.inspections, store.storeId),
+    inspections: buildInspections(context, snapshot.inspections, store.storeId),
     astmEvents: buildAstmEvents(snapshot.events, store.storeId),
   }));
 }

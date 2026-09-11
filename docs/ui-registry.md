@@ -42,5 +42,6 @@
 | Component | Responsibility |
 | --- | --- |
 | KpiDataTable | KPI V1 table prototype, including status/availability cells, abnormal filtering, pagination, sticky Store column and Action detail Sheet |
+| KpiPageContent | Connects shared Global Filter Context to the Repository, KPI builder and KpiDataTable |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.

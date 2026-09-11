@@ -1,14 +1,29 @@
-import type { TrainingRecord } from "@/types/ehs";
+import { mockStores } from "@/data/mock/stores";
+import type { Month, TrainingRecord } from "@/types/ehs";
 
-export const mockTrainingRecords = [
-  { storeReference: { trtid: "TEST-001" }, month: "2026-01", trainingName: "月度安全基础", isRequired: true, isFullyCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, month: "2026-01", trainingName: "PPE 使用", isRequired: true, isFullyCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, month: "2026-02", trainingName: "应急响应", isRequired: true, isFullyCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, month: "2026-03", trainingName: "危险沟通", isRequired: true, isFullyCompleted: true },
-  { storeReference: { storeNameCn: "示例云桥店" }, month: "2026-01", trainingName: "月度安全基础", isRequired: true, isFullyCompleted: true },
-  { storeReference: { storeNameCn: "示例云桥店" }, month: "2026-02", trainingName: "应急响应", isRequired: true, isFullyCompleted: false },
-  { storeReference: { storeNameCn: "示例云桥店" }, month: "2026-03", trainingName: "危险沟通", isRequired: true, isFullyCompleted: true },
-  { storeReference: { storeNameEn: "Sample Galaxy Store" }, month: "2026-01", trainingName: "月度安全基础", isRequired: true, isFullyCompleted: true },
-  { storeReference: { storeNameEn: "Sample Galaxy Store" }, month: "2026-01", trainingName: "承包商安全", isRequired: true, isFullyCompleted: true },
-  { storeReference: { storeNameEn: "Sample Galaxy Store" }, month: "2026-02", trainingName: "应急响应", isRequired: true, isFullyCompleted: true },
-] satisfies readonly TrainingRecord[];
+type SupportedMonths = readonly [Month, ...Month[]];
+
+export function createMockTrainingRecords(
+  months: SupportedMonths,
+): readonly TrainingRecord[] {
+  return mockStores.flatMap((store, storeIndex) =>
+    months.flatMap((month, monthIndex) => {
+      if (
+        storeIndex === mockStores.length - 1 &&
+        monthIndex === months.length - 1
+      ) {
+        return [];
+      }
+
+      return [{
+        storeReference: { trtid: store.trtid },
+        month,
+        trainingName: `月度必修培训 ${monthIndex + 1}`,
+        isRequired: true,
+        isFullyCompleted: !(
+          storeIndex % 4 === 1 && monthIndex === months.length - 1
+        ),
+      } satisfies TrainingRecord];
+    }),
+  );
+}

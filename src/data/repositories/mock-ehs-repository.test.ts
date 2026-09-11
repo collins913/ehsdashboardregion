@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { mockActionRecords } from "@/data/mock/actions";
+import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { parseActionStatus } from "@/data/parse-action-status";
-import { mockEhsRepository } from "./mock-ehs-repository";
+import { createMockEhsRepository } from "./mock-ehs-repository";
+
+const referenceDate = new Date("2026-02-15T00:00:00+08:00");
+const mockData = createKpiMockData(referenceDate);
+const mockEhsRepository = createMockEhsRepository(referenceDate);
 
 describe("Action source status parsing", () => {
   it("passes source Status values through the parser in the Repository", () => {
     const repositoryRecords = mockEhsRepository.listActionRecords();
 
-    expect(repositoryRecords).toHaveLength(mockActionRecords.length);
+    expect(repositoryRecords).toHaveLength(mockData.actionRecords.length);
     expect(repositoryRecords.map(({ Status }) => Status)).toEqual(
-      mockActionRecords.map(({ Status }) => parseActionStatus(Status)),
+      mockData.actionRecords.map(({ Status }) => parseActionStatus(Status)),
     );
   });
 

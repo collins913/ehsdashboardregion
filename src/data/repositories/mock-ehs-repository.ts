@@ -1,21 +1,16 @@
 import {
-  mockActionClosureRates,
-  mockActionRecords,
+  createKpiMockData,
   mockCarWashDrainagePermitRecords,
   mockCertificateRecords,
   mockDischargePermitRecords,
-  mockDrillRecords,
   mockEiaRecords,
   mockEnvironmentalMonitoringRecords,
-  mockEventRecords,
   mockGoalSummaries,
-  mockInspectionRecords,
-  mockKpiCoverage,
   mockStores,
   mockTakeChargeParticipationRecords,
   mockTakeChargeRecords,
-  mockTrainingRecords,
   mockWasteContractRecords,
+  type KpiMockCoverage,
 } from "@/data/mock";
 import { parseActionStatus } from "@/data/parse-action-status";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
@@ -39,8 +34,8 @@ import type {
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type {
+  ActionClosureRateRecord,
   ActionRecord,
-  Month,
   StoreId,
   StoreMasterData,
   StoreReference,
@@ -60,13 +55,6 @@ function matchesStoreReference(
 
   return store.storeNameEn === reference.storeNameEn;
 }
-
-const parsedActionRecords: readonly ActionRecord[] = mockActionRecords.map(
-  (record) => ({
-    ...record,
-    Status: parseActionStatus(record.Status),
-  }),
-);
 
 function scopeIncludes<T>(scope: FilterScope<T>, value: T): boolean {
   return scope.kind === "ALL" || scope.values.includes(value);
@@ -96,21 +84,19 @@ function isWithinDeclaredCoverage(
   context: KpiFilterContext,
   selectedStoreIds: readonly StoreId[],
   parsedPeriod: ParsedKpiPeriod | null,
+  coverage: KpiMockCoverage,
 ): boolean {
-  const coveredStoreIds: readonly StoreId[] = mockKpiCoverage.storeIds;
-  const coveredMonths = new Set<Month>(mockKpiCoverage.period.includedMonths);
   const coverageStart = parseTimezoneAwareInstant(
-    mockKpiCoverage.period.startInclusive,
+    coverage.period.startInclusive,
   );
-  const coverageEnd = parseTimezoneAwareInstant(
-    mockKpiCoverage.period.endExclusive,
-  );
+  const coverageEnd = parseTimezoneAwareInstant(coverage.period.endExclusive);
+  const coveredMonths = new Set(coverage.period.includedMonths);
 
   return (
     parsedPeriod !== null &&
     coverageStart !== null &&
     coverageEnd !== null &&
-    selectedStoreIds.every((storeId) => coveredStoreIds.includes(storeId)) &&
+    selectedStoreIds.every((storeId) => coverage.storeIds.includes(storeId)) &&
     context.period.includedMonths.every((month) => coveredMonths.has(month)) &&
     parsedPeriod.startMilliseconds >= coverageStart &&
     parsedPeriod.endMilliseconds <= coverageEnd
@@ -121,11 +107,16 @@ function isSourceCovered(
   context: KpiFilterContext,
   selectedStoreIds: readonly StoreId[],
   parsedPeriod: ParsedKpiPeriod | null,
-  source: keyof typeof mockKpiCoverage.sourceCoverage,
+  coverage: KpiMockCoverage,
+  source: keyof KpiMockCoverage["sourceCoverage"],
 ): boolean {
   return (
-    isWithinDeclaredCoverage(context, selectedStoreIds, parsedPeriod) &&
-    mockKpiCoverage.sourceCoverage[source] === "COMPLETE"
+    isWithinDeclaredCoverage(
+      context,
+      selectedStoreIds,
+      parsedPeriod,
+      coverage,
+    ) && coverage.sourceCoverage[source] === "COMPLETE"
   );
 }
 
@@ -186,228 +177,263 @@ function withCoverage<T>(
     : incompleteDataSet(items);
 }
 
-function matchingActionAggregatePeriod(
-  context: KpiFilterContext,
+function periodMatches(
+  startInclusive: string,
+  endExclusive: string,
   parsedPeriod: ParsedKpiPeriod | null,
-): string | null {
-  if (parsedPeriod === null || context.period.includedMonths.length !== 1) {
-    return null;
-  }
-
-  const scope = mockKpiCoverage.actionAggregateScopes.find(
-    (candidate) => {
-      const candidateStart = parseTimezoneAwareInstant(candidate.startInclusive);
-      const candidateEnd = parseTimezoneAwareInstant(candidate.endExclusive);
-
-      return (
-        candidateStart === parsedPeriod.startMilliseconds &&
-        candidateEnd === parsedPeriod.endMilliseconds &&
-        context.period.includedMonths[0] === candidate.period
-      );
-    },
+): boolean {
+  return (
+    parsedPeriod !== null &&
+    parseTimezoneAwareInstant(startInclusive) === parsedPeriod.startMilliseconds &&
+    parseTimezoneAwareInstant(endExclusive) === parsedPeriod.endMilliseconds
   );
-
-  return scope?.period ?? null;
 }
 
-function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
-  const stores = requestedStores(context);
-  const selectedStoreIdList = stores.map(({ storeId }) => storeId);
-  const selectedStoreIds = new Set(selectedStoreIdList);
-  const includedMonths = new Set(context.period.includedMonths);
-  const parsedPeriod = parseKpiPeriod(context.period);
+function matchingActionAggregates(
+  records: readonly ActionClosureRateRecord[],
+  parsedPeriod: ParsedKpiPeriod | null,
+): readonly ActionClosureRateRecord[] {
+  return records.filter((record) =>
+    periodMatches(record.startInclusive, record.endExclusive, parsedPeriod),
+  );
+}
 
-  const training = normalizeRecords(
-    mockTrainingRecords.filter((record) => includedMonths.has(record.month)),
-    selectedStoreIds,
-    (record, storeId): KpiTrainingRecord => ({
-      storeId,
-      month: record.month,
-      isRequired: record.isRequired,
-      isFullyCompleted: record.isFullyCompleted,
-    }),
+function isActionAggregateScopeCovered(
+  coverage: KpiMockCoverage,
+  parsedPeriod: ParsedKpiPeriod | null,
+): boolean {
+  return coverage.actionAggregateScopes.some((scope) =>
+    periodMatches(scope.startInclusive, scope.endExclusive, parsedPeriod),
   );
-  const drills = normalizeRecords(
-    mockDrillRecords.filter((record) => includedMonths.has(record.month)),
-    selectedStoreIds,
-    (record, storeId): KpiDrillRecord => ({
-      storeId,
-      month: record.month,
-      isCompleted: record.isCompleted,
-    }),
-  );
-  const inspections = normalizeRecords(
-    mockInspectionRecords.filter((record) => includedMonths.has(record.period)),
-    selectedStoreIds,
-    (record, storeId): KpiInspectionRecord => ({
-      storeId,
-      period: record.period,
-      isRequired: record.isRequired,
-      isCompleted: record.isCompleted,
+}
+
+export function createMockEhsRepository(referenceDate: Date): EhsRepository {
+  const mockData = createKpiMockData(referenceDate);
+  const parsedActionRecords: readonly ActionRecord[] = mockData.actionRecords.map(
+    (record) => ({
+      ...record,
+      Status: parseActionStatus(record.Status),
     }),
   );
 
-  const actionAggregatePeriod = matchingActionAggregatePeriod(
-    context,
-    parsedPeriod,
-  );
-  const actionClosureRates = normalizeRecords(
-    actionAggregatePeriod === null
-      ? []
-      : mockActionClosureRates.filter(
-          (record) => record.period === actionAggregatePeriod,
-        ),
-    selectedStoreIds,
-    (record, storeId): KpiActionClosureRateRecord => ({
-      storeId,
-      value: record.value,
-    }),
-  );
+  function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
+    const stores = requestedStores(context);
+    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const selectedStoreIds = new Set(selectedStoreIdList);
+    const includedMonths = new Set(context.period.includedMonths);
+    const parsedPeriod = parseKpiPeriod(context.period);
+    const coverage = mockData.coverage;
 
-  const coveragePeriod = parseKpiPeriod(mockKpiCoverage.period);
-  const actionScopeCovered =
-    parsedPeriod !== null &&
-    coveragePeriod !== null &&
-    parsedPeriod.startMilliseconds === coveragePeriod.startMilliseconds &&
-    parsedPeriod.endMilliseconds === coveragePeriod.endMilliseconds &&
-    context.period.includedMonths.length ===
-      mockKpiCoverage.period.includedMonths.length &&
-    context.period.includedMonths.every(
-      (month, index) => month === mockKpiCoverage.period.includedMonths[index],
+    const training = normalizeRecords(
+      mockData.trainingRecords.filter((record) =>
+        includedMonths.has(record.month),
+      ),
+      selectedStoreIds,
+      (record, storeId): KpiTrainingRecord => ({
+        storeId,
+        month: record.month,
+        isRequired: record.isRequired,
+        isFullyCompleted: record.isFullyCompleted,
+      }),
     );
-  const actions = normalizeRecords(
-    actionScopeCovered ? parsedActionRecords : [],
-    selectedStoreIds,
-    (record, storeId): KpiActionRecord => ({
-      storeId,
-      actionId: record.actionId,
-      actionTitle: record.actionTitle,
-      owner: record.owner,
-      createdDate: record.createdDate,
-      dueDate: record.dueDate,
-      closedDate: record.closedDate,
-      Status: record.Status,
-      sourceReference: record.sourceReference,
-    }),
-  );
+    const drills = normalizeRecords(
+      mockData.drillRecords.filter((record) =>
+        includedMonths.has(record.month),
+      ),
+      selectedStoreIds,
+      (record, storeId): KpiDrillRecord => ({
+        storeId,
+        month: record.month,
+        isCompleted: record.isCompleted,
+      }),
+    );
+    const inspections = normalizeRecords(
+      mockData.inspectionRecords.filter((record) =>
+        includedMonths.has(record.period),
+      ),
+      selectedStoreIds,
+      (record, storeId): KpiInspectionRecord => ({
+        storeId,
+        period: record.period,
+        isRequired: record.isRequired,
+        isCompleted: record.isCompleted,
+      }),
+    );
 
-  const events: {
-    items: readonly KpiEventRecord[];
-    resolutionComplete: boolean;
-  } = { items: [], resolutionComplete: parsedPeriod !== null };
+    const aggregateScopeCovered = isActionAggregateScopeCovered(
+      coverage,
+      parsedPeriod,
+    );
+    const actionClosureRates = normalizeRecords(
+      matchingActionAggregates(mockData.actionClosureRates, parsedPeriod),
+      selectedStoreIds,
+      (record, storeId): KpiActionClosureRateRecord => ({
+        storeId,
+        value: record.value,
+      }),
+    );
 
-  if (parsedPeriod !== null) {
-    const items: KpiEventRecord[] = [];
-    let resolutionComplete = true;
-
-    for (const record of mockEventRecords) {
-      const storeId = resolveStoreId(record.storeReference);
-
-      if (storeId === null) {
-        resolutionComplete = false;
-        continue;
-      }
-
-      if (!selectedStoreIds.has(storeId)) {
-        continue;
-      }
-
-      const isIncluded = isInstantInKpiPeriod(
-        record.eventDateTime,
-        parsedPeriod,
+    const coveragePeriod = parseKpiPeriod(coverage.period);
+    const actionScopeCovered =
+      parsedPeriod !== null &&
+      coveragePeriod !== null &&
+      parsedPeriod.startMilliseconds === coveragePeriod.startMilliseconds &&
+      parsedPeriod.endMilliseconds === coveragePeriod.endMilliseconds &&
+      context.period.includedMonths.length ===
+        coverage.period.includedMonths.length &&
+      context.period.includedMonths.every(
+        (month, index) => month === coverage.period.includedMonths[index],
       );
+    const actions = normalizeRecords(
+      actionScopeCovered ? parsedActionRecords : [],
+      selectedStoreIds,
+      (record, storeId): KpiActionRecord => ({
+        storeId,
+        actionId: record.actionId,
+        actionTitle: record.actionTitle,
+        owner: record.owner,
+        createdDate: record.createdDate,
+        dueDate: record.dueDate,
+        closedDate: record.closedDate,
+        Status: record.Status,
+        sourceReference: record.sourceReference,
+      }),
+    );
 
-      if (isIncluded === null) {
-        resolutionComplete = false;
-      } else if (isIncluded) {
-        items.push({
-          storeId,
-          ASTMInjuryIllness: record.ASTMInjuryIllness,
-        });
+    const events: {
+      items: readonly KpiEventRecord[];
+      resolutionComplete: boolean;
+    } = { items: [], resolutionComplete: parsedPeriod !== null };
+
+    if (parsedPeriod !== null) {
+      const items: KpiEventRecord[] = [];
+      let resolutionComplete = true;
+
+      for (const record of mockData.eventRecords) {
+        const storeId = resolveStoreId(record.storeReference);
+
+        if (storeId === null) {
+          resolutionComplete = false;
+          continue;
+        }
+
+        if (!selectedStoreIds.has(storeId)) {
+          continue;
+        }
+
+        const isIncluded = isInstantInKpiPeriod(
+          record.eventDateTime,
+          parsedPeriod,
+        );
+
+        if (isIncluded === null) {
+          resolutionComplete = false;
+        } else if (isIncluded) {
+          items.push({
+            storeId,
+            ASTMInjuryIllness: record.ASTMInjuryIllness,
+          });
+        }
       }
+
+      events.items = items;
+      events.resolutionComplete = resolutionComplete;
     }
 
-    events.items = items;
-    events.resolutionComplete = resolutionComplete;
+    return {
+      stores,
+      training: withCoverage(
+        training.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "training",
+        ),
+        training.resolutionComplete,
+      ),
+      drills: withCoverage(
+        drills.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "drills",
+        ),
+        drills.resolutionComplete,
+      ),
+      inspections: withCoverage(
+        inspections.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "inspections",
+        ),
+        inspections.resolutionComplete,
+      ),
+      actionClosureRates: withCoverage(
+        actionClosureRates.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "actionClosureRates",
+        ) && aggregateScopeCovered,
+        actionClosureRates.resolutionComplete,
+      ),
+      actions: withCoverage(
+        actions.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "actions",
+        ) && actionScopeCovered,
+        actions.resolutionComplete,
+      ),
+      events: withCoverage(
+        events.items,
+        isSourceCovered(
+          context,
+          selectedStoreIdList,
+          parsedPeriod,
+          coverage,
+          "events",
+        ),
+        events.resolutionComplete,
+      ),
+    };
   }
 
   return {
-    stores,
-    training: withCoverage(
-      training.items,
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        "training",
-      ),
-      training.resolutionComplete,
-    ),
-    drills: withCoverage(
-      drills.items,
-      isSourceCovered(context, selectedStoreIdList, parsedPeriod, "drills"),
-      drills.resolutionComplete,
-    ),
-    inspections: withCoverage(
-      inspections.items,
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        "inspections",
-      ),
-      inspections.resolutionComplete,
-    ),
-    actionClosureRates: withCoverage(
-      actionClosureRates.items,
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        "actionClosureRates",
-      ),
-      actionClosureRates.resolutionComplete,
-    ),
-    actions: withCoverage(
-      actions.items,
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        "actions",
-      ) && actionScopeCovered,
-      actions.resolutionComplete,
-    ),
-    events: withCoverage(
-      events.items,
-      isSourceCovered(context, selectedStoreIdList, parsedPeriod, "events"),
-      events.resolutionComplete,
-    ),
+    getKpiData,
+    listFilterStores: () => mockStores.map(toKpiStore),
+    listStores: () => mockStores,
+    findStoreCandidates: (reference) =>
+      mockStores.filter((store) => matchesStoreReference(store, reference)),
+    listTrainingRecords: () => mockData.trainingRecords,
+    listDrillRecords: () => mockData.drillRecords,
+    listInspectionRecords: () => mockData.inspectionRecords,
+    listActionClosureRates: () => mockData.actionClosureRates,
+    listActionRecords: () => parsedActionRecords,
+    listEventRecords: () => mockData.eventRecords,
+    listGoalSummaries: () => mockGoalSummaries,
+    listTakeChargeRecords: () => mockTakeChargeRecords,
+    listTakeChargeParticipationRecords: () =>
+      mockTakeChargeParticipationRecords,
+    listCertificateRecords: () => mockCertificateRecords,
+    listWasteContractRecords: () => mockWasteContractRecords,
+    listCarWashDrainagePermitRecords: () =>
+      mockCarWashDrainagePermitRecords,
+    listEiaRecords: () => mockEiaRecords,
+    listDischargePermitRecords: () => mockDischargePermitRecords,
+    listEnvironmentalMonitoringRecords: () =>
+      mockEnvironmentalMonitoringRecords,
   };
 }
-
-export const mockEhsRepository: EhsRepository = {
-  getKpiData,
-  listFilterStores: () => mockStores.map(toKpiStore),
-  listStores: () => mockStores,
-  findStoreCandidates: (reference) =>
-    mockStores.filter((store) => matchesStoreReference(store, reference)),
-  listTrainingRecords: () => mockTrainingRecords,
-  listDrillRecords: () => mockDrillRecords,
-  listInspectionRecords: () => mockInspectionRecords,
-  listActionClosureRates: () => mockActionClosureRates,
-  listActionRecords: () => parsedActionRecords,
-  listEventRecords: () => mockEventRecords,
-  listGoalSummaries: () => mockGoalSummaries,
-  listTakeChargeRecords: () => mockTakeChargeRecords,
-  listTakeChargeParticipationRecords: () =>
-    mockTakeChargeParticipationRecords,
-  listCertificateRecords: () => mockCertificateRecords,
-  listWasteContractRecords: () => mockWasteContractRecords,
-  listCarWashDrainagePermitRecords: () =>
-    mockCarWashDrainagePermitRecords,
-  listEiaRecords: () => mockEiaRecords,
-  listDischargePermitRecords: () => mockDischargePermitRecords,
-  listEnvironmentalMonitoringRecords: () =>
-    mockEnvironmentalMonitoringRecords,
-};

@@ -1,21 +1,116 @@
+import type { KpiPeriod } from "@/data/contracts/kpi";
+import { mockStores } from "@/data/mock/stores";
 import type {
   ActionClosureRateRecord,
+  Month,
   RawActionRecord,
 } from "@/types/ehs";
 
-export const mockActionClosureRates = [
-  { storeReference: { trtid: "TEST-001" }, period: "2026-01", value: 76 },
-  { storeReference: { trtid: "TEST-001" }, period: "2026-02", value: 90 },
-  { storeReference: { trtid: "TEST-001" }, period: "2026-03", value: 97.5 },
-] satisfies readonly ActionClosureRateRecord[];
+type SupportedMonths = readonly [Month, ...Month[]];
 
-export const mockActionRecords = [
-  { actionId: "ACT-001", storeReference: { trtid: "TEST-001" }, actionTitle: "补充设备点检记录", owner: "测试员工甲", createdDate: "2026-01-05", dueDate: "2026-01-20", closedDate: null, Status: "Assigned", sourceReference: { sourceSystem: "Mock Action", sourceRecordId: "ACT-001" } },
-  { actionId: "ACT-002", storeReference: { trtid: "TEST-001" }, actionTitle: "更新疏散标识", owner: "测试员工乙", createdDate: "2026-01-12", dueDate: "2026-02-01", closedDate: null, Status: "InProgress" },
-  { actionId: "ACT-003", storeReference: { storeNameCn: "示例云桥店" }, actionTitle: "完成护栏修复", owner: "测试员工丙", createdDate: "2026-02-03", dueDate: "2026-02-18", closedDate: "2026-02-16", Status: "Closed", sourceReference: { sourceSystem: "Mock Action", sourceRecordId: "ACT-003" } },
-  { actionId: "ACT-004", storeReference: { trtid: "TEST-002" }, actionTitle: "取消重复整改项", owner: "测试员工丁", createdDate: "2026-02-08", dueDate: "2026-02-25", closedDate: null, Status: "Cancelled" },
-  { actionId: "ACT-005", storeReference: { storeNameEn: "Sample Galaxy Store" }, actionTitle: "核对危废标签", owner: "测试员工戊", createdDate: "2026-03-01", dueDate: "2026-03-15", closedDate: null, Status: "Assigned" },
-  { actionId: "ACT-006", storeReference: { trtid: "TEST-004" }, actionTitle: "更换破损插座", owner: "测试员工己", createdDate: "2026-03-02", dueDate: "2026-03-10", closedDate: "2026-03-09", Status: "Closed" },
-  { actionId: "ACT-007", storeReference: { trtid: "TEST-005" }, actionTitle: "复核承包商资料", owner: "测试员工庚", createdDate: "2026-03-05", dueDate: "2026-03-22", closedDate: null, Status: "InProgress" },
-  { actionId: "ACT-008", storeReference: { trtid: "TEST-006" }, actionTitle: "撤销误建记录", owner: "测试员工辛", createdDate: "2026-03-06", dueDate: "2026-03-24", closedDate: null, Status: "Cancelled", sourceReference: null },
-] satisfies readonly RawActionRecord[];
+const supportedPeriodRates = [92, 68, 85, 74, 96, 81, 59, 88, 91, 77, 84, 70];
+
+function aggregateValue(
+  storeIndex: number,
+  scope: KpiPeriod,
+  supportedMonths: SupportedMonths,
+): number {
+  if (scope.includedMonths.length === supportedMonths.length) {
+    return supportedPeriodRates[storeIndex] ?? 75;
+  }
+
+  const startIndex = supportedMonths.indexOf(scope.includedMonths[0]);
+  const currentQuarterStart =
+    Math.floor((supportedMonths.length - 1) / 3) * 3;
+  const isCurrentQuarter =
+    startIndex === currentQuarterStart &&
+    scope.includedMonths.length === supportedMonths.length - currentQuarterStart;
+
+  if (storeIndex === 0 && isCurrentQuarter) {
+    return 92;
+  }
+
+  return (
+    60 +
+    ((storeIndex * 9 + startIndex * 7 + scope.includedMonths.length * 5) % 40)
+  );
+}
+
+export function createMockActionClosureRates(
+  supportedMonths: SupportedMonths,
+  aggregateScopes: readonly KpiPeriod[],
+): readonly ActionClosureRateRecord[] {
+  return mockStores.flatMap((store, storeIndex) =>
+    aggregateScopes.map((scope) => ({
+      storeReference: { trtid: store.trtid },
+      startInclusive: scope.startInclusive,
+      endExclusive: scope.endExclusive,
+      value: aggregateValue(
+        storeIndex,
+        scope,
+        supportedMonths,
+      ),
+    } satisfies ActionClosureRateRecord)),
+  );
+}
+
+export function createMockActionRecords(
+  months: SupportedMonths,
+): readonly RawActionRecord[] {
+  const currentMonth = months[months.length - 1];
+  const previousMonth = months[Math.max(0, months.length - 2)];
+  const earlierMonth = months[Math.max(0, months.length - 3)];
+
+  return [
+    {
+      actionId: `ACT-${earlierMonth}-001`,
+      storeReference: { trtid: mockStores[0].trtid },
+      actionTitle: "补充设备点检记录",
+      owner: "测试员工甲",
+      createdDate: `${earlierMonth}-05`,
+      dueDate: `${earlierMonth}-20`,
+      closedDate: null,
+      Status: "Assigned",
+    },
+    {
+      actionId: `ACT-${previousMonth}-002`,
+      storeReference: { trtid: mockStores[0].trtid },
+      actionTitle: "更新疏散标识",
+      owner: "测试员工乙",
+      createdDate: `${previousMonth}-03`,
+      dueDate: `${previousMonth}-18`,
+      closedDate: null,
+      Status: "InProgress",
+    },
+    {
+      actionId: `ACT-${previousMonth}-003`,
+      storeReference: { trtid: mockStores[1].trtid },
+      actionTitle: "完成护栏修复",
+      owner: "测试员工丙",
+      createdDate: `${previousMonth}-03`,
+      dueDate: `${previousMonth}-18`,
+      closedDate: `${previousMonth}-16`,
+      Status: "Closed",
+    },
+    {
+      actionId: `ACT-${previousMonth}-004`,
+      storeReference: { trtid: mockStores[1].trtid },
+      actionTitle: "取消重复整改项",
+      owner: "测试员工丁",
+      createdDate: `${previousMonth}-08`,
+      dueDate: `${previousMonth}-25`,
+      closedDate: null,
+      Status: "Cancelled",
+    },
+    {
+      actionId: `ACT-${currentMonth}-005`,
+      storeReference: { trtid: mockStores[2].trtid },
+      actionTitle: "核对危废标签",
+      owner: "测试员工戊",
+      createdDate: `${currentMonth}-01`,
+      dueDate: `${currentMonth}-15`,
+      closedDate: null,
+      Status: "Assigned",
+    },
+  ] satisfies readonly RawActionRecord[];
+}

@@ -5,7 +5,7 @@ import {
   parseKpiPeriod,
   parseTimezoneAwareInstant,
 } from "@/data/contracts/kpi-period";
-import { mockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 
 const january: KpiPeriod = {
@@ -13,6 +13,9 @@ const january: KpiPeriod = {
   endExclusive: "2026-02-01T00:00:00+08:00",
   includedMonths: ["2026-01"],
 };
+const mockEhsRepository = createMockEhsRepository(
+  new Date("2026-02-15T00:00:00+08:00"),
+);
 
 describe("KPI Period validation", () => {
   it("accepts explicit UTC offsets", () => {

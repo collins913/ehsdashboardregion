@@ -1,2 +1,5 @@
 export type { EhsRepository } from "@/data/repositories/ehs-repository";
-export { mockEhsRepository as ehsRepository } from "@/data/repositories/mock-ehs-repository";
+export {
+  createMockEhsRepository,
+  createMockEhsRepository as createEhsRepository,
+} from "@/data/repositories/mock-ehs-repository";

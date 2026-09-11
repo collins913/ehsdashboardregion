@@ -1,10 +1,23 @@
-import type { InspectionRecord } from "@/types/ehs";
+import { mockStores } from "@/data/mock/stores";
+import type { InspectionRecord, Month } from "@/types/ehs";
 
-export const mockInspectionRecords = [
-  { storeReference: { trtid: "TEST-001" }, period: "2026-01", isRequired: true, isCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, period: "2026-02", isRequired: true, isCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, period: "2026-03", isRequired: true, isCompleted: true },
-  { storeReference: { trtid: "TEST-002" }, period: "2026-01", isRequired: true, isCompleted: true },
-  { storeReference: { trtid: "TEST-002" }, period: "2026-02", isRequired: true, isCompleted: false },
-  { storeReference: { trtid: "TEST-002" }, period: "2026-03", isRequired: true, isCompleted: true },
-] satisfies readonly InspectionRecord[];
+type SupportedMonths = readonly [Month, ...Month[]];
+
+export function createMockInspectionRecords(
+  months: SupportedMonths,
+): readonly InspectionRecord[] {
+  return mockStores.flatMap((store, storeIndex) =>
+    months.flatMap((period, monthIndex) =>
+      storeIndex === 1 && monthIndex === months.length - 1
+        ? []
+        : [{
+            storeReference: { trtid: store.trtid },
+            period,
+            isRequired: true,
+            isCompleted: !(
+              storeIndex === 5 && monthIndex === months.length - 1
+            ),
+          } satisfies InspectionRecord],
+    ),
+  );
+}

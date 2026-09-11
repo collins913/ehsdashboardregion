@@ -1,13 +1,23 @@
-import type { DrillRecord } from "@/types/ehs";
+import { mockStores } from "@/data/mock/stores";
+import type { DrillRecord, Month } from "@/types/ehs";
 
-export const mockDrillRecords = [
-  { storeReference: { trtid: "TEST-001" }, month: "2026-01", drillName: "火灾疏散演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, month: "2026-02", drillName: "化学品泄漏演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-001" }, month: "2026-03", drillName: "急救演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-002" }, month: "2026-01", drillName: "火灾疏散演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-002" }, month: "2026-03", drillName: "急救演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-003" }, month: "2026-01", drillName: "火灾疏散演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-003" }, month: "2026-01", drillName: "停电响应演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-003" }, month: "2026-02", drillName: "化学品泄漏演练", isCompleted: true },
-  { storeReference: { trtid: "TEST-003" }, month: "2026-03", drillName: "急救演练", isCompleted: true },
-] satisfies readonly DrillRecord[];
+type SupportedMonths = readonly [Month, ...Month[]];
+
+export function createMockDrillRecords(
+  months: SupportedMonths,
+): readonly DrillRecord[] {
+  return mockStores.flatMap((store, storeIndex) =>
+    months.flatMap((month, monthIndex) =>
+      storeIndex === 1 && monthIndex === months.length - 1
+        ? []
+        : [{
+            storeReference: { trtid: store.trtid },
+            month,
+            drillName: `月度应急演练 ${monthIndex + 1}`,
+            isCompleted: !(
+              storeIndex === 5 && monthIndex === months.length - 1
+            ),
+          } satisfies DrillRecord],
+    ),
+  );
+}

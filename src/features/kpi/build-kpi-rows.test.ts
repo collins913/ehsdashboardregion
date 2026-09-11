@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   mockStores,
 } from "@/data/mock";
-import { mockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import type {
   DataSet,
   KpiActionClosureRateRecord,
@@ -27,6 +27,9 @@ const q1Context: KpiFilterContext = {
     includedMonths: ["2026-01", "2026-02", "2026-03"],
   },
 };
+const mockEhsRepository = createMockEhsRepository(
+  new Date("2026-03-15T00:00:00+08:00"),
+);
 
 const stores: readonly KpiStore[] = [
   {
@@ -139,16 +142,16 @@ describe("KPI assembly", () => {
   it("honors the explicit period supplied to the repository", () => {
     const context: KpiFilterContext = {
       ...q1Context,
-      store: { kind: "INCLUDE", values: ["TEST-002"] },
+      store: { kind: "INCLUDE", values: ["TEST-003"] },
       period: {
-        startInclusive: "2026-01-01T00:00:00+08:00",
-        endExclusive: "2026-02-01T00:00:00+08:00",
-        includedMonths: ["2026-01"],
+        startInclusive: "2026-03-01T00:00:00+08:00",
+        endExclusive: "2026-04-01T00:00:00+08:00",
+        includedMonths: ["2026-03"],
       },
     };
     const data = mockEhsRepository.getKpiData(context);
 
-    expect(data.training.items.map(({ month }) => month)).toEqual(["2026-01"]);
+    expect(data.training.items.map(({ month }) => month)).toEqual(["2026-03"]);
     expect(data.events.items).toHaveLength(1);
   });
 
@@ -212,7 +215,7 @@ describe("KPI assembly", () => {
     }
   });
 
-  it("returns UNDETERMINED when a required Training month is missing", () => {
+  it("evaluates only the Training records that exist in the Period", () => {
     const training: KpiTrainingRecord = {
       storeId: "STORE-1",
       month: "2026-01",
@@ -225,21 +228,43 @@ describe("KPI assembly", () => {
     )[0];
 
     expect(row.training).toEqual({
-      availability: "INCOMPLETE",
-      result: "UNDETERMINED",
+      availability: "AVAILABLE",
+      result: "ACHIEVED",
+    });
+  });
+
+  it("returns NOT_ACHIEVED when an existing required Training is incomplete", () => {
+    const training: KpiTrainingRecord = {
+      storeId: "STORE-1",
+      month: "2026-02",
+      isRequired: true,
+      isFullyCompleted: false,
+    };
+    const row = buildKpiRows(
+      q1Context,
+      snapshot({ training: available(training) }),
+    )[0];
+
+    expect(row.training).toEqual({
+      availability: "AVAILABLE",
+      result: "NOT_ACHIEVED",
     });
   });
 
   it("preserves confirmed empty semantics", () => {
     const row = buildKpiRows(q1Context, snapshot())[0];
 
+    expect(row.training).toEqual({
+      availability: "CONFIRMED_EMPTY",
+      result: "ACHIEVED",
+    });
     expect(row.drill).toEqual({
       availability: "CONFIRMED_EMPTY",
       result: "NOT_ACHIEVED",
     });
     expect(row.inspections).toEqual({
       availability: "CONFIRMED_EMPTY",
-      result: "UNDETERMINED",
+      result: "NOT_ACHIEVED",
     });
   });
 
@@ -258,7 +283,7 @@ describe("KPI assembly", () => {
     expect(row.inspections.result).toBe("UNDETERMINED");
   });
 
-  it("keeps INCOMPLETE Drill data UNDETERMINED", () => {
+  it("keeps INCOMPLETE performance sources UNDETERMINED", () => {
     const drill: KpiDrillRecord = {
       storeId: "STORE-1",
       month: "2026-01",
@@ -266,10 +291,22 @@ describe("KPI assembly", () => {
     };
     const row = buildKpiRows(
       q1Context,
-      snapshot({ drills: incomplete(drill) }),
+      snapshot({
+        training: incomplete<KpiTrainingRecord>(),
+        drills: incomplete(drill),
+        inspections: incomplete(),
+      }),
     )[0];
 
+    expect(row.training).toEqual({
+      availability: "INCOMPLETE",
+      result: "UNDETERMINED",
+    });
     expect(row.drill).toEqual({
+      availability: "INCOMPLETE",
+      result: "UNDETERMINED",
+    });
+    expect(row.inspections).toEqual({
       availability: "INCOMPLETE",
       result: "UNDETERMINED",
     });

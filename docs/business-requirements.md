@@ -57,7 +57,7 @@ V1 已确认：
 - Region、Area 初始为 `ALL`，支持 `ALL` 或单选。
 - Store 初始为 `ALL`，支持 `ALL`、单个或多个 canonical `storeId`。
 - Region 变化时清除无效 Area 与 Store；Area 变化时清除无效 Store。
-- Period 默认本季度，支持本年、本季度、本月及自定义完整自然月范围。
+- Period 默认本季度，支持本年、本季度、本月及自定义完整自然月范围；本季度和本年均截至当前自然月，不纳入未来月份。
 - Period 使用 `Asia/Shanghai`，不支持具体日期、部分月份或自定义日范围。
 
 ### 3.2 规则执行边界

@@ -1,13 +1,24 @@
 import type {
   FilterScope,
   KpiFilterContext,
-  KpiPeriod,
   KpiStore,
-  TimezoneAwareIsoDateTime,
 } from "@/data/contracts/kpi";
+import {
+  BUSINESS_TIME_ZONE,
+  includedMonthsBetween,
+  periodForMode,
+  periodFromMonthRange,
+  shanghaiYearMonth,
+} from "@/data/contracts/kpi-period";
 import type { Month, StoreId } from "@/types/ehs";
 
-export const BUSINESS_TIME_ZONE = "Asia/Shanghai";
+export {
+  BUSINESS_TIME_ZONE,
+  includedMonthsBetween,
+  periodForMode,
+  periodFromMonthRange,
+  shanghaiYearMonth,
+};
 
 export type PeriodMode =
   | "THIS_YEAR"
@@ -30,122 +41,8 @@ export interface GlobalFilterState {
   period: PeriodSelection;
 }
 
-const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
-const SHANGHAI_OFFSET = "+08:00";
-
 function all<T>(): FilterScope<T> {
   return { kind: "ALL" };
-}
-
-function monthIndex(month: Month): number | null {
-  const match = MONTH_PATTERN.exec(month);
-
-  if (match === null) {
-    return null;
-  }
-
-  const year = Number(match[1]);
-  const monthNumber = Number(match[2]);
-
-  return monthNumber >= 1 && monthNumber <= 12
-    ? year * 12 + monthNumber - 1
-    : null;
-}
-
-function monthFromIndex(index: number): Month {
-  const year = Math.floor(index / 12);
-  const month = (index % 12) + 1;
-  return `${year}-${String(month).padStart(2, "0")}` as Month;
-}
-
-export function includedMonthsBetween(
-  startMonth: Month,
-  endMonth: Month,
-): readonly [Month, ...Month[]] | null {
-  const startIndex = monthIndex(startMonth);
-  const endIndex = monthIndex(endMonth);
-
-  if (startIndex === null || endIndex === null || startIndex > endIndex) {
-    return null;
-  }
-
-  const months: Month[] = [];
-
-  for (let index = startIndex; index <= endIndex; index += 1) {
-    months.push(monthFromIndex(index));
-  }
-
-  return months as [Month, ...Month[]];
-}
-
-export function periodFromMonthRange(
-  startMonth: Month,
-  endMonth: Month,
-): KpiPeriod | null {
-  const includedMonths = includedMonthsBetween(startMonth, endMonth);
-  const endIndex = monthIndex(endMonth);
-
-  if (includedMonths === null || endIndex === null) {
-    return null;
-  }
-
-  const nextMonth = monthFromIndex(endIndex + 1);
-
-  return {
-    startInclusive:
-      `${startMonth}-01T00:00:00${SHANGHAI_OFFSET}` as TimezoneAwareIsoDateTime,
-    endExclusive:
-      `${nextMonth}-01T00:00:00${SHANGHAI_OFFSET}` as TimezoneAwareIsoDateTime,
-    includedMonths,
-  };
-}
-
-export function shanghaiYearMonth(now: Date): {
-  year: number;
-  month: number;
-} {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(now);
-  const year = Number(parts.find((part) => part.type === "year")?.value);
-  const month = Number(parts.find((part) => part.type === "month")?.value);
-
-  if (!Number.isInteger(year) || !Number.isInteger(month)) {
-    throw new Error("Unable to resolve the current Asia/Shanghai month.");
-  }
-
-  return { year, month };
-}
-
-export function periodForMode(
-  mode: Exclude<PeriodMode, "CUSTOM">,
-  now: Date,
-): KpiPeriod {
-  const { year, month } = shanghaiYearMonth(now);
-  let startMonth: Month;
-  let endMonth: Month;
-
-  if (mode === "THIS_YEAR") {
-    startMonth = `${year}-01` as Month;
-    endMonth = `${year}-12` as Month;
-  } else if (mode === "THIS_QUARTER") {
-    const quarterStart = Math.floor((month - 1) / 3) * 3 + 1;
-    startMonth = `${year}-${String(quarterStart).padStart(2, "0")}` as Month;
-    endMonth = `${year}-${String(quarterStart + 2).padStart(2, "0")}` as Month;
-  } else {
-    startMonth = `${year}-${String(month).padStart(2, "0")}` as Month;
-    endMonth = startMonth;
-  }
-
-  const period = periodFromMonthRange(startMonth, endMonth);
-
-  if (period === null) {
-    throw new Error("Unable to build a complete natural-month period.");
-  }
-
-  return period;
 }
 
 export function createInitialGlobalFilterState(): GlobalFilterState {

@@ -10,8 +10,9 @@ describe("Training KPI", () => {
   it("is achieved when every required Training is fully completed", () => {
     expect(
       evaluateTrainingPerformance([
-        { requiredTrainingCompletion: [true, true] },
-        { requiredTrainingCompletion: [true] },
+        true,
+        true,
+        true,
       ]),
     ).toBe("ACHIEVED");
   });
@@ -19,21 +20,18 @@ describe("Training KPI", () => {
   it("is not achieved when one required Training is incomplete", () => {
     expect(
       evaluateTrainingPerformance([
-        { requiredTrainingCompletion: [true] },
-        { requiredTrainingCompletion: [true, false] },
+        true,
+        false,
       ]),
     ).toBe("NOT_ACHIEVED");
   });
 
-  it("is undetermined when the required set is unavailable", () => {
+  it("is achieved when the complete source contains no Training records", () => {
+    expect(evaluateTrainingPerformance([])).toBe("ACHIEVED");
+  });
+
+  it("is undetermined only when the source input is unavailable", () => {
     expect(evaluateTrainingPerformance(null)).toBe("UNDETERMINED");
-    expect(evaluateTrainingPerformance([])).toBe("UNDETERMINED");
-    expect(
-      evaluateTrainingPerformance([{ requiredTrainingCompletion: null }]),
-    ).toBe("UNDETERMINED");
-    expect(
-      evaluateTrainingPerformance([{ requiredTrainingCompletion: [] }]),
-    ).toBe("UNDETERMINED");
   });
 });
 
@@ -41,8 +39,8 @@ describe("Drill KPI", () => {
   it("is achieved when every included month has a completed Drill", () => {
     expect(
       evaluateDrillPerformance([
-        { completedDrillCount: 1 },
-        { completedDrillCount: 2 },
+        { drillCompletion: [true] },
+        { drillCompletion: [true, true] },
       ]),
     ).toBe("ACHIEVED");
   });
@@ -50,24 +48,27 @@ describe("Drill KPI", () => {
   it("is not achieved when an included month has zero completed Drills", () => {
     expect(
       evaluateDrillPerformance([
-        { completedDrillCount: 1 },
-        { completedDrillCount: 0 },
+        { drillCompletion: [true] },
+        { drillCompletion: [] },
       ]),
     ).toBe("NOT_ACHIEVED");
   });
 
+  it("is not achieved when a month contains an incomplete Drill", () => {
+    expect(
+      evaluateDrillPerformance([{ drillCompletion: [true, false] }]),
+    ).toBe("NOT_ACHIEVED");
+  });
+
   it("accepts multiple completed Drills in a month", () => {
-    expect(evaluateDrillPerformance([{ completedDrillCount: 3 }])).toBe(
+    expect(evaluateDrillPerformance([{ drillCompletion: [true, true, true] }])).toBe(
       "ACHIEVED",
     );
   });
 
-  it("is undetermined for an unavailable or invalid included-month set", () => {
+  it("is undetermined only for an unavailable included-month set", () => {
     expect(evaluateDrillPerformance(null)).toBe("UNDETERMINED");
     expect(evaluateDrillPerformance([])).toBe("UNDETERMINED");
-    expect(evaluateDrillPerformance([{ completedDrillCount: -1 }])).toBe(
-      "UNDETERMINED",
-    );
   });
 });
 
@@ -90,14 +91,33 @@ describe("Actions KPI", () => {
 
 describe("Inspections KPI", () => {
   it("is achieved when all required Inspections are completed", () => {
-    expect(evaluateInspectionPerformance([true, true])).toBe("ACHIEVED");
+    expect(
+      evaluateInspectionPerformance([
+        { requiredInspectionCompletion: [true] },
+        { requiredInspectionCompletion: [true, true] },
+      ]),
+    ).toBe("ACHIEVED");
   });
 
   it("is not achieved when one required Inspection is incomplete", () => {
-    expect(evaluateInspectionPerformance([true, false])).toBe("NOT_ACHIEVED");
+    expect(
+      evaluateInspectionPerformance([
+        { requiredInspectionCompletion: [true] },
+        { requiredInspectionCompletion: [true, false] },
+      ]),
+    ).toBe("NOT_ACHIEVED");
   });
 
-  it("is undetermined when the required set is unavailable", () => {
+  it("is not achieved when an included month has no Inspection", () => {
+    expect(
+      evaluateInspectionPerformance([
+        { requiredInspectionCompletion: [true] },
+        { requiredInspectionCompletion: [] },
+      ]),
+    ).toBe("NOT_ACHIEVED");
+  });
+
+  it("is undetermined when the included-month set is unavailable", () => {
     expect(evaluateInspectionPerformance(null)).toBe("UNDETERMINED");
     expect(evaluateInspectionPerformance([])).toBe("UNDETERMINED");
   });

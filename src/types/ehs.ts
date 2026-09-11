@@ -1,5 +1,8 @@
 export type IsoDate = `${number}-${number}-${number}`;
 export type IsoDateTime = `${string}T${string}`;
+export type TimezoneAwareIsoDateTime =
+  | `${string}T${string}Z`
+  | `${string}T${string}${"+" | "-"}${string}:${string}`;
 export type Month = `${number}-${number}`;
 export type StoreId = string;
 
@@ -51,7 +54,8 @@ export interface InspectionRecord {
 
 export interface ActionClosureRateRecord {
   storeReference: StoreReference;
-  period: Month;
+  startInclusive: TimezoneAwareIsoDateTime;
+  endExclusive: TimezoneAwareIsoDateTime;
   value: number | null;
   sourceReference?: SourceReference | null;
 }
