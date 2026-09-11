@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   columnVisibilityFeature,
   type ColumnVisibilityState,
@@ -76,26 +76,26 @@ type KpiTableFeatures = typeof kpiTableFeatures;
 const columnHelper = createColumnHelper<KpiTableFeatures, KpiRow>();
 
 const columnLabels: Record<string, string> = {
-  store: "Store",
-  training: "Training",
-  drill: "Drill",
-  actions: "Actions",
-  inspections: "Inspections",
-  astmEvents: "ASTM Events",
+  store: "门店",
+  training: "培训",
+  drill: "演练",
+  actions: "行动项",
+  inspections: "检查",
+  astmEvents: "ASTM 事件",
 };
 
 const availabilityLabels: Record<DataAvailability, string> = {
-  AVAILABLE: "Available",
-  CONFIRMED_EMPTY: "No data",
-  INCOMPLETE: "Incomplete",
-  UNAVAILABLE: "Unavailable",
+  AVAILABLE: "可用",
+  CONFIRMED_EMPTY: "确认无数据",
+  INCOMPLETE: "数据不完整",
+  UNAVAILABLE: "数据不可用",
 };
 
 const availabilityDescriptions: Record<DataAvailability, string> = {
-  AVAILABLE: "The requested data is available.",
-  CONFIRMED_EMPTY: "The requested scope is confirmed to contain no records.",
-  INCOMPLETE: "The requested data is incomplete and cannot support a conclusion.",
-  UNAVAILABLE: "The requested data is unavailable.",
+  AVAILABLE: "请求范围内的数据可用。",
+  CONFIRMED_EMPTY: "请求范围已确认无记录。",
+  INCOMPLETE: "请求范围内的数据不完整，无法支持业务结论。",
+  UNAVAILABLE: "请求范围内的数据不可用。",
 };
 
 type KpiDataAvailabilityDisplayProps = {
@@ -160,6 +160,45 @@ function rowHasNegativeResult(row: KpiRow): boolean {
   return statuses.some((status) => getStatusIntent(status) === "NEGATIVE");
 }
 
+function StoreNameCell({ name }: { name: string }) {
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const element = textRef.current;
+    if (!element) return;
+
+    const updateTruncation = () => {
+      setIsTruncated(element.scrollWidth > element.clientWidth);
+    };
+
+    updateTruncation();
+    const resizeObserver = new ResizeObserver(updateTruncation);
+    resizeObserver.observe(element);
+
+    return () => resizeObserver.disconnect();
+  }, [isTruncated, name]);
+
+  const label = (
+    <span
+      ref={textRef}
+      className="block w-44 truncate font-medium"
+      tabIndex={isTruncated ? 0 : undefined}
+    >
+      {name}
+    </span>
+  );
+
+  if (!isTruncated) return label;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{label}</TooltipTrigger>
+      <TooltipContent>{name}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function ActionsCell({
   value,
   onOpen,
@@ -176,7 +215,7 @@ function ActionsCell({
       variant="link"
       className="h-auto p-0 font-medium"
       onClick={onOpen}
-      aria-label={`View open Actions, closure rate ${formatActionClosureRate(value.value)}`}
+      aria-label={`查看未关闭行动项，关闭率 ${formatActionClosureRate(value.value)}`}
     >
       {formatActionClosureRate(value.value)}
     </Button>
@@ -198,32 +237,32 @@ function ActionsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto sm:max-w-xl!">
         <SheetHeader>
-          <SheetTitle>Open Actions</SheetTitle>
+          <SheetTitle>未关闭行动项</SheetTitle>
           <SheetDescription>
             {row ? `${row.store.displayName} · ${row.store.storeId}` : ""}
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pb-4">
           {!actions || actions.availability === "UNAVAILABLE" ? (
-            <p className="text-sm text-muted-foreground">Action details are unavailable.</p>
+            <p className="text-sm text-muted-foreground">行动项明细不可用。</p>
           ) : actions.availability === "INCOMPLETE" ? (
             <div className="space-y-3">
               <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
               <p className="text-sm text-muted-foreground">
-                Available records may not represent the complete scope.
+                当前记录可能未覆盖完整范围。
               </p>
             </div>
           ) : actions.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No open Actions.</p>
+            <p className="text-sm text-muted-foreground">没有未关闭行动项。</p>
           ) : (
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Due</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>行动项</TableHead>
+                    <TableHead>负责人</TableHead>
+                    <TableHead>到期日</TableHead>
+                    <TableHead>状态</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,15 +314,10 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
         columnHelper.accessor((row) => row.store.displayName, {
           id: "store",
           header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Store" />
+            <DataTableColumnHeader column={column} title={columnLabels.store} />
           ),
           cell: ({ row }) => (
-            <div className="min-w-44">
-              <p className="font-medium">{row.original.store.displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                {row.original.store.storeId}
-              </p>
-            </div>
+            <StoreNameCell name={row.original.store.displayName} />
           ),
           enableHiding: false,
           sortFn: "text",
@@ -293,7 +327,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
           {
             id: "training",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title="Training" />
+              <DataTableColumnHeader column={column} title={columnLabels.training} />
             ),
             cell: ({ row }) => <ResultCell value={row.original.training} />,
             sortFn: "text",
@@ -304,7 +338,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
           {
             id: "drill",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title="Drill" />
+              <DataTableColumnHeader column={column} title={columnLabels.drill} />
             ),
             cell: ({ row }) => <ResultCell value={row.original.drill} />,
             sortFn: "text",
@@ -313,7 +347,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
         columnHelper.accessor((row) => row.actions.value ?? undefined, {
           id: "actions",
           header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="Actions" />
+            <DataTableColumnHeader column={column} title={columnLabels.actions} />
           ),
           cell: ({ row }) => (
             <ActionsCell
@@ -333,7 +367,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
           {
             id: "inspections",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title="Inspections" />
+              <DataTableColumnHeader column={column} title={columnLabels.inspections} />
             ),
             cell: ({ row }) => <ResultCell value={row.original.inspections} />,
             sortFn: "text",
@@ -344,7 +378,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
           {
             id: "astmEvents",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title="ASTM Events" />
+              <DataTableColumnHeader column={column} title={columnLabels.astmEvents} />
             ),
             cell: ({ row }) => <AstmResultCell value={row.original.astmEvents} />,
             sortFn: "text",
@@ -381,7 +415,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
           }}
         >
           <ListFilter aria-hidden="true" />
-          Abnormal only
+          仅看异常
         </Button>
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
@@ -396,7 +430,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                     key={header.id}
                     className={
                       header.column.id === "store"
-                        ? "sticky left-0 z-20 border-r bg-background"
+                        ? "sticky left-0 z-20 w-48 min-w-48 max-w-48 border-r bg-background"
                         : undefined
                     }
                   >
@@ -415,7 +449,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                       key={cell.id}
                       className={
                         cell.column.id === "store"
-                          ? "sticky left-0 z-10 border-r bg-background"
+                          ? "sticky left-0 z-10 w-48 min-w-48 max-w-48 border-r bg-background"
                           : undefined
                       }
                     >
@@ -430,7 +464,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                   colSpan={visibleColumnCount}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  {abnormalOnly ? "No abnormal KPI rows." : "No KPI rows."}
+                  {abnormalOnly ? "没有异常 KPI 记录。" : "没有 KPI 记录。"}
                 </TableCell>
               </TableRow>
             )}
@@ -440,11 +474,11 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          {data.length} {data.length === 1 ? "store" : "stores"}
+          共 {data.length} 家门店
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            Page {table.state.pagination.pageIndex + 1} of {Math.max(table.getPageCount(), 1)}
+            第 {table.state.pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)} 页
           </span>
           <Button
             variant="outline"
@@ -452,7 +486,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            上一页
           </Button>
           <Button
             variant="outline"
@@ -460,7 +494,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            下一页
           </Button>
         </div>
       </div>

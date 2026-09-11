@@ -30,7 +30,7 @@ import {
   KpiDataAvailabilityDisplay,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
-import { demoKpiRows } from "./kpi-demo-data";
+import { demoKpiRows } from "./_fixtures/kpi-ui-fixture";
 import { SidebarStateDemo } from "./sidebar-state-demo";
 
 const tokenSamples = [

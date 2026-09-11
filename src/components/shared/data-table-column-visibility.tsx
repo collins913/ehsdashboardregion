@@ -35,11 +35,11 @@ export function DataTableColumnVisibility({
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
           <Settings2 aria-hidden="true" />
-          Columns
+          列显示
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
+        <DropdownMenuLabel>显示的列</DropdownMenuLabel>
         {columns.map((column) => (
           <DropdownMenuCheckboxItem
             key={column.id}

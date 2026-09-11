@@ -1,6 +1,7 @@
 import {
   CheckCircle2,
   CircleAlert,
+  Clock3,
   Minus,
   type LucideIcon,
 } from "lucide-react";
@@ -20,38 +21,87 @@ export type BusinessStatus =
   | RecordState;
 
 export type StatusIntent = "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+export type StatusEmphasis = "PRIMARY" | "SECONDARY" | "NEUTRAL";
 
 type StatusDefinition = {
   label: string;
   intent: StatusIntent;
+  emphasis: StatusEmphasis;
   icon: LucideIcon;
 };
 
 const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
-  ACHIEVED: { label: "达成", intent: "POSITIVE", icon: CheckCircle2 },
-  NOT_ACHIEVED: {
-    label: "未达成",
-    intent: "NEGATIVE",
-    icon: CircleAlert,
-  },
-  UNDETERMINED: { label: "—", intent: "NEUTRAL", icon: Minus },
-  OCCURRED: { label: "发生", intent: "NEGATIVE", icon: CircleAlert },
-  NOT_OCCURRED: {
-    label: "未发生",
+  ACHIEVED: {
+    label: "达成",
     intent: "POSITIVE",
+    emphasis: "SECONDARY",
     icon: CheckCircle2,
   },
-  OPEN: { label: "Open", intent: "NEUTRAL", icon: Minus },
-  CLOSED: { label: "Closed", intent: "NEUTRAL", icon: Minus },
-  EXCLUDED: { label: "Excluded", intent: "NEUTRAL", icon: Minus },
-  UNKNOWN: { label: "Unknown", intent: "NEUTRAL", icon: Minus },
-  NORMAL: { label: "正常", intent: "POSITIVE", icon: CheckCircle2 },
-  ABNORMAL: { label: "异常", intent: "NEGATIVE", icon: CircleAlert },
+  NOT_ACHIEVED: {
+    label: "进行中",
+    intent: "NEGATIVE",
+    emphasis: "PRIMARY",
+    icon: Clock3,
+  },
+  UNDETERMINED: {
+    label: "未确定",
+    intent: "NEUTRAL",
+    emphasis: "NEUTRAL",
+    icon: Minus,
+  },
+  OCCURRED: {
+    label: "发生",
+    intent: "NEGATIVE",
+    emphasis: "PRIMARY",
+    icon: CircleAlert,
+  },
+  NOT_OCCURRED: {
+    label: "无",
+    intent: "POSITIVE",
+    emphasis: "SECONDARY",
+    icon: CheckCircle2,
+  },
+  OPEN: {
+    label: "未关闭",
+    intent: "NEUTRAL",
+    emphasis: "NEUTRAL",
+    icon: Minus,
+  },
+  CLOSED: {
+    label: "已关闭",
+    intent: "NEUTRAL",
+    emphasis: "SECONDARY",
+    icon: CheckCircle2,
+  },
+  EXCLUDED: {
+    label: "已排除",
+    intent: "NEUTRAL",
+    emphasis: "NEUTRAL",
+    icon: Minus,
+  },
+  UNKNOWN: {
+    label: "未知",
+    intent: "NEUTRAL",
+    emphasis: "NEUTRAL",
+    icon: Minus,
+  },
+  NORMAL: {
+    label: "正常",
+    intent: "POSITIVE",
+    emphasis: "SECONDARY",
+    icon: CheckCircle2,
+  },
+  ABNORMAL: {
+    label: "异常",
+    intent: "NEGATIVE",
+    emphasis: "PRIMARY",
+    icon: CircleAlert,
+  },
 };
 
-const intentClassNames: Record<StatusIntent, string> = {
-  POSITIVE: "border-transparent bg-primary text-primary-foreground",
-  NEGATIVE: "border-border bg-muted text-foreground",
+const emphasisClassNames: Record<StatusEmphasis, string> = {
+  PRIMARY: "border-transparent bg-primary text-primary-foreground",
+  SECONDARY: "border-transparent bg-secondary text-secondary-foreground",
   NEUTRAL: "border-border bg-background text-muted-foreground",
 };
 
@@ -61,6 +111,10 @@ export function getStatusIntent(status: BusinessStatus): StatusIntent {
 
 export function getStatusLabel(status: BusinessStatus): string {
   return statusDefinitions[status].label;
+}
+
+export function getStatusEmphasis(status: BusinessStatus): StatusEmphasis {
+  return statusDefinitions[status].emphasis;
 }
 
 type StatusDisplayProps = {
@@ -76,7 +130,8 @@ export function StatusDisplay({ status, className }: StatusDisplayProps) {
     <Badge
       variant="outline"
       data-intent={definition.intent.toLowerCase()}
-      className={cn(intentClassNames[definition.intent], className)}
+      data-emphasis={definition.emphasis.toLowerCase()}
+      className={cn(emphasisClassNames[definition.emphasis], className)}
     >
       <Icon aria-hidden="true" />
       {definition.label}

@@ -8,18 +8,18 @@ import type {
 import type { PerformanceResult } from "@/lib/rules/result-types";
 
 const storeNames = [
-  "Central Plaza",
-  "Harbour City",
-  "North Point",
-  "River Walk",
-  "South Gate",
-  "West Market",
-  "Lake View",
-  "East Square",
-  "Hill Centre",
-  "Garden Place",
-  "Metro Mall",
-  "Park Avenue",
+  "中央广场店",
+  "海港城店",
+  "北角店",
+  "滨河店",
+  "南门店",
+  "西市场店",
+  "湖景店",
+  "东广场店",
+  "山城店",
+  "花园店",
+  "都会店",
+  "公园大道店",
 ] as const;
 
 function performance(
@@ -36,8 +36,8 @@ function openActions(index: number): DataSet<KpiActionDetail> {
 
   const action: KpiActionDetail = {
     actionId: `ACT-${String(index + 1).padStart(3, "0")}`,
-    actionTitle: "Complete corrective action follow-up",
-    owner: index % 2 === 0 ? "Alex Chen" : "Morgan Li",
+    actionTitle: "完成纠正行动跟进",
+    owner: index % 2 === 0 ? "陈晨" : "李敏",
     createdDate: "2026-09-01",
     dueDate: "2026-09-20",
     closedDate: null,
@@ -82,8 +82,8 @@ export const demoKpiRows: readonly KpiRow[] = storeNames.map((displayName, index
     store: {
       storeId: `DEMO-${String(index + 1).padStart(3, "0")}`,
       displayName,
-      region: "Demo Region",
-      area: "Demo Area",
+      region: "示例区域",
+      area: "示例片区",
     },
     training:
       index === 6

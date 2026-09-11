@@ -39,10 +39,10 @@ export function DataTableColumnHeader({
       onClick={() => column.toggleSorting(direction === "asc")}
       aria-label={`${title}: ${
         direction === "asc"
-          ? "sorted ascending"
+          ? "已按升序排列"
           : direction === "desc"
-            ? "sorted descending"
-            : "not sorted"
+            ? "已按降序排列"
+            : "未排序"
       }`}
     >
       {title}

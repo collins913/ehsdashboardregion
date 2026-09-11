@@ -92,7 +92,7 @@ The confirmed KPI / Goal requirement is not satisfied.
 
 Default display label:
 
-`未达成`
+`进行中`
 
 UI semantic intent:
 
@@ -117,7 +117,7 @@ It must not be interpreted as:
 
 Default display label:
 
-`—`
+`未确定`
 
 UI semantic intent:
 
@@ -174,7 +174,7 @@ The rule cannot safely determine Normal or Abnormal.
 
 Default display label:
 
-`—`
+`未确定`
 
 UI semantic intent:
 
@@ -196,7 +196,7 @@ No ASTM Event exists in the selected scope according to the confirmed ASTM rule.
 
 Default display label:
 
-`未发生`
+`无`
 
 UI semantic intent:
 
@@ -251,6 +251,10 @@ Meaning:
 
 The record is currently considered not closed.
 
+Default display label:
+
+`未关闭`
+
 ---
 
 ## CLOSED
@@ -258,6 +262,10 @@ The record is currently considered not closed.
 Meaning:
 
 The record has reached a confirmed closed state.
+
+Default display label:
+
+`已关闭`
 
 ---
 
@@ -271,6 +279,10 @@ Current example:
 
 `Action Status = Cancelled`
 
+Default display label:
+
+`已排除`
+
 ---
 
 ## UNKNOWN
@@ -280,6 +292,10 @@ Meaning:
 The source Status does not have a confirmed mapping.
 
 The frontend must not guess how to classify it.
+
+Default display label:
+
+`未知`
 
 ---
 
