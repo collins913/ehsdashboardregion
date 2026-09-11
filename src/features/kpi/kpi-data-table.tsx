@@ -20,6 +20,7 @@ import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
+import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import {
   getStatusIntent,
   getStatusLabel,
@@ -177,14 +178,17 @@ function ActionsCell({
   }
 
   return (
-    <Button
-      variant="link"
-      className="h-auto p-0 font-medium"
+    <TableCellTrigger
       onClick={onOpen}
       aria-label={`查看未关闭行动项，关闭率 ${formatActionClosureRate(value.value)}`}
     >
-      {formatActionClosureRate(value.value)}
-    </Button>
+      <StatusDisplay
+        status={value.result}
+        label={formatActionClosureRate(value.value)}
+        showIcon={false}
+        interactive
+      />
+    </TableCellTrigger>
   );
 }
 

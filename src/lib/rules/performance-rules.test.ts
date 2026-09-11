@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTION_CLOSURE_RATE_TARGET,
   evaluateActionClosureRate,
   evaluateDrillPerformance,
   evaluateInspectionPerformance,
@@ -73,19 +74,35 @@ describe("Drill KPI", () => {
 });
 
 describe("Actions KPI", () => {
-  it("does not evaluate without a confirmed target", () => {
-    expect(evaluateActionClosureRate(90, null)).toBe("UNDETERMINED");
+  it("uses the confirmed 90 percent target", () => {
+    expect(ACTION_CLOSURE_RATE_TARGET).toBe(90);
+    expect(evaluateActionClosureRate({ kind: "RATE", value: 92 })).toBe(
+      "ACHIEVED",
+    );
+    expect(evaluateActionClosureRate({ kind: "RATE", value: 90 })).toBe(
+      "ACHIEVED",
+    );
+    expect(evaluateActionClosureRate({ kind: "RATE", value: 89 })).toBe(
+      "NOT_ACHIEVED",
+    );
   });
 
-  it("is undetermined for missing or invalid values", () => {
-    expect(evaluateActionClosureRate(null, 90)).toBe("UNDETERMINED");
-    expect(evaluateActionClosureRate(Number.NaN, 90)).toBe("UNDETERMINED");
-    expect(evaluateActionClosureRate(101, 90)).toBe("UNDETERMINED");
+  it("treats confirmed no-actions as achieved without inventing a rate", () => {
+    expect(evaluateActionClosureRate({ kind: "CONFIRMED_NO_ACTIONS" })).toBe(
+      "ACHIEVED",
+    );
   });
 
-  it("uses only an explicitly supplied valid target", () => {
-    expect(evaluateActionClosureRate(89, 90)).toBe("NOT_ACHIEVED");
-    expect(evaluateActionClosureRate(90, 90)).toBe("ACHIEVED");
+  it("is undetermined for unavailable or invalid input", () => {
+    expect(evaluateActionClosureRate({ kind: "UNDETERMINED" })).toBe(
+      "UNDETERMINED",
+    );
+    expect(
+      evaluateActionClosureRate({ kind: "RATE", value: Number.NaN }),
+    ).toBe("UNDETERMINED");
+    expect(evaluateActionClosureRate({ kind: "RATE", value: 101 })).toBe(
+      "UNDETERMINED",
+    );
   });
 });
 

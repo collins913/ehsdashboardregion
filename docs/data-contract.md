@@ -154,14 +154,16 @@ Source Reference 为可选结构，可包含：
 
 Value 使用 0–100。
 
-`null` 在页面显示为“无”，不得转换为数值 `0`；实际数值 `0` 显示为 `0%`。
+当 Action 数据源 Coverage 完整且当前 Store × Period 已确认没有需要整改的 Action 时，aggregate `value = null` 表示有效业务事实，结果为 `ACHIEVED`，页面显示“无”。该 `null` 不得转换为 `100%` 或数值 `0`；实际数值 `0` 显示为 `0%`。
+
+Action 数据源不可用、Coverage 不完整或当前 Period 的 aggregate 完整性无法确认时，Data Availability 必须为 `INCOMPLETE` 或 `UNAVAILABLE`，结果为 `UNDETERMINED`，不得使用 `null` / “无”掩盖数据问题。
 
 以下尚未确认：
 
 - Numerator、Denominator 是否一并提供：TBD
 - Source Reference 和更新时间：TBD
 
-Repository 必须返回与完整请求 Period 对应的单一源汇总值。不得将月度值平均或重算为多月结果；没有对应汇总时返回 `value = null`，业务结果为 `UNDETERMINED`。
+Repository 必须返回与完整请求 Period 对应的单一源汇总值，或明确确认该范围没有需要整改的 Action。不得将月度值平均或重算为多月结果；缺少对应汇总且不能确认无 Action 时必须标记为 `INCOMPLETE`，业务结果为 `UNDETERMINED`。
 
 ### 4.4 Inspection Record
 
@@ -271,12 +273,14 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 
 当前已知 Status：
 
+- Assigned
+- In Progress
+- In Review
+- Sign Off
 - Closed
 - Cancelled
-- Assigned
-- InProgress
 
-数据源可增加其它状态，但其 Open 分类必须先进入业务规则。
+Repository / Adapter 必须保留 Raw Status，并集中解析为 `ParsedActionStatus`。`Assigned`、`In Progress`、`In Review`、`Sign Off` 归类为 `OPEN`；`Closed` 归类为 `CLOSED`；`Cancelled` 归类为 `EXCLUDED`。数据源可增加其它状态，但在集中映射确认前一律归类为 `UNKNOWN`，不得由 UI 猜测。
 
 ## 8. Risk & Compliance → Certificates
 
@@ -413,4 +417,4 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 同时提供该门店 `RecordState = OPEN` 的明细；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入 `openActions`。
+KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 同时提供当前 Region / Area / Store 范围内该门店全部 `RecordState = OPEN` 的明细，不使用 Global Period 排除历史遗留 OPEN Actions；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入 `openActions`。Action detail Coverage 独立于 Closure Rate aggregate Period，由明细数据源及门店同步完整性决定。

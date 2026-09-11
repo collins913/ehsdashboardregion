@@ -75,14 +75,14 @@ describe("current-year KPI mock factory", () => {
     expect(byStore.get("TEST-001")).toMatchObject({
       training: { availability: "AVAILABLE", result: "ACHIEVED" },
       drill: { availability: "AVAILABLE", result: "ACHIEVED" },
-      actions: { availability: "AVAILABLE", value: 92, result: "UNDETERMINED" },
+      actions: { availability: "AVAILABLE", value: 92, result: "ACHIEVED" },
       inspections: { availability: "AVAILABLE", result: "ACHIEVED" },
       astmEvents: { availability: "CONFIRMED_EMPTY", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-002")).toMatchObject({
       training: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       drill: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
-      actions: { availability: "AVAILABLE", value: 86, result: "UNDETERMINED" },
+      actions: { availability: "AVAILABLE", value: 86, result: "NOT_ACHIEVED" },
       inspections: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       astmEvents: { availability: "CONFIRMED_EMPTY", result: "NOT_OCCURRED" },
     });
@@ -100,20 +100,64 @@ describe("current-year KPI mock factory", () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const customPeriod = periodFromMonthRange("2026-03", "2026-06")!;
-    const contexts: readonly (readonly [KpiFilterContext, number])[] = [
-      [contextFor(referenceDate, "THIS_MONTH"), 81],
-      [contextFor(referenceDate, "THIS_QUARTER"), 92],
-      [contextFor(referenceDate, "THIS_YEAR"), 92],
-      [{ ...contextFor(referenceDate), period: customPeriod }, 94],
+    const contexts: readonly (
+      readonly [KpiFilterContext, number, "ACHIEVED" | "NOT_ACHIEVED"]
+    )[] = [
+      [contextFor(referenceDate, "THIS_MONTH"), 81, "NOT_ACHIEVED"],
+      [contextFor(referenceDate, "THIS_QUARTER"), 92, "ACHIEVED"],
+      [contextFor(referenceDate, "THIS_YEAR"), 92, "ACHIEVED"],
+      [{ ...contextFor(referenceDate), period: customPeriod }, 94, "ACHIEVED"],
     ];
 
-    for (const [context, expectedValue] of contexts) {
+    for (const [context, expectedValue, expectedResult] of contexts) {
       const row = buildKpiRows(context, repository.getKpiData(context))[0];
 
       expect(row.actions.availability).toBe("AVAILABLE");
       expect(row.actions.value).toBe(expectedValue);
-      expect(row.actions.result).toBe("UNDETERMINED");
+      expect(row.actions.result).toBe(expectedResult);
     }
+  });
+
+  it.each(["THIS_MONTH", "THIS_QUARTER", "THIS_YEAR"] as const)(
+    "keeps current OPEN Action details available for %s",
+    (mode) => {
+      const referenceDate = new Date("2026-09-11T00:00:00+08:00");
+      const repository = createMockEhsRepository(referenceDate);
+      const context: KpiFilterContext = {
+        ...contextFor(referenceDate, mode),
+        store: { kind: "INCLUDE", values: ["TEST-001"] },
+      };
+      const snapshot = repository.getKpiData(context);
+      const row = buildKpiRows(context, snapshot)[0];
+
+      expect(snapshot.actionClosureRates.availability).toBe("AVAILABLE");
+      expect(snapshot.actions.availability).toBe("AVAILABLE");
+      expect(row.actions.openActions.availability).toBe("AVAILABLE");
+      expect(
+        row.actions.openActions.items.map(({ actionId }) => actionId),
+      ).toEqual(["ACT-2026-07-001", "ACT-2026-08-002"]);
+    },
+  );
+
+  it("keeps closed and excluded Action details out of the Sheet data", () => {
+    const referenceDate = new Date("2026-09-11T00:00:00+08:00");
+    const repository = createMockEhsRepository(referenceDate);
+    const context: KpiFilterContext = {
+      ...contextFor(referenceDate, "THIS_MONTH"),
+      store: { kind: "INCLUDE", values: ["TEST-002"] },
+    };
+    const snapshot = repository.getKpiData(context);
+    const row = buildKpiRows(context, snapshot)[0];
+
+    expect(snapshot.actions.availability).toBe("AVAILABLE");
+    expect(snapshot.actions.items.map(({ Status }) => Status)).toEqual([
+      { kind: "KNOWN", value: "Closed" },
+      { kind: "KNOWN", value: "Cancelled" },
+    ]);
+    expect(row.actions.openActions).toEqual({
+      availability: "CONFIRMED_EMPTY",
+      items: [],
+    });
   });
 
   it("returns genuine INCOMPLETE availability outside supportedMonths", () => {

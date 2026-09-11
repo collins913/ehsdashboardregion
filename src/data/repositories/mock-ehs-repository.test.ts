@@ -12,9 +12,28 @@ describe("Action source status parsing", () => {
     const repositoryRecords = mockEhsRepository.listActionRecords();
 
     expect(repositoryRecords).toHaveLength(mockData.actionRecords.length);
+    expect(mockData.actionRecords.map(({ Status }) => Status)).toEqual([
+      "Assigned",
+      "In Progress",
+      "Closed",
+      "Cancelled",
+      "In Review",
+      "Sign Off",
+    ]);
     expect(repositoryRecords.map(({ Status }) => Status)).toEqual(
       mockData.actionRecords.map(({ Status }) => parseActionStatus(Status)),
     );
+  });
+
+  it.each([
+    "Assigned",
+    "In Progress",
+    "In Review",
+    "Sign Off",
+    "Closed",
+    "Cancelled",
+  ] as const)("preserves the known raw Action status %s", (status) => {
+    expect(parseActionStatus(status)).toEqual({ kind: "KNOWN", value: status });
   });
 
   it("preserves an undocumented source Status as UNKNOWN", () => {

@@ -357,26 +357,68 @@ describe("KPI assembly", () => {
     );
   });
 
-  it("returns null and UNDETERMINED when the Action aggregate is missing", () => {
+  it("treats a confirmed empty Action aggregate as no actions", () => {
     const actions = buildKpiRows(q1Context, snapshot())[0].actions;
 
     expect(actions.value).toBeNull();
-    expect(actions.result).toBe("UNDETERMINED");
+    expect(actions.result).toBe("ACHIEVED");
     expect(actions.availability).toBe("CONFIRMED_EMPTY");
   });
 
-  it("passes an available Action aggregate through unchanged", () => {
+  it.each([
+    [92, "ACHIEVED"],
+    [90, "ACHIEVED"],
+    [89, "NOT_ACHIEVED"],
+  ] as const)("evaluates an available Action aggregate of %s", (value, result) => {
     const aggregate: KpiActionClosureRateRecord = {
       storeId: "STORE-1",
-      value: 62.5,
+      value,
     };
     const actions = buildKpiRows(
       q1Context,
       snapshot({ actionClosureRates: available(aggregate) }),
     )[0].actions;
 
-    expect(actions.value).toBe(62.5);
+    expect(actions).toMatchObject({ availability: "AVAILABLE", value, result });
   });
+
+  it("preserves a null aggregate as confirmed no-actions without inventing 100", () => {
+    const aggregate: KpiActionClosureRateRecord = {
+      storeId: "STORE-1",
+      value: null,
+    };
+    const actions = buildKpiRows(
+      q1Context,
+      snapshot({ actionClosureRates: available(aggregate) }),
+    )[0].actions;
+
+    expect(actions).toMatchObject({
+      availability: "CONFIRMED_EMPTY",
+      value: null,
+      result: "ACHIEVED",
+    });
+    expect(actions.value).not.toBe(100);
+  });
+
+  it.each(["INCOMPLETE", "UNAVAILABLE"] as const)(
+    "keeps %s Action data undetermined instead of displaying no-actions",
+    (availability) => {
+      const actionClosureRates =
+        availability === "INCOMPLETE"
+          ? incomplete<KpiActionClosureRateRecord>()
+          : unavailable<KpiActionClosureRateRecord>();
+      const actions = buildKpiRows(
+        q1Context,
+        snapshot({ actionClosureRates }),
+      )[0].actions;
+
+      expect(actions).toMatchObject({
+        availability,
+        value: null,
+        result: "UNDETERMINED",
+      });
+    },
+  );
 
   it("does not average multiple Action aggregate values", () => {
     const actions = buildKpiRows(
@@ -396,8 +438,19 @@ describe("KPI assembly", () => {
 
   it("exposes only OPEN Actions in drill-down data", () => {
     const data = available(
-      action("STORE-1", "OPEN-1", { kind: "KNOWN", value: "Assigned" }),
-      action("STORE-1", "OPEN-2", { kind: "KNOWN", value: "InProgress" }),
+      action("STORE-1", "ASSIGNED", { kind: "KNOWN", value: "Assigned" }),
+      action("STORE-1", "IN-PROGRESS", {
+        kind: "KNOWN",
+        value: "In Progress",
+      }),
+      action("STORE-1", "IN-REVIEW", {
+        kind: "KNOWN",
+        value: "In Review",
+      }),
+      action("STORE-1", "SIGN-OFF", {
+        kind: "KNOWN",
+        value: "Sign Off",
+      }),
       action("STORE-1", "CANCELLED", {
         kind: "KNOWN",
         value: "Cancelled",
@@ -418,9 +471,42 @@ describe("KPI assembly", () => {
     )[0].actions.openActions;
 
     expect(openActions.items.map(({ actionId }) => actionId)).toEqual([
-      "OPEN-1",
-      "OPEN-2",
+      "ASSIGNED",
+      "IN-PROGRESS",
+      "IN-REVIEW",
+      "SIGN-OFF",
     ]);
+  });
+
+  it("keeps the source Action aggregate independent of detail statuses", () => {
+    const actionClosureRates = available<KpiActionClosureRateRecord>({
+      storeId: "STORE-1",
+      value: 92,
+    });
+    const openDetails = available(
+      action("STORE-1", "OPEN", { kind: "KNOWN", value: "Assigned" }),
+    );
+    const nonOpenDetails = available(
+      action("STORE-1", "CLOSED", { kind: "KNOWN", value: "Closed" }),
+      action("STORE-1", "EXCLUDED", {
+        kind: "KNOWN",
+        value: "Cancelled",
+      }),
+    );
+
+    const withOpenDetails = buildKpiRows(
+      q1Context,
+      snapshot({ actionClosureRates, actions: openDetails }),
+    )[0].actions;
+    const withoutOpenDetails = buildKpiRows(
+      q1Context,
+      snapshot({ actionClosureRates, actions: nonOpenDetails }),
+    )[0].actions;
+
+    expect(withOpenDetails).toMatchObject({ value: 92, result: "ACHIEVED" });
+    expect(withoutOpenDetails).toMatchObject({ value: 92, result: "ACHIEVED" });
+    expect(withOpenDetails.openActions.items).toHaveLength(1);
+    expect(withoutOpenDetails.openActions.items).toHaveLength(0);
   });
 
   it("does not mutate its inputs", () => {

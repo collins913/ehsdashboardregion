@@ -37,22 +37,31 @@ export function evaluateDrillPerformance(
     : "NOT_ACHIEVED";
 }
 
+export const ACTION_CLOSURE_RATE_TARGET = 90;
+
+export type ActionClosureRateInput =
+  | { kind: "RATE"; value: number }
+  | { kind: "CONFIRMED_NO_ACTIONS" }
+  | { kind: "UNDETERMINED" };
+
 export function evaluateActionClosureRate(
-  value: number | null | undefined,
-  target: number | null | undefined,
+  input: ActionClosureRateInput,
 ): PerformanceResult {
-  if (
-    !isFiniteNumber(value) ||
-    !isFiniteNumber(target) ||
-    value < 0 ||
-    value > 100 ||
-    target < 0 ||
-    target > 100
-  ) {
+  if (input.kind === "UNDETERMINED") {
     return "UNDETERMINED";
   }
 
-  return value >= target ? "ACHIEVED" : "NOT_ACHIEVED";
+  if (input.kind === "CONFIRMED_NO_ACTIONS") {
+    return "ACHIEVED";
+  }
+
+  if (!isFiniteNumber(input.value) || input.value < 0 || input.value > 100) {
+    return "UNDETERMINED";
+  }
+
+  return input.value >= ACTION_CLOSURE_RATE_TARGET
+    ? "ACHIEVED"
+    : "NOT_ACHIEVED";
 }
 
 export interface InspectionMonthInput {

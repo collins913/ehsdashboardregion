@@ -23,6 +23,7 @@ import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { GlobalFilters } from "@/components/shared/global-filters";
+import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import {
   StatusDisplay,
   type BusinessStatus,
@@ -68,6 +69,13 @@ const businessStatuses: readonly BusinessStatus[] = [
   "NORMAL",
   "ABNORMAL",
 ];
+
+const customStatusLabels: Partial<
+  Record<BusinessStatus, readonly string[]>
+> = {
+  ACHIEVED: ["92%", "无"],
+  NOT_ACHIEVED: ["68%"],
+};
 
 function LabSection({ title, children }: { title: string; children: ReactNode }) {
   const id = `section-${title.toLowerCase().replaceAll(" ", "-")}`;
@@ -161,10 +169,34 @@ export default function UiLabPage() {
             {businessStatuses.map((status) => (
               <div
                 key={status}
-                className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                className="space-y-3 rounded-lg border p-3"
               >
-                <code className="text-xs">{status}</code>
-                <StatusDisplay status={status} />
+                <div className="flex items-center justify-between gap-3">
+                  <code className="text-xs">{status}</code>
+                  <StatusDisplay status={status} />
+                </div>
+                {customStatusLabels[status] ? (
+                  <div className="flex items-center justify-between gap-3 border-t pt-3">
+                    <span className="text-xs text-muted-foreground">
+                      可点击值
+                    </span>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {customStatusLabels[status]?.map((label) => (
+                        <TableCellTrigger
+                          key={label}
+                          aria-label={`${label} 可点击状态示例`}
+                        >
+                          <StatusDisplay
+                            status={status}
+                            label={label}
+                            showIcon={false}
+                            interactive
+                          />
+                        </TableCellTrigger>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

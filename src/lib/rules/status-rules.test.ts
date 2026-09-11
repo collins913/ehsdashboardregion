@@ -69,7 +69,9 @@ describe("record status normalization", () => {
 
   it.each([
     [{ kind: "KNOWN", value: "Assigned" }, "OPEN"],
-    [{ kind: "KNOWN", value: "InProgress" }, "OPEN"],
+    [{ kind: "KNOWN", value: "In Progress" }, "OPEN"],
+    [{ kind: "KNOWN", value: "In Review" }, "OPEN"],
+    [{ kind: "KNOWN", value: "Sign Off" }, "OPEN"],
     [{ kind: "KNOWN", value: "Closed" }, "CLOSED"],
     [{ kind: "KNOWN", value: "Cancelled" }, "EXCLUDED"],
     [{ kind: "UNKNOWN", value: "PendingReview" }, "UNKNOWN"],

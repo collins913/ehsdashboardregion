@@ -12,7 +12,9 @@ export function classifyActionRecordState(
 
   if (
     action.Status.value === "Assigned" ||
-    action.Status.value === "InProgress"
+    action.Status.value === "In Progress" ||
+    action.Status.value === "In Review" ||
+    action.Status.value === "Sign Off"
   ) {
     return "OPEN";
   }

@@ -120,6 +120,16 @@ function isSourceCovered(
   );
 }
 
+function isActionDetailSourceCovered(
+  selectedStoreIds: readonly StoreId[],
+  coverage: KpiMockCoverage,
+): boolean {
+  return (
+    selectedStoreIds.every((storeId) => coverage.storeIds.includes(storeId)) &&
+    coverage.sourceCoverage.actions === "COMPLETE"
+  );
+}
+
 function completeDataSet<T>(items: readonly T[]): DataSet<T> {
   if (items.length === 0) {
     return { availability: "CONFIRMED_EMPTY", items: [] };
@@ -273,19 +283,8 @@ export function createMockEhsRepository(referenceDate: Date): EhsRepository {
       }),
     );
 
-    const coveragePeriod = parseKpiPeriod(coverage.period);
-    const actionScopeCovered =
-      parsedPeriod !== null &&
-      coveragePeriod !== null &&
-      parsedPeriod.startMilliseconds === coveragePeriod.startMilliseconds &&
-      parsedPeriod.endMilliseconds === coveragePeriod.endMilliseconds &&
-      context.period.includedMonths.length ===
-        coverage.period.includedMonths.length &&
-      context.period.includedMonths.every(
-        (month, index) => month === coverage.period.includedMonths[index],
-      );
     const actions = normalizeRecords(
-      actionScopeCovered ? parsedActionRecords : [],
+      parsedActionRecords,
       selectedStoreIds,
       (record, storeId): KpiActionRecord => ({
         storeId,
@@ -388,13 +387,7 @@ export function createMockEhsRepository(referenceDate: Date): EhsRepository {
       ),
       actions: withCoverage(
         actions.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "actions",
-        ) && actionScopeCovered,
+        isActionDetailSourceCovered(selectedStoreIdList, coverage),
         actions.resolutionComplete,
       ),
       events: withCoverage(

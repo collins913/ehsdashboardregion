@@ -80,7 +80,7 @@ export function createMockActionRecords(
       createdDate: `${previousMonth}-03`,
       dueDate: `${previousMonth}-18`,
       closedDate: null,
-      Status: "InProgress",
+      Status: "In Progress",
     },
     {
       actionId: `ACT-${previousMonth}-003`,
@@ -110,7 +110,17 @@ export function createMockActionRecords(
       createdDate: `${currentMonth}-01`,
       dueDate: `${currentMonth}-15`,
       closedDate: null,
-      Status: "Assigned",
+      Status: "In Review",
+    },
+    {
+      actionId: `ACT-${currentMonth}-006`,
+      storeReference: { trtid: mockStores[2].trtid },
+      actionTitle: "复核应急物资清单",
+      owner: "测试员工己",
+      createdDate: `${currentMonth}-02`,
+      dueDate: `${currentMonth}-16`,
+      closedDate: null,
+      Status: "Sign Off",
     },
   ] satisfies readonly RawActionRecord[];
 }

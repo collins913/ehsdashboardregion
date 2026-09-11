@@ -1,8 +1,11 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   getStatusEmphasis,
   getStatusIntent,
   getStatusLabel,
+  StatusDisplay,
   type BusinessStatus,
 } from "@/components/shared/status-display";
 
@@ -75,5 +78,82 @@ describe("StatusDisplay semantics", () => {
     for (const status of ["UNDETERMINED", "OPEN", "EXCLUDED", "UNKNOWN"] as const) {
       expect(getStatusEmphasis(status)).toBe("NEUTRAL");
     }
+  });
+
+  it("supports a custom label without changing status emphasis", () => {
+    const achieved = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "ACHIEVED",
+        label: "92%",
+        showIcon: false,
+      }),
+    );
+    const atTarget = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "ACHIEVED",
+        label: "90%",
+        showIcon: false,
+      }),
+    );
+    const notAchieved = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "NOT_ACHIEVED",
+        label: "89%",
+        showIcon: false,
+      }),
+    );
+
+    expect(achieved).toContain("92%");
+    expect(achieved).toContain('data-emphasis="secondary"');
+    expect(achieved).not.toContain("<svg");
+    expect(atTarget).toContain("90%");
+    expect(atTarget).toContain('data-emphasis="secondary"');
+    expect(notAchieved).toContain("89%");
+    expect(notAchieved).toContain('data-emphasis="primary"');
+    expect(notAchieved).not.toContain("<svg");
+  });
+
+  it("keeps the default status label and icon", () => {
+    const markup = renderToStaticMarkup(
+      createElement(StatusDisplay, { status: "ACHIEVED" }),
+    );
+
+    expect(markup).toContain("达成");
+    expect(markup).toContain("<svg");
+  });
+
+  it("adds emphasis-specific hover only when interactive", () => {
+    const plain = renderToStaticMarkup(
+      createElement(StatusDisplay, { status: "ACHIEVED" }),
+    );
+    const primary = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "NOT_ACHIEVED",
+        interactive: true,
+      }),
+    );
+    const secondary = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "ACHIEVED",
+        interactive: true,
+      }),
+    );
+    const neutral = renderToStaticMarkup(
+      createElement(StatusDisplay, {
+        status: "UNDETERMINED",
+        interactive: true,
+      }),
+    );
+
+    expect(plain).not.toContain("group-hover/table-cell-trigger");
+    expect(primary).toContain(
+      "group-hover/table-cell-trigger:bg-primary/80",
+    );
+    expect(secondary).toContain(
+      "group-hover/table-cell-trigger:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+    );
+    expect(neutral).toContain(
+      "group-hover/table-cell-trigger:bg-muted",
+    );
   });
 });

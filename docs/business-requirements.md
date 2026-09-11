@@ -103,11 +103,13 @@ V1 已确认：
 | Inspections | 达成 / 未达成 | Inspection 记录 |
 | Events | 发生 / 未发生 ASTM Incident | Events 记录中的 `ASTMInjuryIllness` |
 
-Action Closure Rate 为 `null` 或空值时显示“无”，不得转换为 `0%`；只有实际数值 `0` 显示 `0%`。
+Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时，`null` 显示“无”；不得转换为 `0%` 或 `100%`。只有实际数值 `0` 显示 `0%`。
 
 目标、阈值和视觉状态：
 
-- Actions 的目标值及达标状态：TBD
+- Actions：Action Closure Rate `>= 90%` 为达成，`< 90%` 为未达成。
+- Action 数据源 Coverage 完整且确认当前范围没有需要整改的 Action 时，aggregate 可为 `null`，结果为达成并显示“无”；不得伪造成 `100%`。
+- Action 数据源不可用、Coverage 不完整或当前 Period 完整性无法确认时，结果为未确定且显示 Data Availability，不显示“无”。
 - 各 KPI 的最终标签与视觉规则：TBD
 - Severity 仅用于描述和展示，不参与 ASTM Incident 判定。
 
@@ -207,15 +209,17 @@ Events 展示两类业务记录：
 
 ### 7.1 页面目的
 
-展示当前筛选范围内的 Action 明细记录及处理状态。
+展示当前 Region / Area / Store 范围内仍需处理的 Action 明细。该明细不按 Global Period 排除历史遗留 `OPEN` Actions；KPI 百分比仍严格跟随 Global Period。
 
 ### 7.2 页面行为
 
 - 默认选择 Open，仅显示未关闭 Actions。
 - 提供 Open / All 切换。
-- Open 当前至少包含 `Assigned`、`InProgress`。
+- Open 包含 `Assigned`、`In Progress`、`In Review`、`Sign Off`。
 - `Closed` 为已关闭。
-- `Cancelled` 不属于未关闭。
+- `Cancelled` 为已排除，不属于未关闭；不得与 `Closed` 合并。
+- Performance → KPI 的 Actions 下钻只显示 `RecordState = OPEN`；`CLOSED`、`EXCLUDED`、`UNKNOWN` 不显示。
+- 下钻明细用于追踪当前仍需整改的行动项，不要求与当前 Period 的 Closure Rate aggregate 分子、分母对账。
 - 未来新增源状态的分类：TBD；页面不得自行猜测。
 
 ### 7.3 列表与详情

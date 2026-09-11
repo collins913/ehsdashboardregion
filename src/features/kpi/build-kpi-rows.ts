@@ -164,14 +164,28 @@ function buildActions(
       ? "INCOMPLETE"
       : scopedAvailability(rates, storeRates.length);
   const value = availability === "AVAILABLE" ? storeRates[0].value : null;
+  const effectiveAvailability =
+    availability === "AVAILABLE" && value === null
+      ? "CONFIRMED_EMPTY"
+      : availability;
+  const result =
+    effectiveAvailability === "INCOMPLETE" ||
+    effectiveAvailability === "UNAVAILABLE"
+      ? evaluateActionClosureRate({ kind: "UNDETERMINED" })
+      : effectiveAvailability === "CONFIRMED_EMPTY"
+        ? evaluateActionClosureRate({ kind: "CONFIRMED_NO_ACTIONS" })
+        : value === null
+          ? evaluateActionClosureRate({ kind: "UNDETERMINED" })
+          : evaluateActionClosureRate({ kind: "RATE", value });
+  const finalAvailability =
+    effectiveAvailability === "AVAILABLE" && result === "UNDETERMINED"
+      ? "INCOMPLETE"
+      : effectiveAvailability;
 
   return {
-    availability:
-      availability === "AVAILABLE" && value === null
-        ? "CONFIRMED_EMPTY"
-        : availability,
+    availability: finalAvailability,
     value,
-    result: evaluateActionClosureRate(value, null),
+    result,
     openActions: buildOpenActions(actionRecords, storeId),
   };
 }

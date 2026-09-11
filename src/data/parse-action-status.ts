@@ -2,7 +2,9 @@ import type { KnownActionStatus, ParsedActionStatus } from "@/types/ehs";
 
 const KNOWN_ACTION_STATUSES = new Set<string>([
   "Assigned",
-  "InProgress",
+  "In Progress",
+  "In Review",
+  "Sign Off",
   "Closed",
   "Cancelled",
 ]);

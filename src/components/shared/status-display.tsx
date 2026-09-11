@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   CheckCircle2,
   CircleAlert,
@@ -105,6 +106,14 @@ const emphasisClassNames: Record<StatusEmphasis, string> = {
   NEUTRAL: "border-border bg-background text-muted-foreground",
 };
 
+const interactiveClassNames: Record<StatusEmphasis, string> = {
+  PRIMARY: "group-hover/table-cell-trigger:bg-primary/80",
+  SECONDARY:
+    "group-hover/table-cell-trigger:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+  NEUTRAL:
+    "group-hover/table-cell-trigger:bg-muted group-hover/table-cell-trigger:text-foreground",
+};
+
 export function getStatusIntent(status: BusinessStatus): StatusIntent {
   return statusDefinitions[status].intent;
 }
@@ -119,10 +128,19 @@ export function getStatusEmphasis(status: BusinessStatus): StatusEmphasis {
 
 type StatusDisplayProps = {
   status: BusinessStatus;
+  label?: ReactNode;
+  showIcon?: boolean;
+  interactive?: boolean;
   className?: string;
 };
 
-export function StatusDisplay({ status, className }: StatusDisplayProps) {
+export function StatusDisplay({
+  status,
+  label,
+  showIcon = true,
+  interactive = false,
+  className,
+}: StatusDisplayProps) {
   const definition = statusDefinitions[status];
   const Icon = definition.icon;
 
@@ -131,10 +149,14 @@ export function StatusDisplay({ status, className }: StatusDisplayProps) {
       variant="outline"
       data-intent={definition.intent.toLowerCase()}
       data-emphasis={definition.emphasis.toLowerCase()}
-      className={cn(emphasisClassNames[definition.emphasis], className)}
+      className={cn(
+        emphasisClassNames[definition.emphasis],
+        interactive && interactiveClassNames[definition.emphasis],
+        className,
+      )}
     >
-      <Icon aria-hidden="true" />
-      {definition.label}
+      {showIcon ? <Icon aria-hidden="true" /> : null}
+      {label ?? definition.label}
     </Badge>
   );
 }

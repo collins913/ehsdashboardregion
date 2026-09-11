@@ -57,7 +57,7 @@ KpiFilterContext
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
 - Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
-- KPI Action 明细仅保留规则层归类为 `OPEN` 的记录。
+- KPI Action 明细按 Region / Area / Store 范围读取当前全部记录，不受 Global Period 限制；Builder 仅保留规则层归类为 `OPEN` 的记录。明细 Coverage 由数据源与门店同步完整性决定，不与 aggregate Period 做相等判断。
 - 当前 mock 阶段由 KPI feature client component 读取 Dashboard 共享 Filter Context，再调用 Repository 与 Builder；页面本身不读取 mock、不组装筛选参数、不执行业务计算。
 - Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。

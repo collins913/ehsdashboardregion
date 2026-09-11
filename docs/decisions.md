@@ -132,7 +132,7 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 
 两个页面均提供 Open / All 切换，并默认 Open。
 
-- Actions 已确认 `Assigned`、`InProgress` 为未关闭，`Closed` 为已关闭，`Cancelled` 不属于未关闭。
+- Actions 已确认 `Assigned`、`In Progress`、`In Review`、`Sign Off` 为 `OPEN`，`Closed` 为 `CLOSED`，`Cancelled` 为 `EXCLUDED`；未知未来状态为 `UNKNOWN`。Raw Status 保留，UI 不重新分类。
 - Events 的 `Status` 为 `Closed` 时归类为 Closed，其它值归类为 Open。
 
 ### D-019 Action Closure Rate 与 Action 明细分离
@@ -215,7 +215,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-032 Action KPI 汇总与明细边界
 
-Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。缺少对应汇总时值为 `null` 且结果为 `UNDETERMINED`。KPI 下钻的 `openActions` 仅包含 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。
+Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。`>= 90%` 为 `ACHIEVED`，`< 90%` 为 `NOT_ACHIEVED`。完整 Coverage 下确认没有需要整改的 Action 时，`value = null`、结果为 `ACHIEVED`；无法确认 Period aggregate 时为 `INCOMPLETE` / `UNDETERMINED`。KPI 下钻的 `openActions` 跟随 Region / Area / Store 范围，但不受 Global Period 限制，仅包含当前全部 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。明细无需与 Closure Rate aggregate 对账。
 
 ### D-033 KPI 查询契约采用显式时区与实际门店覆盖
 
@@ -227,7 +227,6 @@ KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校
 
 - 非完整自然月和自定义日期区间的 KPI 规则
 - Training 与 Inspection 的 Requirement 集合来源
-- Action Closure Rate 的目标及达标规则
 - 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则

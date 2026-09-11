@@ -101,7 +101,9 @@ export interface EventRecord {
 
 export type KnownActionStatus =
   | "Assigned"
-  | "InProgress"
+  | "In Progress"
+  | "In Review"
+  | "Sign Off"
   | "Closed"
   | "Cancelled";
 

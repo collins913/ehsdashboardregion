@@ -261,23 +261,28 @@ Internal percentage range:
 
 ### Target
 
-`TBD`
+`>= 90%`
 
 ### Result
 
-Until Target is defined:
+Value >= 90
+→ `ACHIEVED`
 
-valid numeric value
-→ value may be displayed but evaluation result = `UNDETERMINED`
+Value < 90
+→ `NOT_ACHIEVED`
 
-missing/invalid value
+Complete source coverage and confirmed no Action requiring correction
+→ aggregate value may be `null`; result = `ACHIEVED`
+
+Incomplete or unavailable source coverage, or an unconfirmed Period aggregate
 → `UNDETERMINED`
 
 Display boundary:
 
-- `null` or an empty source value normalized to `null` → `无`;
+- confirmed no-actions `null` → `无` with the same secondary status emphasis as `ACHIEVED`;
 - numeric `0` → `0%`;
-- missing values must never be coerced to numeric `0`.
+- `null` must never be coerced to `100` or numeric `0`;
+- incomplete or unavailable data must display Data Availability instead of `无`.
 
 ### Result Type
 
@@ -477,9 +482,23 @@ Action detail records do NOT determine the Performance → KPI → Action Closur
 Action Closure Rate remains a source-provided aggregate value.
 
 Action `RecordState` is used only for Action detail lifecycle and filtering.
+The centralized mapping is:
+
+- `Assigned`, `In Progress`, `In Review`, `Sign Off` → `OPEN`
+- `Closed` → `CLOSED`
+- `Cancelled` → `EXCLUDED`
+- any unmapped future status → `UNKNOWN`
+
+The raw source Status is preserved. UI components must not reclassify it.
 `Cancelled → EXCLUDED` means the record is omitted from `OPEN_ONLY` Action
 details. It must not be interpreted as a rule for the Action Closure Rate
 numerator or denominator.
+
+Performance → KPI Action drill-down follows the current Region / Area / Store
+scope but does not apply Global Period to exclude older unresolved Actions. It
+shows all current `RecordState = OPEN` records. Action detail availability is
+determined by detail-source and store-sync coverage, independently of the
+Closure Rate aggregate period.
 
 Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
 

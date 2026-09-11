@@ -41,7 +41,7 @@ function openActions(index: number): DataSet<KpiActionDetail> {
     createdDate: "2026-09-01",
     dueDate: "2026-09-20",
     closedDate: null,
-    sourceStatus: index % 2 === 0 ? "Assigned" : "InProgress",
+    sourceStatus: index % 2 === 0 ? "Assigned" : "In Progress",
   };
 
   return { availability: "AVAILABLE", items: [action] };
@@ -66,10 +66,26 @@ function actions(index: number): ActionKpiValue {
     };
   }
 
+  const examples = [
+    { value: 92, result: "ACHIEVED" },
+    { value: 68, result: "NOT_ACHIEVED" },
+    { value: 90, result: "ACHIEVED" },
+    { value: 89, result: "NOT_ACHIEVED" },
+    { value: 52, result: "NOT_ACHIEVED" },
+    { value: null, result: "ACHIEVED" },
+    { value: 78, result: "NOT_ACHIEVED" },
+    { value: 91, result: "ACHIEVED" },
+    { value: null, result: "UNDETERMINED" },
+    { value: null, result: "UNDETERMINED" },
+    { value: 29, result: "NOT_ACHIEVED" },
+    { value: 95, result: "ACHIEVED" },
+  ] as const;
+  const example = examples[index];
+
   return {
-    availability: index === 5 ? "CONFIRMED_EMPTY" : "AVAILABLE",
-    value: index === 5 ? null : (index * 13) % 101,
-    result: "UNDETERMINED",
+    availability: example.value === null ? "CONFIRMED_EMPTY" : "AVAILABLE",
+    value: example.value,
+    result: example.result,
     openActions: openActions(index),
   };
 }

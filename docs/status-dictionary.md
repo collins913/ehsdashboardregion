@@ -363,7 +363,9 @@ Current confirmed mapping:
 | Raw Action Status | RecordState |
 |---|---|
 | `Assigned` | `OPEN` |
-| `InProgress` | `OPEN` |
+| `In Progress` | `OPEN` |
+| `In Review` | `OPEN` |
+| `Sign Off` | `OPEN` |
 | `Closed` | `CLOSED` |
 | `Cancelled` | `EXCLUDED` |
 | Any other value | `UNKNOWN` |
@@ -531,13 +533,13 @@ When a source record contains a Status value:
 Example:
 
 Raw Status:
-`InProgress`
+`In Progress`
 
 Normalized RecordState:
 `OPEN`
 
 Detail view may display:
-`InProgress`
+`In Progress`
 
 Open filter uses:
 `OPEN`
