@@ -83,7 +83,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - API 路由、请求、响应与错误结构
 - 数据源系统、刷新频率与持久化方式
 - 权限模型
-- 生产业务时区与部分月份政策
+- 生产环境 `referenceDate` 来源与 clock injection 策略；业务时区已冻结为 `Asia/Shanghai`
 
 ## 当前测试数据实现
 
@@ -93,7 +93,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 集中状态及证件规则：`src/lib/rules/`
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`
 - KPI View Model 与组装：`src/features/kpi/`
-- 当前季度 KPI Mock factory：`src/data/mock/kpi-mock-factory.ts`
+- 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成
 
 页面不得直接导入 `src/data/mock/`。当前统一从 repository 入口访问；未来替换 API 或数据库实现时保持 repository 接口稳定。

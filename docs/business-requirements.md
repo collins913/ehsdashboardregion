@@ -110,7 +110,7 @@ Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时
 - Actions：Action Closure Rate `>= 90%` 为达成，`< 90%` 为未达成。
 - Action 数据源 Coverage 完整且确认当前范围没有需要整改的 Action 时，aggregate 可为 `null`，结果为达成并显示“无”；不得伪造成 `100%`。
 - Action 数据源不可用、Coverage 不完整或当前 Period 完整性无法确认时，结果为未确定且显示 Data Availability，不显示“无”。
-- 各 KPI 的最终标签与视觉规则：TBD
+- KPI 状态中文标签和 semantic intent 以 `status-dictionary.md` 为准；共享展示由 `StatusDisplay` 统一实现，页面不得重复映射。
 - Severity 仅用于描述和展示，不参与 ASTM Incident 判定。
 
 具体判定见 `metric-rules.md`。

@@ -1,7 +1,7 @@
 # EHS Dashboard 已确认决策
 
 - 版本：V1（整理版）
-- 日期：2026-09-10
+- 日期：2026-09-11
 - 状态：仅记录已冻结决策；未确认事项不视为默认规则
 
 ## 1. 文档分工
@@ -220,6 +220,18 @@ Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全�
 ### D-033 KPI 查询契约采用显式时区与实际门店覆盖
 
 KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校验时间范围和 `includedMonths` 一致性；无效输入安全降级，不产生正常 KPI 结论。`Store = ALL` 时覆盖校验使用筛选范围内实际规范化 `storeId`。
+
+### D-034 Global Filter 状态由 Dashboard Layout 持有
+
+Global Filter Provider 挂载于 Dashboard route layout。业务子页面切换时共享并保留同一份 Filter State；页面不得各自维护或重新解释筛选参数。刷新后重置为当前安全默认状态，V1 不使用 localStorage、sessionStorage 或 URL 持久化筛选状态。
+
+### D-035 全局主题与界面语言
+
+应用使用 `next-themes` 提供 Light、Dark、System 三种全局主题，组件只消费 shadcn semantic tokens，不复制 Dark Mode 组件或硬编码页面颜色。用户可见界面统一使用中文；内部业务枚举、类型、变量、文件名和路由保持英文。当前不引入 i18n 框架。
+
+### D-036 Data Table 采用小型共享能力组合
+
+业务表格使用 shadcn Table 与 TanStack Table。排序表头、列显隐、分页辅助和可点击单元格等真实复用能力可拆为小型 shared component / hook；各业务表格继续维护自己的 columns、filters、drill-down 和业务行为。在多个业务页面出现一致需求前，不建立大型 `GenericDataTable`。
 
 ## 9. 明确未决事项
 
