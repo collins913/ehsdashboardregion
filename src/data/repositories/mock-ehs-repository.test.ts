@@ -12,14 +12,17 @@ describe("Action source status parsing", () => {
     const repositoryRecords = mockEhsRepository.listActionRecords();
 
     expect(repositoryRecords).toHaveLength(mockData.actionRecords.length);
-    expect(mockData.actionRecords.map(({ Status }) => Status)).toEqual([
-      "Assigned",
-      "In Progress",
-      "Closed",
-      "Cancelled",
-      "In Review",
-      "Sign Off",
-    ]);
+    expect(new Set(mockData.actionRecords.map(({ Status }) => Status))).toEqual(
+      new Set([
+        "Assigned",
+        "In Progress",
+        "Closed",
+        "Cancelled",
+        "In Review",
+        "Sign Off",
+        "Pending Verification",
+      ]),
+    );
     expect(repositoryRecords.map(({ Status }) => Status)).toEqual(
       mockData.actionRecords.map(({ Status }) => parseActionStatus(Status)),
     );

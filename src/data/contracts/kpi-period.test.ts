@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { KpiPeriod } from "@/data/contracts/kpi";
 import {
+  isIsoDateInKpiPeriod,
   isInstantInKpiPeriod,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
@@ -73,6 +74,14 @@ describe("KPI Period validation", () => {
     expect(
       isInstantInKpiPeriod("2026-02-01T00:00:00+08:00", parsed!),
     ).toBe(false);
+  });
+
+  it("applies the same half-open boundary to source date fields", () => {
+    const parsed = parseKpiPeriod(january);
+
+    expect(parsed).not.toBeNull();
+    expect(isIsoDateInKpiPeriod("2026-01-01", parsed!)).toBe(true);
+    expect(isIsoDateInKpiPeriod("2026-02-01", parsed!)).toBe(false);
   });
 
   it("rejects an includedMonths/date-range mismatch and degrades safely", () => {

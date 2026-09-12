@@ -37,7 +37,7 @@ Source data
 - Store Name CN
 - Store Name EN
 
-TRTID 不保证是所有数据源的唯一关联键。各数据源的匹配字段、优先级、名称规范化、冲突、重复命中与未命中处理均为 TBD。
+TRTID 不保证是所有数据源的唯一关联键。除 Actions 外，各数据源的匹配字段、优先级、名称规范化、冲突、重复命中与未命中处理均为 TBD。Actions 使用已确认的源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；两者冲突或无法唯一解析时返回不完整数据，不静默选择。
 
 页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID、Store Name CN、Store Name EN 必须由 Adapter / Repository 解析为 `storeId`；当前 mock Repository 仅使用现有精确匹配，无法唯一匹配时将数据标记为不完整，不推测生产匹配策略。
 
@@ -62,6 +62,23 @@ KpiFilterContext
 - Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
 - Mock Action Closure Rate 使用显式 `[startInclusive, endExclusive)` 标识源汇总周期；每个值均为源 fixture 直接提供，不从月度值或 Action 明细计算。
+
+## Actions scoped query
+
+```text
+Raw Action
+→ Action Store Resolution
+→ ParsedActionStatus / RecordState
+→ Region / Area / canonical Store / Submitted Date filtering
+→ OPEN_ONLY or ALL
+→ NormalizedActionRecord[]
+→ Actions feature UI
+```
+
+- Actions 页面复用 Dashboard 的 `KpiFilterContext`，Period 只解释为 Submitted Date 的 Asia/Shanghai 半开区间。
+- Repository 输出 canonical `storeId`、中文门店名、原始状态解析结果与 RecordState；UI 不读取 Store Reference，也不解析状态。
+- `OPEN_ONLY` 与 `ALL` 是 Actions feature view state，不进入 Global Filter Context。
+- KPI Action 下钻仍按当前全部 OPEN 明细工作，不因本页面的 Period 语义改变。
 
 ## Global Filters
 
@@ -92,6 +109,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 数据访问接口与 mock 实现：`src/data/repositories/`
 - 集中状态及证件规则：`src/lib/rules/`
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`
+- Actions 规范化查询契约：`src/data/contracts/actions.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

@@ -116,9 +116,9 @@ function buildInspections(
 function toActionDetail(action: KpiActionRecord): KpiActionDetail {
   return {
     actionId: action.actionId,
-    actionTitle: action.actionTitle,
+    action: action.action,
     owner: action.owner,
-    createdDate: action.createdDate,
+    submittedDate: action.submittedDate,
     dueDate: action.dueDate,
     closedDate: action.closedDate,
     sourceStatus: action.Status.value,

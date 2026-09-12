@@ -32,6 +32,7 @@ import {
   KpiDataAvailabilityDisplay,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
+import { getActionStatusPresentation } from "@/features/actions/action-status-presentation";
 import { homeBreadcrumb } from "@/config/navigation";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import {
@@ -76,6 +77,15 @@ const customStatusLabels: Partial<
   ACHIEVED: ["92%", "无"],
   NOT_ACHIEVED: ["68%"],
 };
+
+const actionWorkflowStatuses = [
+  "Assigned",
+  "In Progress",
+  "In Review",
+  "Sign Off",
+  "Closed",
+  "Cancelled",
+] as const;
 
 function LabSection({ title, children }: { title: string; children: ReactNode }) {
   const id = `section-${title.toLowerCase().replaceAll(" ", "-")}`;
@@ -199,6 +209,29 @@ export default function UiLabPage() {
                 ) : null}
               </div>
             ))}
+          </div>
+          <div className="mt-4 rounded-lg border p-3">
+            <p className="mb-3 text-sm font-medium">行动项工作流状态复用</p>
+            <div className="flex flex-wrap gap-3">
+              {actionWorkflowStatuses.map((status) => {
+                const presentation = getActionStatusPresentation({
+                  kind: "KNOWN",
+                  value: status,
+                });
+
+                return (
+                  <div key={status} className="flex items-center gap-2">
+                    <code className="text-xs text-muted-foreground">
+                      {status}
+                    </code>
+                    <StatusDisplay
+                      status={presentation.visualStatus}
+                      label={presentation.label}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </LabSection>
 

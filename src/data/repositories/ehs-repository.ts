@@ -22,9 +22,14 @@ import type {
   KpiFilterContext,
   KpiStore,
 } from "@/data/contracts/kpi";
+import type {
+  ActionsQuery,
+  ActionsQueryResult,
+} from "@/data/contracts/actions";
 
 export interface EhsRepository {
   getKpiData(context: KpiFilterContext): KpiDataSnapshot;
+  getActions(query: ActionsQuery): ActionsQueryResult;
   listFilterStores(): readonly KpiStore[];
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];

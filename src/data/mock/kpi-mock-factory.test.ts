@@ -46,6 +46,55 @@ describe("current-year KPI mock factory", () => {
     );
   });
 
+  it("provides enough current-quarter Action records for adaptive pagination", () => {
+    const referenceDate = new Date("2026-09-11T00:00:00+08:00");
+    const repository = createMockEhsRepository(referenceDate);
+    const openActions = repository.getActions({
+      context: contextFor(referenceDate),
+      viewMode: "OPEN_ONLY",
+    });
+    const allActions = repository.getActions({
+      context: contextFor(referenceDate),
+      viewMode: "ALL",
+    });
+
+    expect(openActions.availability).toBe("AVAILABLE");
+    expect(openActions.items).toHaveLength(15);
+    expect(allActions.items).toHaveLength(20);
+    expect(
+      new Set(allActions.items.map(({ sourceStatus }) => sourceStatus.value)),
+    ).toEqual(
+      new Set([
+        "Assigned",
+        "In Progress",
+        "In Review",
+        "Sign Off",
+        "Closed",
+        "Cancelled",
+        "Pending Verification",
+      ]),
+    );
+  });
+
+  it("uses the confirmed source-like Action fields", () => {
+    const [action] = createKpiMockData(
+      new Date("2026-09-11T00:00:00+08:00"),
+    ).actionRecords;
+
+    expect(action).toMatchObject({
+      actionId: expect.any(String),
+      problem: expect.any(String),
+      action: expect.any(String),
+      submittedBy: expect.any(String),
+      owner: expect.any(String),
+      submittedDate: expect.stringMatching(/^2026-/),
+      dueDate: expect.stringMatching(/^2026-/),
+      Status: expect.any(String),
+    });
+    expect(action).not.toHaveProperty("actionTitle");
+    expect(action).not.toHaveProperty("createdDate");
+  });
+
   it("keeps generated Action aggregates aligned with declared scopes", () => {
     const data = createKpiMockData(
       new Date("2026-09-11T00:00:00+08:00"),
@@ -135,7 +184,14 @@ describe("current-year KPI mock factory", () => {
       expect(row.actions.openActions.availability).toBe("AVAILABLE");
       expect(
         row.actions.openActions.items.map(({ actionId }) => actionId),
-      ).toEqual(["ACT-2026-07-001", "ACT-2026-08-002"]);
+      ).toEqual([
+        "ACT-1000001",
+        "ACT-1000002",
+        "ACT-1000007",
+        "ACT-1000011",
+        "ACT-1000015",
+        "ACT-1000016",
+      ]);
     },
   );
 
@@ -153,6 +209,7 @@ describe("current-year KPI mock factory", () => {
     expect(snapshot.actions.items.map(({ Status }) => Status)).toEqual([
       { kind: "KNOWN", value: "Closed" },
       { kind: "KNOWN", value: "Cancelled" },
+      { kind: "UNKNOWN", value: "Pending Verification" },
     ]);
     expect(row.actions.openActions).toEqual({
       availability: "CONFIRMED_EMPTY",

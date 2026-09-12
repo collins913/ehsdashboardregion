@@ -2,7 +2,7 @@ import type {
   KpiPeriod,
   TimezoneAwareIsoDateTime,
 } from "@/data/contracts/kpi";
-import type { Month } from "@/types/ehs";
+import type { IsoDate, Month } from "@/types/ehs";
 
 export const BUSINESS_TIME_ZONE = "Asia/Shanghai";
 
@@ -237,5 +237,15 @@ export function isInstantInKpiPeriod(
   return (
     milliseconds >= period.startMilliseconds &&
     milliseconds < period.endMilliseconds
+  );
+}
+
+export function isIsoDateInKpiPeriod(
+  value: IsoDate,
+  period: ParsedKpiPeriod,
+): boolean | null {
+  return isInstantInKpiPeriod(
+    `${value}T00:00:00${SHANGHAI_OFFSET}`,
+    period,
   );
 }

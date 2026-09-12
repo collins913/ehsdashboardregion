@@ -13,8 +13,10 @@ import {
   type KpiMockCoverage,
 } from "@/data/mock";
 import { parseActionStatus } from "@/data/parse-action-status";
+import { resolveActionStore } from "@/data/resolve-action-store";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
 import {
+  isIsoDateInKpiPeriod,
   isInstantInKpiPeriod,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
@@ -34,12 +36,19 @@ import type {
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type {
+  ActionsQuery,
+  ActionsQueryResult,
+  NormalizedActionRecord,
+} from "@/data/contracts/actions";
+import type {
   ActionClosureRateRecord,
   ActionRecord,
+  RawActionRecord,
   StoreId,
   StoreMasterData,
   StoreReference,
 } from "@/types/ehs";
+import { classifyActionRecordState } from "@/lib/rules/action-rules";
 
 function matchesStoreReference(
   store: StoreMasterData,
@@ -157,12 +166,14 @@ function normalizeRecords<T extends { storeReference: StoreReference }, U>(
   records: readonly T[],
   selectedStoreIds: ReadonlySet<StoreId>,
   mapRecord: (record: T, storeId: StoreId) => U,
+  resolveReference: (reference: StoreReference) => StoreId | null =
+    resolveStoreId,
 ): { items: readonly U[]; resolutionComplete: boolean } {
   const items: U[] = [];
   let resolutionComplete = true;
 
   for (const record of records) {
-    const storeId = resolveStoreId(record.storeReference);
+    const storeId = resolveReference(record.storeReference);
 
     if (storeId === null) {
       resolutionComplete = false;
@@ -217,14 +228,28 @@ function isActionAggregateScopeCovered(
   );
 }
 
-export function createMockEhsRepository(referenceDate: Date): EhsRepository {
+type MockEhsRepositoryOptions = {
+  actionRecords?: readonly RawActionRecord[];
+};
+
+export function createMockEhsRepository(
+  referenceDate: Date,
+  options: MockEhsRepositoryOptions = {},
+): EhsRepository {
   const mockData = createKpiMockData(referenceDate);
-  const parsedActionRecords: readonly ActionRecord[] = mockData.actionRecords.map(
+  const rawActionRecords = options.actionRecords ?? mockData.actionRecords;
+  const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
     (record) => ({
       ...record,
       Status: parseActionStatus(record.Status),
     }),
   );
+
+  function resolveActionStoreId(reference: StoreReference): StoreId | null {
+    const resolution = resolveActionStore(reference, mockStores);
+
+    return resolution.kind === "RESOLVED" ? resolution.store.trtid : null;
+  }
 
   function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
     const stores = requestedStores(context);
@@ -289,14 +314,17 @@ export function createMockEhsRepository(referenceDate: Date): EhsRepository {
       (record, storeId): KpiActionRecord => ({
         storeId,
         actionId: record.actionId,
-        actionTitle: record.actionTitle,
+        problem: record.problem,
+        action: record.action,
+        submittedBy: record.submittedBy,
         owner: record.owner,
-        createdDate: record.createdDate,
+        submittedDate: record.submittedDate,
         dueDate: record.dueDate,
         closedDate: record.closedDate,
         Status: record.Status,
         sourceReference: record.sourceReference,
       }),
+      resolveActionStoreId,
     );
 
     const events: {
@@ -404,8 +432,84 @@ export function createMockEhsRepository(referenceDate: Date): EhsRepository {
     };
   }
 
+  function getActions({ context, viewMode }: ActionsQuery): ActionsQueryResult {
+    const stores = requestedStores(context);
+    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const selectedStoreIds = new Set(selectedStoreIdList);
+    const parsedPeriod = parseKpiPeriod(context.period);
+    const normalizedActions: NormalizedActionRecord[] = [];
+    let resolutionComplete = true;
+    let dateCoverageComplete = parsedPeriod !== null;
+
+    if (parsedPeriod !== null) {
+      for (const record of parsedActionRecords) {
+        const isIncluded = isIsoDateInKpiPeriod(
+          record.submittedDate,
+          parsedPeriod,
+        );
+
+        if (isIncluded === null) {
+          dateCoverageComplete = false;
+          continue;
+        }
+
+        if (!isIncluded) {
+          continue;
+        }
+
+        const resolution = resolveActionStore(record.storeReference, mockStores);
+
+        if (resolution.kind !== "RESOLVED") {
+          resolutionComplete = false;
+          continue;
+        }
+
+        const storeId = resolution.store.trtid;
+
+        if (!selectedStoreIds.has(storeId)) {
+          continue;
+        }
+
+        const recordState = classifyActionRecordState(record);
+
+        if (viewMode === "OPEN_ONLY" && recordState !== "OPEN") {
+          continue;
+        }
+
+        normalizedActions.push({
+          storeId,
+          storeDisplayName: resolution.store.storeNameCn,
+          actionId: record.actionId,
+          problem: record.problem,
+          action: record.action,
+          submittedBy: record.submittedBy,
+          owner: record.owner,
+          submittedDate: record.submittedDate,
+          dueDate: record.dueDate,
+          closedDate: record.closedDate,
+          sourceStatus: record.Status,
+          recordState,
+          sourceReference: record.sourceReference,
+        });
+      }
+    }
+
+    return withCoverage(
+      normalizedActions,
+      isSourceCovered(
+        context,
+        selectedStoreIdList,
+        parsedPeriod,
+        mockData.coverage,
+        "actions",
+      ),
+      resolutionComplete && dateCoverageComplete,
+    );
+  }
+
   return {
     getKpiData,
+    getActions,
     listFilterStores: () => mockStores.map(toKpiStore),
     listStores: () => mockStores,
     findStoreCandidates: (reference) =>

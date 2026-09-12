@@ -85,9 +85,11 @@ function action(
   return {
     storeId,
     actionId,
-    actionTitle: actionId,
+    problem: actionId,
+    action: actionId,
+    submittedBy: "Submitter",
     owner: "Owner",
-    createdDate: "2026-01-01",
+    submittedDate: "2026-01-01",
     dueDate: "2026-01-31",
     closedDate: null,
     Status,

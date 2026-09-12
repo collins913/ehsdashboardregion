@@ -53,7 +53,7 @@ Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认�
 
 - TRTID 不保证是所有数据源的唯一关联键。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
-- 每个数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
+- 除 Actions 已确认的 TRTID 优先、Store English Name fallback 规则外，各数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
 - Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
 ### 2.3 Data Availability
@@ -262,10 +262,12 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 | 逻辑字段 | 要求 |
 |---|---|
 | Action ID | 数据源提供；唯一性范围 TBD |
-| Store Reference | 必须先通过 Store Resolution |
-| Action Title | 数据源提供 |
+| Store Reference | 原始 Action 可同时提供 TRTID 与 Store English Name；必须先通过 Store Resolution |
+| Problem | 数据源提供 |
+| Action | 数据源提供；代码字段为 `action` |
+| Submitted By | 数据源提供；人员标识方式 TBD |
 | Owner | 数据源提供；人员标识方式 TBD |
-| Created Date | 数据源提供 |
+| Submitted Date | 数据源提供；Actions 页面 Global Period 使用此字段 |
 | Due Date | 数据源提供 |
 | Closed Date | 数据源提供；可为 null，表示未提供关闭日期；不得用于推断 Status |
 | Status | 数据源提供原始 `string`；Repository / Adapter 解析为 `ParsedActionStatus`，未知值保留原文并标记为 `UNKNOWN` |
@@ -281,6 +283,10 @@ Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
 - Cancelled
 
 Repository / Adapter 必须保留 Raw Status，并集中解析为 `ParsedActionStatus`。`Assigned`、`In Progress`、`In Review`、`Sign Off` 归类为 `OPEN`；`Closed` 归类为 `CLOSED`；`Cancelled` 归类为 `EXCLUDED`。数据源可增加其它状态，但在集中映射确认前一律归类为 `UNKNOWN`，不得由 UI 猜测。
+
+Actions 数据源的 Store Resolution 顺序为：TRTID 唯一匹配优先；TRTID 缺失或无法匹配时使用 Store English Name 精确唯一匹配；两者同时存在时校验一致性。冲突、重复命中或无法解析时不得静默选择或丢弃，Repository 将查询标记为 `INCOMPLETE`。规范化查询输出仅包含 canonical `storeId` 与中文 `storeDisplayName`，不向页面暴露 TRTID 或 Store English Name。
+
+Actions scoped Repository query 复用 `KpiFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。这不改变 KPI Action 下钻不受 Period 限制的既有语义。
 
 ## 8. Risk & Compliance → Certificates
 

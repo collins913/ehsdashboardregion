@@ -20,6 +20,12 @@ import {
 import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import {
+  dataTableClassName,
+  dataTableFrameClassName,
+  stickyStoreCellClassName,
+  stickyStoreHeaderClassName,
+} from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import {
@@ -247,7 +253,7 @@ function ActionsSheet({
                   {actions.items.map((action) => (
                     <TableRow key={action.actionId}>
                       <TableCell className="max-w-56 whitespace-normal">
-                        <span className="font-medium">{action.actionTitle}</span>
+                        <span className="font-medium">{action.action}</span>
                         <span className="mt-0.5 block text-xs text-muted-foreground">
                           {action.actionId}
                         </span>
@@ -522,9 +528,9 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
 
       <div
         ref={tableFrameRef}
-        className="overflow-hidden rounded-lg border"
+        className={dataTableFrameClassName}
       >
-        <Table className="min-w-224">
+        <Table className={dataTableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -533,7 +539,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                     key={header.id}
                     className={
                       header.column.id === "store"
-                        ? "sticky left-0 z-20 w-48 min-w-48 max-w-48 border-r bg-background"
+                        ? stickyStoreHeaderClassName
                         : undefined
                     }
                   >
@@ -566,7 +572,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                       key={cell.id}
                       className={
                         cell.column.id === "store"
-                          ? "sticky left-0 z-10 w-48 min-w-48 max-w-48 border-r bg-background"
+                          ? stickyStoreCellClassName
                           : undefined
                       }
                     >

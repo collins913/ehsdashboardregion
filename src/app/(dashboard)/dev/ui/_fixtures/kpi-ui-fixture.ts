@@ -36,9 +36,9 @@ function openActions(index: number): DataSet<KpiActionDetail> {
 
   const action: KpiActionDetail = {
     actionId: `ACT-${String(index + 1).padStart(3, "0")}`,
-    actionTitle: "完成纠正行动跟进",
+    action: "完成纠正行动跟进",
     owner: index % 2 === 0 ? "陈晨" : "李敏",
-    createdDate: "2026-09-01",
+    submittedDate: "2026-09-01",
     dueDate: "2026-09-20",
     closedDate: null,
     sourceStatus: index % 2 === 0 ? "Assigned" : "In Progress",

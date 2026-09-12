@@ -81,7 +81,7 @@ Stores 列表默认勾选：Region、Area、Store Name CN、Store Name EN、TRTI
 
 ### D-011 TRTID 不是所有数据源的强制唯一关联键
 
-不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。
+不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Actions 已确认 TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；两者冲突或无法唯一解析时不得静默选择。其它数据源策略仍为 TBD。
 
 ### D-012 Stores 列表交互位置
 
@@ -232,6 +232,10 @@ Global Filter Provider 挂载于 Dashboard route layout。业务子页面切换�
 ### D-036 Data Table 采用小型共享能力组合
 
 业务表格使用 shadcn Table 与 TanStack Table。排序表头、列显隐、分页辅助和可点击单元格等真实复用能力可拆为小型 shared component / hook；各业务表格继续维护自己的 columns、filters、drill-down 和业务行为。在多个业务页面出现一致需求前，不建立大型 `GenericDataTable`。
+
+### D-037 Actions 页面使用 Submitted Date 应用 Global Period
+
+Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应用 Global Period；Open 额外限定集中解析后的 `RecordState = OPEN`。该页面语义不改变 Performance → KPI 的 Closure Rate aggregate，也不改变 KPI 下钻展示当前全部 OPEN 明细的既有规则。
 
 ## 9. 明确未决事项
 

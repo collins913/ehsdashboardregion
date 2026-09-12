@@ -360,15 +360,18 @@ Source field:
 
 Current confirmed mapping:
 
-| Raw Action Status | RecordState |
-|---|---|
-| `Assigned` | `OPEN` |
-| `In Progress` | `OPEN` |
-| `In Review` | `OPEN` |
-| `Sign Off` | `OPEN` |
-| `Closed` | `CLOSED` |
-| `Cancelled` | `EXCLUDED` |
-| Any other value | `UNKNOWN` |
+| Raw Action Status | RecordState | 中文展示 | StatusDisplay 视觉复用 |
+|---|---|---|---|
+| `Assigned` | `OPEN` | 已分配 | `NOT_ACHIEVED`（进行中） |
+| `In Progress` | `OPEN` | 进行中 | `NOT_ACHIEVED`（进行中） |
+| `In Review` | `OPEN` | 审核中 | `NOT_ACHIEVED`（进行中） |
+| `Sign Off` | `OPEN` | 待签核 | `NOT_ACHIEVED`（进行中） |
+| `Closed` | `CLOSED` | 已关闭 | `CLOSED`（已关闭） |
+| `Cancelled` | `EXCLUDED` | 已取消 | `CLOSED`（已关闭） |
+| Any other value | `UNKNOWN` | 未知 | `UNKNOWN`（未知） |
+
+StatusDisplay 视觉复用只属于 presentation。它不修改 RecordState；特别是
+`Cancelled` 仍归类为 `EXCLUDED`。
 
 `EXCLUDED` applies only to Action record lifecycle and the `OPEN_ONLY` detail
 filter. It means a cancelled Action is omitted from open Action details. It does
@@ -385,7 +388,7 @@ Do not infer Action lifecycle from:
 
 - Due Date
 - Closed Date
-- Created Date
+- Submitted Date
 - Owner.
 
 ---

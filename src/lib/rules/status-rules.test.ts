@@ -15,9 +15,11 @@ function action(Status: ActionRecord["Status"]): ActionRecord {
   return {
     actionId: "A-1",
     storeReference: { trtid: "TEST-001" },
-    actionTitle: "Test",
+    problem: "Test problem",
+    action: "Test",
+    submittedBy: "Submitter",
     owner: "Test",
-    createdDate: "2026-09-01",
+    submittedDate: "2026-09-01",
     dueDate: "2026-09-10",
     closedDate: null,
     Status,

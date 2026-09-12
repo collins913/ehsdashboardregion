@@ -19,9 +19,9 @@ export interface PerformanceKpiValue {
 
 export interface KpiActionDetail {
   actionId: string;
-  actionTitle: string;
+  action: string;
   owner: string;
-  createdDate: IsoDate;
+  submittedDate: IsoDate;
   dueDate: IsoDate;
   closedDate: IsoDate | null;
   sourceStatus: string;

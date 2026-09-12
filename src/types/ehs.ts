@@ -7,7 +7,7 @@ export type Month = `${number}-${number}`;
 export type StoreId = string;
 
 export type StoreReference =
-  | { trtid: string }
+  | { trtid: string; storeNameEn?: string }
   | { storeNameCn: string }
   | { storeNameEn: string };
 
@@ -114,9 +114,11 @@ export type ParsedActionStatus =
 interface ActionRecordBase {
   actionId: string;
   storeReference: StoreReference;
-  actionTitle: string;
+  problem: string;
+  action: string;
+  submittedBy: string;
   owner: string;
-  createdDate: IsoDate;
+  submittedDate: IsoDate;
   dueDate: IsoDate;
   closedDate: IsoDate | null;
   sourceReference?: SourceReference | null;

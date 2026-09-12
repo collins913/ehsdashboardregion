@@ -209,12 +209,13 @@ Events 展示两类业务记录：
 
 ### 7.1 页面目的
 
-展示当前 Region / Area / Store 范围内仍需处理的 Action 明细。该明细不按 Global Period 排除历史遗留 `OPEN` Actions；KPI 百分比仍严格跟随 Global Period。
+展示当前 Global Region / Area / Store / Period 范围内的 Action 明细。本页面使用 `Submitted Date` 应用 Global Period；Performance → KPI 的 Closure Rate 与未关闭明细下钻继续保持各自既有语义。
 
 ### 7.2 页面行为
 
 - 默认选择 Open，仅显示未关闭 Actions。
 - 提供 Open / All 切换。
+- Open 与 All 均使用 `Submitted Date` 应用 Global Period 的 `[startInclusive, endExclusive)`。
 - Open 包含 `Assigned`、`In Progress`、`In Review`、`Sign Off`。
 - `Closed` 为已关闭。
 - `Cancelled` 为已排除，不属于未关闭；不得与 `Closed` 合并。
@@ -224,28 +225,22 @@ Events 展示两类业务记录：
 
 ### 7.3 列表与详情
 
-列表建议显示：
-
-- Store
-- Action Title
-- Owner
-- Created Date
-- Due Date
-- Status
-
-Closed Date 默认作为表格列还是仅在详情中展示：TBD。
+列表默认显示 Store、Action ID、Problem、Action、Due Date、Status；Owner、Submitted By、Submitted Date、Closed Date 作为默认隐藏列，可通过列显示控制。
 
 点击记录后展示：
 
 - Action ID
 - Store
-- Action Title
+- Problem
+- Action
 - Owner
-- Created Date
+- Submitted By
+- Submitted Date
 - Due Date
 - Closed Date
 - Status
-- Source Reference
+
+Closed Date 为空时显示 `—`。页面和详情不展示 TRTID 或 Store English Name。
 
 ### 7.4 与 KPI 的关系
 
@@ -410,7 +405,7 @@ Stores 列表默认勾选并显示七个字段：
 - TRTID 是重要门店标识，但不保证是所有数据源的唯一关联键。
 - 数据源可能使用 TRTID、Store Name CN 或 Store Name EN 关联门店。
 - 关联必须由数据层统一完成，页面和业务组件不得临时匹配。
-- 各数据源的匹配字段、优先级、冲突与异常处理：TBD。
+- 除 Actions 已确认的 TRTID 优先、Store English Name fallback 规则外，各数据源的匹配字段、优先级、冲突与异常处理：TBD。
 
 ## 11. 本次不定义
 

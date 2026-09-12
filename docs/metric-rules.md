@@ -494,6 +494,11 @@ The raw source Status is preserved. UI components must not reclassify it.
 details. It must not be interpreted as a rule for the Action Closure Rate
 numerator or denominator.
 
+Risk & Compliance → Actions applies the shared Global Period to source
+`Submitted Date` using `[startInclusive, endExclusive)`. Its default
+`OPEN_ONLY` view additionally requires centralized `RecordState = OPEN`; the
+`ALL` view keeps OPEN, CLOSED, EXCLUDED and UNKNOWN records in the same Period.
+
 Performance → KPI Action drill-down follows the current Region / Area / Store
 scope but does not apply Global Period to exclude older unresolved Actions. It
 shows all current `RecordState = OPEN` records. Action detail availability is
