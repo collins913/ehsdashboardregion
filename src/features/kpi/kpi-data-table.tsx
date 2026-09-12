@@ -62,6 +62,7 @@ import type {
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
+import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
@@ -260,7 +261,9 @@ function ActionsSheet({
                       </TableCell>
                       <TableCell>{action.owner}</TableCell>
                       <TableCell>{action.dueDate}</TableCell>
-                      <TableCell>{action.sourceStatus}</TableCell>
+                      <TableCell>
+                        <ActionStatusDisplay status={action.sourceStatus} />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -57,7 +57,7 @@ KpiFilterContext
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
 - Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
-- KPI Action 明细按 Region / Area / Store 范围读取当前全部记录，不受 Global Period 限制；Builder 仅保留规则层归类为 `OPEN` 的记录。明细 Coverage 由数据源与门店同步完整性决定，不与 aggregate Period 做相等判断。
+- KPI Action 明细复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 过滤。Store Resolution、Status 解析、RecordState 和 OPEN 过滤只在 Repository 链中执行一次；Builder 只按门店分配结果。
 - 当前 mock 阶段由 KPI feature client component 读取 Dashboard 共享 Filter Context，再调用 Repository 与 Builder；页面本身不读取 mock、不组装筛选参数、不执行业务计算。
 - Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
@@ -72,13 +72,13 @@ Raw Action
 → Region / Area / canonical Store / Submitted Date filtering
 → OPEN_ONLY or ALL
 → NormalizedActionRecord[]
-→ Actions feature UI
+→ Actions feature UI / KPI Actions drill-down
 ```
 
 - Actions 页面复用 Dashboard 的 `KpiFilterContext`，Period 只解释为 Submitted Date 的 Asia/Shanghai 半开区间。
 - Repository 输出 canonical `storeId`、中文门店名、原始状态解析结果与 RecordState；UI 不读取 Store Reference，也不解析状态。
 - `OPEN_ONLY` 与 `ALL` 是 Actions feature view state，不进入 Global Filter Context。
-- KPI Action 下钻仍按当前全部 OPEN 明细工作，不因本页面的 Period 语义改变。
+- KPI Action 下钻与 Actions 页面 Open 视图复用同一查询；相同 Filter Context 下必须返回相同 OPEN Action ID。Actions 页面 All 视图仅改变 view mode，不改变 Store 或 Period 解释。
 
 ## Global Filters
 

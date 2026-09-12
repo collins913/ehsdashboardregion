@@ -36,6 +36,7 @@ function rawAction(
     trtid: mockStores[0].trtid,
     storeNameEn: mockStores[0].storeNameEn,
   },
+  overrides: Partial<RawActionRecord> = {},
 ): RawActionRecord {
   return {
     actionId: `ACTION-${Status}`,
@@ -48,6 +49,7 @@ function rawAction(
     dueDate: "2026-09-30",
     closedDate: null,
     Status,
+    ...overrides,
   };
 }
 
@@ -116,6 +118,15 @@ describe("scoped Actions repository query", () => {
     expect(result).toEqual({ availability: "INCOMPLETE", items: [] });
   });
 
+  it("keeps unsupported Period availability identical for both Action consumers", () => {
+    const repository = createMockEhsRepository(referenceDate);
+    const filters = context("2026-10", "2026-10");
+
+    expect(repository.getKpiData(filters).actions).toEqual(
+      repository.getActions({ context: filters, viewMode: "OPEN_ONLY" }),
+    );
+  });
+
   it("returns only centralized OPEN states for Current Open", () => {
     const result = query("OPEN_ONLY");
 
@@ -123,6 +134,52 @@ describe("scoped Actions repository query", () => {
     expect(result.items.every(({ recordState }) => recordState === "OPEN")).toBe(
       true,
     );
+  });
+
+  it("uses the same normalized OPEN query for KPI drill-down and Actions Current Open", () => {
+    const repository = createMockEhsRepository(referenceDate);
+    const filters: KpiFilterContext = {
+      ...context(),
+      store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
+    };
+
+    expect(repository.getKpiData(filters).actions).toEqual(
+      repository.getActions({ context: filters, viewMode: "OPEN_ONLY" }),
+    );
+  });
+
+  it("keeps KPI drill-down and Actions views aligned to Submitted Date", () => {
+    const repository = createMockEhsRepository(referenceDate, {
+      actionRecords: [
+        rawAction("Assigned", undefined, {
+          actionId: "HISTORICAL-OPEN",
+          submittedDate: "2026-06-30",
+        }),
+        rawAction("In Progress", undefined, { actionId: "PERIOD-OPEN" }),
+        rawAction("Closed", undefined, { actionId: "PERIOD-CLOSED" }),
+        rawAction("Cancelled", undefined, { actionId: "PERIOD-CANCELLED" }),
+      ],
+    });
+    const filters: KpiFilterContext = {
+      ...context("2026-09", "2026-09"),
+      store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
+    };
+    const kpiOpen = repository.getKpiData(filters).actions;
+    const currentOpen = repository.getActions({
+      context: filters,
+      viewMode: "OPEN_ONLY",
+    });
+    const all = repository.getActions({ context: filters, viewMode: "ALL" });
+
+    expect(kpiOpen).toEqual(currentOpen);
+    expect(kpiOpen.items.map(({ actionId }) => actionId)).toEqual([
+      "PERIOD-OPEN",
+    ]);
+    expect(all.items.map(({ actionId }) => actionId)).toEqual([
+      "PERIOD-OPEN",
+      "PERIOD-CLOSED",
+      "PERIOD-CANCELLED",
+    ]);
   });
 
   it("applies the same Submitted Date Period to Current Open", () => {

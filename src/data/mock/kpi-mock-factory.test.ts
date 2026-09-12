@@ -167,9 +167,33 @@ describe("current-year KPI mock factory", () => {
     }
   });
 
-  it.each(["THIS_MONTH", "THIS_QUARTER", "THIS_YEAR"] as const)(
-    "keeps current OPEN Action details available for %s",
-    (mode) => {
+  it.each([
+    ["THIS_MONTH", ["ACT-1000015", "ACT-1000016"]],
+    [
+      "THIS_QUARTER",
+      [
+        "ACT-1000001",
+        "ACT-1000002",
+        "ACT-1000007",
+        "ACT-1000011",
+        "ACT-1000015",
+        "ACT-1000016",
+      ],
+    ],
+    [
+      "THIS_YEAR",
+      [
+        "ACT-1000001",
+        "ACT-1000002",
+        "ACT-1000007",
+        "ACT-1000011",
+        "ACT-1000015",
+        "ACT-1000016",
+      ],
+    ],
+  ] as const)(
+    "applies the %s Submitted Date scope to OPEN Action drill-down details",
+    (mode, expectedActionIds) => {
       const referenceDate = new Date("2026-09-11T00:00:00+08:00");
       const repository = createMockEhsRepository(referenceDate);
       const context: KpiFilterContext = {
@@ -182,16 +206,9 @@ describe("current-year KPI mock factory", () => {
       expect(snapshot.actionClosureRates.availability).toBe("AVAILABLE");
       expect(snapshot.actions.availability).toBe("AVAILABLE");
       expect(row.actions.openActions.availability).toBe("AVAILABLE");
-      expect(
-        row.actions.openActions.items.map(({ actionId }) => actionId),
-      ).toEqual([
-        "ACT-1000001",
-        "ACT-1000002",
-        "ACT-1000007",
-        "ACT-1000011",
-        "ACT-1000015",
-        "ACT-1000016",
-      ]);
+      expect(row.actions.openActions.items.map(({ actionId }) => actionId)).toEqual(
+        expectedActionIds,
+      );
     },
   );
 
@@ -205,12 +222,8 @@ describe("current-year KPI mock factory", () => {
     const snapshot = repository.getKpiData(context);
     const row = buildKpiRows(context, snapshot)[0];
 
-    expect(snapshot.actions.availability).toBe("AVAILABLE");
-    expect(snapshot.actions.items.map(({ Status }) => Status)).toEqual([
-      { kind: "KNOWN", value: "Closed" },
-      { kind: "KNOWN", value: "Cancelled" },
-      { kind: "UNKNOWN", value: "Pending Verification" },
-    ]);
+    expect(snapshot.actions.availability).toBe("CONFIRMED_EMPTY");
+    expect(snapshot.actions.items).toEqual([]);
     expect(row.actions.openActions).toEqual({
       availability: "CONFIRMED_EMPTY",
       items: [],

@@ -286,7 +286,7 @@ Repository / Adapter 必须保留 Raw Status，并集中解析为 `ParsedActionS
 
 Actions 数据源的 Store Resolution 顺序为：TRTID 唯一匹配优先；TRTID 缺失或无法匹配时使用 Store English Name 精确唯一匹配；两者同时存在时校验一致性。冲突、重复命中或无法解析时不得静默选择或丢弃，Repository 将查询标记为 `INCOMPLETE`。规范化查询输出仅包含 canonical `storeId` 与中文 `storeDisplayName`，不向页面暴露 TRTID 或 Store English Name。
 
-Actions scoped Repository query 复用 `KpiFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。这不改变 KPI Action 下钻不受 Period 限制的既有语义。
+Actions scoped Repository query 复用 `KpiFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。KPI Action 下钻与 Actions 页面 Open 视图必须复用同一 `OPEN_ONLY` 查询。
 
 ## 8. Risk & Compliance → Certificates
 
@@ -423,4 +423,4 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 同时提供当前 Region / Area / Store 范围内该门店全部 `RecordState = OPEN` 的明细，不使用 Global Period 排除历史遗留 OPEN Actions；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入 `openActions`。Action detail Coverage 独立于 Closure Rate aggregate Period，由明细数据源及门店同步完整性决定。
+KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 的 `openActions` 来自统一 Actions Repository `OPEN_ONLY` 查询，按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Builder 不再解析原始 Action Status 或执行第二次 OPEN 过滤。Action detail Coverage 由同一查询返回，Closure Rate aggregate 仍使用独立的精确 Period scope。

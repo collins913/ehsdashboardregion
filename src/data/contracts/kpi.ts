@@ -1,9 +1,9 @@
 import type {
-  ActionRecord,
   Month,
   StoreId,
   TimezoneAwareIsoDateTime,
 } from "@/types/ehs";
+import type { NormalizedActionRecord } from "@/data/contracts/action-record";
 
 export type { TimezoneAwareIsoDateTime } from "@/types/ehs";
 
@@ -82,10 +82,6 @@ export interface KpiActionClosureRateRecord {
   value: number | null;
 }
 
-export interface KpiActionRecord extends Omit<ActionRecord, "storeReference"> {
-  storeId: StoreId;
-}
-
 export interface KpiEventRecord {
   storeId: StoreId;
   ASTMInjuryIllness: string;
@@ -97,6 +93,6 @@ export interface KpiDataSnapshot {
   drills: DataSet<KpiDrillRecord>;
   inspections: DataSet<KpiInspectionRecord>;
   actionClosureRates: DataSet<KpiActionClosureRateRecord>;
-  actions: DataSet<KpiActionRecord>;
+  actions: DataSet<NormalizedActionRecord>;
   events: DataSet<KpiEventRecord>;
 }

@@ -26,7 +26,6 @@ import type {
   DataSet,
   FilterScope,
   KpiActionClosureRateRecord,
-  KpiActionRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
   KpiEventRecord,
@@ -126,16 +125,6 @@ function isSourceCovered(
       parsedPeriod,
       coverage,
     ) && coverage.sourceCoverage[source] === "COMPLETE"
-  );
-}
-
-function isActionDetailSourceCovered(
-  selectedStoreIds: readonly StoreId[],
-  coverage: KpiMockCoverage,
-): boolean {
-  return (
-    selectedStoreIds.every((storeId) => coverage.storeIds.includes(storeId)) &&
-    coverage.sourceCoverage.actions === "COMPLETE"
   );
 }
 
@@ -245,12 +234,6 @@ export function createMockEhsRepository(
     }),
   );
 
-  function resolveActionStoreId(reference: StoreReference): StoreId | null {
-    const resolution = resolveActionStore(reference, mockStores);
-
-    return resolution.kind === "RESOLVED" ? resolution.store.trtid : null;
-  }
-
   function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
@@ -306,25 +289,6 @@ export function createMockEhsRepository(
         storeId,
         value: record.value,
       }),
-    );
-
-    const actions = normalizeRecords(
-      parsedActionRecords,
-      selectedStoreIds,
-      (record, storeId): KpiActionRecord => ({
-        storeId,
-        actionId: record.actionId,
-        problem: record.problem,
-        action: record.action,
-        submittedBy: record.submittedBy,
-        owner: record.owner,
-        submittedDate: record.submittedDate,
-        dueDate: record.dueDate,
-        closedDate: record.closedDate,
-        Status: record.Status,
-        sourceReference: record.sourceReference,
-      }),
-      resolveActionStoreId,
     );
 
     const events: {
@@ -413,11 +377,7 @@ export function createMockEhsRepository(
         ) && aggregateScopeCovered,
         actionClosureRates.resolutionComplete,
       ),
-      actions: withCoverage(
-        actions.items,
-        isActionDetailSourceCovered(selectedStoreIdList, coverage),
-        actions.resolutionComplete,
-      ),
+      actions: getActions({ context, viewMode: "OPEN_ONLY" }),
       events: withCoverage(
         events.items,
         isSourceCovered(

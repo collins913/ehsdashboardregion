@@ -215,7 +215,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-032 Action KPI 汇总与明细边界
 
-Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。`>= 90%` 为 `ACHIEVED`，`< 90%` 为 `NOT_ACHIEVED`。完整 Coverage 下确认没有需要整改的 Action 时，`value = null`、结果为 `ACHIEVED`；无法确认 Period aggregate 时为 `INCOMPLETE` / `UNDETERMINED`。KPI 下钻的 `openActions` 跟随 Region / Area / Store 范围，但不受 Global Period 限制，仅包含当前全部 `RecordState = OPEN`；`EXCLUDED`、`UNKNOWN`、`CLOSED` 均不进入。明细无需与 Closure Rate aggregate 对账。
+Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。`>= 90%` 为 `ACHIEVED`，`< 90%` 为 `NOT_ACHIEVED`。完整 Coverage 下确认没有需要整改的 Action 时，`value = null`、结果为 `ACHIEVED`；无法确认 Period aggregate 时为 `INCOMPLETE` / `UNDETERMINED`。明细仍无需与 Closure Rate aggregate 对账；KPI 下钻明细范围由 D-038 统一规定。
 
 ### D-033 KPI 查询契约采用显式时区与实际门店覆盖
 
@@ -233,9 +233,13 @@ Global Filter Provider 挂载于 Dashboard route layout。业务子页面切换�
 
 业务表格使用 shadcn Table 与 TanStack Table。排序表头、列显隐、分页辅助和可点击单元格等真实复用能力可拆为小型 shared component / hook；各业务表格继续维护自己的 columns、filters、drill-down 和业务行为。在多个业务页面出现一致需求前，不建立大型 `GenericDataTable`。
 
-### D-037 Actions 页面使用 Submitted Date 应用 Global Period
+### D-037 Actions 页面使用 Submitted Date 应用 Global Period（由 D-038 扩展）
 
-Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应用 Global Period；Open 额外限定集中解析后的 `RecordState = OPEN`。该页面语义不改变 Performance → KPI 的 Closure Rate aggregate，也不改变 KPI 下钻展示当前全部 OPEN 明细的既有规则。
+Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应用 Global Period；Open 额外限定集中解析后的 `RecordState = OPEN`。该页面语义不改变 Performance → KPI 的 Closure Rate aggregate。KPI 下钻范围由 D-038 统一规定。
+
+### D-038 Action 明细统一使用 Submitted Date Period
+
+所有 Action 明细视图按 Global Region / Area / Store 及 Submitted Date Period 查询。Performance → KPI Actions 下钻与 Risk & Compliance → Actions Open 视图复用同一规范化 `OPEN_ONLY` Repository 查询，相同 Filter Context 下必须返回相同 OPEN Action ID；Actions All 视图在同一范围内保留全部 RecordState。本决策取代 D-032、D-037 中 KPI 下钻忽略 Period 的旧表述。Action Closure Rate 继续使用数据源提供的独立 aggregate，禁止从明细重算或要求二者对账。
 
 ## 9. 明确未决事项
 

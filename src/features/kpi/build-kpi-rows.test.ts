@@ -6,7 +6,6 @@ import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository
 import type {
   DataSet,
   KpiActionClosureRateRecord,
-  KpiActionRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
   KpiEventRecord,
@@ -14,8 +13,10 @@ import type {
   KpiStore,
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
+import type { NormalizedActionRecord } from "@/data/contracts/action-record";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
-import type { StoreMasterData } from "@/types/ehs";
+import type { ParsedActionStatus, StoreMasterData } from "@/types/ehs";
+import type { RecordState } from "@/lib/rules/result-types";
 
 const q1Context: KpiFilterContext = {
   region: { kind: "ALL" },
@@ -80,10 +81,12 @@ function snapshot(
 function action(
   storeId: string,
   actionId: string,
-  Status: KpiActionRecord["Status"],
-): KpiActionRecord {
+  sourceStatus: ParsedActionStatus,
+  recordState: RecordState = "OPEN",
+): NormalizedActionRecord {
   return {
     storeId,
+    storeDisplayName: storeId,
     actionId,
     problem: actionId,
     action: actionId,
@@ -92,7 +95,8 @@ function action(
     submittedDate: "2026-01-01",
     dueDate: "2026-01-31",
     closedDate: null,
-    Status,
+    sourceStatus,
+    recordState,
   };
 }
 
@@ -438,7 +442,7 @@ describe("KPI assembly", () => {
     expect(actions.result).toBe("UNDETERMINED");
   });
 
-  it("exposes only OPEN Actions in drill-down data", () => {
+  it("preserves the repository-normalized OPEN Action query for the selected store", () => {
     const data = available(
       action("STORE-1", "ASSIGNED", { kind: "KNOWN", value: "Assigned" }),
       action("STORE-1", "IN-PROGRESS", {
@@ -453,15 +457,6 @@ describe("KPI assembly", () => {
         kind: "KNOWN",
         value: "Sign Off",
       }),
-      action("STORE-1", "CANCELLED", {
-        kind: "KNOWN",
-        value: "Cancelled",
-      }),
-      action("STORE-1", "UNKNOWN", {
-        kind: "UNKNOWN",
-        value: "PendingReview",
-      }),
-      action("STORE-1", "CLOSED", { kind: "KNOWN", value: "Closed" }),
       action("STORE-2", "OTHER-STORE", {
         kind: "KNOWN",
         value: "Assigned",
@@ -488,13 +483,7 @@ describe("KPI assembly", () => {
     const openDetails = available(
       action("STORE-1", "OPEN", { kind: "KNOWN", value: "Assigned" }),
     );
-    const nonOpenDetails = available(
-      action("STORE-1", "CLOSED", { kind: "KNOWN", value: "Closed" }),
-      action("STORE-1", "EXCLUDED", {
-        kind: "KNOWN",
-        value: "Cancelled",
-      }),
-    );
+    const noOpenDetails = confirmedEmpty<NormalizedActionRecord>();
 
     const withOpenDetails = buildKpiRows(
       q1Context,
@@ -502,7 +491,7 @@ describe("KPI assembly", () => {
     )[0].actions;
     const withoutOpenDetails = buildKpiRows(
       q1Context,
-      snapshot({ actionClosureRates, actions: nonOpenDetails }),
+      snapshot({ actionClosureRates, actions: noOpenDetails }),
     )[0].actions;
 
     expect(withOpenDetails).toMatchObject({ value: 92, result: "ACHIEVED" });

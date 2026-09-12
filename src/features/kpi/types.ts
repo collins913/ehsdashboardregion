@@ -1,12 +1,8 @@
 import type {
-  IsoDate,
-  SourceReference,
-} from "@/types/ehs";
-import type {
   DataAvailability,
-  DataSet,
   KpiStore,
 } from "@/data/contracts/kpi";
+import type { ActionsQueryResult } from "@/data/contracts/actions";
 import type {
   OccurrenceResult,
   PerformanceResult,
@@ -17,22 +13,11 @@ export interface PerformanceKpiValue {
   result: PerformanceResult;
 }
 
-export interface KpiActionDetail {
-  actionId: string;
-  action: string;
-  owner: string;
-  submittedDate: IsoDate;
-  dueDate: IsoDate;
-  closedDate: IsoDate | null;
-  sourceStatus: string;
-  sourceReference?: SourceReference | null;
-}
-
 export interface ActionKpiValue {
   availability: DataAvailability;
   value: number | null;
   result: PerformanceResult;
-  openActions: DataSet<KpiActionDetail>;
+  openActions: ActionsQueryResult;
 }
 
 export interface AstmKpiValue {

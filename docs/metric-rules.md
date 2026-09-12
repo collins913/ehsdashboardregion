@@ -499,11 +499,13 @@ Risk & Compliance → Actions applies the shared Global Period to source
 `OPEN_ONLY` view additionally requires centralized `RecordState = OPEN`; the
 `ALL` view keeps OPEN, CLOSED, EXCLUDED and UNKNOWN records in the same Period.
 
-Performance → KPI Action drill-down follows the current Region / Area / Store
-scope but does not apply Global Period to exclude older unresolved Actions. It
-shows all current `RecordState = OPEN` records. Action detail availability is
-determined by detail-source and store-sync coverage, independently of the
-Closure Rate aggregate period.
+All Action detail views apply the shared Global Period to source
+`Submitted Date` using `[startInclusive, endExclusive)`. Performance → KPI
+Action drill-down and Risk & Compliance → Actions `OPEN_ONLY` reuse the same
+normalized query and therefore return the same `RecordState = OPEN` Action IDs
+for the same Store scope and Period. The Actions `ALL` view retains every
+RecordState in that same scope. Detail records never determine or reconcile the
+source-provided Action Closure Rate aggregate.
 
 Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
 

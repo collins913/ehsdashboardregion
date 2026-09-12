@@ -1,4 +1,3 @@
-import { classifyActionRecordState } from "@/lib/rules/action-rules";
 import { evaluateAstmOccurrence } from "@/lib/rules/event-rules";
 import {
   evaluateActionClosureRate,
@@ -9,14 +8,12 @@ import {
 import type {
   DataAvailability,
   DataSet,
-  KpiActionRecord,
   KpiDataSnapshot,
   KpiFilterContext,
 } from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
   AstmKpiValue,
-  KpiActionDetail,
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
@@ -113,43 +110,27 @@ function buildInspections(
   };
 }
 
-function toActionDetail(action: KpiActionRecord): KpiActionDetail {
-  return {
-    actionId: action.actionId,
-    action: action.action,
-    owner: action.owner,
-    submittedDate: action.submittedDate,
-    dueDate: action.dueDate,
-    closedDate: action.closedDate,
-    sourceStatus: action.Status.value,
-    sourceReference: action.sourceReference,
-  };
-}
-
-function buildOpenActions(
-  data: KpiDataSnapshot["actions"],
+function dataSetForStore<T extends { storeId: StoreId }>(
+  data: DataSet<T>,
   storeId: StoreId,
-): DataSet<KpiActionDetail> {
-  const storeActions = recordsForStore(data, storeId);
-  const openActions = storeActions
-    .filter((action) => classifyActionRecordState(action) === "OPEN")
-    .map(toActionDetail);
+): DataSet<T> {
+  const items = recordsForStore(data, storeId);
 
   if (data.availability === "UNAVAILABLE") {
     return { availability: "UNAVAILABLE", items: [] };
   }
 
   if (data.availability === "INCOMPLETE") {
-    return { availability: "INCOMPLETE", items: openActions };
+    return { availability: "INCOMPLETE", items };
   }
 
-  if (openActions.length === 0) {
+  if (items.length === 0) {
     return { availability: "CONFIRMED_EMPTY", items: [] };
   }
 
   return {
     availability: "AVAILABLE",
-    items: openActions as [KpiActionDetail, ...KpiActionDetail[]],
+    items: items as readonly [T, ...T[]],
   };
 }
 
@@ -186,7 +167,7 @@ function buildActions(
     availability: finalAvailability,
     value,
     result,
-    openActions: buildOpenActions(actionRecords, storeId),
+    openActions: dataSetForStore(actionRecords, storeId),
   };
 }
 

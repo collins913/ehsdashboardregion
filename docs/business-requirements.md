@@ -209,7 +209,7 @@ Events 展示两类业务记录：
 
 ### 7.1 页面目的
 
-展示当前 Global Region / Area / Store / Period 范围内的 Action 明细。本页面使用 `Submitted Date` 应用 Global Period；Performance → KPI 的 Closure Rate 与未关闭明细下钻继续保持各自既有语义。
+展示当前 Global Region / Area / Store / Period 范围内的 Action 明细。所有 Action 明细视图统一使用 `Submitted Date` 应用 Global Period；Performance → KPI 的 Closure Rate 仍保持独立 aggregate 语义。
 
 ### 7.2 页面行为
 
@@ -219,7 +219,7 @@ Events 展示两类业务记录：
 - Open 包含 `Assigned`、`In Progress`、`In Review`、`Sign Off`。
 - `Closed` 为已关闭。
 - `Cancelled` 为已排除，不属于未关闭；不得与 `Closed` 合并。
-- Performance → KPI 的 Actions 下钻只显示 `RecordState = OPEN`；`CLOSED`、`EXCLUDED`、`UNKNOWN` 不显示。
+- Performance → KPI 的 Actions 下钻使用相同 Region / Area / Store / Period 范围，只显示 `RecordState = OPEN`；相同筛选下应与本页面 Open 视图返回相同 Action ID。
 - 下钻明细用于追踪当前仍需整改的行动项，不要求与当前 Period 的 Closure Rate aggregate 分子、分母对账。
 - 未来新增源状态的分类：TBD；页面不得自行猜测。
 
@@ -247,6 +247,7 @@ Closed Date 为空时显示 `—`。页面和详情不展示 TRTID 或 Store Eng
 - Actions 页面展示明细记录。
 - KPI 页面展示数据源直接提供的 Action Closure Rate。
 - KPI 不从 Actions 页面明细重新计算关闭率。
+- KPI Actions 下钻与 Actions 页面 Open 视图复用同一规范化明细查询；Actions 页面 All 视图在相同范围内保留全部 RecordState。
 
 ## 8. Risk & Compliance → Certificates
 

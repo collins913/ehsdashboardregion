@@ -1,10 +1,10 @@
 import type { DataAvailability, DataSet } from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
-  KpiActionDetail,
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
+import type { NormalizedActionRecord } from "@/data/contracts/action-record";
 import type { PerformanceResult } from "@/lib/rules/result-types";
 
 const storeNames = [
@@ -29,19 +29,28 @@ function performance(
   return { availability, result };
 }
 
-function openActions(index: number): DataSet<KpiActionDetail> {
+function openActions(index: number): DataSet<NormalizedActionRecord> {
   if (index % 4 === 1) {
     return { availability: "CONFIRMED_EMPTY", items: [] };
   }
 
-  const action: KpiActionDetail = {
+  const sourceStatus = {
+    kind: "KNOWN" as const,
+    value: index % 2 === 0 ? "Assigned" as const : "In Progress" as const,
+  };
+  const action: NormalizedActionRecord = {
+    storeId: `DEMO-${String(index + 1).padStart(3, "0")}`,
+    storeDisplayName: storeNames[index],
     actionId: `ACT-${String(index + 1).padStart(3, "0")}`,
+    problem: "纠正检查发现的问题",
     action: "完成纠正行动跟进",
+    submittedBy: "王敏",
     owner: index % 2 === 0 ? "陈晨" : "李敏",
     submittedDate: "2026-09-01",
     dueDate: "2026-09-20",
     closedDate: null,
-    sourceStatus: index % 2 === 0 ? "Assigned" : "In Progress",
+    sourceStatus,
+    recordState: "OPEN",
   };
 
   return { availability: "AVAILABLE", items: [action] };

@@ -32,7 +32,6 @@ import {
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
-import { StatusDisplay } from "@/components/shared/status-display";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -54,7 +53,7 @@ import type {
   NormalizedActionRecord,
 } from "@/data/contracts/actions";
 import type { DataAvailability } from "@/data/contracts/kpi";
-import { getActionStatusPresentation } from "@/features/actions/action-status-presentation";
+import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
@@ -137,17 +136,6 @@ export function formatClosedDate(value: string | null): string {
   return value ?? "—";
 }
 
-function ActionStatus({ record }: { record: NormalizedActionRecord }) {
-  const presentation = getActionStatusPresentation(record.sourceStatus);
-
-  return (
-    <StatusDisplay
-      status={presentation.visualStatus}
-      label={presentation.label}
-    />
-  );
-}
-
 export function ActionDetailContent({
   record,
 }: {
@@ -169,7 +157,7 @@ export function ActionDetailContent({
           <div>
             <dt className="text-xs text-muted-foreground">状态</dt>
             <dd className="mt-1">
-              <ActionStatus record={record} />
+              <ActionStatusDisplay status={record.sourceStatus} />
             </dd>
           </div>
         </dl>
@@ -451,7 +439,9 @@ export function ActionsDataTable({
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.status} />
           ),
-          cell: ({ row }) => <ActionStatus record={row.original} />,
+          cell: ({ row }) => (
+            <ActionStatusDisplay status={row.original.sourceStatus} />
+          ),
           sortFn: "text",
         }),
         columnHelper.accessor("owner", {

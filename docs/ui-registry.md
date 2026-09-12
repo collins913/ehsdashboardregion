@@ -53,5 +53,6 @@
 | KpiPageContent | Connects shared Global Filter Context to the Repository, KPI builder and KpiDataTable |
 | ActionsDataTable | Actions record table with view switching, sorting, column visibility, adaptive pagination, row drill-down and Action Detail Sheet |
 | ActionsPageContent | Connects shared Global Filter Context and Actions view mode to the scoped Repository query |
+| ActionStatusDisplay | Actions feature adapter that maps centralized workflow presentation into shared StatusDisplay for tables and details |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.
