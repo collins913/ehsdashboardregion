@@ -53,7 +53,7 @@ Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认�
 
 - TRTID 不保证是所有数据源的唯一关联键。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
-- 除 Actions 已确认的 TRTID 优先、Store English Name fallback 规则外，各数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
+- Events 与 Actions 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
 - Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
 ### 2.3 Data Availability
@@ -250,6 +250,7 @@ Take Charge 使用源字段 `Status`。`ClosedWithAction`、`ClosedWithoutAction
 | Source Reference | 可选追溯来源 |
 | ASTMInjuryIllness | 数据源原始字段；`Yes` 表示 ASTM Incident，其它值表示非 ASTM Incident |
 
+Events Repository 必须复用 Actions 已采用的 Store Resolution，将源 TRTID / Store English Name 转换为 canonical `storeId` 与中文 `storeDisplayName`；英文名明确匹配另一门店、重复命中或无法解析时返回 `INCOMPLETE`，历史英文名无匹配但 TRTID 唯一有效时仍正常解析。
 
 规范化 Event 公共字段包含 canonical Store、Event ID、Event Type、Submitted By、Event Date、Description、Raw Status、RecordState 与 ASTM 源值。Event Type 专属详情字段为 TBD，不使用未约束的 `Record<string, unknown>` 向 UI 透传。
 
@@ -282,7 +283,7 @@ Events scoped Repository query 复用 `KpiFilterContext`，以 Event Date 应用
 
 Repository / Adapter 必须保留 Raw Status，并集中解析为 `ParsedActionStatus`。`Assigned`、`In Progress`、`In Review`、`Sign Off` 归类为 `OPEN`；`Closed` 归类为 `CLOSED`；`Cancelled` 归类为 `EXCLUDED`。数据源可增加其它状态，但在集中映射确认前一律归类为 `UNKNOWN`，不得由 UI 猜测。
 
-Actions 数据源的 Store Resolution 顺序为：TRTID 唯一匹配优先；TRTID 缺失或无法匹配时使用 Store English Name 精确唯一匹配；两者同时存在时校验一致性。冲突、重复命中或无法解析时不得静默选择或丢弃，Repository 将查询标记为 `INCOMPLETE`。规范化查询输出仅包含 canonical `storeId` 与中文 `storeDisplayName`，不向页面暴露 TRTID 或 Store English Name。
+Actions 数据源的 Store Resolution 顺序为：TRTID 唯一匹配优先；TRTID 缺失或无法匹配时使用 Store English Name 精确唯一匹配。TRTID 唯一有效且英文名无匹配时接受 TRTID，以兼容历史改名；只有英文名明确匹配另一门店时判定冲突。冲突、重复命中或无法解析时不得静默选择或丢弃，Repository 将查询标记为 `INCOMPLETE`。规范化查询输出仅包含 canonical `storeId` 与中文 `storeDisplayName`，不向页面暴露 TRTID 或 Store English Name。
 
 Actions scoped Repository query 复用 `KpiFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。KPI Action 下钻与 Actions 页面 Open 视图必须复用同一 `OPEN_ONLY` 查询。
 

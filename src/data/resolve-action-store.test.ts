@@ -30,6 +30,22 @@ describe("Action Store Resolution", () => {
     });
   });
 
+  it("keeps a unique TRTID resolved when the raw English name is historical", () => {
+    const renamedStore = {
+      ...mockStores[0],
+      storeNameEn: "Current New Store Name",
+    };
+    const result = resolveActionStore(
+      {
+        trtid: renamedStore.trtid,
+        storeNameEn: "Historical Old Store Name",
+      },
+      [renamedStore, ...mockStores.slice(1)],
+    );
+
+    expect(result).toEqual({ kind: "RESOLVED", store: renamedStore });
+  });
+
   it("reports a conflict instead of silently choosing TRTID", () => {
     expect(
       resolveActionStore(

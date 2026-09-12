@@ -234,6 +234,25 @@ describe("scoped Actions repository query", () => {
     expect(result).toEqual({ availability: "INCOMPLETE", items: [] });
   });
 
+  it("keeps a correct TRTID available when the raw English name is historical", () => {
+    const repository = createMockEhsRepository(referenceDate, {
+      actionRecords: [
+        rawAction("Assigned", {
+          trtid: mockStores[0].trtid,
+          storeNameEn: "Historical Pine Store Name",
+        }),
+      ],
+    });
+    const result = repository.getActions({ context: context(), viewMode: "ALL" });
+
+    expect(result.availability).toBe("AVAILABLE");
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      storeId: mockStores[0].trtid,
+      storeDisplayName: mockStores[0].storeNameCn,
+    });
+  });
+
   it("does not derive Action Closure Rate from detail statuses", () => {
     const openRepository = createMockEhsRepository(referenceDate, {
       actionRecords: [rawAction("Assigned")],

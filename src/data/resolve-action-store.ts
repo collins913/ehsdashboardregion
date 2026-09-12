@@ -32,12 +32,16 @@ export function resolveActionStore(
         return { kind: "RESOLVED", store: trtidStore };
       }
 
-      const englishNameStore = uniqueStore(
-        stores,
+      const englishNameMatches = stores.filter(
         (store) => store.storeNameEn === storeNameEn,
       );
 
-      return englishNameStore?.trtid === trtidStore.trtid
+      if (englishNameMatches.length === 0) {
+        return { kind: "RESOLVED", store: trtidStore };
+      }
+
+      return englishNameMatches.length === 1 &&
+        englishNameMatches[0].trtid === trtidStore.trtid
         ? { kind: "RESOLVED", store: trtidStore }
         : { kind: "CONFLICT" };
     }

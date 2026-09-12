@@ -81,7 +81,7 @@ Stores 列表默认勾选：Region、Area、Store Name CN、Store Name EN、TRTI
 
 ### D-011 TRTID 不是所有数据源的强制唯一关联键
 
-不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Actions 已确认 TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；两者冲突或无法唯一解析时不得静默选择。其它数据源策略仍为 TBD。
+不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Events 与 Actions 已确认 TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时判定冲突。其它数据源策略仍为 TBD。
 
 ### D-012 Stores 列表交互位置
 

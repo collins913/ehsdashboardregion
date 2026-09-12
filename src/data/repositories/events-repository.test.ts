@@ -225,4 +225,26 @@ describe("scoped Events repository query", () => {
       items: [],
     });
   });
+
+  it("keeps a correct TRTID available when the raw English name is historical", () => {
+    const repository = createMockEhsRepository(referenceDate, {
+      eventRecords: [
+        event({
+          eventId: "HISTORICAL-NAME",
+          storeReference: {
+            trtid: mockStores[0].trtid,
+            storeNameEn: "Historical Pine Store Name",
+          },
+        }),
+      ],
+    });
+    const result = repository.getEvents({ context: context(), viewMode: "ALL" });
+
+    expect(result.availability).toBe("AVAILABLE");
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      storeId: mockStores[0].trtid,
+      storeDisplayName: mockStores[0].storeNameCn,
+    });
+  });
 });

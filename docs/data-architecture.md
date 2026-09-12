@@ -37,7 +37,7 @@ Source data
 - Store Name CN
 - Store Name EN
 
-TRTID 不保证是所有数据源的唯一关联键。除 Actions 外，各数据源的匹配字段、优先级、名称规范化、冲突、重复命中与未命中处理均为 TBD。Actions 使用已确认的源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；两者冲突或无法唯一解析时返回不完整数据，不静默选择。
+TRTID 不保证是所有数据源的唯一关联键。Events 与 Actions 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
 
 页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID、Store Name CN、Store Name EN 必须由 Adapter / Repository 解析为 `storeId`；当前 mock Repository 仅使用现有精确匹配，无法唯一匹配时将数据标记为不完整，不推测生产匹配策略。
 
