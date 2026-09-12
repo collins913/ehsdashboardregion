@@ -65,7 +65,7 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
   OPEN: {
     label: "未关闭",
     intent: "NEUTRAL",
-    emphasis: "NEUTRAL",
+    emphasis: "PRIMARY",
     icon: Minus,
   },
   CLOSED: {

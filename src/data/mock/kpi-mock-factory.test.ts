@@ -46,6 +46,16 @@ describe("current-year KPI mock factory", () => {
     );
   });
 
+  it("generates unique five-digit Event fixture IDs without constraining source IDs", () => {
+    const { eventRecords } = createKpiMockData(
+      new Date("2026-09-11T00:00:00+08:00"),
+    );
+    const eventIds = eventRecords.map(({ eventId }) => eventId);
+
+    expect(eventIds.every((eventId) => /^EVT-\d{5}$/.test(eventId))).toBe(true);
+    expect(new Set(eventIds).size).toBe(eventIds.length);
+  });
+
   it("provides enough current-quarter Action records for adaptive pagination", () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
@@ -126,14 +136,14 @@ describe("current-year KPI mock factory", () => {
       drill: { availability: "AVAILABLE", result: "ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 92, result: "ACHIEVED" },
       inspections: { availability: "AVAILABLE", result: "ACHIEVED" },
-      astmEvents: { availability: "CONFIRMED_EMPTY", result: "NOT_OCCURRED" },
+      astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-002")).toMatchObject({
       training: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       drill: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 86, result: "NOT_ACHIEVED" },
       inspections: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
-      astmEvents: { availability: "CONFIRMED_EMPTY", result: "NOT_OCCURRED" },
+      astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-003")?.astmEvents).toEqual({
       availability: "AVAILABLE",

@@ -4,6 +4,7 @@ import type {
   TimezoneAwareIsoDateTime,
 } from "@/types/ehs";
 import type { NormalizedActionRecord } from "@/data/contracts/action-record";
+import type { NormalizedEventRecord } from "@/data/contracts/event-record";
 
 export type { TimezoneAwareIsoDateTime } from "@/types/ehs";
 
@@ -82,11 +83,6 @@ export interface KpiActionClosureRateRecord {
   value: number | null;
 }
 
-export interface KpiEventRecord {
-  storeId: StoreId;
-  ASTMInjuryIllness: string;
-}
-
 export interface KpiDataSnapshot {
   stores: readonly KpiStore[];
   training: DataSet<KpiTrainingRecord>;
@@ -94,5 +90,5 @@ export interface KpiDataSnapshot {
   inspections: DataSet<KpiInspectionRecord>;
   actionClosureRates: DataSet<KpiActionClosureRateRecord>;
   actions: DataSet<NormalizedActionRecord>;
-  events: DataSet<KpiEventRecord>;
+  events: DataSet<NormalizedEventRecord>;
 }

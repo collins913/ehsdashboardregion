@@ -80,6 +80,23 @@ Raw Action
 - `OPEN_ONLY` 与 `ALL` 是 Actions feature view state，不进入 Global Filter Context。
 - KPI Action 下钻与 Actions 页面 Open 视图复用同一查询；相同 Filter Context 下必须返回相同 OPEN Action ID。Actions 页面 All 视图仅改变 view mode，不改变 Store 或 Period 解释。
 
+## Events scoped query
+
+```text
+Raw Event
+→ existing Store Resolution
+→ Event Status / RecordState
+→ Region / Area / canonical Store / Event Date filtering
+→ OPEN_ONLY or ALL
+→ optional source Event Type filtering
+→ NormalizedEventRecord[]
+→ Events feature UI / future ASTM drill-down
+```
+
+- Event Type 选项从当前 Global Filter + view mode 的未按 type 过滤结果生成，避免选中后其它选项消失。
+- KPI ASTM 输入与 Events 页面复用同一 normalized Event Repository 数据；ASTM 规则仍只读取 `ASTMInjuryIllness`，不在页面重算。
+- 完整 coverage 下空结果为 `CONFIRMED_EMPTY`；超出 coverage 或 Store Resolution 不完整时为 `INCOMPLETE`。
+
 ## Global Filters
 
 - Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
@@ -110,6 +127,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 集中状态及证件规则：`src/lib/rules/`
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`
 - Actions 规范化查询契约：`src/data/contracts/actions.ts`
+- Events 规范化查询契约：`src/data/contracts/events.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

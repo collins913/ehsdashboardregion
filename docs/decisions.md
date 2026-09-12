@@ -105,7 +105,7 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 Events KPI 展示“发生 / 未发生”，不展示事故数量。
 
-ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。值为 `Yes` 时表示 ASTM Incident，其它值均不表示 ASTM Incident。Severity 仅用于描述和展示。
+ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。值为 `Yes` 时表示 ASTM Incident，其它值均不表示 ASTM Incident。
 
 ### D-016 Goal 名称、目标和精度
 
@@ -119,21 +119,21 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 
 ## 6. Events 与 Actions
 
-### D-017 Events 使用一套记录、两个 Event Type
+### D-017 Events 使用一套记录和可扩展 Event Type
 
-规范业务类型为：
+当前已知 source value 为：
 
 - `Agency`：政府检查
 - `Non-Agency Event`：非政府检查事件
 
-其中 Non-Agency Event 提供 Severity，供 ASTM 判定。ASTM 不在 Events 页面单独建立模块。
+Event Type 保留 source-provided string，筛选选项由 normalized records 动态生成，不把 UI 限定为上述两项。ASTM 不在 Events 页面单独建立模块。
 
 ### D-018 Events 与 Actions 默认显示 Open
 
 两个页面均提供 Open / All 切换，并默认 Open。
 
 - Actions 已确认 `Assigned`、`In Progress`、`In Review`、`Sign Off` 为 `OPEN`，`Closed` 为 `CLOSED`，`Cancelled` 为 `EXCLUDED`；未知未来状态为 `UNKNOWN`。Raw Status 保留，UI 不重新分类。
-- Events 的 `Status` 为 `Closed` 时归类为 Closed，其它值归类为 Open。
+- Events 的 `Open` 归类为 `OPEN`，`Closed` 归类为 `CLOSED`；未确认值为 `UNKNOWN`，不得猜测为 Open。
 
 ### D-019 Action Closure Rate 与 Action 明细分离
 
@@ -240,6 +240,10 @@ Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应�
 ### D-038 Action 明细统一使用 Submitted Date Period
 
 所有 Action 明细视图按 Global Region / Area / Store 及 Submitted Date Period 查询。Performance → KPI Actions 下钻与 Risk & Compliance → Actions Open 视图复用同一规范化 `OPEN_ONLY` Repository 查询，相同 Filter Context 下必须返回相同 OPEN Action ID；Actions All 视图在同一范围内保留全部 RecordState。本决策取代 D-032、D-037 中 KPI 下钻忽略 Period 的旧表述。Action Closure Rate 继续使用数据源提供的独立 aggregate，禁止从明细重算或要求二者对账。
+
+### D-039 Events V1 使用统一 normalized Repository
+
+Risk & Compliance → Events 按 Global Region / Area / Store 及 Event Date Period 查询。Current Open 与 All 复用同一 `getEvents` Repository；Event Type 是动态 source value 筛选。Events 与 Actions 共用既有 Store Resolution，UI 只消费 canonical Store。KPI ASTM 输入复用 normalized Event 数据，未来 drilldown 不建立第二套 Event 数据链。V1 Detail 仅展示公共字段，type-specific schema 保持 TBD。
 
 ## 9. 明确未决事项
 

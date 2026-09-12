@@ -185,11 +185,11 @@ Repository 必须返回与完整请求 Period 对应的单一源汇总值，或�
 不建立独立 ASTM 数据集。使用第 6 节 Event Record：
 
 - Store Reference
-- Event Date Time
+- Event Date
 - Event Type
 - ASTMInjuryIllness
 
-`ASTMInjuryIllness = "Yes"` 表示 ASTM Incident，其它值表示非 ASTM Incident。Severity 不参与判定。
+`ASTMInjuryIllness = "Yes"` 表示 ASTM Incident，其它值表示非 ASTM Incident。
 
 ## 5. Performance → Goals 输入
 
@@ -242,20 +242,18 @@ Take Charge 使用源字段 `Status`。`ClosedWithAction`、`ClosedWithoutAction
 |---|---|
 | Event ID | 数据源提供；唯一性范围 TBD |
 | Store Reference | 必须先通过 Store Resolution |
-| Event Date Time | 日期和时间为一个字段；格式与时区 TBD |
-| Event Type | `Agency`（政府检查）或 `Non-Agency Event`（非政府检查事件） |
-| Title / Summary | 事件或检查摘要 |
-| Status | 数据源原始状态；`Closed` 表示 Closed，其它值表示 Open |
+| Event Type | 数据源提供 string；当前已知 `Agency`、`Non-Agency Event`，允许未来新增值 |
+| Submitted By | 数据源提供；人员标识方式 TBD |
+| Event Date | 数据源提供的日期字段；Events Global Period 使用此字段 |
+| EventDetail.Description | 数据源提供的完整事件描述 |
+| Status | 数据源原始状态；V1 已确认 `Open`、`Closed` |
 | Source Reference | 可选追溯来源 |
 | ASTMInjuryIllness | 数据源原始字段；`Yes` 表示 ASTM Incident，其它值表示非 ASTM Incident |
 
-### 6.2 Non-Agency Event 附加字段
 
-- Severity
+规范化 Event 公共字段包含 canonical Store、Event ID、Event Type、Submitted By、Event Date、Description、Raw Status、RecordState 与 ASTM 源值。Event Type 专属详情字段为 TBD，不使用未约束的 `Record<string, unknown>` 向 UI 透传。
 
-Severity 仅用于事件详情展示，不参与 ASTM Incident 判定。
-
-政府检查是否也可能提供 Severity：未要求，TBD。
+Events scoped Repository query 复用 `KpiFilterContext`，以 Event Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回 `RecordState = OPEN`；`ALL` 返回当前已确认的 OPEN 与 CLOSED。Event Type 是 feature-local 可选查询条件，不进入 Global Filter Context。
 
 ## 7. Risk & Compliance → Action Record
 

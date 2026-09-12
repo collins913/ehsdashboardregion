@@ -10,11 +10,11 @@
 | Separator | `src/components/ui/separator.tsx` | PageHeader, Sidebar dependency, UI Lab |
 | Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels |
 | Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | UI Lab reference |
-| Table | `src/components/ui/table.tsx` | KPI and Actions Data Tables plus KPI Action detail tables |
+| Table | `src/components/ui/table.tsx` | KPI, Actions and Events Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
-| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus KPI and Actions detail |
+| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus KPI, Actions and Events detail |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
@@ -54,5 +54,7 @@
 | ActionsDataTable | Actions record table with view switching, sorting, column visibility, adaptive pagination, row drill-down and Action Detail Sheet |
 | ActionsPageContent | Connects shared Global Filter Context and Actions view mode to the scoped Repository query |
 | ActionStatusDisplay | Actions feature adapter that maps centralized workflow presentation into shared StatusDisplay for tables and details |
+| EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
+| EventsPageContent | Connects shared Global Filter Context and feature-local filters to the scoped Events Repository query |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.

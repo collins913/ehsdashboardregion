@@ -255,6 +255,11 @@ Default display label:
 
 `未关闭`
 
+Presentation:
+
+`PRIMARY` / high emphasis. Open records require user attention while retaining
+the neutral lifecycle intent of `RecordState`.
+
 ---
 
 ## CLOSED
@@ -309,20 +314,18 @@ Confirmed mapping:
 
 | Raw Event Status | RecordState |
 |---|---|
+| `Open` | `OPEN` |
 | `Closed` | `CLOSED` |
-| Any other value | `OPEN` |
+| Any other value | `UNKNOWN` |
 
 Important:
 
-For Events only, the confirmed business rule explicitly treats every non-`Closed` source Status as Open.
-
-Do not maintain an independent list of Event Open statuses.
+Events V1 source Status only confirms `Open` and `Closed`. Unknown future values must not be guessed as Open.
 
 Do not infer Event lifecycle from:
 
-- Severity
 - ASTMInjuryIllness
-- Event Date Time
+- Event Date
 - other fields.
 
 ---
@@ -362,10 +365,10 @@ Current confirmed mapping:
 
 | Raw Action Status | RecordState | 中文展示 | StatusDisplay 视觉复用 |
 |---|---|---|---|
-| `Assigned` | `OPEN` | 已分配 | `NOT_ACHIEVED`（进行中） |
-| `In Progress` | `OPEN` | 进行中 | `NOT_ACHIEVED`（进行中） |
-| `In Review` | `OPEN` | 审核中 | `NOT_ACHIEVED`（进行中） |
-| `Sign Off` | `OPEN` | 待签核 | `NOT_ACHIEVED`（进行中） |
+| `Assigned` | `OPEN` | 已分配 | `OPEN`（未关闭，高关注） |
+| `In Progress` | `OPEN` | 进行中 | `OPEN`（未关闭，高关注） |
+| `In Review` | `OPEN` | 审核中 | `OPEN`（未关闭，高关注） |
+| `Sign Off` | `OPEN` | 待签核 | `OPEN`（未关闭，高关注） |
 | `Closed` | `CLOSED` | 已关闭 | `CLOSED`（已关闭） |
 | `Cancelled` | `EXCLUDED` | 已取消 | `CLOSED`（已关闭） |
 | Any other value | `UNKNOWN` | 未知 | `UNKNOWN`（未知） |
@@ -681,8 +684,7 @@ unless a future approved design requirement explicitly requires them.
 Unknown source values must follow the mapping rule of their own domain.
 
 Event:
-Any non-`Closed`
-→ `OPEN`
+`Open` → `OPEN`; `Closed` → `CLOSED`; any unsupported value → `UNKNOWN`.
 
 Take Charge:
 Any status outside the three confirmed Closed statuses

@@ -3,10 +3,10 @@ import { getActionStatusPresentation } from "./action-status-presentation";
 
 describe("Action workflow status presentation", () => {
   it.each([
-    ["Assigned", "已分配", "NOT_ACHIEVED"],
-    ["In Progress", "进行中", "NOT_ACHIEVED"],
-    ["In Review", "审核中", "NOT_ACHIEVED"],
-    ["Sign Off", "待签核", "NOT_ACHIEVED"],
+    ["Assigned", "已分配", "OPEN"],
+    ["In Progress", "进行中", "OPEN"],
+    ["In Review", "审核中", "OPEN"],
+    ["Sign Off", "待签核", "OPEN"],
     ["Closed", "已关闭", "CLOSED"],
     ["Cancelled", "已取消", "CLOSED"],
   ] as const)("maps %s to %s with %s visual status", (value, label, visualStatus) => {

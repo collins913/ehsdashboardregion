@@ -17,7 +17,6 @@ import { resolveActionStore } from "@/data/resolve-action-store";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
 import {
   isIsoDateInKpiPeriod,
-  isInstantInKpiPeriod,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
   type ParsedKpiPeriod,
@@ -28,7 +27,6 @@ import type {
   KpiActionClosureRateRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
-  KpiEventRecord,
   KpiFilterContext,
   KpiInspectionRecord,
   KpiStore,
@@ -40,14 +38,21 @@ import type {
   NormalizedActionRecord,
 } from "@/data/contracts/actions";
 import type {
+  EventsQuery,
+  EventsQueryResult,
+  NormalizedEventRecord,
+} from "@/data/contracts/events";
+import type {
   ActionClosureRateRecord,
   ActionRecord,
+  EventRecord,
   RawActionRecord,
   StoreId,
   StoreMasterData,
   StoreReference,
 } from "@/types/ehs";
 import { classifyActionRecordState } from "@/lib/rules/action-rules";
+import { classifyEventRecordState } from "@/lib/rules/event-rules";
 
 function matchesStoreReference(
   store: StoreMasterData,
@@ -219,6 +224,7 @@ function isActionAggregateScopeCovered(
 
 type MockEhsRepositoryOptions = {
   actionRecords?: readonly RawActionRecord[];
+  eventRecords?: readonly EventRecord[];
 };
 
 export function createMockEhsRepository(
@@ -227,6 +233,7 @@ export function createMockEhsRepository(
 ): EhsRepository {
   const mockData = createKpiMockData(referenceDate);
   const rawActionRecords = options.actionRecords ?? mockData.actionRecords;
+  const eventRecords = options.eventRecords ?? mockData.eventRecords;
   const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
     (record) => ({
       ...record,
@@ -291,46 +298,6 @@ export function createMockEhsRepository(
       }),
     );
 
-    const events: {
-      items: readonly KpiEventRecord[];
-      resolutionComplete: boolean;
-    } = { items: [], resolutionComplete: parsedPeriod !== null };
-
-    if (parsedPeriod !== null) {
-      const items: KpiEventRecord[] = [];
-      let resolutionComplete = true;
-
-      for (const record of mockData.eventRecords) {
-        const storeId = resolveStoreId(record.storeReference);
-
-        if (storeId === null) {
-          resolutionComplete = false;
-          continue;
-        }
-
-        if (!selectedStoreIds.has(storeId)) {
-          continue;
-        }
-
-        const isIncluded = isInstantInKpiPeriod(
-          record.eventDateTime,
-          parsedPeriod,
-        );
-
-        if (isIncluded === null) {
-          resolutionComplete = false;
-        } else if (isIncluded) {
-          items.push({
-            storeId,
-            ASTMInjuryIllness: record.ASTMInjuryIllness,
-          });
-        }
-      }
-
-      events.items = items;
-      events.resolutionComplete = resolutionComplete;
-    }
-
     return {
       stores,
       training: withCoverage(
@@ -378,17 +345,7 @@ export function createMockEhsRepository(
         actionClosureRates.resolutionComplete,
       ),
       actions: getActions({ context, viewMode: "OPEN_ONLY" }),
-      events: withCoverage(
-        events.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "events",
-        ),
-        events.resolutionComplete,
-      ),
+      events: getEvents({ context, viewMode: "ALL" }),
     };
   }
 
@@ -467,9 +424,88 @@ export function createMockEhsRepository(
     );
   }
 
+  function getEvents({
+    context,
+    viewMode,
+    eventType,
+  }: EventsQuery): EventsQueryResult {
+    const stores = requestedStores(context);
+    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const selectedStoreIds = new Set(selectedStoreIdList);
+    const parsedPeriod = parseKpiPeriod(context.period);
+    const normalizedEvents: NormalizedEventRecord[] = [];
+    let resolutionComplete = true;
+    let dateCoverageComplete = parsedPeriod !== null;
+
+    if (parsedPeriod !== null) {
+      for (const record of eventRecords) {
+        const isIncluded = isIsoDateInKpiPeriod(record.eventDate, parsedPeriod);
+
+        if (isIncluded === null) {
+          dateCoverageComplete = false;
+          continue;
+        }
+
+        if (!isIncluded) {
+          continue;
+        }
+
+        const resolution = resolveActionStore(record.storeReference, mockStores);
+
+        if (resolution.kind !== "RESOLVED") {
+          resolutionComplete = false;
+          continue;
+        }
+
+        const storeId = resolution.store.trtid;
+
+        if (!selectedStoreIds.has(storeId)) {
+          continue;
+        }
+
+        const recordState = classifyEventRecordState(record.Status);
+
+        if (viewMode === "OPEN_ONLY" && recordState !== "OPEN") {
+          continue;
+        }
+
+        if (eventType !== undefined && record.eventType !== eventType) {
+          continue;
+        }
+
+        normalizedEvents.push({
+          storeId,
+          storeDisplayName: resolution.store.storeNameCn,
+          eventId: record.eventId,
+          eventType: record.eventType,
+          submittedBy: record.submittedBy,
+          eventDate: record.eventDate,
+          description: record.EventDetail.Description,
+          sourceStatus: record.Status,
+          recordState,
+          astmInjuryIllness: record.ASTMInjuryIllness,
+          sourceReference: record.sourceReference,
+        });
+      }
+    }
+
+    return withCoverage(
+      normalizedEvents,
+      isSourceCovered(
+        context,
+        selectedStoreIdList,
+        parsedPeriod,
+        mockData.coverage,
+        "events",
+      ),
+      resolutionComplete && dateCoverageComplete,
+    );
+  }
+
   return {
     getKpiData,
     getActions,
+    getEvents,
     listFilterStores: () => mockStores.map(toKpiStore),
     listStores: () => mockStores,
     findStoreCandidates: (reference) =>
@@ -479,7 +515,7 @@ export function createMockEhsRepository(
     listInspectionRecords: () => mockData.inspectionRecords,
     listActionClosureRates: () => mockData.actionClosureRates,
     listActionRecords: () => parsedActionRecords,
-    listEventRecords: () => mockData.eventRecords,
+    listEventRecords: () => eventRecords,
     listGoalSummaries: () => mockGoalSummaries,
     listTakeChargeRecords: () => mockTakeChargeRecords,
     listTakeChargeParticipationRecords: () =>

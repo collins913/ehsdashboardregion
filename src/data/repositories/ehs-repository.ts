@@ -26,10 +26,12 @@ import type {
   ActionsQuery,
   ActionsQueryResult,
 } from "@/data/contracts/actions";
+import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
 
 export interface EhsRepository {
   getKpiData(context: KpiFilterContext): KpiDataSnapshot;
   getActions(query: ActionsQuery): ActionsQueryResult;
+  getEvents(query: EventsQuery): EventsQueryResult;
   listFilterStores(): readonly KpiStore[];
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];

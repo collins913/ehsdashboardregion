@@ -8,12 +8,12 @@ import type {
   KpiActionClosureRateRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
-  KpiEventRecord,
   KpiFilterContext,
   KpiStore,
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type { NormalizedActionRecord } from "@/data/contracts/action-record";
+import type { NormalizedEventRecord } from "@/data/contracts/event-record";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 import type { ParsedActionStatus, StoreMasterData } from "@/types/ehs";
 import type { RecordState } from "@/lib/rules/result-types";
@@ -97,6 +97,24 @@ function action(
     closedDate: null,
     sourceStatus,
     recordState,
+  };
+}
+
+function event(
+  storeId: string,
+  astmInjuryIllness: string,
+): NormalizedEventRecord {
+  return {
+    storeId,
+    storeDisplayName: storeId,
+    eventId: `EVENT-${storeId}`,
+    eventType: "Injury/Illness",
+    submittedBy: "Submitter",
+    eventDate: "2026-01-01",
+    description: "Event",
+    sourceStatus: "Open",
+    recordState: "OPEN",
+    astmInjuryIllness,
   };
 }
 
@@ -322,7 +340,7 @@ describe("KPI assembly", () => {
     const emptyResult = buildKpiRows(q1Context, snapshot())[0].astmEvents;
     const unavailableResult = buildKpiRows(
       q1Context,
-      snapshot({ events: unavailable<KpiEventRecord>() }),
+      snapshot({ events: unavailable<NormalizedEventRecord>() }),
     )[0].astmEvents;
 
     expect(emptyResult).toEqual({
@@ -338,7 +356,7 @@ describe("KPI assembly", () => {
   it("keeps INCOMPLETE ASTM data inconclusive", () => {
     const result = buildKpiRows(
       q1Context,
-      snapshot({ events: incomplete<KpiEventRecord>() }),
+      snapshot({ events: incomplete<NormalizedEventRecord>() }),
     )[0].astmEvents;
 
     expect(result).toEqual({ availability: "INCOMPLETE", result: null });
@@ -349,10 +367,7 @@ describe("KPI assembly", () => {
       buildKpiRows(
         q1Context,
         snapshot({
-          events: available<KpiEventRecord>({
-            storeId: "STORE-1",
-            ASTMInjuryIllness: "Yes",
-          }),
+          events: available(event("STORE-1", "Yes")),
         }),
       ).map((row) => [row.store.storeId, row]),
     );
@@ -502,10 +517,7 @@ describe("KPI assembly", () => {
 
   it("does not mutate its inputs", () => {
     const input = snapshot({
-      events: available<KpiEventRecord>({
-        storeId: "STORE-1",
-        ASTMInjuryIllness: "Yes",
-      }),
+      events: available(event("STORE-1", "Yes")),
     });
     const before = structuredClone(input);
     Object.freeze(input.stores);

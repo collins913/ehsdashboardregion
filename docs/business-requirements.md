@@ -111,7 +111,6 @@ Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时
 - Action 数据源 Coverage 完整且确认当前范围没有需要整改的 Action 时，aggregate 可为 `null`，结果为达成并显示“无”；不得伪造成 `100%`。
 - Action 数据源不可用、Coverage 不完整或当前 Period 完整性无法确认时，结果为未确定且显示 Data Availability，不显示“无”。
 - KPI 状态中文标签和 semantic intent 以 `status-dictionary.md` 为准；共享展示由 `StatusDisplay` 统一实现，页面不得重复映射。
-- Severity 仅用于描述和展示，不参与 ASTM Incident 判定。
 
 具体判定见 `metric-rules.md`。
 
@@ -150,60 +149,26 @@ Take Charge 的 `Status` 为 `ClosedWithAction`、`ClosedWithoutAction`、`Decli
 
 ### 6.1 页面目的与结构
 
-Events 展示两类业务记录：
-
-- 事故事件
-- 政府检查
-
-统一使用 `Event Type` 区分，规范值为：
-
-- `Agency`：政府检查
-- `Non-Agency Event`：非政府检查事件
+Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明细。Period 统一按 `Event Date` 应用完整自然月半开区间。
 
 页面支持：
 
-- Global Filters
-- Event Type 筛选
-- Open / All 切换
+- Event Type 筛选；选项来自当前 scoped normalized Event 数据，不在 UI 固定 taxonomy。
+- Current Open / All 切换；默认 Current Open。
+- Current Open 仅显示 `Status = Open`；All 显示 `Open` 与 `Closed`。
+- 点击记录打开 Event Detail。
 
-默认选择 Open，仅显示 `Status !== "Closed"` 的记录；All 不按关闭状态过滤。原始 `Status` 值保留用于详情展示。
+当前已知 source Event Type 包括 `Agency` 与 `Non-Agency Event`，未来新增 source value 时筛选与列表应自动支持。
 
-### 6.2 事故事件
+### 6.2 列表与详情
 
-列表及详情所需核心信息：
+列表默认显示 Store、Event ID、Event Type、Description、Event Date、Status；Submitted By 默认隐藏，可通过列显示控制。
 
-- Event ID
-- Store
-- Event Date Time
-- Event Type
-- Severity
-- ASTMInjuryIllness
-- Title / Summary
-- Status
-- Source Reference
+Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event ID、Event Type、Status、`EventDetail.Description`、Submitted By、Event Date。页面和详情不展示 TRTID 或 Store English Name。
 
-要求：
+不同 Event Type 的专属详情字段仍为 TBD。本阶段不定义 Injury、Agency、Severity 等专属详情 schema，也不显示空的类型详情区域。
 
-- Event Date Time 为一个完整日期时间字段，由数据源提供。
-- 不需要 Due Date 或 Closed Date。
-- `ASTMInjuryIllness = "Yes"` 表示 ASTM Incident；其它值均不表示 ASTM Incident。
-- Severity 仅用于描述和展示。
-- ASTM Incident 不在本页面单独建立模块。
-- 点击记录打开事件详情。
-
-### 6.3 政府检查
-
-列表及详情所需核心信息：
-
-- Event ID
-- Store
-- Event Date Time
-- Event Type
-- Title / Summary
-- Status
-- Source Reference
-
-点击记录打开政府检查详情。
+`ASTMInjuryIllness = "Yes"` 仍是 ASTM KPI 的事件源事实，但不作为 Events V1 默认列表或公共详情字段。
 
 ## 7. Risk & Compliance → Actions
 
@@ -406,7 +371,7 @@ Stores 列表默认勾选并显示七个字段：
 - TRTID 是重要门店标识，但不保证是所有数据源的唯一关联键。
 - 数据源可能使用 TRTID、Store Name CN 或 Store Name EN 关联门店。
 - 关联必须由数据层统一完成，页面和业务组件不得临时匹配。
-- 除 Actions 已确认的 TRTID 优先、Store English Name fallback 规则外，各数据源的匹配字段、优先级、冲突与异常处理：TBD。
+- Events 与 Actions 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
 
 ## 11. 本次不定义
 

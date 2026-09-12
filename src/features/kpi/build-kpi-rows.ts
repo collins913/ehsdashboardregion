@@ -184,7 +184,11 @@ function buildAstmEvents(
 
   return {
     availability,
-    result: evaluateAstmOccurrence(records),
+    result: evaluateAstmOccurrence(
+      records.map((record) => ({
+        ASTMInjuryIllness: record.astmInjuryIllness,
+      })),
+    ),
   };
 }
 

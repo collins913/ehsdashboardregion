@@ -1,7 +1,7 @@
 import type { KnownActionStatus, ParsedActionStatus } from "@/types/ehs";
 
 export type ActionStatusVisualStatus =
-  | "NOT_ACHIEVED"
+  | "OPEN"
   | "CLOSED"
   | "UNKNOWN";
 
@@ -14,10 +14,10 @@ const actionStatusPresentations: Record<
   KnownActionStatus,
   ActionStatusPresentation
 > = {
-  Assigned: { label: "已分配", visualStatus: "NOT_ACHIEVED" },
-  "In Progress": { label: "进行中", visualStatus: "NOT_ACHIEVED" },
-  "In Review": { label: "审核中", visualStatus: "NOT_ACHIEVED" },
-  "Sign Off": { label: "待签核", visualStatus: "NOT_ACHIEVED" },
+  Assigned: { label: "已分配", visualStatus: "OPEN" },
+  "In Progress": { label: "进行中", visualStatus: "OPEN" },
+  "In Review": { label: "审核中", visualStatus: "OPEN" },
+  "Sign Off": { label: "待签核", visualStatus: "OPEN" },
   Closed: { label: "已关闭", visualStatus: "CLOSED" },
   Cancelled: { label: "已取消", visualStatus: "CLOSED" },
 };

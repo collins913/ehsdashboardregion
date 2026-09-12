@@ -85,17 +85,21 @@ export interface TakeChargeParticipationRecord {
   sourceReference?: SourceReference | null;
 }
 
-export type EventType = "Agency" | "Non-Agency Event";
+export type EventType = string;
+
+export interface EventDetail {
+  Description: string;
+}
 
 export interface EventRecord {
   eventId: string;
   storeReference: StoreReference;
-  eventDateTime: IsoDateTime;
   eventType: EventType;
-  titleSummary: string;
+  submittedBy: string;
+  eventDate: IsoDate;
+  EventDetail: EventDetail;
   Status: string;
   ASTMInjuryIllness: string;
-  severity?: string;
   sourceReference?: SourceReference | null;
 }
 

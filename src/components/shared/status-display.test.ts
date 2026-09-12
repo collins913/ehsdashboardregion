@@ -67,7 +67,7 @@ describe("StatusDisplay semantics", () => {
   });
 
   it("maps status presentation emphasis independently from business intent", () => {
-    for (const status of ["NOT_ACHIEVED", "OCCURRED", "ABNORMAL"] as const) {
+    for (const status of ["NOT_ACHIEVED", "OCCURRED", "OPEN", "ABNORMAL"] as const) {
       expect(getStatusEmphasis(status)).toBe("PRIMARY");
     }
 
@@ -75,7 +75,7 @@ describe("StatusDisplay semantics", () => {
       expect(getStatusEmphasis(status)).toBe("SECONDARY");
     }
 
-    for (const status of ["UNDETERMINED", "OPEN", "EXCLUDED", "UNKNOWN"] as const) {
+    for (const status of ["UNDETERMINED", "EXCLUDED", "UNKNOWN"] as const) {
       expect(getStatusEmphasis(status)).toBe("NEUTRAL");
     }
   });

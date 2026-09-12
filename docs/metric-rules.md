@@ -352,8 +352,6 @@ No Event has:
 
 ### Important Constraints
 
-- Do not use `Severity` to determine ASTM status.
-- Severity is descriptive only.
 - Do not maintain a separate ASTM Incident dataset.
 - Do not count ASTM incidents for KPI presentation.
 - KPI represents whether ASTM occurred, not how many occurred.
@@ -466,6 +464,18 @@ Event open/closed classification is defined in:
 `status-dictionary.md`
 
 The Metric Rule layer does not maintain a second Event Status mapping.
+
+Confirmed mapping:
+
+- `Open` → `OPEN`
+- `Closed` → `CLOSED`
+- any unsupported value → `UNKNOWN`; it must not enter `OPEN_ONLY`
+
+Events detail queries apply Global Region / Area / Store and the Global Period
+to source `Event Date` using `[startInclusive, endExclusive)`. `OPEN_ONLY`
+adds `RecordState = OPEN`; `ALL` retains the supported lifecycle states in the
+same scope. Event Type filtering uses the normalized source value and does not
+change business status.
 
 ASTM evaluation follows section `3.5`.
 

@@ -30,9 +30,10 @@ function event(astm: string, Status = "Open"): EventRecord {
   return {
     eventId: "E-1",
     storeReference: { trtid: "TEST-001" },
-    eventDateTime: "2026-09-10T00:00:00+08:00",
-    eventType: "Non-Agency Event",
-    titleSummary: "Test",
+    eventType: "Injury/Illness",
+    submittedBy: "Submitter",
+    eventDate: "2026-09-10",
+    EventDetail: { Description: "Test" },
     Status,
     ASTMInjuryIllness: astm,
   };
@@ -49,11 +50,13 @@ function takeCharge(Status: string): TakeChargeRecord {
 }
 
 describe("record status normalization", () => {
-  it("classifies Event Closed and every non-Closed status", () => {
+  it("classifies the confirmed Event statuses without guessing unknown values", () => {
+    expect(classifyEventRecordState("Open")).toBe("OPEN");
     expect(classifyEventRecordState("Closed")).toBe("CLOSED");
-    expect(classifyEventRecordState("UnderReview")).toBe("OPEN");
+    expect(classifyEventRecordState("UnderReview")).toBe("UNKNOWN");
     expect(isEventOpen(event("No", "Closed"))).toBe(false);
-    expect(isEventOpen(event("No", "Pending"))).toBe(true);
+    expect(isEventOpen(event("No", "Open"))).toBe(true);
+    expect(isEventOpen(event("No", "Pending"))).toBe(false);
   });
 
   it.each(["ClosedWithAction", "ClosedWithoutAction", "Declined"])(
