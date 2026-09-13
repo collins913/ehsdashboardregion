@@ -40,5 +40,9 @@ export const mockDischargePermitRecords = [
 
 export const mockEnvironmentalMonitoringRecords = [
   { storeReference: { trtid: "TEST-001" } },
-  { storeReference: { storeNameEn: "Sample Cloud Bridge Store" } },
+  {
+    storeReference: {
+      storeNameEn: "Lanzhou Beian Gravity Direct Transit Center",
+    },
+  },
 ] satisfies readonly EnvironmentalMonitoringRecord[];
