@@ -1,59 +1,45 @@
-import type { ReactNode } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PageContainer } from "@/components/shared/page-container";
-import { PageHeader } from "@/components/shared/page-header";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { GlobalFilters } from "@/components/shared/global-filters";
-import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import { GlobalFilters } from "@/components/shared/global-filters";
+import { MonthPicker } from "@/components/shared/month-picker";
+import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
+import { PageContainer } from "@/components/shared/page-container";
 import {
   StatusDisplay,
   type BusinessStatus,
 } from "@/components/shared/status-display";
-import { KpiDataTable } from "@/features/kpi/kpi-data-table";
-import { getActionStatusPresentation } from "@/features/actions/action-status-presentation";
-import { homeBreadcrumb } from "@/config/navigation";
-import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
+import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { Button } from "@/components/ui/button";
 import {
-  crossYearGlobalFilterUiState,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
+import { KpiDataTable } from "@/features/kpi/kpi-data-table";
+import type { Month } from "@/types/ehs";
+import {
+  globalFilterUiState,
   globalFilterUiStores,
 } from "./_fixtures/global-filter-ui-fixture";
 import { demoKpiRows } from "./_fixtures/kpi-ui-fixture";
-import { SidebarStateDemo } from "./sidebar-state-demo";
 
 const tokenSamples = [
   { name: "background", className: "bg-background" },
   { name: "foreground", className: "bg-foreground" },
-  { name: "card", className: "bg-card" },
-  { name: "popover", className: "bg-popover" },
   { name: "primary", className: "bg-primary" },
   { name: "secondary", className: "bg-secondary" },
   { name: "muted", className: "bg-muted" },
-  { name: "accent", className: "bg-accent" },
-  { name: "destructive", className: "bg-destructive" },
   { name: "border", className: "bg-border" },
-  { name: "input", className: "bg-input" },
+  { name: "destructive", className: "bg-destructive" },
   { name: "ring", className: "bg-ring" },
-];
+] as const;
 
 const businessStatuses: readonly BusinessStatus[] = [
   "ACHIEVED",
@@ -69,270 +55,267 @@ const businessStatuses: readonly BusinessStatus[] = [
   "ABNORMAL",
 ];
 
-const customStatusLabels: Partial<
-  Record<BusinessStatus, readonly string[]>
-> = {
-  ACHIEVED: ["92%", "无"],
-  NOT_ACHIEVED: ["68%"],
-};
-
-const actionWorkflowStatuses = [
-  "Assigned",
-  "In Progress",
-  "In Review",
-  "Sign Off",
-  "Closed",
-  "Cancelled",
-] as const;
-
-function LabSection({ title, children }: { title: string; children: ReactNode }) {
-  const id = `section-${title.toLowerCase().replaceAll(" ", "-")}`;
+function LabArea({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  const id = `area-${title.toLowerCase().replaceAll(" ", "-")}`;
 
   return (
     <section aria-labelledby={id}>
       <h2 id={id} className="text-lg font-semibold tracking-tight">
         {title}
       </h2>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       <div className="mt-4">{children}</div>
     </section>
   );
 }
 
+function DemoSurface({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border p-4">
+      <h3 className="text-sm font-medium">{title}</h3>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function DetailSheetDemo() {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline">查看详情示例</Button>
+      </SheetTrigger>
+      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+        <SheetHeader>
+          <SheetTitle>记录详情</SheetTitle>
+          <SheetDescription>
+            验证统一 Sheet 标题、字段和值的排布。
+          </SheetDescription>
+        </SheetHeader>
+        <dl className="grid gap-4 px-4 pb-4 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">门店</dt>
+            <dd className="mt-1 font-medium">示例星河店</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">负责人</dt>
+            <dd className="mt-1">—</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-muted-foreground">描述</dt>
+            <dd className="mt-1 leading-6">
+              这是一段用于验证详情面板长文本自然换行的示例内容，不代表任何正式业务记录。
+            </dd>
+          </div>
+        </dl>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function UiLabPage() {
+  const [month, setMonth] = useState<Month>("2026-09");
+
   return (
     <>
-      <PageHeader
-        title="UI 组件预览"
-        description="展示项目已经采用的设计令牌和界面组件。"
-        breadcrumbs={[{ label: "开发工具" }, { label: "UI 组件预览" }]}
-      />
-      <PageContainer className="space-y-8">
-        <LabSection title="主题模式">
-          <div className="flex flex-wrap items-center gap-3">
-            <ThemeToggle />
-            <p className="text-sm text-muted-foreground">
-              切换浅色、深色或跟随系统，检查本页全部组件的语义色表现。
-            </p>
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="全局筛选">
-          <GlobalFilterProvider
-            stores={globalFilterUiStores}
-            initialState={crossYearGlobalFilterUiState}
-            nowIso="2026-09-11T00:00:00.000Z"
-          >
-            <GlobalFilters />
-          </GlobalFilterProvider>
-          <p className="mt-3 text-sm text-muted-foreground">
-            使用实际全局筛选组件；宽屏为四列、中等宽度为两列、窄屏为一列。默认展示跨年月份范围和长门店名称，可检查溢出提示、统一月份 Popover 及筛选联动。
-            门店 Popover 支持按名称搜索、多选、清空恢复及无结果状态。
-          </p>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="排版">
-          <div className="space-y-3">
-            <p className="text-2xl font-semibold tracking-tight">页面标题</p>
-            <p className="text-lg font-semibold tracking-tight">区块标题</p>
-            <p className="text-base">正文</p>
-            <p className="text-sm text-muted-foreground">辅助文字</p>
-            <p className="text-xs text-muted-foreground">元数据</p>
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="语义令牌">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {tokenSamples.map((token) => (
-              <div key={token.name} className="flex items-center gap-3 rounded-lg border p-3">
-                <span className={`size-8 rounded-md border ${token.className}`} />
-                <code className="text-sm">{token.name}</code>
-              </div>
-            ))}
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="按钮">
-          <div className="flex flex-wrap gap-2">
-            <Button>主要按钮</Button>
-            <Button variant="secondary">次要按钮</Button>
-            <Button variant="outline">描边按钮</Button>
-            <Button variant="ghost">幽灵按钮</Button>
-            <Button variant="destructive">危险操作</Button>
-            <Button disabled>禁用</Button>
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="业务状态">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {businessStatuses.map((status) => (
-              <div
-                key={status}
-                className="space-y-3 rounded-lg border p-3"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <code className="text-xs">{status}</code>
-                  <StatusDisplay status={status} />
-                </div>
-                {customStatusLabels[status] ? (
-                  <div className="flex items-center justify-between gap-3 border-t pt-3">
-                    <span className="text-xs text-muted-foreground">
-                      可点击值
-                    </span>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {customStatusLabels[status]?.map((label) => (
-                        <TableCellTrigger
-                          key={label}
-                          aria-label={`${label} 可点击状态示例`}
-                        >
-                          <StatusDisplay
-                            status={status}
-                            label={label}
-                            showIcon={false}
-                            interactive
-                          />
-                        </TableCellTrigger>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-lg border p-3">
-            <p className="mb-3 text-sm font-medium">行动项工作流状态复用</p>
-            <div className="flex flex-wrap gap-3">
-              {actionWorkflowStatuses.map((status) => {
-                const presentation = getActionStatusPresentation({
-                  kind: "KNOWN",
-                  value: status,
-                });
-
-                return (
-                  <div key={status} className="flex items-center gap-2">
-                    <code className="text-xs text-muted-foreground">
-                      {status}
-                    </code>
-                    <StatusDisplay
-                      status={presentation.visualStatus}
-                      label={presentation.label}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="数据可用性">
-          <div className="flex flex-wrap gap-3">
-            <DataAvailabilityDisplay availability="AVAILABLE" />
-            <DataAvailabilityDisplay availability="INCOMPLETE" />
-            <DataAvailabilityDisplay availability="UNAVAILABLE" />
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="KPI 数据表">
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              支持列排序、仅看异常、列显示、分页、横向滚动和行动项明细。
-            </p>
-            <KpiDataTable rows={demoKpiRows} />
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="KPI 数据表空状态">
-          <KpiDataTable rows={[]} />
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="侧边栏状态">
-          <SidebarStateDemo />
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="面包屑导航">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href={homeBreadcrumb.href}>
-                  {homeBreadcrumb.label}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>UI 组件预览</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="头像和下拉菜单">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Avatar className="size-5">
-                  <AvatarFallback>用</AvatarFallback>
-                </Avatar>
-                打开菜单
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuLabel>示例菜单</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>菜单项</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="加载骨架">
-          <div className="max-w-md space-y-3" aria-label="加载示例">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-        </LabSection>
-
-        <Separator />
-
-        <LabSection title="间距">
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="w-8">2</span><span className="h-2 w-2 bg-primary" />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-8">4</span><span className="h-2 w-4 bg-primary" />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-8">6</span><span className="h-2 w-6 bg-primary" />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-8">8</span><span className="h-2 w-8 bg-primary" />
-            </div>
-          </div>
-        </LabSection>
+      <PageContainer className="py-6 lg:py-6">
+        <h1 className="text-2xl font-semibold tracking-tight">UI Lab</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          集中验证项目已采用的 Shared UI 与跨业务 Pattern。
+        </p>
       </PageContainer>
+
+      <PageContainer className="space-y-8 py-4 lg:py-4">
+        <LabArea
+          title="Foundations"
+          description="项目级主题、排版层级与语义令牌。"
+        >
+          <div className="grid gap-4 lg:grid-cols-3">
+            <DemoSurface
+              title="主题"
+              description="切换浅色、深色或跟随系统，整页同步验证。"
+            >
+              <ThemeToggle />
+            </DemoSurface>
+            <DemoSurface
+              title="排版"
+              description="仅保留项目正式使用的文字层级。"
+            >
+              <div className="space-y-2">
+                <p className="text-2xl font-semibold tracking-tight">页面标题</p>
+                <p className="text-lg font-semibold tracking-tight">区块标题</p>
+                <p className="text-sm text-muted-foreground">辅助文字与元数据</p>
+              </div>
+            </DemoSurface>
+            <DemoSurface
+              title="语义令牌"
+              description="组件只消费主题语义，不维护独立深色样式。"
+            >
+              <div className="grid grid-cols-2 gap-2">
+                {tokenSamples.map((token) => (
+                  <div key={token.name} className="flex items-center gap-2">
+                    <span
+                      className={`size-5 shrink-0 rounded border ${token.className}`}
+                    />
+                    <code className="text-xs">{token.name}</code>
+                  </div>
+                ))}
+              </div>
+            </DemoSurface>
+          </div>
+        </LabArea>
+
+        <LabArea
+          title="Semantic UI"
+          description="状态与数据可用性只有一套共享 presentation。"
+        >
+          <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+            <DemoSurface
+              title="StatusDisplay"
+              description="覆盖当前全部业务状态、文案与 emphasis。"
+            >
+              <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+                {businessStatuses.map((status) => (
+                  <div key={status} className="flex items-center justify-between gap-3">
+                    <code className="text-xs text-muted-foreground">{status}</code>
+                    <StatusDisplay status={status} />
+                  </div>
+                ))}
+              </div>
+            </DemoSurface>
+            <DemoSurface
+              title="DataAvailabilityDisplay"
+              description="区分可用、确认空、数据不完整和不可用。"
+            >
+              <div className="flex flex-wrap gap-2">
+                <DataAvailabilityDisplay availability="AVAILABLE" />
+                <DataAvailabilityDisplay availability="CONFIRMED_EMPTY" />
+                <DataAvailabilityDisplay availability="INCOMPLETE" />
+                <DataAvailabilityDisplay availability="UNAVAILABLE" />
+              </div>
+            </DemoSurface>
+          </div>
+        </LabArea>
+
+        <LabArea
+          title="Shared Components"
+          description="只展示需要独立检查边界或交互的共享组件。"
+        >
+          <div className="grid gap-4 lg:grid-cols-3">
+            <DemoSurface
+              title="OverflowTooltip"
+              description="短文本不启用 Tooltip；真实溢出时才启用。"
+            >
+              <div className="space-y-3">
+                <div className="w-48 rounded-md border px-3 py-2 text-sm">
+                  <OverflowTooltip text="短门店名" className="w-full" />
+                </div>
+                <div className="w-48 rounded-md border px-3 py-2 text-sm">
+                  <OverflowTooltip
+                    text="用于验证真实溢出后才显示完整内容的超长门店名称"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </DemoSurface>
+            <DemoSurface
+              title="MonthPicker"
+              description="统一选择一个自然月份，不承担 Period 计算。"
+            >
+              <MonthPicker
+                value={month}
+                onValueChange={setMonth}
+                aria-label="月份示例"
+              />
+            </DemoSurface>
+            <DemoSurface
+              title="TableCellTrigger"
+              description="提供紧凑点击、键盘、焦点和按压行为。"
+            >
+              <div className="flex flex-wrap gap-2">
+                <TableCellTrigger aria-label="92% 可点击示例">
+                  <StatusDisplay
+                    status="ACHIEVED"
+                    label="92%"
+                    showIcon={false}
+                    interactive
+                  />
+                </TableCellTrigger>
+                <TableCellTrigger aria-label="68% 可点击示例">
+                  <StatusDisplay
+                    status="NOT_ACHIEVED"
+                    label="68%"
+                    showIcon={false}
+                    interactive
+                  />
+                </TableCellTrigger>
+              </div>
+            </DemoSurface>
+          </div>
+        </LabArea>
+      </PageContainer>
+
+      <section aria-labelledby="area-adopted-patterns">
+        <PageContainer className="pb-3 pt-4 lg:pb-3 lg:pt-4">
+          <h2
+            id="area-adopted-patterns"
+            className="text-lg font-semibold tracking-tight"
+          >
+            Adopted Patterns
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            使用正式组件验证筛选、表格和详情面板组合。
+          </p>
+          <h3 className="mt-4 text-sm font-medium">Global Filters</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            唯一的可控 fixture 实例，保持正式全宽 Filter Bar 外观。
+          </p>
+        </PageContainer>
+
+        <GlobalFilterProvider
+          stores={globalFilterUiStores}
+          initialState={globalFilterUiState}
+          nowIso="2026-09-11T00:00:00.000Z"
+        >
+          <GlobalFilters />
+        </GlobalFilterProvider>
+
+        <PageContainer className="space-y-6 py-6 lg:py-6">
+          <div>
+            <h3 className="text-sm font-medium">Representative Data Table</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              直接复用正式 KpiDataTable，集中验证排序、列显示、Sticky
+              Store、状态、可用性、点击单元格和 5 / 7 / 10 自适应分页。将表格滚动到视口后调整窗口高度即可观察档位变化。
+            </p>
+            <div className="mt-3">
+              <KpiDataTable rows={demoKpiRows} />
+            </div>
+          </div>
+
+          <DemoSurface
+            title="Detail Sheet"
+            description="最小验证 trigger、Header、字段排布、长文本与空值。"
+          >
+            <DetailSheetDemo />
+          </DemoSurface>
+        </PageContainer>
+      </section>
     </>
   );
 }

@@ -22,13 +22,11 @@ export const globalFilterUiStores = [
   },
 ] satisfies readonly KpiStore[];
 
-export const crossYearGlobalFilterUiState: GlobalFilterState = {
+export const globalFilterUiState: GlobalFilterState = {
   region: { kind: "ALL" },
   area: { kind: "ALL" },
   store: { kind: "INCLUDE", values: ["ui-store-001"] },
   period: {
-    mode: "CUSTOM",
-    startMonth: "2025-11",
-    endMonth: "2026-02",
+    mode: "THIS_QUARTER",
   },
 };

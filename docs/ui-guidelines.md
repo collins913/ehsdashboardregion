@@ -50,3 +50,8 @@
 - 全局筛选使用与 Dashboard Shell 连续的全宽紧凑 Filter Bar，不使用 Card、圆角外框或阴影。
 - 筛选触发器文本保持单行截断；只对确实可能溢出的门店名称复用 `OverflowTooltip`，且仅在 DOM 实际溢出时启用提示。
 - 门店搜索只过滤当前 Region / Area 范围内的 `displayName`；关键词属于选择器临时 UI 状态，不进入 Filter Context。
+
+## UI Lab maintenance
+
+- 新增或改变项目级 shared visual component / interaction pattern 时，必须同时检查 `docs/ui-registry.md` 与 `/dev/ui`。
+- feature-local UI、原始 shadcn primitive、纯业务规则、非视觉 utility 和无需人工视觉验证的 internal hook 不要求加入 `/dev/ui`。

@@ -10,11 +10,11 @@
 | Separator | `src/components/ui/separator.tsx` | PageHeader, Sidebar dependency, UI Lab |
 | Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels |
 | Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | UI Lab reference |
-| Table | `src/components/ui/table.tsx` | KPI, Actions and Events Data Tables plus detail tables |
+| Table | `src/components/ui/table.tsx` | KPI, Actions, Events and Take Charge Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
-| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus KPI, Actions and Events detail |
+| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus KPI, Actions, Events and Take Charge detail |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
@@ -39,7 +39,7 @@
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
-| DataTable layout helpers | Shared table frame, minimum width and fixed-width sticky Store classes used by KPI and Actions tables |
+| DataTable layout helpers | Shared table frame, minimum width and fixed-width sticky Store classes used by KPI, Actions, Events and Take Charge tables |
 
 ## Shared utilities
 
