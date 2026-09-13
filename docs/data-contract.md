@@ -247,6 +247,8 @@ Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalize
 | Source Reference | 可选追溯来源 |
 | ASTMInjuryIllness | 数据源原始字段；`Yes` 表示 ASTM Incident，其它值表示非 ASTM Incident |
 
+`Event Date` / `eventDate` 是稳定的 source / contract 字段命名；用户可见术语统一为 `Event Time` / “事件时间”。
+
 Events Repository 必须复用 Actions 已采用的 Store Resolution，将源 TRTID / Store English Name 转换为 canonical `storeId` 与中文 `storeDisplayName`；英文名明确匹配另一门店、重复命中或无法解析时返回 `INCOMPLETE`，历史英文名无匹配但 TRTID 唯一有效时仍正常解析。
 
 规范化 Event 公共字段包含 canonical Store、Event ID、Event Type、Submitted By、Event Date、Description、Raw Status、RecordState 与 ASTM 源值。Event Type 专属详情字段为 TBD，不使用未约束的 `Record<string, unknown>` 向 UI 透传。

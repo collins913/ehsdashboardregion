@@ -243,7 +243,7 @@ Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应�
 
 ### D-039 Events V1 使用统一 normalized Repository
 
-Risk & Compliance → Events 按 Global Region / Area / Store 及 Event Date Period 查询。Current Open 与 All 复用同一 `getEvents` Repository；Event Type 是动态 source value 筛选。Events 与 Actions 共用既有 Store Resolution，UI 只消费 canonical Store。KPI ASTM 输入复用 normalized Event 数据，未来 drilldown 不建立第二套 Event 数据链。V1 Detail 仅展示公共字段，type-specific schema 保持 TBD。
+Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event Date` / `eventDate` 字段查询，用户可见术语统一为 `Event Time` / “事件时间”。Current Open 与 All 复用同一 `getEvents` Repository；Event Type 是动态 source value 筛选。Events 与 Actions 共用既有 Store Resolution，UI 只消费 canonical Store。KPI ASTM 输入复用 normalized Event 数据，未来 drilldown 不建立第二套 Event 数据链。V1 Detail 仅展示公共字段，type-specific schema 保持 TBD。
 
 ## 9. 明确未决事项
 
@@ -254,7 +254,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及 Event Date Per
 - 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
-- Store Resolution 的优先级、冲突与未匹配处理
+- Events / Actions 以外数据源的 Store Resolution 策略
 - 数据库、API、权限、刷新、持久化及视觉状态规范
 
 ## 10. 项目技术决策（既有）

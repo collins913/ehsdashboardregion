@@ -462,6 +462,8 @@ adds `RecordState = OPEN`; `ALL` retains the supported lifecycle states in the
 same scope. Event Type filtering uses the normalized source value and does not
 change business status.
 
+`Event Date` is the stable source / contract field name. User-facing terminology is `Event Time` / “事件时间”.
+
 ASTM evaluation follows section `3.5`.
 
 ---
@@ -489,18 +491,14 @@ The raw source Status is preserved. UI components must not reclassify it.
 details. It must not be interpreted as a rule for the Action Closure Rate
 numerator or denominator.
 
-Risk & Compliance → Actions applies the shared Global Period to source
-`Submitted Date` using `[startInclusive, endExclusive)`. Its default
-`OPEN_ONLY` view additionally requires centralized `RecordState = OPEN`; the
-`ALL` view keeps OPEN, CLOSED, EXCLUDED and UNKNOWN records in the same Period.
-
-All Action detail views apply the shared Global Period to source
-`Submitted Date` using `[startInclusive, endExclusive)`. Performance → KPI
-Action drill-down and Risk & Compliance → Actions `OPEN_ONLY` reuse the same
-normalized query and therefore return the same `RecordState = OPEN` Action IDs
-for the same Store scope and Period. The Actions `ALL` view retains every
-RecordState in that same scope. Detail records never determine or reconcile the
-source-provided Action Closure Rate aggregate.
+All Action detail views apply the shared Global Period to source / contract
+`Submitted Date` (`submittedDate`; user-facing “Submitted Time” / “提交时间”)
+using Asia/Shanghai `[startInclusive, endExclusive)`. The default `OPEN_ONLY`
+view additionally requires centralized `RecordState = OPEN`; `ALL` keeps OPEN,
+CLOSED, EXCLUDED and UNKNOWN records. Performance → KPI Action drill-down and
+Risk & Compliance → Actions `OPEN_ONLY` reuse this normalized query and return
+the same OPEN Action IDs for the same Store scope and Period. Detail records
+never determine or reconcile the source-provided Action Closure Rate aggregate.
 
 Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
 

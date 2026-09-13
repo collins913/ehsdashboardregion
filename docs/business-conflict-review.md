@@ -13,10 +13,13 @@
 | Store 的 Period | 全局筛选未来作用于所有业务页面 | Period 对 Store Master Data 无业务意义 | 已明确 Stores 只使用 Region、Area、Store |
 | 业务规则状态 | 所有公式与状态规则 TBD | Training、Drill、Inspections、ASTM、Actions Open、Certificates、Environment 已部分确认 | 已写入集中规则文档；未覆盖部分继续 TBD |
 | ASTM 输入 | Severity 映射 TBD | 使用 `ASTMInjuryIllness`；`Yes` 表示 ASTM Incident | Severity 降为描述字段 |
-| Event Open | 状态映射 TBD | 仅 `Closed` 为 Closed，其它值均为 Open | 已写入集中规则 |
+| Event Open | 状态映射 TBD | `Open` 为 Open、`Closed` 为 Closed，其它值为 Unknown | 已写入 `status-dictionary.md` |
 | Take Charge Open | 状态映射 TBD | 三个已确认状态为 Closed，其它值为 Open | 已写入集中规则 |
 | 百分比表示 | 0–1 或 0–100 TBD | 应用内部统一 0–100 | repository/adapter 负责未来外部转换 |
 | Certificate Slot | 清单及匹配规则 TBD | 五类证件、八个 Slot，仅按 Certificate Type 精确匹配 | 已写入业务、规则和数据契约 |
+| Global Filters | 默认值、选择方式、联动和 Period 边界 TBD | Region / Area / Store 与自然月 Period V1 已冻结 | 见 `business-requirements.md`、`data-contract.md`、`decisions.md` |
+| Action Closure Rate 目标 | 目标 TBD | `>= 90%` 达成，`< 90%` 未达成 | 见 `metric-rules.md` 与 `decisions.md` |
+| Events / Actions Store Resolution | 匹配优先级与冲突处理 TBD | TRTID 优先；英文名 fallback；明确匹配另一门店才冲突 | 见 `data-contract.md`、`data-architecture.md`、`decisions.md` |
 
 ## 未发现直接冲突
 
@@ -26,14 +29,13 @@
 
 以下不是本次 mock 数据的阻断项；实现对应生产逻辑前仍需确认：
 
-- Global Filters 数据源、默认值、单/多选、联动和 Period 边界
-- Training 与 Inspection 的 Requirement 集合、缺记录处理和完成状态
-- Action Closure Rate 目标
+- Global Filters 的生产数据源
+- Training 与 Inspection 的 Requirement 集合来源及 source 状态映射
 - 生产环境 Reference Date 的来源
 - 环境合同适用关系、组合结果列映射、许可空值处理
 - Environmental Monitoring 明细、频次和达标规则
-- Store Resolution 匹配优先级、冲突与未匹配处理
-- 数据库、API、权限、刷新、持久化和业务视觉映射
+- Events / Actions 以外数据源的 Store Resolution 策略
+- 数据库、API、权限、刷新和持久化
 
 ## 需注意的表达边界
 

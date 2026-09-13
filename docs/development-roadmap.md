@@ -19,18 +19,18 @@
 - Milestone Architecture Audit
 - Risk & Compliance → Actions
 - Risk & Compliance → Events
+- Performance → Goals / Take Charge
 - Store Resolver historical rename compatibility
 
 ## 近期开发顺序
 
-1. Performance → Goals
-2. Stores
-3. ASTM KPI Drilldown
-4. Risk & Compliance → Environment
-5. Risk & Compliance → Certificates
-6. Overview
+1. Stores
+2. ASTM KPI Drilldown
+3. Risk & Compliance → Environment
+4. Risk & Compliance → Certificates
+5. Overview
 
-依赖原则：Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository；Goals 和 Stores 进一步稳定后再启动首轮规模验证。
+依赖原则：Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository；Stores 进一步稳定后再启动首轮规模验证。
 
 ## Performance & Scale Validation
 
@@ -40,7 +40,7 @@
 
 ### Performance V1
 
-在 Goals、Stores 等主要结构进一步稳定后，引入独立 Performance Mock Profile，约 500 Stores，用于验证真实 400+ 门店规模下的：
+在 Stores 等主要结构进一步稳定后，引入独立 Performance Mock Profile，约 500 Stores，用于验证真实 400+ 门店规模下的：
 
 - Global Store Filter
 - Region / Area / Store 联动

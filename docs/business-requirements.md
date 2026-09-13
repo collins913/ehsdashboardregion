@@ -149,7 +149,7 @@ Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间�
 
 ### 6.1 页面目的与结构
 
-Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明细。Period 统一按 `Event Date` 应用完整自然月半开区间。
+Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明细。Period 统一按事件时间应用完整自然月半开区间；底层稳定字段仍为 `Event Date` / `eventDate`。
 
 页面支持：
 
@@ -174,13 +174,13 @@ Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event I
 
 ### 7.1 页面目的
 
-展示当前 Global Region / Area / Store / Period 范围内的 Action 明细。所有 Action 明细视图统一使用 `Submitted Date` 应用 Global Period；Performance → KPI 的 Closure Rate 仍保持独立 aggregate 语义。
+展示当前 Global Region / Area / Store / Period 范围内的 Action 明细。所有 Action 明细视图统一使用提交时间应用 Global Period；底层稳定字段仍为 `Submitted Date` / `submittedDate`。Performance → KPI 的 Closure Rate 保持独立 aggregate 语义。
 
 ### 7.2 页面行为
 
 - 默认选择 Open，仅显示未关闭 Actions。
 - 提供 Open / All 切换。
-- Open 与 All 均使用 `Submitted Date` 应用 Global Period 的 `[startInclusive, endExclusive)`。
+- Open 与 All 均使用提交时间应用 Global Period 的 `[startInclusive, endExclusive)`。
 - Open 包含 `Assigned`、`In Progress`、`In Review`、`Sign Off`。
 - `Closed` 为已关闭。
 - `Cancelled` 为已排除，不属于未关闭；不得与 `Closed` 合并。
@@ -380,5 +380,5 @@ Stores 列表默认勾选并显示七个字段：
 - 数据库表、物理字段名、字段类型、约束与索引
 - API 路由、请求和响应格式
 - 数据刷新频率与持久化方式
-- 时区、日期边界和生产环境 Reference Date 的来源
+- 生产环境 Reference Date 的来源；业务时区与 Period 边界已由 Global Filters 规则冻结
 - 未明确的状态字典与视觉颜色

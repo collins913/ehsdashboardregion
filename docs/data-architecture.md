@@ -109,6 +109,8 @@ Raw Event
 → Events feature UI / future ASTM drill-down
 ```
 
+此处 `Event Date` 指稳定的 source / contract 字段；用户可见术语为 `Event Time` / “事件时间”。
+
 - Event Type 选项从当前 Global Filter + view mode 的未按 type 过滤结果生成，避免选中后其它选项消失。
 - KPI ASTM 输入与 Events 页面复用同一 normalized Event Repository 数据；ASTM 规则仍只读取 `ASTMInjuryIllness`，不在页面重算。
 - 完整 coverage 下空结果为 `CONFIRMED_EMPTY`；超出 coverage 或 Store Resolution 不完整时为 `INCOMPLETE`。
