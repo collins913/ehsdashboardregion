@@ -1,9 +1,9 @@
 import type { RecordState } from "@/lib/rules/result-types";
 import type {
   EventType,
-  IsoDate,
   SourceReference,
   StoreId,
+  TimezoneAwareIsoDateTime,
 } from "@/types/ehs";
 
 export interface NormalizedEventRecord {
@@ -12,7 +12,7 @@ export interface NormalizedEventRecord {
   eventId: string;
   eventType: EventType;
   submittedBy: string;
-  eventDate: IsoDate;
+  eventDate: TimezoneAwareIsoDateTime;
   description: string;
   sourceStatus: string;
   recordState: RecordState;

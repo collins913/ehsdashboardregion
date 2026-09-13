@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { KpiFilterContext } from "@/data/contracts/kpi";
 import { periodForMode, periodFromMonthRange } from "@/data/contracts/kpi-period";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
+import { mockPeople } from "@/data/mock/people";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 
@@ -44,6 +45,44 @@ describe("current-year KPI mock factory", () => {
     expect(createKpiMockData(referenceDate)).toEqual(
       createKpiMockData(referenceDate),
     );
+  });
+
+  it("generates deterministic source-like Take Charge identifiers and datetimes", () => {
+    const referenceDate = new Date("2026-09-11T00:00:00+08:00");
+    const first = createKpiMockData(referenceDate).takeChargeRecords;
+    const second = createKpiMockData(referenceDate).takeChargeRecords;
+    const ids = first.map(({ tchId }) => tchId);
+
+    expect(first).toEqual(second);
+    expect(ids.every((id) => /^TCH-\d{7}$/.test(id))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(
+      first.every(({ submittedAt }) =>
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(submittedAt),
+      ),
+    ).toBe(true);
+    expect(new Set(first.map(({ submittedAt }) => submittedAt.slice(11, 16))).size)
+      .toBeGreaterThan(1);
+  });
+
+  it("shares the deterministic mixed Chinese-English person pool", () => {
+    const data = createKpiMockData(
+      new Date("2026-09-11T00:00:00+08:00"),
+    );
+    const knownPeople = new Set<string>(mockPeople);
+
+    expect(data.takeChargeRecords.every(({ submittedBy }) => knownPeople.has(submittedBy)))
+      .toBe(true);
+    expect(
+      data.actionRecords.every(
+        ({ submittedBy, owner }) =>
+          knownPeople.has(submittedBy) && knownPeople.has(owner),
+      ),
+    ).toBe(true);
+    expect(data.eventRecords.every(({ submittedBy }) => knownPeople.has(submittedBy)))
+      .toBe(true);
+    expect(mockPeople.every((name) => /^[A-Za-z ]+（[^ ]+ [^）]+）$/.test(name)))
+      .toBe(true);
   });
 
   it("generates unique five-digit Event fixture IDs without constraining source IDs", () => {
@@ -97,8 +136,8 @@ describe("current-year KPI mock factory", () => {
       action: expect.any(String),
       submittedBy: expect.any(String),
       owner: expect.any(String),
-      submittedDate: expect.stringMatching(/^2026-/),
-      dueDate: expect.stringMatching(/^2026-/),
+      submittedDate: expect.stringMatching(/^2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
+      dueDate: expect.stringMatching(/^2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
       Status: expect.any(String),
     });
     expect(action).not.toHaveProperty("actionTitle");

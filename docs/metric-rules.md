@@ -364,36 +364,15 @@ No Event has:
 
 # 4. Performance → Goals
 
-All Goal values are provided directly by the source data.
-
-Dashboard does not recalculate these values from detail records.
-
----
-
-## 4.1 Take Charge Submissions per Capita
+## 4.1 Take Charge Submission Total
 
 ### Input
 
-Numeric value.
-
-### Target
-
-`>= 4`
+All Take Charge records whose `Submitted At` is within the selected Period.
 
 ### Rule
 
-Value >= 4
-→ `ACHIEVED`
-
-Value < 4
-→ `NOT_ACHIEVED`
-
-Value missing / invalid
-→ `UNDETERMINED`
-
-### Result Type
-
-`PerformanceResult`
+Return the record count. Complete coverage with no records returns `0`.
 
 ---
 
@@ -401,13 +380,13 @@ Value missing / invalid
 
 ### Input
 
-Percentage value using internal `0–100` representation.
-
-### Target
-
-`>= 90`
+Monthly `totalCount` and `closedCount`, built from normalized Take Charge records.
 
 ### Rule
+
+`closedCount / totalCount * 100`.
+
+Only `ClosedWithAction`, `ClosedWithoutAction`, and `Declined` contribute to `closedCount`. For multiple months, sum all numerators and denominators before division. Do not average monthly percentages.
 
 Value >= 90
 → `ACHIEVED`
@@ -415,14 +394,10 @@ Value >= 90
 Value < 90
 → `NOT_ACHIEVED`
 
-Value missing / invalid
+Incomplete source coverage
 → `UNDETERMINED`
 
-### Important Constraint
-
-Take Charge Close Rate is supplied directly by the source data.
-
-Do not calculate it from Take Charge records.
+Complete coverage with zero records returns `null` and displays “无”; it must not become `0%` or `100%`.
 
 ### Result Type
 
@@ -430,11 +405,21 @@ Do not calculate it from Take Charge records.
 
 ---
 
-## 4.3 Take Charge Participate Rate
+## 4.3 Current-year Average Submissions
+
+The source provides the aggregate for the selected Region / Area / Store scope from January through the Dashboard reference month. It ignores Global Period. For multi-store scopes, do not average store-level final values.
+
+Target: `>= 4`. Missing or invalid aggregate → `UNDETERMINED`.
+
+---
+
+## 4.4 Current-year Participation Rate
 
 ### Input
 
 Percentage value using internal `0–100` representation.
+
+The source provides the aggregate for the selected Region / Area / Store scope from January through the Dashboard reference month. It ignores Global Period. For multi-store scopes, do not average store-level final percentages.
 
 ### Target
 

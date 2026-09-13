@@ -8,12 +8,9 @@ import type {
   EiaRecord,
   EnvironmentalMonitoringRecord,
   EventRecord,
-  GoalSummary,
   InspectionRecord,
   StoreMasterData,
   StoreReference,
-  TakeChargeParticipationRecord,
-  TakeChargeRecord,
   TrainingRecord,
   WasteContractRecord,
 } from "@/types/ehs";
@@ -27,11 +24,19 @@ import type {
   ActionsQueryResult,
 } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
+import type {
+  TakeChargeGoalsQuery,
+  TakeChargeGoalsSummary,
+  TakeChargeRecordsQuery,
+  TakeChargeRecordsResult,
+} from "@/data/contracts/take-charge";
 
 export interface EhsRepository {
   getKpiData(context: KpiFilterContext): KpiDataSnapshot;
   getActions(query: ActionsQuery): ActionsQueryResult;
   getEvents(query: EventsQuery): EventsQueryResult;
+  getTakeChargeGoals(query: TakeChargeGoalsQuery): TakeChargeGoalsSummary;
+  getTakeChargeRecords(query: TakeChargeRecordsQuery): TakeChargeRecordsResult;
   listFilterStores(): readonly KpiStore[];
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];
@@ -41,9 +46,6 @@ export interface EhsRepository {
   listActionClosureRates(): readonly ActionClosureRateRecord[];
   listActionRecords(): readonly ActionRecord[];
   listEventRecords(): readonly EventRecord[];
-  listGoalSummaries(): readonly GoalSummary[];
-  listTakeChargeRecords(): readonly TakeChargeRecord[];
-  listTakeChargeParticipationRecords(): readonly TakeChargeParticipationRecord[];
   listCertificateRecords(): readonly CertificateRecord[];
   listWasteContractRecords(): readonly WasteContractRecord[];
   listCarWashDrainagePermitRecords(): readonly CarWashDrainagePermitRecord[];

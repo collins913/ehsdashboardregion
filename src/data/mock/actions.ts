@@ -1,13 +1,22 @@
 import type { KpiPeriod } from "@/data/contracts/kpi";
 import { mockStores } from "@/data/mock/stores";
+import { mockPersonAt } from "@/data/mock/people";
 import type {
   ActionClosureRateRecord,
-  IsoDate,
+  IsoDateTime,
   Month,
   RawActionRecord,
 } from "@/types/ehs";
 
 type SupportedMonths = readonly [Month, ...Month[]];
+
+function sourceDateTime(
+  month: Month,
+  day: string,
+  hour: number,
+): IsoDateTime {
+  return `${month}-${day}T${String(hour).padStart(2, "0")}:15:00`;
+}
 
 const supportedPeriodRates = [92, 68, 85, 74, 96, 81, 59, 88, 91, 77, 84, 70];
 
@@ -200,10 +209,10 @@ export function createMockActionRecords(
       problem:
         "设备日常点检记录缺少关键检查项和复核签名，无法确认当班检查是否完整执行。",
       action: "补充缺失的设备点检项目，完成负责人复核并归档签字记录。",
-      submittedBy: "测试提交人甲",
-      owner: "测试员工甲",
-      submittedDate: `${earlierMonth}-05`,
-      dueDate: `${earlierMonth}-20`,
+      submittedBy: mockPersonAt(0),
+      owner: mockPersonAt(1),
+      submittedDate: sourceDateTime(earlierMonth, "05", 9),
+      dueDate: sourceDateTime(earlierMonth, "20", 18),
       closedDate: null,
       Status: "Assigned",
     },
@@ -212,10 +221,10 @@ export function createMockActionRecords(
       storeReference: { storeNameEn: mockStores[0].storeNameEn },
       problem: "后场疏散路线调整后，部分方向标识未同步更新。",
       action: "按照最新疏散路线更新标识并完成现场照片确认。",
-      submittedBy: "测试提交人乙",
-      owner: "测试员工乙",
-      submittedDate: `${previousMonth}-03`,
-      dueDate: `${previousMonth}-18`,
+      submittedBy: mockPersonAt(2),
+      owner: mockPersonAt(3),
+      submittedDate: sourceDateTime(previousMonth, "03", 10),
+      dueDate: sourceDateTime(previousMonth, "18", 17),
       closedDate: null,
       Status: "In Progress",
     },
@@ -227,11 +236,11 @@ export function createMockActionRecords(
       },
       problem: "装卸区防护栏连接件松动。",
       action: "更换连接件并完成护栏稳固性检查。",
-      submittedBy: "测试提交人丙",
-      owner: "测试员工丙",
-      submittedDate: `${previousMonth}-03`,
-      dueDate: `${previousMonth}-18`,
-      closedDate: `${previousMonth}-16`,
+      submittedBy: mockPersonAt(4),
+      owner: mockPersonAt(5),
+      submittedDate: sourceDateTime(previousMonth, "03", 11),
+      dueDate: sourceDateTime(previousMonth, "18", 17),
+      closedDate: sourceDateTime(previousMonth, "16", 14),
       Status: "Closed",
     },
     {
@@ -242,10 +251,10 @@ export function createMockActionRecords(
       },
       problem: "同一问题被重复提交。",
       action: "确认重复记录并取消本行动项。",
-      submittedBy: "测试提交人丁",
-      owner: "测试员工丁",
-      submittedDate: `${previousMonth}-08`,
-      dueDate: `${previousMonth}-25`,
+      submittedBy: mockPersonAt(6),
+      owner: mockPersonAt(7),
+      submittedDate: sourceDateTime(previousMonth, "08", 13),
+      dueDate: sourceDateTime(previousMonth, "25", 17),
       closedDate: null,
       Status: "Cancelled",
     },
@@ -257,10 +266,10 @@ export function createMockActionRecords(
       },
       problem: "危废暂存区部分容器标签信息不完整。",
       action: "核对容器内容并补全危废类别、日期和责任人信息。",
-      submittedBy: "测试提交人戊",
-      owner: "测试员工戊",
-      submittedDate: `${currentMonth}-01`,
-      dueDate: `${currentMonth}-15`,
+      submittedBy: mockPersonAt(8),
+      owner: mockPersonAt(9),
+      submittedDate: sourceDateTime(currentMonth, "01", 8),
+      dueDate: sourceDateTime(currentMonth, "15", 18),
       closedDate: null,
       Status: "In Review",
     },
@@ -272,10 +281,10 @@ export function createMockActionRecords(
       },
       problem: "应急物资盘点清单与现场数量存在差异。",
       action: "重新盘点应急物资，更新清单并由门店负责人签核。",
-      submittedBy: "测试提交人己",
-      owner: "测试员工己",
-      submittedDate: `${currentMonth}-02`,
-      dueDate: `${currentMonth}-16`,
+      submittedBy: mockPersonAt(10),
+      owner: mockPersonAt(11),
+      submittedDate: sourceDateTime(currentMonth, "02", 14),
+      dueDate: sourceDateTime(currentMonth, "16", 18),
       closedDate: null,
       Status: "Sign Off",
     },
@@ -290,13 +299,18 @@ export function createMockActionRecords(
       },
       problem: record.problem,
       action: record.action,
-      submittedBy: `测试提交人${index + 7}`,
-      owner: `测试负责人${index + 7}`,
-      submittedDate: `${record.month}-${record.day}` as IsoDate,
-      dueDate:
-        `${record.month}-${String(Number(record.day) + 12).padStart(2, "0")}` as IsoDate,
+      submittedBy: mockPersonAt(index + 6),
+      owner: mockPersonAt(index + 9),
+      submittedDate: sourceDateTime(record.month, record.day, 9 + (index % 7)),
+      dueDate: sourceDateTime(
+        record.month,
+        String(Number(record.day) + 12).padStart(2, "0"),
+        17,
+      ),
       closedDate:
-        record.Status === "Closed" ? (`${record.month}-20` as IsoDate) : null,
+        record.Status === "Closed"
+          ? sourceDateTime(record.month, "20", 15)
+          : null,
       Status: record.Status,
     })),
   ] satisfies readonly RawActionRecord[];

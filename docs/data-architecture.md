@@ -63,6 +63,22 @@ KpiFilterContext
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
 - Mock Action Closure Rate 使用显式 `[startInclusive, endExclusive)` 标识源汇总周期；每个值均为源 fixture 直接提供，不从月度值或 Action 明细计算。
 
+## Goals / Take Charge scoped queries
+
+```text
+Raw Take Charge (TRTID only)
+→ existing Store Resolution
+→ NormalizedTakeChargeRecord
+→ store-month totalCount / closedCount aggregate
+→ scoped Goals summary
+→ Repository-paginated Take Charge table
+```
+
+- 提交总数与关闭率按 Submitted At 使用 Global Period；关闭率先汇总月度分子与分母，再计算百分比。
+- 今年平均提交数与今年参与率由年度组织范围 aggregate 提供，不读取 Global Period，也不平均门店最终指标。
+- Take Charge 明细查询在 Repository 边界接收 view mode、sorting、`pageIndex / pageSize` 并返回 `totalCount`；Repository 对完整 scoped result 先过滤、排序，再分页。视图和排序不影响 Goals summary。
+- 动态扩展字段只能由字段定义驱动，默认隐藏，不能覆盖核心字段或直接暴露 raw object。
+
 ## Actions scoped query
 
 ```text
@@ -128,6 +144,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`
 - Actions 规范化查询契约：`src/data/contracts/actions.ts`
 - Events 规范化查询契约：`src/data/contracts/events.ts`
+- Take Charge / Goals 规范化查询契约：`src/data/contracts/take-charge.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

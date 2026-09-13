@@ -9,8 +9,11 @@ import {
   DEFAULT_ACTION_COLUMN_VISIBILITY,
   DEFAULT_ACTIONS_VIEW_MODE,
   DEFAULT_VISIBLE_ACTION_COLUMN_IDS,
-  formatClosedDate,
 } from "./actions-data-table";
+import {
+  formatBusinessDate,
+  formatBusinessDateTime,
+} from "@/lib/format-business-date-time";
 
 const record: NormalizedActionRecord = {
   storeId: "TEST-001",
@@ -20,8 +23,8 @@ const record: NormalizedActionRecord = {
   action: "完整行动项内容",
   submittedBy: "提交人",
   owner: "负责人",
-  submittedDate: "2026-09-01",
-  dueDate: "2026-09-30",
+  submittedDate: "2026-09-01T09:15:00+08:00",
+  dueDate: "2026-09-30T18:00:00+08:00",
   closedDate: null,
   sourceStatus: { kind: "KNOWN", value: "In Progress" },
   recordState: "OPEN",
@@ -64,7 +67,7 @@ describe("Actions table defaults", () => {
     );
 
     expect(markup).toContain("data-adaptive-table-measurement-row");
-    expect(markup).toContain("时间范围：提交日期");
+    expect(markup).toContain("时间范围：提交时间");
     expect(markup).toContain("w-32 min-w-32 max-w-32");
     expect(markup).toContain("w-[18%] min-w-36 max-w-52");
     expect(markup).not.toContain("ACTION-001");
@@ -82,14 +85,17 @@ describe("Action detail", () => {
     expect(markup).toContain("完整行动项内容");
     expect(markup).toContain("进行中");
     expect(markup).toContain('data-emphasis="primary"');
-    expect(markup).toContain("关闭日期");
+    expect(markup).toContain("关闭时间");
+    expect(markup).toContain("2026-09-01 09:15");
+    expect(markup).toContain("2026-09-30 18:00");
     expect(markup).toContain("—");
     expect(markup).not.toContain("TRTID");
   });
 
-  it("formats a missing Closed Date as an em dash", () => {
-    expect(formatClosedDate(null)).toBe("—");
-    expect(formatClosedDate("2026-09-10")).toBe("2026-09-10");
+  it("uses the shared business-time formatter", () => {
+    expect(formatBusinessDate(record.submittedDate)).toBe("2026-09-01");
+    expect(formatBusinessDateTime(record.dueDate)).toBe("2026-09-30 18:00");
+    expect(formatBusinessDateTime(null)).toBe("—");
   });
 
   it.each([

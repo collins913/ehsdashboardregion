@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
+  calculateTakeChargeCloseRate,
   evaluateTakeChargeCloseRate,
   evaluateTakeChargeParticipateRate,
   evaluateTakeChargeSubmissionsPerCapita,
 } from "./goal-rules";
+
+describe("Take Charge Close Rate calculation", () => {
+  it("uses total closed records over total records", () => {
+    expect(calculateTakeChargeCloseRate(9, 10)).toBe(90);
+    expect(calculateTakeChargeCloseRate(1, 4)).toBe(25);
+  });
+
+  it("does not invent a percentage for an empty or invalid denominator", () => {
+    expect(calculateTakeChargeCloseRate(0, 0)).toBeNull();
+    expect(calculateTakeChargeCloseRate(3, 2)).toBeNull();
+  });
+});
 
 describe.each([
   ["Submissions per Capita", evaluateTakeChargeSubmissionsPerCapita, 4],

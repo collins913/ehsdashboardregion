@@ -21,6 +21,10 @@ import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import {
+  availabilityLabels,
+  DataAvailabilityDisplay,
+} from "@/components/shared/data-availability-display";
+import {
   dataTableClassName,
   dataTableFrameClassName,
   stickyStoreCellClassName,
@@ -33,7 +37,6 @@ import {
   getStatusLabel,
   StatusDisplay,
 } from "@/components/shared/status-display";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -50,11 +53,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { DataAvailability } from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
@@ -101,46 +99,9 @@ const columnLabels: Record<string, string> = {
   astmEvents: "ASTM 事件",
 };
 
-const availabilityLabels: Record<DataAvailability, string> = {
-  AVAILABLE: "可用",
-  CONFIRMED_EMPTY: "确认无数据",
-  INCOMPLETE: "数据不完整",
-  UNAVAILABLE: "数据不可用",
-};
-
-const availabilityDescriptions: Record<DataAvailability, string> = {
-  AVAILABLE: "请求范围内的数据可用。",
-  CONFIRMED_EMPTY: "请求范围已确认无记录。",
-  INCOMPLETE: "请求范围内的数据不完整，无法支持业务结论。",
-  UNAVAILABLE: "请求范围内的数据不可用。",
-};
-
-type KpiDataAvailabilityDisplayProps = {
-  availability: DataAvailability;
-};
-
-export function KpiDataAvailabilityDisplay({
-  availability,
-}: KpiDataAvailabilityDisplayProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant="outline"
-          data-availability={availability.toLowerCase()}
-          className="border-dashed bg-background text-muted-foreground"
-        >
-          {availabilityLabels[availability]}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{availabilityDescriptions[availability]}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function ResultCell({ value }: { value: PerformanceKpiValue }) {
   if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+    return <DataAvailabilityDisplay availability={value.availability} />;
   }
 
   return <StatusDisplay status={value.result} />;
@@ -148,7 +109,7 @@ function ResultCell({ value }: { value: PerformanceKpiValue }) {
 
 function AstmResultCell({ value }: { value: AstmKpiValue }) {
   if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+    return <DataAvailabilityDisplay availability={value.availability} />;
   }
 
   return value.result ? <StatusDisplay status={value.result} /> : null;
@@ -189,7 +150,7 @@ export function ActionsCell({
   onOpen: () => void;
 }) {
   if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <KpiDataAvailabilityDisplay availability={value.availability} />;
+    return <DataAvailabilityDisplay availability={value.availability} />;
   }
 
   return (
@@ -232,7 +193,7 @@ function ActionsSheet({
             <p className="text-sm text-muted-foreground">行动项明细不可用。</p>
           ) : actions.availability === "INCOMPLETE" ? (
             <div className="space-y-3">
-              <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
+              <DataAvailabilityDisplay availability="INCOMPLETE" />
               <p className="text-sm text-muted-foreground">
                 当前记录可能未覆盖完整范围。
               </p>

@@ -1,9 +1,9 @@
 import type { RecordState } from "@/lib/rules/result-types";
 import type {
-  IsoDate,
   ParsedActionStatus,
   SourceReference,
   StoreId,
+  TimezoneAwareIsoDateTime,
 } from "@/types/ehs";
 
 export interface NormalizedActionRecord {
@@ -14,9 +14,9 @@ export interface NormalizedActionRecord {
   action: string;
   submittedBy: string;
   owner: string;
-  submittedDate: IsoDate;
-  dueDate: IsoDate;
-  closedDate: IsoDate | null;
+  submittedDate: TimezoneAwareIsoDateTime;
+  dueDate: TimezoneAwareIsoDateTime;
+  closedDate: TimezoneAwareIsoDateTime | null;
   sourceStatus: ParsedActionStatus;
   recordState: RecordState;
   sourceReference?: SourceReference | null;

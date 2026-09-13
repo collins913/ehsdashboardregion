@@ -18,6 +18,7 @@
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
+| Card | `src/components/ui/card.tsx` | Goals summary metrics |
 
 ## Shared
 
@@ -34,10 +35,17 @@
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
+| DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTable layout helpers | Shared table frame, minimum width and fixed-width sticky Store classes used by KPI and Actions tables |
+
+## Shared utilities
+
+| Utility | Responsibility |
+| --- | --- |
+| Business date/time formatter | Formats normalized timezone-aware timestamps as Asia/Shanghai `YYYY-MM-DD` or `YYYY-MM-DD HH:mm` for Take Charge, Actions and Events |
 
 ## Shared hooks
 
@@ -56,5 +64,7 @@
 | ActionStatusDisplay | Actions feature adapter that maps centralized workflow presentation into shared StatusDisplay for tables and details |
 | EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
 | EventsPageContent | Connects shared Global Filter Context and feature-local filters to the scoped Events Repository query |
+| GoalsPageContent | Connects Global Filter Context to scoped Take Charge summary and record queries; metric cards use consistent plain-text values |
+| TakeChargeDataTable | Repository-paginated Take Charge records with Current Open / All view mode, repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.

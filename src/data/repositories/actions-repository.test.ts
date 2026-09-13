@@ -45,8 +45,8 @@ function rawAction(
     action: "Action",
     submittedBy: "Submitter",
     owner: "Owner",
-    submittedDate: "2026-09-01",
-    dueDate: "2026-09-30",
+    submittedDate: "2026-09-01T09:15:00",
+    dueDate: "2026-09-30T18:00:00",
     closedDate: null,
     Status,
     ...overrides,
@@ -99,16 +99,16 @@ describe("scoped Actions repository query", () => {
     const august = query("ALL", context("2026-08", "2026-08"));
 
     expect(august.items.map(({ submittedDate }) => submittedDate)).toEqual([
-      "2026-08-03",
-      "2026-08-03",
-      "2026-08-08",
-      "2026-08-06",
-      "2026-08-10",
-      "2026-08-12",
-      "2026-08-14",
+      "2026-08-03T10:15:00+08:00",
+      "2026-08-03T11:15:00+08:00",
+      "2026-08-08T13:15:00+08:00",
+      "2026-08-06T13:15:00+08:00",
+      "2026-08-10T14:15:00+08:00",
+      "2026-08-12T15:15:00+08:00",
+      "2026-08-14T09:15:00+08:00",
     ]);
     expect(august.items).not.toContainEqual(
-      expect.objectContaining({ submittedDate: "2026-09-01" }),
+      expect.objectContaining({ submittedDate: "2026-09-01T08:15:00+08:00" }),
     );
   });
 
@@ -153,7 +153,7 @@ describe("scoped Actions repository query", () => {
       actionRecords: [
         rawAction("Assigned", undefined, {
           actionId: "HISTORICAL-OPEN",
-          submittedDate: "2026-06-30",
+          submittedDate: "2026-06-30T23:59:59",
         }),
         rawAction("In Progress", undefined, { actionId: "PERIOD-OPEN" }),
         rawAction("Closed", undefined, { actionId: "PERIOD-CLOSED" }),

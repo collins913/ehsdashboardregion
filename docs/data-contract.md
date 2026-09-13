@@ -193,46 +193,43 @@ Repository 必须返回与完整请求 Period 对应的单一源汇总值，或�
 
 ## 5. Performance → Goals 输入
 
-### 5.1 Goal Summary
+### 5.1 Goals Summary
 
-数据源按当前筛选范围直接提供三个值：
+Repository 向页面提供两组明确分离的结果：
 
-| 逻辑字段 | 含义 | 展示精度 |
+| 范围 | 逻辑字段 | 含义 |
 |---|---|---|
-| Take Charge Submissions per Capita | 人均提交数 | 1 位小数 |
-| Take Charge Close Rate | 关闭率 | 0 位小数 |
-| Take Charge Participate Rate | 参与率 | 0 位小数 |
+| Global Period | submissionTotal / closedCount / closeRate | 当前 Submitted At 范围内的提交与关闭汇总 |
+| 当前年度累计 | averageSubmissionsYtd | 当前组织范围的数据源 aggregate，1 位小数 |
+| 当前年度累计 | participationRateYtd | 当前组织范围的数据源 aggregate，0 位小数 |
 
-每个值还必须能够关联：
-
-- Store Reference
-- Period
-
-百分比值统一使用 0–100。空值、更新时间与 Source Reference：TBD。
+年度指标不携带 Global Period。多 Store、Area、Region 查询必须由数据源返回该范围 aggregate，不允许平均门店最终值。百分比统一使用 0–100。
 
 ### 5.2 Take Charge Record
 
-人均提交数与 Close Rate 点击明细至少需要：
+Raw 公共字段：
 
-- Store Reference
-- 提交人
-- 提交日期
-- 摘要
+- TRTID
+- TCH ID
+- Submitted By
+- Submitted At（当前源为 Asia/Shanghai 本地 `YYYY-MM-DDTHH:mm:ss`）
+- Summary
 - Status
-- Source Reference
+- Source Reference（可选）
 
-Take Charge 使用源字段 `Status`。`ClosedWithAction`、`ClosedWithoutAction`、`Declined` 归类为 Closed，其它值归类为 Open。
+Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalized record 中输出带 offset 的 datetime。Normalized record 同时输出 canonical `storeId`、当前中文门店名、上述公共字段、raw Status、RecordState 与受字段定义控制的 `extraFields`。Take Charge 当前只通过 TRTID 解析门店；页面不读取 TRTID。
 
-### 5.3 Take Charge Participation Record
+可扩展字段只允许 `string | number | boolean | date | datetime | null`；必须先有稳定 key、中文 label、value type 与默认隐藏定义。动态字段不得覆盖核心字段，UI 不得枚举 raw object。
 
-参与率点击明细至少需要：
+### 5.3 Monthly Aggregate
 
-- Store Reference
-- 人员姓名
-- 是否提交
-- Source Reference
+数据层按 `storeId + month` 保存 `totalCount` 与 `closedCount`。多月关闭率只允许汇总这两个计数后相除。
 
-人员唯一标识、人员范围及是否提交的计算来源：TBD。
+### 5.4 Take Charge Records Query
+
+查询输入为 `KpiFilterContext + OPEN_ONLY | ALL + sorting + pageIndex + pageSize`；Repository 输出当前页 records、`totalCount`、DataAvailability 与 field definitions。Repository 对完整 scoped result 先应用 view mode 与排序，再分页；动态扩展字段 V1 不参与排序。
+
+今年平均提交数、今年参与率的生产源字段及人员分母定义仍由数据源契约确认；V1 mock 只通过隔离的 deterministic aggregate fixture 表达，不把 mock 公式固化为生产规则。
 
 ## 6. Risk & Compliance → Event Record
 
@@ -244,7 +241,7 @@ Take Charge 使用源字段 `Status`。`ClosedWithAction`、`ClosedWithoutAction
 | Store Reference | 必须先通过 Store Resolution |
 | Event Type | 数据源提供 string；当前已知 `Agency`、`Non-Agency Event`，允许未来新增值 |
 | Submitted By | 数据源提供；人员标识方式 TBD |
-| Event Date | 数据源提供的日期字段；Events Global Period 使用此字段 |
+| Event Date | 数据源提供的完整 datetime；Events Global Period 使用此字段 |
 | EventDetail.Description | 数据源提供的完整事件描述 |
 | Status | 数据源原始状态；V1 已确认 `Open`、`Closed` |
 | Source Reference | 可选追溯来源 |
@@ -266,9 +263,9 @@ Events scoped Repository query 复用 `KpiFilterContext`，以 Event Date 应用
 | Action | 数据源提供；代码字段为 `action` |
 | Submitted By | 数据源提供；人员标识方式 TBD |
 | Owner | 数据源提供；人员标识方式 TBD |
-| Submitted Date | 数据源提供；Actions 页面 Global Period 使用此字段 |
-| Due Date | 数据源提供 |
-| Closed Date | 数据源提供；可为 null，表示未提供关闭日期；不得用于推断 Status |
+| Submitted Date | 数据源提供的完整 datetime；Actions 页面 Global Period 使用此字段 |
+| Due Date | 数据源提供的完整 datetime |
+| Closed Date | 数据源提供的完整 datetime；可为 null，表示未提供关闭时间；不得用于推断 Status |
 | Status | 数据源提供原始 `string`；Repository / Adapter 解析为 `ParsedActionStatus`，未知值保留原文并标记为 `UNKNOWN` |
 | Source Reference | 数据源可选提供 |
 

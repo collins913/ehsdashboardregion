@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { KpiPeriod } from "@/data/contracts/kpi";
 import {
+  interpretShanghaiSourceDateTime,
   isIsoDateInKpiPeriod,
   isInstantInKpiPeriod,
   parseKpiPeriod,
@@ -24,6 +25,15 @@ const mockEhsRepository = createMockEhsRepository(
 );
 
 describe("KPI Period validation", () => {
+  it("interprets source-local Take Charge datetime in Asia/Shanghai", () => {
+    expect(interpretShanghaiSourceDateTime("2026-09-23T14:15:00")).toBe(
+      "2026-09-23T14:15:00+08:00",
+    );
+    expect(
+      interpretShanghaiSourceDateTime("2026-09-23T14:15:00Z"),
+    ).toBeNull();
+  });
+
   it("accepts explicit UTC offsets", () => {
     expect(parseTimezoneAwareInstant("2026-09-10T00:00:00+08:00")).toBe(
       Date.UTC(2026, 8, 9, 16),

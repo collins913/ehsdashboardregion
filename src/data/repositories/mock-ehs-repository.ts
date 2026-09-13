@@ -5,10 +5,7 @@ import {
   mockDischargePermitRecords,
   mockEiaRecords,
   mockEnvironmentalMonitoringRecords,
-  mockGoalSummaries,
   mockStores,
-  mockTakeChargeParticipationRecords,
-  mockTakeChargeRecords,
   mockWasteContractRecords,
   type KpiMockCoverage,
 } from "@/data/mock";
@@ -16,9 +13,11 @@ import { parseActionStatus } from "@/data/parse-action-status";
 import { resolveActionStore } from "@/data/resolve-action-store";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
 import {
-  isIsoDateInKpiPeriod,
+  isInstantInKpiPeriod,
+  interpretShanghaiSourceDateTime,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
+  shanghaiMonthForInstant,
   type ParsedKpiPeriod,
 } from "@/data/contracts/kpi-period";
 import type {
@@ -43,6 +42,15 @@ import type {
   NormalizedEventRecord,
 } from "@/data/contracts/events";
 import type {
+  NormalizedTakeChargeRecord,
+  TakeChargeAnnualMetricContribution,
+  TakeChargeFieldDefinition,
+  TakeChargeGoalsQuery,
+  TakeChargeGoalsSummary,
+  TakeChargeRecordsQuery,
+  TakeChargeRecordsResult,
+} from "@/data/contracts/take-charge";
+import type {
   ActionClosureRateRecord,
   ActionRecord,
   EventRecord,
@@ -50,9 +58,18 @@ import type {
   StoreId,
   StoreMasterData,
   StoreReference,
+  TakeChargeRecord,
 } from "@/types/ehs";
 import { classifyActionRecordState } from "@/lib/rules/action-rules";
 import { classifyEventRecordState } from "@/lib/rules/event-rules";
+import {
+  calculateTakeChargeCloseRate,
+  evaluateTakeChargeCloseRate,
+  evaluateTakeChargeParticipateRate,
+  evaluateTakeChargeSubmissionsPerCapita,
+} from "@/lib/rules/goal-rules";
+import { classifyTakeChargeRecordState } from "@/lib/rules/take-charge-rules";
+import { buildTakeChargeMonthlyAggregates } from "@/data/take-charge-monthly-aggregate";
 
 function matchesStoreReference(
   store: StoreMasterData,
@@ -225,7 +242,52 @@ function isActionAggregateScopeCovered(
 type MockEhsRepositoryOptions = {
   actionRecords?: readonly RawActionRecord[];
   eventRecords?: readonly EventRecord[];
+  takeChargeRecords?: readonly TakeChargeRecord[];
+  takeChargeFieldDefinitions?: readonly TakeChargeFieldDefinition[];
+  takeChargeAnnualMetricContributions?: readonly TakeChargeAnnualMetricContribution[];
 };
+
+const TAKE_CHARGE_CORE_FIELD_KEYS = new Set([
+  "storeId",
+  "storeDisplayName",
+  "tchId",
+  "submittedBy",
+  "submittedAt",
+  "summary",
+  "sourceStatus",
+  "recordState",
+  "extraFields",
+]);
+
+function validTakeChargeFieldDefinitions(
+  definitions: readonly TakeChargeFieldDefinition[],
+): readonly TakeChargeFieldDefinition[] {
+  const seen = new Set<string>();
+
+  return definitions.filter((definition) => {
+    if (
+      definition.key.trim().length === 0 ||
+      definition.label.trim().length === 0 ||
+      TAKE_CHARGE_CORE_FIELD_KEYS.has(definition.key) ||
+      seen.has(definition.key)
+    ) {
+      return false;
+    }
+
+    seen.add(definition.key);
+    return true;
+  });
+}
+
+function pageIndexForResult(
+  requestedPageIndex: number,
+  totalCount: number,
+  pageSize: number,
+): number {
+  const lastPageIndex = Math.max(0, Math.ceil(totalCount / pageSize) - 1);
+
+  return Math.min(Math.max(0, Math.trunc(requestedPageIndex)), lastPageIndex);
+}
 
 export function createMockEhsRepository(
   referenceDate: Date,
@@ -234,11 +296,72 @@ export function createMockEhsRepository(
   const mockData = createKpiMockData(referenceDate);
   const rawActionRecords = options.actionRecords ?? mockData.actionRecords;
   const eventRecords = options.eventRecords ?? mockData.eventRecords;
+  const takeChargeRecords =
+    options.takeChargeRecords ?? mockData.takeChargeRecords;
+  const takeChargeFieldDefinitions = validTakeChargeFieldDefinitions(
+    options.takeChargeFieldDefinitions ?? mockData.takeChargeFieldDefinitions,
+  );
+  const takeChargeAnnualMetricContributions =
+    options.takeChargeAnnualMetricContributions ??
+    mockData.takeChargeAnnualMetricContributions;
   const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
     (record) => ({
       ...record,
       Status: parseActionStatus(record.Status),
     }),
+  );
+  const normalizedTakeChargeRecords: NormalizedTakeChargeRecord[] = [];
+  let takeChargeResolutionComplete = true;
+  let takeChargeDateCoverageComplete = true;
+  let takeChargeStatusCoverageComplete = true;
+
+  for (const record of takeChargeRecords) {
+    const resolution = resolveActionStore(record.storeReference, mockStores);
+    const normalizedSubmittedAt = interpretShanghaiSourceDateTime(
+      record.submittedAt,
+    );
+    const submittedMonth =
+      normalizedSubmittedAt === null
+        ? null
+        : shanghaiMonthForInstant(normalizedSubmittedAt);
+
+    if (resolution.kind !== "RESOLVED") {
+      takeChargeResolutionComplete = false;
+      continue;
+    }
+
+    if (normalizedSubmittedAt === null || submittedMonth === null) {
+      takeChargeDateCoverageComplete = false;
+      continue;
+    }
+
+    if (record.Status.trim().length === 0) {
+      takeChargeStatusCoverageComplete = false;
+    }
+
+    const extraFields = Object.fromEntries(
+      takeChargeFieldDefinitions.map(({ key }) => [
+        key,
+        record.extraFields?.[key] ?? null,
+      ]),
+    );
+
+    normalizedTakeChargeRecords.push({
+      storeId: resolution.store.trtid,
+      storeDisplayName: resolution.store.storeNameCn,
+      tchId: record.tchId,
+      submittedBy: record.submittedBy,
+      submittedAt: normalizedSubmittedAt,
+      summary: record.summary,
+      sourceStatus: record.Status.trim(),
+      recordState: classifyTakeChargeRecordState(record.Status),
+      extraFields,
+      sourceReference: record.sourceReference,
+    });
+  }
+
+  const takeChargeMonthlyAggregates = buildTakeChargeMonthlyAggregates(
+    normalizedTakeChargeRecords,
   );
 
   function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
@@ -360,10 +483,25 @@ export function createMockEhsRepository(
 
     if (parsedPeriod !== null) {
       for (const record of parsedActionRecords) {
-        const isIncluded = isIsoDateInKpiPeriod(
+        const submittedDate = interpretShanghaiSourceDateTime(
           record.submittedDate,
-          parsedPeriod,
         );
+        const dueDate = interpretShanghaiSourceDateTime(record.dueDate);
+        const closedDate =
+          record.closedDate === null
+            ? null
+            : interpretShanghaiSourceDateTime(record.closedDate);
+
+        if (
+          submittedDate === null ||
+          dueDate === null ||
+          (record.closedDate !== null && closedDate === null)
+        ) {
+          dateCoverageComplete = false;
+          continue;
+        }
+
+        const isIncluded = isInstantInKpiPeriod(submittedDate, parsedPeriod);
 
         if (isIncluded === null) {
           dateCoverageComplete = false;
@@ -401,9 +539,9 @@ export function createMockEhsRepository(
           action: record.action,
           submittedBy: record.submittedBy,
           owner: record.owner,
-          submittedDate: record.submittedDate,
-          dueDate: record.dueDate,
-          closedDate: record.closedDate,
+          submittedDate,
+          dueDate,
+          closedDate,
           sourceStatus: record.Status,
           recordState,
           sourceReference: record.sourceReference,
@@ -439,7 +577,14 @@ export function createMockEhsRepository(
 
     if (parsedPeriod !== null) {
       for (const record of eventRecords) {
-        const isIncluded = isIsoDateInKpiPeriod(record.eventDate, parsedPeriod);
+        const eventDate = interpretShanghaiSourceDateTime(record.eventDate);
+
+        if (eventDate === null) {
+          dateCoverageComplete = false;
+          continue;
+        }
+
+        const isIncluded = isInstantInKpiPeriod(eventDate, parsedPeriod);
 
         if (isIncluded === null) {
           dateCoverageComplete = false;
@@ -479,7 +624,7 @@ export function createMockEhsRepository(
           eventId: record.eventId,
           eventType: record.eventType,
           submittedBy: record.submittedBy,
-          eventDate: record.eventDate,
+          eventDate,
           description: record.EventDetail.Description,
           sourceStatus: record.Status,
           recordState,
@@ -502,10 +647,206 @@ export function createMockEhsRepository(
     );
   }
 
+  function getTakeChargeGoals({
+    context,
+  }: TakeChargeGoalsQuery): TakeChargeGoalsSummary {
+    const stores = requestedStores(context);
+    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const selectedStoreIds = new Set(selectedStoreIdList);
+    const includedMonths = new Set(context.period.includedMonths);
+    const parsedPeriod = parseKpiPeriod(context.period);
+    const periodCovered = isSourceCovered(
+      context,
+      selectedStoreIdList,
+      parsedPeriod,
+      mockData.coverage,
+      "takeCharge",
+    );
+    const periodAggregates = takeChargeMonthlyAggregates.filter(
+      (record) =>
+        selectedStoreIds.has(record.storeId) &&
+        includedMonths.has(record.month),
+    );
+    const submissionTotal = periodAggregates.reduce(
+      (sum, record) => sum + record.totalCount,
+      0,
+    );
+    const closedCount = periodAggregates.reduce(
+      (sum, record) => sum + record.closedCount,
+      0,
+    );
+    const periodAvailability =
+      periodCovered &&
+      takeChargeResolutionComplete &&
+      takeChargeDateCoverageComplete &&
+      takeChargeStatusCoverageComplete
+        ? submissionTotal === 0
+          ? "CONFIRMED_EMPTY"
+          : "AVAILABLE"
+        : "INCOMPLETE";
+    const closeRateValue =
+      periodAvailability === "AVAILABLE"
+        ? calculateTakeChargeCloseRate(closedCount, submissionTotal)
+        : null;
+    const currentYear = Number(mockData.supportedMonths[0].slice(0, 4));
+    const annualContributions = takeChargeAnnualMetricContributions.filter(
+      (record) =>
+        record.year === currentYear && selectedStoreIds.has(record.storeId),
+    );
+    const annualCovered =
+      selectedStoreIdList.length > 0 &&
+      selectedStoreIdList.every((storeId) =>
+        annualContributions.some((record) => record.storeId === storeId),
+      );
+    const submissionsNumerator = annualContributions.reduce(
+      (sum, record) => sum + record.submissionsNumerator,
+      0,
+    );
+    const submissionsDenominator = annualContributions.reduce(
+      (sum, record) => sum + record.submissionsDenominator,
+      0,
+    );
+    const participationNumerator = annualContributions.reduce(
+      (sum, record) => sum + record.participationNumerator,
+      0,
+    );
+    const participationDenominator = annualContributions.reduce(
+      (sum, record) => sum + record.participationDenominator,
+      0,
+    );
+    const averageSubmissionsYtd =
+      annualCovered && submissionsDenominator > 0
+        ? submissionsNumerator / submissionsDenominator
+        : null;
+    const participationRateYtd =
+      annualCovered && participationDenominator > 0
+        ? (participationNumerator / participationDenominator) * 100
+        : null;
+
+    return {
+      period: {
+        availability: periodAvailability,
+        period: context.period,
+        submissionTotal:
+          periodAvailability === "INCOMPLETE" ? null : submissionTotal,
+        closedCount:
+          periodAvailability === "INCOMPLETE" ? null : closedCount,
+        closeRate: {
+          value: closeRateValue,
+          result: evaluateTakeChargeCloseRate(closeRateValue),
+        },
+      },
+      annual: {
+        availability: annualCovered ? "AVAILABLE" : "INCOMPLETE",
+        currentYear,
+        averageSubmissionsYtd: {
+          value: averageSubmissionsYtd,
+          result: evaluateTakeChargeSubmissionsPerCapita(
+            averageSubmissionsYtd,
+          ),
+        },
+        participationRateYtd: {
+          value: participationRateYtd,
+          result: evaluateTakeChargeParticipateRate(participationRateYtd),
+        },
+      },
+    };
+  }
+
+  function getTakeChargeRecords({
+    context,
+    viewMode,
+    sorting,
+    pageIndex: requestedPageIndex,
+    pageSize: requestedPageSize,
+  }: TakeChargeRecordsQuery): TakeChargeRecordsResult {
+    const stores = requestedStores(context);
+    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const selectedStoreIds = new Set(selectedStoreIdList);
+    const parsedPeriod = parseKpiPeriod(context.period);
+    const pageSize = Math.max(1, Math.trunc(requestedPageSize));
+    const records =
+      parsedPeriod === null
+        ? []
+        : normalizedTakeChargeRecords
+            .filter((record) => {
+              const isIncluded = isInstantInKpiPeriod(
+                record.submittedAt,
+                parsedPeriod,
+              );
+
+              return (
+                isIncluded === true &&
+                selectedStoreIds.has(record.storeId) &&
+                (viewMode === "ALL" || record.recordState === "OPEN")
+              );
+            })
+            .sort((a, b) => {
+              if (sorting !== undefined) {
+                const valueFor = (record: NormalizedTakeChargeRecord) => {
+                  switch (sorting.key) {
+                    case "store":
+                      return record.storeDisplayName;
+                    case "tchId":
+                      return record.tchId;
+                    case "submittedBy":
+                      return record.submittedBy;
+                    case "submittedAt":
+                      return record.submittedAt;
+                    case "status":
+                      return `${record.recordState}:${record.sourceStatus}`;
+                  }
+                };
+                const comparison = valueFor(a).localeCompare(valueFor(b));
+
+                if (comparison !== 0) {
+                  return sorting.direction === "asc" ? comparison : -comparison;
+                }
+              }
+
+              return (
+                b.submittedAt.localeCompare(a.submittedAt) ||
+                a.tchId.localeCompare(b.tchId)
+              );
+            });
+    const sourceCovered =
+      isSourceCovered(
+        context,
+        selectedStoreIdList,
+        parsedPeriod,
+        mockData.coverage,
+        "takeCharge",
+      ) &&
+      takeChargeResolutionComplete &&
+      takeChargeDateCoverageComplete &&
+      takeChargeStatusCoverageComplete;
+    const pageIndex = pageIndexForResult(
+      requestedPageIndex,
+      records.length,
+      pageSize,
+    );
+    const start = pageIndex * pageSize;
+
+    return {
+      availability: sourceCovered
+        ? records.length === 0
+          ? "CONFIRMED_EMPTY"
+          : "AVAILABLE"
+        : "INCOMPLETE",
+      items: records.slice(start, start + pageSize),
+      totalCount: records.length,
+      pageIndex,
+      pageSize,
+      fieldDefinitions: takeChargeFieldDefinitions,
+    };
+  }
+
   return {
     getKpiData,
     getActions,
     getEvents,
+    getTakeChargeGoals,
+    getTakeChargeRecords,
     listFilterStores: () => mockStores.map(toKpiStore),
     listStores: () => mockStores,
     findStoreCandidates: (reference) =>
@@ -516,10 +857,6 @@ export function createMockEhsRepository(
     listActionClosureRates: () => mockData.actionClosureRates,
     listActionRecords: () => parsedActionRecords,
     listEventRecords: () => eventRecords,
-    listGoalSummaries: () => mockGoalSummaries,
-    listTakeChargeRecords: () => mockTakeChargeRecords,
-    listTakeChargeParticipationRecords: () =>
-      mockTakeChargeParticipationRecords,
     listCertificateRecords: () => mockCertificateRecords,
     listWasteContractRecords: () => mockWasteContractRecords,
     listCarWashDrainagePermitRecords: () =>

@@ -11,6 +11,7 @@ export interface KpiMockCoverage {
     actionClosureRates: "COMPLETE";
     actions: "COMPLETE";
     events: "COMPLETE";
+    takeCharge: "COMPLETE";
   };
   actionAggregateScopes: readonly KpiPeriod[];
 }
@@ -30,6 +31,7 @@ export function createMockKpiCoverage(
       actionClosureRates: "COMPLETE",
       actions: "COMPLETE",
       events: "COMPLETE",
+      takeCharge: "COMPLETE",
     },
     actionAggregateScopes,
   };

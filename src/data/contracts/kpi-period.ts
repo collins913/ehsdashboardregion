@@ -10,6 +10,8 @@ const TIMEZONE_AWARE_ISO_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/;
 const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
 const SHANGHAI_OFFSET = "+08:00";
+const LOCAL_SOURCE_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
 
 export type NaturalPeriodMode = "THIS_YEAR" | "THIS_QUARTER" | "THIS_MONTH";
 
@@ -164,10 +166,28 @@ export function parseTimezoneAwareInstant(value: string): number | null {
   return Number.isFinite(milliseconds) ? milliseconds : null;
 }
 
+export function interpretShanghaiSourceDateTime(
+  value: string,
+): TimezoneAwareIsoDateTime | null {
+  if (!LOCAL_SOURCE_DATETIME_PATTERN.test(value)) {
+    return null;
+  }
+
+  const normalized = `${value}${SHANGHAI_OFFSET}` as TimezoneAwareIsoDateTime;
+
+  return parseTimezoneAwareInstant(normalized) === null ? null : normalized;
+}
+
 function monthForShanghaiInstant(milliseconds: number): Month {
   const { year, month } = shanghaiYearMonth(new Date(milliseconds));
 
   return `${year}-${String(month).padStart(2, "0")}` as Month;
+}
+
+export function shanghaiMonthForInstant(value: string): Month | null {
+  const milliseconds = parseTimezoneAwareInstant(value);
+
+  return milliseconds === null ? null : monthForShanghaiInstant(milliseconds);
 }
 
 function hasConsistentIncludedMonths(

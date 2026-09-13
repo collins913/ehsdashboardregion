@@ -69,6 +69,10 @@ import {
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
 import type { EventType } from "@/types/ehs";
+import {
+  formatBusinessDate,
+  formatBusinessDateTime,
+} from "@/lib/format-business-date-time";
 
 const eventsTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
@@ -88,7 +92,7 @@ const columnLabels: Record<string, string> = {
   eventId: "事件编号",
   eventType: "事件类型",
   description: "事件描述",
-  eventDate: "事件日期",
+  eventDate: "事件时间",
   status: "状态",
   submittedBy: "提交人",
 };
@@ -174,8 +178,10 @@ export function EventDetailContent({
             <dd className="mt-1">{record.submittedBy}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">事件日期</dt>
-            <dd className="mt-1">{record.eventDate}</dd>
+            <dt className="text-xs text-muted-foreground">事件时间</dt>
+            <dd className="mt-1">
+              {formatBusinessDateTime(record.eventDate)}
+            </dd>
           </div>
         </dl>
       </section>
@@ -408,7 +414,7 @@ export function EventsDataTable({
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor("eventDate", {
+        columnHelper.accessor((row) => formatBusinessDate(row.eventDate), {
           id: "eventDate",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.eventDate} />
@@ -486,7 +492,7 @@ export function EventsDataTable({
             全部事件
           </Button>
           <span className="text-sm text-muted-foreground">
-            时间范围：事件日期
+            时间范围：事件时间
           </span>
         </div>
         <div className="flex items-center gap-2">

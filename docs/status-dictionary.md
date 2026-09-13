@@ -343,15 +343,16 @@ Confirmed Closed statuses:
 | `ClosedWithAction` | `CLOSED` |
 | `ClosedWithoutAction` | `CLOSED` |
 | `Declined` | `CLOSED` |
-| Any other value | `OPEN` |
+| Any other non-empty value | `OPEN` |
+| Missing / blank / unparseable value | `UNKNOWN` |
 
 Important:
 
-Any source Status not equal to the three confirmed Closed values is considered Open.
+Any non-empty source Status not equal to the three confirmed Closed values is considered Open. Missing or blank values remain Unknown.
 
 This mapping is used only for Take Charge record lifecycle and drill-down filtering.
 
-Take Charge Close Rate remains a source-provided aggregate metric and is NOT recalculated from these records.
+Take Charge Close Rate is calculated from normalized Take Charge record counts using the confirmed terminal-status mapping.
 
 ---
 

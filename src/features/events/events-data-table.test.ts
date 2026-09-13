@@ -17,7 +17,7 @@ const record: NormalizedEventRecord = {
   eventId: "EVENT-001",
   eventType: "Agency Contact",
   submittedBy: "提交人",
-  eventDate: "2026-09-01",
+  eventDate: "2026-09-01T09:30:00+08:00",
   description: "完整事件描述",
   sourceStatus: "Open",
   recordState: "OPEN",
@@ -56,7 +56,7 @@ describe("Events table defaults", () => {
     );
 
     expect(markup).toContain("data-adaptive-table-measurement-row");
-    expect(markup).toContain("时间范围：事件日期");
+    expect(markup).toContain("时间范围：事件时间");
     expect(markup).toContain("w-28 min-w-28 max-w-28");
     expect(markup).toContain("w-36 min-w-36 max-w-36");
     expect(markup).toContain("w-[20%] min-w-32");
@@ -79,7 +79,7 @@ describe("Event detail", () => {
     expect(markup).toContain("Agency Contact");
     expect(markup).toContain("完整事件描述");
     expect(markup).toContain("提交人");
-    expect(markup).toContain("2026-09-01");
+    expect(markup).toContain("2026-09-01 09:30");
     expect(markup).toContain("未关闭");
     expect(markup).not.toContain("TRTID");
     expect(markup).not.toContain("门店英文");

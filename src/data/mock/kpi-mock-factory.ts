@@ -13,6 +13,11 @@ import { createMockInspectionRecords } from "@/data/mock/inspections";
 import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
 import { mockStores } from "@/data/mock/stores";
 import { createMockTrainingRecords } from "@/data/mock/training";
+import {
+  createMockTakeChargeAnnualMetricContributions,
+  createMockTakeChargeRecords,
+  mockTakeChargeFieldDefinitions,
+} from "@/data/mock/take-charge";
 import type { Month } from "@/types/ehs";
 
 function aggregateScopes(
@@ -57,5 +62,11 @@ export function createKpiMockData(referenceDate: Date) {
     ),
     actionRecords: createMockActionRecords(supportedMonths),
     eventRecords: createMockEventRecords(supportedMonths),
+    takeChargeRecords: createMockTakeChargeRecords(supportedMonths),
+    takeChargeAnnualMetricContributions:
+      createMockTakeChargeAnnualMetricContributions(
+        Number(supportedMonths[0].slice(0, 4)),
+      ),
+    takeChargeFieldDefinitions: mockTakeChargeFieldDefinitions,
   } as const;
 }

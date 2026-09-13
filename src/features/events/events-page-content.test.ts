@@ -21,7 +21,7 @@ function record(eventType: string): NormalizedEventRecord {
     eventId: `EVENT-${eventType}`,
     eventType,
     submittedBy: "提交人",
-    eventDate: "2026-09-01",
+    eventDate: "2026-09-01T09:30:00+08:00",
     description: "描述",
     sourceStatus: "Open",
     recordState: "OPEN",

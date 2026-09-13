@@ -60,28 +60,14 @@ export interface ActionClosureRateRecord {
   sourceReference?: SourceReference | null;
 }
 
-export interface GoalSummary {
-  storeReference: StoreReference;
-  period: Month;
-  takeChargeSubmissionsPerCapita: number | null;
-  takeChargeCloseRate: number | null;
-  takeChargeParticipateRate: number | null;
-  sourceReference?: SourceReference | null;
-}
-
 export interface TakeChargeRecord {
-  storeReference: StoreReference;
-  submitter: string;
-  submittedDate: IsoDate;
+  storeReference: { trtid: string };
+  tchId: string;
+  submittedBy: string;
+  submittedAt: IsoDateTime;
   summary: string;
   Status: string;
-  sourceReference?: SourceReference | null;
-}
-
-export interface TakeChargeParticipationRecord {
-  storeReference: StoreReference;
-  personName: string;
-  hasSubmitted: boolean;
+  extraFields?: Readonly<Record<string, string | number | boolean | null>>;
   sourceReference?: SourceReference | null;
 }
 
@@ -96,7 +82,7 @@ export interface EventRecord {
   storeReference: StoreReference;
   eventType: EventType;
   submittedBy: string;
-  eventDate: IsoDate;
+  eventDate: IsoDateTime;
   EventDetail: EventDetail;
   Status: string;
   ASTMInjuryIllness: string;
@@ -122,9 +108,9 @@ interface ActionRecordBase {
   action: string;
   submittedBy: string;
   owner: string;
-  submittedDate: IsoDate;
-  dueDate: IsoDate;
-  closedDate: IsoDate | null;
+  submittedDate: IsoDateTime;
+  dueDate: IsoDateTime;
+  closedDate: IsoDateTime | null;
   sourceReference?: SourceReference | null;
 }
 

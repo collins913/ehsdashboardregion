@@ -62,6 +62,10 @@ import {
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
+import {
+  formatBusinessDate,
+  formatBusinessDateTime,
+} from "@/lib/format-business-date-time";
 
 const actionsTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
@@ -85,12 +89,12 @@ const columnLabels: Record<string, string> = {
   actionId: "行动项编号",
   problem: "问题",
   action: "行动项",
-  dueDate: "截止日期",
+  dueDate: "截止时间",
   status: "状态",
   owner: "负责人",
   submittedBy: "提交人",
-  submittedDate: "提交日期",
-  closedDate: "关闭日期",
+  submittedDate: "提交时间",
+  closedDate: "关闭时间",
 };
 
 const columnSizingClassNames: Record<string, string> = {
@@ -131,10 +135,6 @@ const unmeasuredTablePagination: PaginationState = {
   pageIndex: 0,
   pageSize: 1,
 };
-
-export function formatClosedDate(value: string | null): string {
-  return value ?? "—";
-}
 
 export function ActionDetailContent({
   record,
@@ -178,7 +178,7 @@ export function ActionDetailContent({
       </section>
 
       <section className="space-y-3">
-        <h3 className="font-medium">人员与日期</h3>
+        <h3 className="font-medium">人员与时间</h3>
         <dl className="grid gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-muted-foreground">负责人</dt>
@@ -189,16 +189,20 @@ export function ActionDetailContent({
             <dd className="mt-1">{record.submittedBy}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">提交日期</dt>
-            <dd className="mt-1">{record.submittedDate}</dd>
+            <dt className="text-xs text-muted-foreground">提交时间</dt>
+            <dd className="mt-1">
+              {formatBusinessDateTime(record.submittedDate)}
+            </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">截止日期</dt>
-            <dd className="mt-1">{record.dueDate}</dd>
+            <dt className="text-xs text-muted-foreground">截止时间</dt>
+            <dd className="mt-1">{formatBusinessDateTime(record.dueDate)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted-foreground">关闭日期</dt>
-            <dd className="mt-1">{formatClosedDate(record.closedDate)}</dd>
+            <dt className="text-xs text-muted-foreground">关闭时间</dt>
+            <dd className="mt-1">
+              {formatBusinessDateTime(record.closedDate)}
+            </dd>
           </div>
         </dl>
       </section>
@@ -427,7 +431,7 @@ export function ActionsDataTable({
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor("dueDate", {
+        columnHelper.accessor((row) => formatBusinessDate(row.dueDate), {
           id: "dueDate",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.dueDate} />
@@ -461,7 +465,7 @@ export function ActionsDataTable({
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor("submittedDate", {
+        columnHelper.accessor((row) => formatBusinessDate(row.submittedDate), {
           id: "submittedDate",
           header: ({ column }) => (
             <DataTableColumnHeader
@@ -471,16 +475,20 @@ export function ActionsDataTable({
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor((row) => formatClosedDate(row.closedDate), {
-          id: "closedDate",
-          header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={columnLabels.closedDate}
-            />
-          ),
-          sortFn: "text",
-        }),
+        columnHelper.accessor(
+          (row) =>
+            row.closedDate === null ? "—" : formatBusinessDate(row.closedDate),
+          {
+            id: "closedDate",
+            header: ({ column }) => (
+              <DataTableColumnHeader
+                column={column}
+                title={columnLabels.closedDate}
+              />
+            ),
+            sortFn: "text",
+          },
+        ),
       ]),
     [],
   );
@@ -534,7 +542,7 @@ export function ActionsDataTable({
             全部行动项
           </Button>
           <span className="text-sm text-muted-foreground">
-            时间范围：提交日期
+            时间范围：提交时间
           </span>
         </div>
         <DataTableColumnVisibility table={table} labels={columnLabels} />

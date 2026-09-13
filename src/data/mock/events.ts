@@ -1,5 +1,6 @@
 import { mockStores } from "@/data/mock/stores";
-import type { EventRecord, IsoDate, Month } from "@/types/ehs";
+import { mockPersonAt } from "@/data/mock/people";
+import type { EventRecord, IsoDateTime, Month } from "@/types/ehs";
 
 type SupportedMonths = readonly [Month, ...Month[]];
 
@@ -35,8 +36,9 @@ export function createMockEventRecords(
         eventId: `EVT-${month.slice(2, 4)}${month.slice(5, 7)}${index + 1}`,
         storeReference,
         eventType,
-        submittedBy: `测试提交人${sequence + 1}`,
-        eventDate: `${month}-${String(index + 2).padStart(2, "0")}` as IsoDate,
+        submittedBy: mockPersonAt(sequence + 3),
+        eventDate:
+          `${month}-${String(index + 2).padStart(2, "0")}T${String(9 + index).padStart(2, "0")}:30:00` as IsoDateTime,
         EventDetail: {
           Description:
             sequence === 0

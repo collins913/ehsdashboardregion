@@ -24,14 +24,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { GlobalFilters } from "@/components/shared/global-filters";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
+import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import {
   StatusDisplay,
   type BusinessStatus,
 } from "@/components/shared/status-display";
-import {
-  KpiDataAvailabilityDisplay,
-  KpiDataTable,
-} from "@/features/kpi/kpi-data-table";
+import { KpiDataTable } from "@/features/kpi/kpi-data-table";
 import { getActionStatusPresentation } from "@/features/actions/action-status-presentation";
 import { homeBreadcrumb } from "@/config/navigation";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
@@ -239,9 +237,9 @@ export default function UiLabPage() {
 
         <LabSection title="数据可用性">
           <div className="flex flex-wrap gap-3">
-            <KpiDataAvailabilityDisplay availability="AVAILABLE" />
-            <KpiDataAvailabilityDisplay availability="INCOMPLETE" />
-            <KpiDataAvailabilityDisplay availability="UNAVAILABLE" />
+            <DataAvailabilityDisplay availability="AVAILABLE" />
+            <DataAvailabilityDisplay availability="INCOMPLETE" />
+            <DataAvailabilityDisplay availability="UNAVAILABLE" />
           </div>
         </LabSection>
 

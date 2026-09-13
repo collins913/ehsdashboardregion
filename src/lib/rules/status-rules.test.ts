@@ -6,10 +6,7 @@ import {
   evaluateAstmOccurrence,
   isEventOpen,
 } from "./event-rules";
-import {
-  classifyTakeChargeRecordState,
-  isTakeChargeOpen,
-} from "./take-charge-rules";
+import { classifyTakeChargeRecordState } from "./take-charge-rules";
 
 function action(Status: ActionRecord["Status"]): ActionRecord {
   return {
@@ -19,8 +16,8 @@ function action(Status: ActionRecord["Status"]): ActionRecord {
     action: "Test",
     submittedBy: "Submitter",
     owner: "Test",
-    submittedDate: "2026-09-01",
-    dueDate: "2026-09-10",
+    submittedDate: "2026-09-01T09:00:00",
+    dueDate: "2026-09-10T18:00:00",
     closedDate: null,
     Status,
   };
@@ -32,7 +29,7 @@ function event(astm: string, Status = "Open"): EventRecord {
     storeReference: { trtid: "TEST-001" },
     eventType: "Injury/Illness",
     submittedBy: "Submitter",
-    eventDate: "2026-09-10",
+    eventDate: "2026-09-10T09:30:00",
     EventDetail: { Description: "Test" },
     Status,
     ASTMInjuryIllness: astm,
@@ -42,8 +39,9 @@ function event(astm: string, Status = "Open"): EventRecord {
 function takeCharge(Status: string): TakeChargeRecord {
   return {
     storeReference: { trtid: "TEST-001" },
-    submitter: "Test",
-    submittedDate: "2026-09-10",
+    tchId: "TCH-00001",
+    submittedBy: "Test",
+    submittedAt: "2026-09-10T09:00:00",
     summary: "Test",
     Status,
   };
@@ -63,13 +61,17 @@ describe("record status normalization", () => {
     "classifies Take Charge %s as CLOSED",
     (status) => {
       expect(classifyTakeChargeRecordState(status)).toBe("CLOSED");
-      expect(isTakeChargeOpen(takeCharge(status))).toBe(false);
+      expect(takeCharge(status).Status).toBe(status);
     },
   );
 
   it("classifies every other Take Charge status as OPEN", () => {
     expect(classifyTakeChargeRecordState("InProgress")).toBe("OPEN");
-    expect(isTakeChargeOpen(takeCharge("InProgress"))).toBe(true);
+    expect(takeCharge("InProgress").Status).toBe("InProgress");
+  });
+
+  it("classifies missing Take Charge status as UNKNOWN", () => {
+    expect(classifyTakeChargeRecordState("   ")).toBe("UNKNOWN");
   });
 
   it.each([

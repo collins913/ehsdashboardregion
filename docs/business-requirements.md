@@ -116,34 +116,34 @@ Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时
 
 ## 5. Performance → Goals
 
-Goals 均跟随 Region、Area、Store、Period。
+Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年平均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。
 
-### 5.1 Take Charge Submissions per Capita
+### 5.1 提交总数
 
-统一名称为 `Take Charge Submissions per Capita`（Take Charge 人均提交数），不使用 `Submit Rate`。
+- 按当前 Global Period 内 `Submitted At` 统计 Take Charge 记录数。
+- 完整 Coverage 下无记录显示 `0`。
 
-- 页面展示：数值，保留 1 位小数。
-- 目标值：大于或等于 4。
-- 点击后：展示当前筛选范围内的 Take Charge 记录。
-- 明细至少包括：提交人、提交日期、摘要、Source Status、Source Reference。
+### 5.2 关闭率
 
-### 5.2 Take Charge Close Rate
+- 分母为当前 Global Period 内全部 Take Charge 记录数。
+- 分子为其中 `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 的记录数。
+- 多月先汇总分子与分母，再计算百分比；禁止平均月度关闭率。
+- 目标值：`>= 90%`。
+- 完整 Coverage 下无记录时显示“无”，不显示 `0%` 或 `100%`。
 
-- 页面展示：百分比，保留 0 位小数。
-- 目标值：大于或等于 90%。
-- 点击后：仅展示当前筛选范围内未关闭的 Take Charge 记录。
-- 明细至少包括：提交人、提交日期、摘要、Source Status、Source Reference。
+### 5.3 今年平均提交数
 
-Take Charge 的 `Status` 为 `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 时归类为 Closed；其它值归类为 Open。该分类由集中业务规则维护。
+- 使用数据源提供的当前组织范围年度累计 aggregate，不平均门店最终指标。
+- 目标值：`>= 4`，展示 1 位小数。
+- 不受 Global Period 影响。
 
-### 5.3 Take Charge Participate Rate
+### 5.4 今年参与率
 
-- 页面展示：百分比，保留 0 位小数。
-- 目标值：大于或等于 50%。
-- 点击后：区分已提交人员与未提交人员。
-- 明细至少包括：人员姓名、是否提交、Source Reference。
+- 使用数据源提供的当前组织范围年度累计 aggregate，不平均门店最终指标。
+- 目标值：`>= 50%`，展示 0 位小数。
+- 不受 Global Period 影响。
 
-三个 Goal 的数值均由数据源直接提供，Dashboard 不计算分子、分母或人均值。百分比统一使用 0–100 表示。
+Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“当前未关闭”只显示 `RecordState = OPEN`；“全部”包含 OPEN、CLOSED 与 UNKNOWN。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；TRTID 仅用于 Store Resolution，不向用户展示。
 
 ## 6. Risk & Compliance → Events
 
@@ -162,9 +162,9 @@ Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明
 
 ### 6.2 列表与详情
 
-列表默认显示 Store、Event ID、Event Type、Description、Event Date、Status；Submitted By 默认隐藏，可通过列显示控制。
+列表默认显示 Store、Event ID、Event Type、Description、Event Time、Status；Submitted By 默认隐藏，可通过列显示控制。
 
-Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event ID、Event Type、Status、`EventDetail.Description`、Submitted By、Event Date。页面和详情不展示 TRTID 或 Store English Name。
+Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event ID、Event Type、Status、`EventDetail.Description`、Submitted By、Event Time。页面和详情不展示 TRTID 或 Store English Name。
 
 不同 Event Type 的专属详情字段仍为 TBD。本阶段不定义 Injury、Agency、Severity 等专属详情 schema，也不显示空的类型详情区域。
 

@@ -4,7 +4,12 @@ import type { KpiFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import { mockStores } from "@/data/mock/stores";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
-import type { EventRecord, EventType, IsoDate, StoreReference } from "@/types/ehs";
+import type {
+  EventRecord,
+  EventType,
+  IsoDateTime,
+  StoreReference,
+} from "@/types/ehs";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 
@@ -24,13 +29,13 @@ function event({
   eventId,
   storeReference = { trtid: mockStores[0].trtid },
   eventType = "Agency Contact",
-  eventDate = "2026-09-01",
+  eventDate = "2026-09-01T09:30:00",
   Status = "Open",
 }: {
   eventId: string;
   storeReference?: StoreReference;
   eventType?: EventType;
-  eventDate?: IsoDate;
+  eventDate?: IsoDateTime;
   Status?: string;
 }): EventRecord {
   return {
@@ -112,14 +117,15 @@ describe("scoped Events repository query", () => {
   it("uses Event Date and the half-open Period boundary", () => {
     const repository = createMockEhsRepository(referenceDate, {
       eventRecords: [
-        event({ eventId: "BEFORE", eventDate: "2026-06-30" }),
-        event({ eventId: "START", eventDate: "2026-07-01" }),
-        event({ eventId: "END", eventDate: "2026-10-01" }),
+        event({ eventId: "BEFORE", eventDate: "2026-06-30T23:59:59" }),
+        event({ eventId: "START", eventDate: "2026-07-01T00:00:00" }),
+        event({ eventId: "END", eventDate: "2026-10-01T00:00:00" }),
       ],
     });
     const result = repository.getEvents({ context: context(), viewMode: "ALL" });
 
     expect(result.items.map(({ eventId }) => eventId)).toEqual(["START"]);
+    expect(result.items[0]?.eventDate).toBe("2026-07-01T00:00:00+08:00");
   });
 
   it("supports Current Open and All with centralized states", () => {

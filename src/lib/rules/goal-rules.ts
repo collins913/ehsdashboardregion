@@ -23,6 +23,24 @@ export function evaluateTakeChargeSubmissionsPerCapita(
   return evaluateThreshold(value, 4);
 }
 
+export function calculateTakeChargeCloseRate(
+  closedCount: number,
+  totalCount: number,
+): number | null {
+  if (
+    !Number.isInteger(closedCount) ||
+    !Number.isInteger(totalCount) ||
+    closedCount < 0 ||
+    totalCount < 0 ||
+    closedCount > totalCount ||
+    totalCount === 0
+  ) {
+    return null;
+  }
+
+  return (closedCount / totalCount) * 100;
+}
+
 export function evaluateTakeChargeCloseRate(
   value: number | null | undefined,
 ): PerformanceResult {

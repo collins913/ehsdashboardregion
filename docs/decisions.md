@@ -59,9 +59,8 @@ Training、Drill、Inspections、ASTM、Actions Open 分类、Certificates、Env
 以下值由后续数据源直接提供：
 
 - Action Closure Rate
-- Take Charge Submissions per Capita
-- Take Charge Close Rate
-- Take Charge Participate Rate
+- Take Charge current-year Average Submissions
+- Take Charge current-year Participation Rate
 
 Dashboard 不根据明细猜测分子、分母或人员基数。
 
@@ -107,15 +106,16 @@ Events KPI 展示“发生 / 未发生”，不展示事故数量。
 
 ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。值为 `Yes` 时表示 ASTM Incident，其它值均不表示 ASTM Incident。
 
-### D-016 Goal 名称、目标和精度
+### D-016 Goals V1 指标范围、目标和精度
 
 | Goal | 目标 | 展示精度 |
 |---|---:|---:|
-| Take Charge Submissions per Capita | >= 4 | 1 位小数 |
+| 提交总数 | 无目标 | 整数 |
 | Take Charge Close Rate | >= 90% | 0 位小数 |
-| Take Charge Participate Rate | >= 50% | 0 位小数 |
+| 今年平均提交数 | >= 4 | 1 位小数 |
+| 今年参与率 | >= 50% | 0 位小数 |
 
-三个值均跟随 Global Period，由数据源直接提供。
+提交总数与关闭率跟随 Global Period；关闭率由 Take Charge 明细的月度分子/分母汇总计算。两个“今年”指标固定为 reference year 年初至当前月，只跟随 Region / Area / Store，并使用数据源范围 aggregate；不得平均门店最终值。
 
 ## 6. Events 与 Actions
 
