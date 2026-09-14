@@ -1,23 +1,7 @@
 import type {
-  ActionClosureRateRecord,
-  ActionRecord,
-  CarWashDrainagePermitRecord,
-  CertificateRecord,
-  DischargePermitRecord,
-  DrillRecord,
-  EiaRecord,
-  EnvironmentalMonitoringRecord,
-  EventRecord,
-  InspectionRecord,
-  StoreMasterData,
-  StoreReference,
-  TrainingRecord,
-  WasteContractRecord,
-} from "@/types/ehs";
-import type {
   KpiDataSnapshot,
-  KpiFilterContext,
   KpiStore,
+  EhsFilterContext,
 } from "@/data/contracts/kpi";
 import type {
   ActionsQuery,
@@ -32,26 +16,39 @@ import type {
 } from "@/data/contracts/take-charge";
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
 
-export interface EhsRepository {
-  getKpiData(context: KpiFilterContext): KpiDataSnapshot;
-  getActions(query: ActionsQuery): ActionsQueryResult;
-  getEvents(query: EventsQuery): EventsQueryResult;
-  getTakeChargeGoals(query: TakeChargeGoalsQuery): TakeChargeGoalsSummary;
-  getTakeChargeRecords(query: TakeChargeRecordsQuery): TakeChargeRecordsResult;
-  getStores(query: StoresQuery): StoresQueryResult;
-  listFilterStores(): readonly KpiStore[];
-  listStores(): readonly StoreMasterData[];
-  findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];
-  listTrainingRecords(): readonly TrainingRecord[];
-  listDrillRecords(): readonly DrillRecord[];
-  listInspectionRecords(): readonly InspectionRecord[];
-  listActionClosureRates(): readonly ActionClosureRateRecord[];
-  listActionRecords(): readonly ActionRecord[];
-  listEventRecords(): readonly EventRecord[];
-  listCertificateRecords(): readonly CertificateRecord[];
-  listWasteContractRecords(): readonly WasteContractRecord[];
-  listCarWashDrainagePermitRecords(): readonly CarWashDrainagePermitRecord[];
-  listEiaRecords(): readonly EiaRecord[];
-  listDischargePermitRecords(): readonly DischargePermitRecord[];
-  listEnvironmentalMonitoringRecords(): readonly EnvironmentalMonitoringRecord[];
+export interface KpiQueries {
+  getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot>;
 }
+
+export interface ActionsQueries {
+  getActions(query: ActionsQuery): Promise<ActionsQueryResult>;
+}
+
+export interface EventsQueries {
+  getEvents(query: EventsQuery): Promise<EventsQueryResult>;
+}
+
+export interface TakeChargeQueries {
+  getTakeChargeGoals(
+    query: TakeChargeGoalsQuery,
+  ): Promise<TakeChargeGoalsSummary>;
+  getTakeChargeRecords(
+    query: TakeChargeRecordsQuery,
+  ): Promise<TakeChargeRecordsResult>;
+}
+
+export interface StoresQueries {
+  getStores(query: StoresQuery): Promise<StoresQueryResult>;
+}
+
+export interface GlobalFilterQueries {
+  getFilterStores(): Promise<readonly KpiStore[]>;
+}
+
+export interface EhsRepository
+  extends KpiQueries,
+    ActionsQueries,
+    EventsQueries,
+    TakeChargeQueries,
+    StoresQueries,
+    GlobalFilterQueries {}

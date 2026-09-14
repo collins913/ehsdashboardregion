@@ -1,7 +1,7 @@
 export const dataTableFrameClassName =
   "overflow-hidden rounded-lg border";
 
-export const dataTableClassName = "min-w-224";
+export const dataTableClassName = "min-w-224 table-fixed";
 
 export const dataTableColumnSizeClassNames = {
   primary: "w-[28%] min-w-48 max-w-96",

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback } from "react";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { PageContainer } from "@/components/shared/page-container";
 import {
@@ -10,28 +11,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { TakeChargeGoalsSummary } from "@/data/contracts/take-charge";
-import {
-  createEhsRepository,
-  type EhsRepository,
-} from "@/data/repositories";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { TakeChargeDataTable } from "@/features/goals/take-charge-data-table";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
-type GoalsRepository = Pick<
-  EhsRepository,
-  "getTakeChargeGoals" | "getTakeChargeRecords"
->;
+export type GoalsSummaryQuery = (input: {
+  referenceDateIso: string;
+  query: EhsFilterContext;
+}) => Promise<TakeChargeGoalsSummary>;
 
-export function loadGoalsPageData(
-  context: KpiFilterContext | null,
-  repository: Pick<EhsRepository, "getTakeChargeGoals">,
-): TakeChargeGoalsSummary | null {
-  return context === null ? null : repository.getTakeChargeGoals({ context });
+export async function loadGoalsPageData(
+  context: EhsFilterContext | null,
+  referenceDateIso: string,
+  query: GoalsSummaryQuery,
+): Promise<TakeChargeGoalsSummary | null> {
+  return context === null
+    ? null
+    : query({ referenceDateIso, query: context });
 }
 
-function periodLabel(context: KpiFilterContext): string {
+function periodLabel(context: EhsFilterContext): string {
   const months = context.period.includedMonths;
   return months.length === 1
     ? months[0]
@@ -69,7 +71,7 @@ export function SummaryCards({
   context,
 }: {
   summary: TakeChargeGoalsSummary;
-  context: KpiFilterContext;
+  context: EhsFilterContext;
 }) {
   const selectedPeriod = periodLabel(context);
   const periodUnavailable =
@@ -129,30 +131,81 @@ export function SummaryCards({
   );
 }
 
-export function GoalsPageContent() {
+export function SummaryCardsPlaceholder({
+  context,
+  hidden = false,
+}: {
+  context: EhsFilterContext;
+  hidden?: boolean;
+}) {
+  const selectedPeriod = periodLabel(context);
+  const currentYear = context.period.includedMonths[0]?.slice(0, 4) ?? "—";
+  const cards = [
+    ["提交总数", selectedPeriod],
+    ["关闭率", selectedPeriod],
+    ["今年平均提交数", `${currentYear} 年`],
+    ["今年参与率", `${currentYear} 年`],
+  ] as const;
+
+  return (
+    <div
+      className={hidden ? "invisible" : undefined}
+      aria-hidden="true"
+    >
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map(([title, description]) => (
+          <GoalMetricCard key={title} title={title} description={description}>
+            <div className="flex h-8 items-center">
+              <Skeleton className="h-7 w-16" />
+            </div>
+          </GoalMetricCard>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function GoalsPageContent({
+  queryGoals,
+  queryRecords,
+}: {
+  queryGoals: GoalsSummaryQuery;
+  queryRecords: React.ComponentProps<typeof TakeChargeDataTable>["queryRecords"];
+}) {
   const { filterContext, referenceDateIso } = useGlobalFilters();
-  const repository = useMemo<GoalsRepository>(
-    () => createEhsRepository(new Date(referenceDateIso)),
-    [referenceDateIso],
+  const queryKey = filterContext
+    ? JSON.stringify([referenceDateIso, filterContext])
+    : null;
+  const load = useCallback(
+    () => loadGoalsPageData(filterContext, referenceDateIso, queryGoals),
+    [filterContext, queryGoals, referenceDateIso],
   );
-  const summary = useMemo(
-    () => loadGoalsPageData(filterContext, repository),
-    [filterContext, repository],
-  );
+  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const summary = state.status === "SUCCESS" ? state.data : null;
 
   return (
     <PageContainer className="space-y-6">
-      {filterContext === null || summary === null ? (
+      {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成 Goals 数据，请调整筛选条件。
         </div>
-      ) : (
+      ) : filterContext === null ? null : (
         <>
-          <SummaryCards summary={summary} context={filterContext} />
+          {state.status === "ERROR" ? (
+            <AsyncQueryFeedback status="ERROR" />
+          ) : null}
+          {summary === null ? (
+            <SummaryCardsPlaceholder
+              context={filterContext}
+              hidden={state.status === "ERROR"}
+            />
+          ) : (
+            <SummaryCards summary={summary} context={filterContext} />
+          )}
           <TakeChargeDataTable
-            key={JSON.stringify(filterContext)}
             context={filterContext}
-            repository={repository}
+            referenceDateIso={referenceDateIso}
+            queryRecords={queryRecords}
           />
         </>
       )}

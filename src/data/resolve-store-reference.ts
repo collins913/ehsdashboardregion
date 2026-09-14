@@ -1,6 +1,6 @@
 import type { StoreMasterData, StoreReference } from "@/types/ehs";
 
-export type ActionStoreResolution =
+export type StoreReferenceResolution =
   | { kind: "RESOLVED"; store: StoreMasterData }
   | { kind: "CONFLICT" }
   | { kind: "UNRESOLVED" };
@@ -14,10 +14,10 @@ function uniqueStore(
   return matches.length === 1 ? matches[0] : null;
 }
 
-export function resolveActionStore(
+export function resolveStoreReference(
   reference: StoreReference,
   stores: readonly StoreMasterData[],
-): ActionStoreResolution {
+): StoreReferenceResolution {
   const storeNameEn =
     "storeNameEn" in reference ? reference.storeNameEn : undefined;
 

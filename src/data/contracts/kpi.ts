@@ -20,7 +20,7 @@ export interface KpiPeriod {
   includedMonths: NonEmptySelection<Month>;
 }
 
-export interface KpiFilterContext {
+export interface EhsFilterContext {
   region: FilterScope<string>;
   area: FilterScope<string>;
   store: FilterScope<StoreId>;

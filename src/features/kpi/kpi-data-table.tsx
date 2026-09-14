@@ -20,6 +20,7 @@ import {
 import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   availabilityLabels,
   DataAvailabilityDisplay,
@@ -268,6 +269,7 @@ function ActionsSheet({
 
 type KpiDataTableProps = {
   rows: readonly KpiRow[];
+  queryStatus?: "READY" | "LOADING" | "ERROR";
 };
 
 type KpiPaginationState =
@@ -279,7 +281,10 @@ const unmeasuredTablePagination: PaginationState = {
   pageSize: 1,
 };
 
-export function KpiDataTable({ rows }: KpiDataTableProps) {
+export function KpiDataTable({
+  rows,
+  queryStatus = "READY",
+}: KpiDataTableProps) {
   const [abnormalOnly, setAbnormalOnly] = useState(false);
   const [selectedRow, setSelectedRow] = useState<KpiRow | null>(null);
   const [isActionsSheetOpen, setActionsSheetOpen] = useState(false);
@@ -288,10 +293,23 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
     useState<ColumnVisibilityState>({});
   const [paginationState, setPaginationState] =
     useState<KpiPaginationState>({ status: "UNMEASURED" });
+  const isQueryLoading = queryStatus === "LOADING";
+  const isQueryPlaceholder = queryStatus !== "READY";
   const data = useMemo(
-    () => (abnormalOnly ? rows.filter(rowHasNegativeResult) : rows),
-    [abnormalOnly, rows],
+    () =>
+      isQueryPlaceholder
+        ? []
+        : abnormalOnly
+          ? rows.filter(rowHasNegativeResult)
+          : rows,
+    [abnormalOnly, isQueryPlaceholder, rows],
   );
+  useLayoutEffect(() => {
+    if (isQueryLoading) {
+      setSelectedRow(null);
+      setActionsSheetOpen(false);
+    }
+  }, [isQueryLoading]);
   const isPaginationReady = paginationState.status === "READY";
   const pagination = useMemo<PaginationState>(() => {
     if (paginationState.status === "UNMEASURED") {
@@ -501,10 +519,20 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
+    id: column.id,
+    className: cn(
+      kpiColumnSizeClassName(column.id),
+      column.id === "store" && stickyStoreCellClassName,
+    ),
+  }));
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div
+        className="flex flex-wrap items-center justify-between gap-2"
+        inert={isQueryLoading ? true : undefined}
+      >
         <Button
           variant={abnormalOnly ? "secondary" : "outline"}
           aria-pressed={abnormalOnly}
@@ -522,6 +550,8 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
       <div
         ref={tableFrameRef}
         className={dataTableFrameClassName}
+        aria-busy={isQueryLoading}
+        inert={isQueryLoading ? true : undefined}
       >
         <Table className={dataTableClassName}>
           <TableHeader>
@@ -554,6 +584,12 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
+            ) : isQueryPlaceholder ? (
+              <DataTablePlaceholderRows
+                columns={placeholderColumns}
+                rowCount={pagination.pageSize}
+                hidden={queryStatus === "ERROR"}
+              />
             ) : displayedRows.length > 0 ? (
               displayedRows.map((row, rowIndex) => (
                 <TableRow
@@ -590,6 +626,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
 
       <div
         ref={paginationRef}
+        aria-busy={isQueryLoading}
         aria-hidden={!isPaginationReady}
         className={`flex flex-wrap items-center justify-between gap-3${
           isPaginationReady ? "" : " invisible"
@@ -606,7 +643,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isQueryLoading || !table.getCanPreviousPage()}
           >
             上一页
           </Button>
@@ -614,7 +651,7 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isQueryLoading || !table.getCanNextPage()}
           >
             下一页
           </Button>

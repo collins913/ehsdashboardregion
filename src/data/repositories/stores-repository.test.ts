@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import { mockStores } from "@/data/mock/stores";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
@@ -9,7 +9,7 @@ const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 function context(
   startMonth = "2026-07" as const,
   endMonth = "2026-09" as const,
-): KpiFilterContext {
+): EhsFilterContext {
   return {
     region: { kind: "ALL" },
     area: { kind: "ALL" },
@@ -19,8 +19,8 @@ function context(
 }
 
 describe("scoped Stores repository query", () => {
-  it("returns the normalized Store Master fields", () => {
-    const result = createMockEhsRepository(referenceDate).getStores({
+  it("returns the normalized Store Master fields", async () => {
+    const result = await createMockEhsRepository(referenceDate).getStores({
       context: context(),
     });
 
@@ -38,9 +38,9 @@ describe("scoped Stores repository query", () => {
     });
   });
 
-  it("applies Region, Area and canonical Store scopes together", () => {
+  it("applies Region, Area and canonical Store scopes together", async () => {
     const selected = mockStores[1];
-    const result = createMockEhsRepository(referenceDate).getStores({
+    const result = await createMockEhsRepository(referenceDate).getStores({
       context: {
         ...context(),
         region: { kind: "INCLUDE", values: [selected.region] },
@@ -58,22 +58,22 @@ describe("scoped Stores repository query", () => {
     ]);
   });
 
-  it("supports independent Region, Area and multi-Store scopes", () => {
+  it("supports independent Region, Area and multi-Store scopes", async () => {
     const repository = createMockEhsRepository(referenceDate);
     const base = context();
-    const region = repository.getStores({
+    const region = await repository.getStores({
       context: {
         ...base,
         region: { kind: "INCLUDE", values: [mockStores[0].region] },
       },
     });
-    const area = repository.getStores({
+    const area = await repository.getStores({
       context: {
         ...base,
         area: { kind: "INCLUDE", values: [mockStores[0].area] },
       },
     });
-    const store = repository.getStores({
+    const store = await repository.getStores({
       context: {
         ...base,
         store: {
@@ -91,22 +91,22 @@ describe("scoped Stores repository query", () => {
     ]);
   });
 
-  it("ignores Period for Store Master data", () => {
+  it("ignores Period for Store Master data", async () => {
     const repository = createMockEhsRepository(referenceDate);
     const scoped = {
       ...context(),
       region: { kind: "INCLUDE", values: [mockStores[0].region] },
-    } satisfies KpiFilterContext;
-    const quarter = repository.getStores({ context: scoped });
-    const month = repository.getStores({
+    } satisfies EhsFilterContext;
+    const quarter = await repository.getStores({ context: scoped });
+    const month = await repository.getStores({
       context: { ...scoped, period: periodFromMonthRange("2026-09", "2026-09")! },
     });
 
     expect(month).toEqual(quarter);
   });
 
-  it("returns a confirmed empty result for a valid scope with no stores", () => {
-    const result = createMockEhsRepository(referenceDate).getStores({
+  it("returns a confirmed empty result for a valid scope with no stores", async () => {
+    const result = await createMockEhsRepository(referenceDate).getStores({
       context: {
         ...context(),
         region: { kind: "INCLUDE", values: ["不存在的区域"] },

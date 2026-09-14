@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 import { loadKpiPageRows } from "@/features/kpi/kpi-page-content";
 
-const q1Context: KpiFilterContext = {
+const q1Context: EhsFilterContext = {
   region: { kind: "ALL" },
   area: { kind: "ALL" },
   store: { kind: "ALL" },
@@ -16,8 +17,11 @@ const q1Context: KpiFilterContext = {
 const mockEhsRepository = createMockEhsRepository(
   new Date("2026-03-15T00:00:00+08:00"),
 );
+const referenceDateIso = "2026-03-15T00:00:00+08:00";
+const queryRows = async ({ query }: { referenceDateIso: string; query: EhsFilterContext }) =>
+  buildKpiRows(query, await mockEhsRepository.getKpiData(query));
 
-function singleMonthContext(month: "2026-01" | "2026-02"): KpiFilterContext {
+function singleMonthContext(month: "2026-01" | "2026-02"): EhsFilterContext {
   const nextMonth = month === "2026-01" ? "2026-02" : "2026-03";
 
   return {
@@ -32,37 +36,37 @@ function singleMonthContext(month: "2026-01" | "2026-02"): KpiFilterContext {
 }
 
 describe("KPI page data connection", () => {
-  it("loads repository data and builds rows for the shared Filter Context", () => {
-    const rows = loadKpiPageRows(q1Context, mockEhsRepository);
+  it("loads repository data and builds rows for the shared Filter Context", async () => {
+    const rows = await loadKpiPageRows(q1Context, referenceDateIso, queryRows);
 
     expect(rows).not.toBeNull();
-    expect(rows).toHaveLength(mockEhsRepository.listFilterStores().length);
+    expect(rows).toHaveLength((await mockEhsRepository.getFilterStores()).length);
   });
 
-  it("reflects Period changes without calculating Action aggregates in the page", () => {
-    const januaryRows = loadKpiPageRows(
+  it("reflects Period changes without calculating Action aggregates in the page", async () => {
+    const januaryRows = await loadKpiPageRows(
       singleMonthContext("2026-01"),
-      mockEhsRepository,
+      referenceDateIso,
+      queryRows,
     );
-    const februaryRows = loadKpiPageRows(
+    const februaryRows = await loadKpiPageRows(
       singleMonthContext("2026-02"),
-      mockEhsRepository,
+      referenceDateIso,
+      queryRows,
     );
 
     expect(januaryRows?.[0].actions.value).toBe(65);
     expect(februaryRows?.[0].actions.value).toBe(72);
   });
 
-  it("does not query the Repository when the Filter Context is invalid", () => {
+  it("does not query the Repository when the Filter Context is invalid", async () => {
     let callCount = 0;
-    const repository = {
-      getKpiData() {
+    const query = async () => {
         callCount += 1;
         throw new Error("Repository must not be called.");
-      },
     };
 
-    expect(loadKpiPageRows(null, repository)).toBeNull();
+    expect(await loadKpiPageRows(null, referenceDateIso, query)).toBeNull();
     expect(callCount).toBe(0);
   });
 });

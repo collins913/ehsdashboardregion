@@ -11,7 +11,7 @@ import {
 describe("shared data table layout contract", () => {
   it("keeps the shared frame and minimum table width aligned", () => {
     expect(dataTableFrameClassName).toContain("overflow-hidden");
-    expect(dataTableClassName).toBe("min-w-224");
+    expect(dataTableClassName).toBe("min-w-224 table-fixed");
   });
 
   it("provides four bounded semantic sizing roles", () => {

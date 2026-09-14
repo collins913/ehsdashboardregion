@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodForMode, periodFromMonthRange } from "@/data/contracts/kpi-period";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { mockPeople } from "@/data/mock/people";
@@ -9,7 +9,7 @@ import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 function contextFor(
   referenceDate: Date,
   mode: "THIS_MONTH" | "THIS_QUARTER" | "THIS_YEAR" = "THIS_QUARTER",
-): KpiFilterContext {
+): EhsFilterContext {
   return {
     region: { kind: "ALL" },
     area: { kind: "ALL" },
@@ -24,11 +24,11 @@ describe("current-year KPI mock factory", () => {
     ["2026-09-11T00:00:00+08:00", ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09"]],
     ["2026-11-15T00:00:00+08:00", ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"]],
     ["2027-02-15T00:00:00+08:00", ["2027-01", "2027-02"]],
-  ])("generates data and coverage through the reference month %s", (iso, months) => {
+  ])("generates data and coverage through the reference month %s", async (iso, months) => {
     const referenceDate = new Date(iso);
     const data = createKpiMockData(referenceDate);
     const repository = createMockEhsRepository(referenceDate);
-    const snapshot = repository.getKpiData(contextFor(referenceDate));
+    const snapshot = await repository.getKpiData(contextFor(referenceDate));
 
     expect(data.supportedMonths).toEqual(months);
     expect(data.coverage.period).toEqual(data.supportedPeriod);
@@ -95,16 +95,20 @@ describe("current-year KPI mock factory", () => {
     expect(new Set(eventIds).size).toBe(eventIds.length);
   });
 
-  it("provides enough current-quarter Action records for adaptive pagination", () => {
+  it("provides enough current-quarter Action records for adaptive pagination", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
-    const openActions = repository.getActions({
+    const openActions = await repository.getActions({
       context: contextFor(referenceDate),
       viewMode: "OPEN_ONLY",
+      pageIndex: 0,
+      pageSize: 100,
     });
-    const allActions = repository.getActions({
+    const allActions = await repository.getActions({
       context: contextFor(referenceDate),
       viewMode: "ALL",
+      pageIndex: 0,
+      pageSize: 100,
     });
 
     expect(openActions.availability).toBe("AVAILABLE");
@@ -163,11 +167,11 @@ describe("current-year KPI mock factory", () => {
     ).toBe(true);
   });
 
-  it("provides varied KPI results for the supported Period", () => {
+  it("provides varied KPI results for the supported Period", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const context = contextFor(referenceDate);
-    const rows = buildKpiRows(context, repository.getKpiData(context));
+    const rows = buildKpiRows(context, await repository.getKpiData(context));
     const byStore = new Map(rows.map((row) => [row.store.storeId, row]));
 
     expect(byStore.get("TEST-001")).toMatchObject({
@@ -194,12 +198,12 @@ describe("current-year KPI mock factory", () => {
     });
   });
 
-  it("supports month, current quarter, YTD and custom Action aggregates", () => {
+  it("supports month, current quarter, YTD and custom Action aggregates", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const customPeriod = periodFromMonthRange("2026-03", "2026-06")!;
     const contexts: readonly (
-      readonly [KpiFilterContext, number, "ACHIEVED" | "NOT_ACHIEVED"]
+      readonly [EhsFilterContext, number, "ACHIEVED" | "NOT_ACHIEVED"]
     )[] = [
       [contextFor(referenceDate, "THIS_MONTH"), 81, "NOT_ACHIEVED"],
       [contextFor(referenceDate, "THIS_QUARTER"), 92, "ACHIEVED"],
@@ -208,7 +212,7 @@ describe("current-year KPI mock factory", () => {
     ];
 
     for (const [context, expectedValue, expectedResult] of contexts) {
-      const row = buildKpiRows(context, repository.getKpiData(context))[0];
+      const row = buildKpiRows(context, await repository.getKpiData(context))[0];
 
       expect(row.actions.availability).toBe("AVAILABLE");
       expect(row.actions.value).toBe(expectedValue);
@@ -242,14 +246,14 @@ describe("current-year KPI mock factory", () => {
     ],
   ] as const)(
     "applies the %s Submitted Date scope to OPEN Action drill-down details",
-    (mode, expectedActionIds) => {
+    async (mode, expectedActionIds) => {
       const referenceDate = new Date("2026-09-11T00:00:00+08:00");
       const repository = createMockEhsRepository(referenceDate);
-      const context: KpiFilterContext = {
+      const context: EhsFilterContext = {
         ...contextFor(referenceDate, mode),
         store: { kind: "INCLUDE", values: ["TEST-001"] },
       };
-      const snapshot = repository.getKpiData(context);
+      const snapshot = await repository.getKpiData(context);
       const row = buildKpiRows(context, snapshot)[0];
 
       expect(snapshot.actionClosureRates.availability).toBe("AVAILABLE");
@@ -261,14 +265,14 @@ describe("current-year KPI mock factory", () => {
     },
   );
 
-  it("keeps closed and excluded Action details out of the Sheet data", () => {
+  it("keeps closed and excluded Action details out of the Sheet data", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
-    const context: KpiFilterContext = {
+    const context: EhsFilterContext = {
       ...contextFor(referenceDate, "THIS_MONTH"),
       store: { kind: "INCLUDE", values: ["TEST-002"] },
     };
-    const snapshot = repository.getKpiData(context);
+    const snapshot = await repository.getKpiData(context);
     const row = buildKpiRows(context, snapshot)[0];
 
     expect(snapshot.actions.availability).toBe("CONFIRMED_EMPTY");
@@ -279,12 +283,12 @@ describe("current-year KPI mock factory", () => {
     });
   });
 
-  it("returns genuine INCOMPLETE availability outside supportedMonths", () => {
+  it("returns genuine INCOMPLETE availability outside supportedMonths", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const unsupportedPeriod = periodFromMonthRange("2026-10", "2026-10")!;
     const context = { ...contextFor(referenceDate), period: unsupportedPeriod };
-    const snapshot = repository.getKpiData(context);
+    const snapshot = await repository.getKpiData(context);
     const rows = buildKpiRows(context, snapshot);
 
     expect(snapshot.training.availability).toBe("INCOMPLETE");

@@ -3,7 +3,7 @@ import type { KpiStore } from "@/data/contracts/kpi";
 import { filterStoresByDisplayName } from "@/components/shared/global-filters";
 import {
   createInitialGlobalFilterState,
-  toKpiFilterContext,
+  toEhsFilterContext,
 } from "@/features/global-filters/global-filter-state";
 
 const stores = [
@@ -42,7 +42,7 @@ describe("Store display-name search", () => {
     expect(filterStoresByDisplayName(scopedStores, "海湾")).toEqual([]);
   });
 
-  it("does not change selected storeIds or enter KpiFilterContext", () => {
+  it("does not change selected storeIds or enter EhsFilterContext", () => {
     const state = {
       ...createInitialGlobalFilterState(),
       store: {
@@ -55,7 +55,7 @@ describe("Store display-name search", () => {
 
     expect(state.store.values).toEqual(["hidden-keyword"]);
     expect(
-      toKpiFilterContext(
+      toEhsFilterContext(
         state,
         new Date("2026-09-11T00:00:00.000Z"),
         stores,

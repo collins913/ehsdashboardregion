@@ -93,6 +93,12 @@ Source Reference 为可选结构，可包含：
 
 三个概念不得共用一个含义不明的 `Status` 字段。
 
+### 2.6 Async Query Boundary
+
+`EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
+
+Client 传入 Server Action 的查询 DTO 仅包含 `EhsFilterContext`、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
+
 ## 3. Store Master Data
 
 当前 Store Master normalized contract 的逻辑字段：
@@ -227,7 +233,7 @@ Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalize
 
 ### 5.4 Take Charge Records Query
 
-查询输入为 `KpiFilterContext + OPEN_ONLY | ALL + sorting + pageIndex + pageSize`；Repository 输出当前页 records、`totalCount`、DataAvailability 与 field definitions。Repository 对完整 scoped result 先应用 view mode 与排序，再分页；动态扩展字段 V1 不参与排序。
+查询输入为 `EhsFilterContext + OPEN_ONLY | ALL + sorting + pageIndex + pageSize`；Repository 输出当前页 records、`totalCount`、DataAvailability 与 field definitions。Repository 对完整 scoped result 先应用 view mode 与排序，再分页；动态扩展字段 V1 不参与排序。
 
 今年平均提交数、今年参与率的生产源字段及人员分母定义仍由数据源契约确认；V1 mock 只通过隔离的 deterministic aggregate fixture 表达，不把 mock 公式固化为生产规则。
 
@@ -253,7 +259,9 @@ Events Repository 必须复用 Actions 已采用的 Store Resolution，将源 TR
 
 规范化 Event 公共字段包含 canonical Store、Event ID、Event Type、Submitted By、Event Date、Description、Raw Status、RecordState 与 ASTM 源值。Event Type 专属详情字段为 TBD，不使用未约束的 `Record<string, unknown>` 向 UI 透传。
 
-Events scoped Repository query 复用 `KpiFilterContext`，以 Event Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回 `RecordState = OPEN`；`ALL` 返回当前已确认的 OPEN 与 CLOSED。Event Type 是 feature-local 可选查询条件，不进入 Global Filter Context。
+Events scoped Repository query 复用 `EhsFilterContext`，以 Event Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回 `RecordState = OPEN`；`ALL` 返回当前已确认的 OPEN 与 CLOSED。Event Type 是 feature-local 可选查询条件，不进入 Global Filter Context。
+
+Events query 还接收 sorting、`pageIndex`、`pageSize`，返回当前页 records、`totalCount`、DataAvailability 及分页前从当前 Global Scope + view mode 生成的 `availableEventTypes`。
 
 ## 7. Risk & Compliance → Action Record
 
@@ -284,7 +292,9 @@ Repository / Adapter 必须保留 Raw Status，并集中解析为 `ParsedActionS
 
 Actions 数据源的 Store Resolution 顺序为：TRTID 唯一匹配优先；TRTID 缺失或无法匹配时使用 Store English Name 精确唯一匹配。TRTID 唯一有效且英文名无匹配时接受 TRTID，以兼容历史改名；只有英文名明确匹配另一门店时判定冲突。冲突、重复命中或无法解析时不得静默选择或丢弃，Repository 将查询标记为 `INCOMPLETE`。规范化查询输出仅包含 canonical `storeId` 与中文 `storeDisplayName`，不向页面暴露 TRTID 或 Store English Name。
 
-Actions scoped Repository query 复用 `KpiFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。KPI Action 下钻与 Actions 页面 Open 视图必须复用同一 `OPEN_ONLY` 查询。
+Actions scoped Repository query 复用 `EhsFilterContext`，以 Submitted Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回集中解析后的 `RecordState = OPEN`；`ALL` 保留 `OPEN`、`CLOSED`、`EXCLUDED`、`UNKNOWN`。KPI Action 下钻与 Actions 页面 Open 视图必须复用同一 `OPEN_ONLY` 查询。
+
+Actions query 还接收 sorting、`pageIndex`、`pageSize`，Repository 对完整 scoped result 先应用 Period、view mode 与排序，再返回当前页、`totalCount` 和 DataAvailability。
 
 ## 8. Risk & Compliance → Certificates
 

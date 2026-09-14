@@ -36,10 +36,12 @@
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
 | DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
+| AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
-| DataTable layout helpers | Shared table frame, minimum width, horizontal overflow, sticky mechanics and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
+| DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
+| DataTable layout helpers | Shared fixed table layout, minimum width, horizontal overflow, sticky mechanics and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
 
 ## Shared utilities
 
@@ -52,21 +54,22 @@
 | Hook | Responsibility |
 | --- | --- |
 | useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
+| useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR state and prevents stale async responses from replacing the latest query |
 
 ## Feature-specific
 
 | Component | Responsibility |
 | --- | --- |
 | KpiDataTable | KPI V1 table, including status/availability cells, abnormal filtering, single-state adaptive 5 / 7 / 10 pagination, sticky Store column and Action detail Sheet |
-| KpiPageContent | Connects shared Global Filter Context to the Repository, KPI builder and KpiDataTable |
+| KpiPageContent | Sends shared Global Filter Context through the injected server query boundary and renders KpiDataTable |
 | ActionsDataTable | Actions record table with view switching, sorting, column visibility, adaptive pagination, row drill-down and Action Detail Sheet |
-| ActionsPageContent | Connects shared Global Filter Context and Actions view mode to the scoped Repository query |
+| ActionsPageContent | Connects shared Global Filter Context and Actions view mode to the injected server query boundary |
 | ActionStatusDisplay | Actions feature adapter that maps centralized workflow presentation into shared StatusDisplay for tables and details |
 | EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
-| EventsPageContent | Connects shared Global Filter Context and feature-local filters to the scoped Events Repository query |
-| GoalsPageContent | Connects Global Filter Context to scoped Take Charge summary and record queries; metric cards use consistent plain-text values |
+| EventsPageContent | Connects shared Global Filter Context and feature-local filters to the injected server query boundary |
+| GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; metric cards use consistent plain-text values |
 | TakeChargeDataTable | Repository-paginated Take Charge records with Current Open / All view mode, repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 | StoresDataTable | Store Master browser with sortable confirmed fields, column visibility, adaptive pagination, sticky Store column and Store Detail Sheet |
-| StoresPageContent | Connects shared Global Filter Context to the scoped Stores Repository query; Period is ignored by the Repository |
+| StoresPageContent | Connects shared Global Filter Context to the injected async Stores query; Period is ignored by the Repository |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.

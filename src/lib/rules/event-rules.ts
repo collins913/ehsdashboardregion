@@ -1,7 +1,9 @@
 import type { EventRecord } from "@/types/ehs";
 import type { OccurrenceResult, RecordState } from "./result-types";
 
-export type AstmEventInput = Pick<EventRecord, "ASTMInjuryIllness">;
+export interface AstmEventInput {
+  astmInjuryIllness: string;
+}
 
 export function classifyEventRecordState(status: string): RecordState {
   if (status === "Open") {
@@ -16,7 +18,7 @@ export function classifyEventRecordState(status: string): RecordState {
 }
 
 export function isAstmIncident(event: AstmEventInput): boolean {
-  return event.ASTMInjuryIllness === "Yes";
+  return event.astmInjuryIllness === "Yes";
 }
 
 export function evaluateAstmOccurrence(

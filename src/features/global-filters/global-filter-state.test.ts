@@ -9,7 +9,7 @@ import {
   includedMonthsBetween,
   periodForMode,
   periodFromMonthRange,
-  toKpiFilterContext,
+  toEhsFilterContext,
   type GlobalFilterState,
 } from "@/features/global-filters/global-filter-state";
 
@@ -79,12 +79,12 @@ describe("global filter hierarchy", () => {
     const now = new Date("2026-08-15T00:00:00Z");
     const base = createInitialGlobalFilterState();
 
-    expect(toKpiFilterContext(base, now, stores)?.store).toEqual({ kind: "ALL" });
+    expect(toEhsFilterContext(base, now, stores)?.store).toEqual({ kind: "ALL" });
     expect(
-      toKpiFilterContext({ ...base, store: include("store-a1") }, now, stores)?.store,
+      toEhsFilterContext({ ...base, store: include("store-a1") }, now, stores)?.store,
     ).toEqual(include("store-a1"));
     expect(
-      toKpiFilterContext(
+      toEhsFilterContext(
         { ...base, store: include("store-a1", "store-a2") },
         now,
         stores,
@@ -95,7 +95,7 @@ describe("global filter hierarchy", () => {
 
 describe("natural-month periods", () => {
   it("defaults to the current Shanghai quarter", () => {
-    const context = toKpiFilterContext(
+    const context = toEhsFilterContext(
       createInitialGlobalFilterState(),
       new Date("2026-08-15T23:00:00Z"),
       stores,
@@ -213,7 +213,7 @@ describe("natural-month periods", () => {
     };
 
     expect(
-      toKpiFilterContext(state, new Date("2026-08-15T00:00:00Z"), stores),
+      toEhsFilterContext(state, new Date("2026-08-15T00:00:00Z"), stores),
     ).toBeNull();
   });
 
@@ -222,10 +222,10 @@ describe("natural-month periods", () => {
     const base = createInitialGlobalFilterState();
 
     expect(
-      toKpiFilterContext({ ...base, region: include("不存在区域") }, now, stores),
+      toEhsFilterContext({ ...base, region: include("不存在区域") }, now, stores),
     ).toBeNull();
     expect(
-      toKpiFilterContext(
+      toEhsFilterContext(
         { ...base, store: include("unknown-store") },
         now,
         stores,

@@ -1,49 +1,60 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback } from "react";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
-import {
-  createEhsRepository,
-  type EhsRepository,
-} from "@/data/repositories";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
-import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
 import type { KpiRow } from "@/features/kpi/types";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
-type KpiPageRepository = Pick<EhsRepository, "getKpiData">;
+export type KpiRowsQuery = (input: {
+  referenceDateIso: string;
+  query: EhsFilterContext;
+}) => Promise<readonly KpiRow[]>;
 
-export function loadKpiPageRows(
-  context: KpiFilterContext | null,
-  repository: KpiPageRepository,
-): readonly KpiRow[] | null {
+export async function loadKpiPageRows(
+  context: EhsFilterContext | null,
+  referenceDateIso: string,
+  query: KpiRowsQuery,
+): Promise<readonly KpiRow[] | null> {
   if (context === null) {
     return null;
   }
 
-  return buildKpiRows(context, repository.getKpiData(context));
+  return query({ referenceDateIso, query: context });
 }
 
-export function KpiPageContent() {
+export function KpiPageContent({ queryRows }: { queryRows: KpiRowsQuery }) {
   const { filterContext, referenceDateIso } = useGlobalFilters();
-  const repository = useMemo(
-    () => createEhsRepository(new Date(referenceDateIso)),
-    [referenceDateIso],
+  const queryKey = filterContext
+    ? JSON.stringify([referenceDateIso, filterContext])
+    : null;
+  const load = useCallback(
+    () => loadKpiPageRows(filterContext, referenceDateIso, queryRows),
+    [filterContext, queryRows, referenceDateIso],
   );
-  const rows = useMemo(
-    () => loadKpiPageRows(filterContext, repository),
-    [filterContext, repository],
-  );
+  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
 
   return (
     <PageContainer>
-      {rows === null ? (
+      {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成 KPI 数据，请调整筛选条件。
         </div>
       ) : (
-        <KpiDataTable rows={rows} />
+        <>
+          {state.status === "ERROR" ? (
+            <AsyncQueryFeedback status="ERROR" />
+          ) : null}
+          <KpiDataTable
+            rows={state.status === "SUCCESS" ? state.data ?? [] : []}
+            queryStatus={
+              state.status === "SUCCESS" ? "READY" : state.status
+            }
+          />
+        </>
       )}
     </PageContainer>
   );

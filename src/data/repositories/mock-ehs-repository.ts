@@ -1,16 +1,10 @@
 import {
   createKpiMockData,
-  mockCarWashDrainagePermitRecords,
-  mockCertificateRecords,
-  mockDischargePermitRecords,
-  mockEiaRecords,
-  mockEnvironmentalMonitoringRecords,
   mockStores,
-  mockWasteContractRecords,
   type KpiMockCoverage,
 } from "@/data/mock";
 import { parseActionStatus } from "@/data/parse-action-status";
-import { resolveActionStore } from "@/data/resolve-action-store";
+import { resolveStoreReference } from "@/data/resolve-store-reference";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
 import {
   isInstantInKpiPeriod,
@@ -26,17 +20,19 @@ import type {
   KpiActionClosureRateRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
-  KpiFilterContext,
+  EhsFilterContext,
   KpiInspectionRecord,
   KpiStore,
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type {
+  ActionSortKey,
   ActionsQuery,
   ActionsQueryResult,
   NormalizedActionRecord,
 } from "@/data/contracts/actions";
 import type {
+  EventSortKey,
   EventsQuery,
   EventsQueryResult,
   NormalizedEventRecord,
@@ -119,7 +115,7 @@ function toNormalizedStoreRecord(
   };
 }
 
-function scopedStoreMaster(context: KpiFilterContext) {
+function scopedStoreMaster(context: EhsFilterContext) {
   return mockStores.filter(
     (store) =>
       scopeIncludes(context.region, store.region) &&
@@ -128,12 +124,12 @@ function scopedStoreMaster(context: KpiFilterContext) {
   );
 }
 
-function requestedStores(context: KpiFilterContext): readonly KpiStore[] {
+function requestedStores(context: EhsFilterContext): readonly KpiStore[] {
   return scopedStoreMaster(context).map(toKpiStore);
 }
 
 function isWithinDeclaredCoverage(
-  context: KpiFilterContext,
+  context: EhsFilterContext,
   selectedStoreIds: readonly StoreId[],
   parsedPeriod: ParsedKpiPeriod | null,
   coverage: KpiMockCoverage,
@@ -156,7 +152,7 @@ function isWithinDeclaredCoverage(
 }
 
 function isSourceCovered(
-  context: KpiFilterContext,
+  context: EhsFilterContext,
   selectedStoreIds: readonly StoreId[],
   parsedPeriod: ParsedKpiPeriod | null,
   coverage: KpiMockCoverage,
@@ -311,6 +307,65 @@ function pageIndexForResult(
   return Math.min(Math.max(0, Math.trunc(requestedPageIndex)), lastPageIndex);
 }
 
+function compareText(
+  left: string,
+  right: string,
+  direction: "asc" | "desc",
+): number {
+  const comparison = left.localeCompare(right);
+  return direction === "asc" ? comparison : -comparison;
+}
+
+function actionSortValue(
+  record: NormalizedActionRecord,
+  key: ActionSortKey,
+): string {
+  switch (key) {
+    case "store":
+      return record.storeDisplayName;
+    case "actionId":
+      return record.actionId;
+    case "problem":
+      return record.problem;
+    case "action":
+      return record.action;
+    case "dueDate":
+      return record.dueDate;
+    case "status":
+      return `${record.recordState}:${record.sourceStatus.value}`;
+    case "owner":
+      return record.owner;
+    case "submittedBy":
+      return record.submittedBy;
+    case "submittedDate":
+      return record.submittedDate;
+    case "closedDate":
+      return record.closedDate ?? "";
+  }
+}
+
+function eventSortValue(
+  record: NormalizedEventRecord,
+  key: EventSortKey,
+): string {
+  switch (key) {
+    case "store":
+      return record.storeDisplayName;
+    case "eventId":
+      return record.eventId;
+    case "eventType":
+      return record.eventType;
+    case "description":
+      return record.description;
+    case "eventDate":
+      return record.eventDate;
+    case "status":
+      return `${record.recordState}:${record.sourceStatus}`;
+    case "submittedBy":
+      return record.submittedBy;
+  }
+}
+
 export function createMockEhsRepository(
   referenceDate: Date,
   options: MockEhsRepositoryOptions = {},
@@ -338,7 +393,7 @@ export function createMockEhsRepository(
   let takeChargeStatusCoverageComplete = true;
 
   for (const record of takeChargeRecords) {
-    const resolution = resolveActionStore(record.storeReference, mockStores);
+    const resolution = resolveStoreReference(record.storeReference, mockStores);
     const normalizedSubmittedAt = interpretShanghaiSourceDateTime(
       record.submittedAt,
     );
@@ -386,7 +441,9 @@ export function createMockEhsRepository(
     normalizedTakeChargeRecords,
   );
 
-  function getKpiData(context: KpiFilterContext): KpiDataSnapshot {
+  async function getKpiData(
+    context: EhsFilterContext,
+  ): Promise<KpiDataSnapshot> {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
@@ -489,12 +546,15 @@ export function createMockEhsRepository(
         ) && aggregateScopeCovered,
         actionClosureRates.resolutionComplete,
       ),
-      actions: getActions({ context, viewMode: "OPEN_ONLY" }),
-      events: getEvents({ context, viewMode: "ALL" }),
+      actions: actionDataSet(context, "OPEN_ONLY"),
+      events: eventDataSet(context, "ALL"),
     };
   }
 
-  function getActions({ context, viewMode }: ActionsQuery): ActionsQueryResult {
+  function actionDataSet(
+    context: EhsFilterContext,
+    viewMode: ActionsQuery["viewMode"],
+  ): DataSet<NormalizedActionRecord> {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
@@ -534,7 +594,10 @@ export function createMockEhsRepository(
           continue;
         }
 
-        const resolution = resolveActionStore(record.storeReference, mockStores);
+        const resolution = resolveStoreReference(
+          record.storeReference,
+          mockStores,
+        );
 
         if (resolution.kind !== "RESOLVED") {
           resolutionComplete = false;
@@ -584,11 +647,50 @@ export function createMockEhsRepository(
     );
   }
 
-  function getEvents({
+  async function getActions({
     context,
     viewMode,
-    eventType,
-  }: EventsQuery): EventsQueryResult {
+    sorting,
+    pageIndex: requestedPageIndex,
+    pageSize: requestedPageSize,
+  }: ActionsQuery): Promise<ActionsQueryResult> {
+    const dataSet = actionDataSet(context, viewMode);
+    const pageSize = Math.max(1, Math.trunc(requestedPageSize));
+    const records = [...dataSet.items].sort((left, right) => {
+      if (sorting !== undefined) {
+        const comparison = compareText(
+          actionSortValue(left, sorting.key),
+          actionSortValue(right, sorting.key),
+          sorting.direction,
+        );
+        if (comparison !== 0) return comparison;
+      }
+
+      return (
+        right.submittedDate.localeCompare(left.submittedDate) ||
+        left.actionId.localeCompare(right.actionId)
+      );
+    });
+    const pageIndex = pageIndexForResult(
+      requestedPageIndex,
+      records.length,
+      pageSize,
+    );
+    const start = pageIndex * pageSize;
+
+    return {
+      availability: dataSet.availability,
+      items: records.slice(start, start + pageSize),
+      totalCount: records.length,
+      pageIndex,
+      pageSize,
+    };
+  }
+
+  function eventDataSet(
+    context: EhsFilterContext,
+    viewMode: EventsQuery["viewMode"],
+  ): DataSet<NormalizedEventRecord> {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
@@ -617,7 +719,7 @@ export function createMockEhsRepository(
           continue;
         }
 
-        const resolution = resolveActionStore(record.storeReference, mockStores);
+        const resolution = resolveStoreReference(record.storeReference, mockStores);
 
         if (resolution.kind !== "RESOLVED") {
           resolutionComplete = false;
@@ -633,10 +735,6 @@ export function createMockEhsRepository(
         const recordState = classifyEventRecordState(record.Status);
 
         if (viewMode === "OPEN_ONLY" && recordState !== "OPEN") {
-          continue;
-        }
-
-        if (eventType !== undefined && record.eventType !== eventType) {
           continue;
         }
 
@@ -669,9 +767,58 @@ export function createMockEhsRepository(
     );
   }
 
-  function getTakeChargeGoals({
+  async function getEvents({
     context,
-  }: TakeChargeGoalsQuery): TakeChargeGoalsSummary {
+    viewMode,
+    eventType,
+    sorting,
+    pageIndex: requestedPageIndex,
+    pageSize: requestedPageSize,
+  }: EventsQuery): Promise<EventsQueryResult> {
+    const dataSet = eventDataSet(context, viewMode);
+    const availableEventTypes = [
+      ...new Set(dataSet.items.map((record) => record.eventType)),
+    ].sort((left, right) => left.localeCompare(right));
+    const pageSize = Math.max(1, Math.trunc(requestedPageSize));
+    const records = dataSet.items
+      .filter(
+        (record) => eventType === undefined || record.eventType === eventType,
+      )
+      .sort((left, right) => {
+        if (sorting !== undefined) {
+          const comparison = compareText(
+            eventSortValue(left, sorting.key),
+            eventSortValue(right, sorting.key),
+            sorting.direction,
+          );
+          if (comparison !== 0) return comparison;
+        }
+
+        return (
+          right.eventDate.localeCompare(left.eventDate) ||
+          left.eventId.localeCompare(right.eventId)
+        );
+      });
+    const pageIndex = pageIndexForResult(
+      requestedPageIndex,
+      records.length,
+      pageSize,
+    );
+    const start = pageIndex * pageSize;
+
+    return {
+      availability: dataSet.availability,
+      items: records.slice(start, start + pageSize),
+      totalCount: records.length,
+      pageIndex,
+      pageSize,
+      availableEventTypes,
+    };
+  }
+
+  async function getTakeChargeGoals({
+    context,
+  }: TakeChargeGoalsQuery): Promise<TakeChargeGoalsSummary> {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
@@ -775,13 +922,13 @@ export function createMockEhsRepository(
     };
   }
 
-  function getTakeChargeRecords({
+  async function getTakeChargeRecords({
     context,
     viewMode,
     sorting,
     pageIndex: requestedPageIndex,
     pageSize: requestedPageSize,
-  }: TakeChargeRecordsQuery): TakeChargeRecordsResult {
+  }: TakeChargeRecordsQuery): Promise<TakeChargeRecordsResult> {
     const stores = requestedStores(context);
     const selectedStoreIdList = stores.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
@@ -863,7 +1010,7 @@ export function createMockEhsRepository(
     };
   }
 
-  function getStores({ context }: StoresQuery): StoresQueryResult {
+  async function getStores({ context }: StoresQuery): Promise<StoresQueryResult> {
     return completeDataSet(
       scopedStoreMaster(context).map(toNormalizedStoreRecord),
     );
@@ -876,23 +1023,6 @@ export function createMockEhsRepository(
     getTakeChargeGoals,
     getTakeChargeRecords,
     getStores,
-    listFilterStores: () => mockStores.map(toKpiStore),
-    listStores: () => mockStores,
-    findStoreCandidates: (reference) =>
-      mockStores.filter((store) => matchesStoreReference(store, reference)),
-    listTrainingRecords: () => mockData.trainingRecords,
-    listDrillRecords: () => mockData.drillRecords,
-    listInspectionRecords: () => mockData.inspectionRecords,
-    listActionClosureRates: () => mockData.actionClosureRates,
-    listActionRecords: () => parsedActionRecords,
-    listEventRecords: () => eventRecords,
-    listCertificateRecords: () => mockCertificateRecords,
-    listWasteContractRecords: () => mockWasteContractRecords,
-    listCarWashDrainagePermitRecords: () =>
-      mockCarWashDrainagePermitRecords,
-    listEiaRecords: () => mockEiaRecords,
-    listDischargePermitRecords: () => mockDischargePermitRecords,
-    listEnvironmentalMonitoringRecords: () =>
-      mockEnvironmentalMonitoringRecords,
+    getFilterStores: async () => mockStores.map(toKpiStore),
   };
 }

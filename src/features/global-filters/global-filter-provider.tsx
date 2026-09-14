@@ -10,7 +10,7 @@ import {
 } from "react";
 import type {
   FilterScope,
-  KpiFilterContext,
+  EhsFilterContext,
   KpiStore,
 } from "@/data/contracts/kpi";
 import type { Month, StoreId } from "@/types/ehs";
@@ -22,12 +22,12 @@ import {
   hasValidFilterScopes,
   type GlobalFilterState,
   type PeriodMode,
-  toKpiFilterContext,
+  toEhsFilterContext,
 } from "@/features/global-filters/global-filter-state";
 
 type GlobalFiltersProviderValue = {
   state: GlobalFilterState;
-  filterContext: KpiFilterContext | null;
+  filterContext: EhsFilterContext | null;
   referenceDateIso: string;
   readiness: "READY" | "INVALID_PERIOD" | "INVALID_SCOPE";
   options: ReturnType<typeof filterOptions>;
@@ -47,6 +47,7 @@ type GlobalFilterProviderProps = {
   stores: readonly KpiStore[];
   initialState?: GlobalFilterState;
   nowIso: string;
+  referenceMonth: Month;
 };
 
 export function GlobalFilterProvider({
@@ -54,12 +55,12 @@ export function GlobalFilterProvider({
   stores,
   initialState = createInitialGlobalFilterState(),
   nowIso,
+  referenceMonth,
 }: GlobalFilterProviderProps) {
   const [state, setState] = useState(initialState);
-  const now = useMemo(() => new Date(nowIso), [nowIso]);
   const filterContext = useMemo(
-    () => toKpiFilterContext(state, now, stores),
-    [now, state, stores],
+    () => toEhsFilterContext(state, referenceMonth, stores),
+    [referenceMonth, state, stores],
   );
   const readiness = useMemo(
     () =>

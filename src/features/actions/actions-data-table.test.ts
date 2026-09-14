@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NormalizedActionRecord } from "@/data/contracts/actions";
+import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import {
   ACTION_COLUMN_SIZE_ROLES,
   ActionDetailContent,
@@ -10,6 +11,7 @@ import {
   DEFAULT_ACTION_COLUMN_VISIBILITY,
   DEFAULT_ACTIONS_VIEW_MODE,
   DEFAULT_VISIBLE_ACTION_COLUMN_IDS,
+  getActionRowId,
 } from "./actions-data-table";
 import {
   formatBusinessDate,
@@ -53,16 +55,24 @@ describe("Actions table defaults", () => {
     });
   });
 
+  it("uses the stable Action ID as row identity", () => {
+    expect(getActionRowId(record)).toBe("ACTION-001");
+  });
+
   it("does not render business rows before adaptive measurement", () => {
     const markup = renderToStaticMarkup(
       createElement(
         TooltipProvider,
         null,
         createElement(ActionsDataTable, {
-          rows: [record],
-          availability: "AVAILABLE",
+          context: {
+            region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" },
+            period: periodFromMonthRange("2026-09", "2026-09")!,
+          },
+          referenceDateIso: "2026-09-11T00:00:00+08:00",
           viewMode: "OPEN_ONLY",
           onViewModeChange: () => {},
+          queryActions: async () => { throw new Error("not called before measurement"); },
         }),
       ),
     );

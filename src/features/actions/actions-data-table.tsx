@@ -11,15 +11,11 @@ import {
   columnVisibilityFeature,
   type ColumnVisibilityState,
   createColumnHelper,
-  createPaginatedRowModel,
-  createSortedRowModel,
   type OnChangeFn,
   type PaginationState,
   rowPaginationFeature,
   rowSortingFeature,
   type SortingState,
-  sortFn_basic,
-  sortFn_text,
   tableFeatures as defineTableFeatures,
   useTable,
 } from "@tanstack/react-table";
@@ -34,6 +30,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,18 +49,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
+  ActionSortKey,
+  ActionsQuery,
+  ActionsQueryResult,
   ActionsViewMode,
   NormalizedActionRecord,
 } from "@/data/contracts/actions";
-import type { DataAvailability } from "@/data/contracts/kpi";
+import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
 import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
-  clampTablePageIndex,
   paginationForPageSize,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { cn } from "@/lib/utils";
 import {
   formatBusinessDate,
@@ -74,12 +74,6 @@ const actionsTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSortingFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-  sortedRowModel: createSortedRowModel(),
-  sortFns: {
-    basic: sortFn_basic,
-    text: sortFn_text,
-  },
 });
 
 type ActionsTableFeatures = typeof actionsTableFeatures;
@@ -138,6 +132,10 @@ export const DEFAULT_VISIBLE_ACTION_COLUMN_IDS = [
 ] as const;
 
 export const DEFAULT_ACTIONS_VIEW_MODE: ActionsViewMode = "OPEN_ONLY";
+
+export function getActionRowId(record: NormalizedActionRecord): string {
+  return record.actionId;
+}
 
 type ActionsPaginationState =
   | { status: "UNMEASURED" }
@@ -265,17 +263,22 @@ function DataAvailabilityNotice({
 }
 
 type ActionsDataTableProps = {
-  rows: readonly NormalizedActionRecord[];
-  availability: DataAvailability;
+  context: EhsFilterContext;
+  referenceDateIso: string;
   viewMode: ActionsViewMode;
   onViewModeChange: (viewMode: ActionsViewMode) => void;
+  queryActions: (input: {
+    referenceDateIso: string;
+    query: ActionsQuery;
+  }) => Promise<ActionsQueryResult>;
 };
 
 export function ActionsDataTable({
-  rows,
-  availability,
+  context,
+  referenceDateIso,
   viewMode,
   onViewModeChange,
+  queryActions,
 }: ActionsDataTableProps) {
   const [selectedRecord, setSelectedRecord] =
     useState<NormalizedActionRecord | null>(null);
@@ -286,20 +289,49 @@ export function ActionsDataTable({
   const [paginationState, setPaginationState] =
     useState<ActionsPaginationState>({ status: "UNMEASURED" });
   const isPaginationReady = paginationState.status === "READY";
-  const pagination = useMemo<PaginationState>(() => {
-    if (paginationState.status === "UNMEASURED") {
-      return unmeasuredTablePagination;
-    }
-
-    return {
-      pageIndex: clampTablePageIndex(
-        paginationState.pagination.pageIndex,
-        rows.length,
-        paginationState.pagination.pageSize,
-      ),
-      pageSize: paginationState.pagination.pageSize,
-    };
-  }, [paginationState, rows.length]);
+  const pagination =
+    paginationState.status === "READY"
+      ? paginationState.pagination
+      : unmeasuredTablePagination;
+  const sortingDescriptor =
+    sorting.length === 0
+      ? undefined
+      : {
+          key: sorting[0].id as ActionSortKey,
+          direction: sorting[0].desc ? ("desc" as const) : ("asc" as const),
+        };
+  const queryInput =
+    paginationState.status === "READY"
+      ? {
+          referenceDateIso,
+          query: {
+            context,
+            viewMode,
+            sorting: sortingDescriptor,
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+          },
+        }
+      : null;
+  const queryKey = queryInput === null ? null : JSON.stringify(queryInput);
+  const load = useCallback(
+    () => queryActions(queryInput!),
+    [queryActions, queryKey],
+  );
+  const queryState = useLatestAsyncQuery(
+    queryKey,
+    queryInput === null ? null : load,
+  );
+  const result: ActionsQueryResult | null =
+    queryState.status === "SUCCESS" ? queryState.data : null;
+  const rows = result?.items ?? [];
+  const totalCount = result?.totalCount ?? 0;
+  const availability: DataAvailability =
+    queryState.status === "ERROR"
+      ? "UNAVAILABLE"
+      : result?.availability ?? "AVAILABLE";
+  const isQueryLoading = queryState.status === "LOADING";
+  const queryScopeKey = JSON.stringify([referenceDateIso, context]);
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
       setPaginationState((current) => {
@@ -309,7 +341,7 @@ export function ActionsDataTable({
             : { pageIndex: 0, pageSize };
         const nextPagination = paginationForPageSize(
           currentPagination,
-          rows.length,
+          totalCount,
           pageSize,
         );
 
@@ -320,7 +352,7 @@ export function ActionsDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [totalCount],
   );
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
@@ -329,22 +361,11 @@ export function ActionsDataTable({
           return current;
         }
 
-        const currentPagination: PaginationState = {
-          pageIndex: clampTablePageIndex(
-            current.pagination.pageIndex,
-            rows.length,
-            current.pagination.pageSize,
-          ),
-          pageSize: current.pagination.pageSize,
-        };
+        const currentPagination: PaginationState = current.pagination;
         const proposedPagination =
           typeof updater === "function" ? updater(currentPagination) : updater;
         const nextPagination: AdaptivePagination = {
-          pageIndex: clampTablePageIndex(
-            proposedPagination.pageIndex,
-            rows.length,
-            current.pagination.pageSize,
-          ),
+          pageIndex: Math.max(0, proposedPagination.pageIndex),
           pageSize: current.pagination.pageSize,
         };
 
@@ -353,7 +374,7 @@ export function ActionsDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [],
   );
   const {
     tableFrameRef,
@@ -370,25 +391,33 @@ export function ActionsDataTable({
   });
 
   useLayoutEffect(() => {
-    setPaginationState((current) => {
-      if (current.status === "UNMEASURED") {
-        return current;
-      }
-
-      const pageIndex = clampTablePageIndex(
-        current.pagination.pageIndex,
-        rows.length,
-        current.pagination.pageSize,
-      );
-
-      return pageIndex === current.pagination.pageIndex
-        ? current
-        : {
+    setSelectedRecord(null);
+    setDetailOpen(false);
+    setPaginationState((current) =>
+      current.status === "READY" && current.pagination.pageIndex !== 0
+        ? {
             status: "READY",
-            pagination: { ...current.pagination, pageIndex },
-          };
-    });
-  }, [rows.length]);
+            pagination: { ...current.pagination, pageIndex: 0 },
+          }
+        : current,
+    );
+  }, [queryScopeKey]);
+
+  useLayoutEffect(() => {
+    if (
+      result !== null &&
+      paginationState.status === "READY" &&
+      result.pageIndex !== paginationState.pagination.pageIndex
+    ) {
+      setPaginationState({
+        status: "READY",
+        pagination: {
+          ...paginationState.pagination,
+          pageIndex: result.pageIndex,
+        },
+      });
+    }
+  }, [paginationState, result]);
 
   const openDetail = useCallback((record: NormalizedActionRecord) => {
     setSelectedRecord(record);
@@ -412,7 +441,6 @@ export function ActionsDataTable({
             />
           ),
           enableHiding: false,
-          sortFn: "text",
         }),
         columnHelper.accessor("actionId", {
           id: "actionId",
@@ -429,7 +457,6 @@ export function ActionsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("problem", {
           id: "problem",
@@ -443,7 +470,6 @@ export function ActionsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("action", {
           id: "action",
@@ -457,14 +483,12 @@ export function ActionsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor((row) => formatBusinessDate(row.dueDate), {
           id: "dueDate",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.dueDate} />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor((row) => row.sourceStatus.value, {
           id: "status",
@@ -474,7 +498,6 @@ export function ActionsDataTable({
           cell: ({ row }) => (
             <ActionStatusDisplay status={row.original.sourceStatus} />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("owner", {
           id: "owner",
@@ -488,7 +511,6 @@ export function ActionsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("submittedBy", {
           id: "submittedBy",
@@ -505,7 +527,6 @@ export function ActionsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor((row) => formatBusinessDate(row.submittedDate), {
           id: "submittedDate",
@@ -515,7 +536,6 @@ export function ActionsDataTable({
               title={columnLabels.submittedDate}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor(
           (row) =>
@@ -528,7 +548,6 @@ export function ActionsDataTable({
                 title={columnLabels.closedDate}
               />
             ),
-            sortFn: "text",
           },
         ),
       ]),
@@ -538,13 +557,36 @@ export function ActionsDataTable({
     features: actionsTableFeatures,
     columns,
     data: rows,
-    onSortingChange: setSorting,
+    getRowId: getActionRowId,
+    manualPagination: true,
+    manualSorting: true,
+    rowCount: totalCount,
+    onSortingChange: (updater) => {
+      setSorting((current) =>
+        typeof updater === "function" ? updater(current) : updater,
+      );
+      setPaginationState((current) =>
+        current.status === "READY"
+          ? {
+              status: "READY",
+              pagination: { ...current.pagination, pageIndex: 0 },
+            }
+          : current,
+      );
+    },
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
     state: { sorting, columnVisibility, pagination },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
+    id: column.id,
+    className: cn(
+      actionColumnSizeClassName(column.id),
+      column.id === "store" && stickyStoreCellClassName,
+    ),
+  }));
 
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
@@ -561,7 +603,10 @@ export function ActionsDataTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        inert={isQueryLoading ? true : undefined}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
@@ -592,7 +637,12 @@ export function ActionsDataTable({
 
       <DataAvailabilityNotice availability={availability} />
 
-      <div ref={tableFrameRef} className={dataTableFrameClassName}>
+      <div
+        ref={tableFrameRef}
+        className={dataTableFrameClassName}
+        aria-busy={isQueryLoading}
+        inert={isQueryLoading ? true : undefined}
+      >
         <Table className={dataTableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -626,6 +676,13 @@ export function ActionsDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
+            ) : queryState.status === "LOADING" ||
+              queryState.status === "ERROR" ? (
+              <DataTablePlaceholderRows
+                columns={placeholderColumns}
+                rowCount={pagination.pageSize}
+                hidden={queryState.status === "ERROR"}
+              />
             ) : displayedRows.length > 0 ? (
               displayedRows.map((row, rowIndex) => (
                 <TableRow
@@ -670,13 +727,14 @@ export function ActionsDataTable({
 
       <div
         ref={paginationRef}
+        aria-busy={isQueryLoading}
         aria-hidden={!isPaginationReady}
         className={`flex flex-wrap items-center justify-between gap-3${
           isPaginationReady ? "" : " invisible"
         }`}
       >
         <p className="text-sm text-muted-foreground">
-          共 {rows.length} 条行动项
+          共 {totalCount} 条行动项
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
@@ -687,7 +745,7 @@ export function ActionsDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isQueryLoading || !table.getCanPreviousPage()}
           >
             上一页
           </Button>
@@ -695,7 +753,7 @@ export function ActionsDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isQueryLoading || !table.getCanNextPage()}
           >
             下一页
           </Button>

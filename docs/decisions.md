@@ -203,7 +203,7 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 
 ### D-029 KPI 使用集中数据组装契约
 
-KPI 页面只消费 `KpiRow[]`。Repository 根据 `KpiFilterContext` 返回规范化 scoped snapshot，KPI Builder 分组输入并调用现有 Rule Engine。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
+KPI 页面只消费 `KpiRow[]`。Repository 根据 `EhsFilterContext` 返回规范化 scoped snapshot，KPI Builder 分组输入并调用现有 Rule Engine。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
 
 ### D-030 数据可用性必须显式表达
 
@@ -244,6 +244,10 @@ Risk & Compliance → Actions 的 Open 与 All 视图均按 Submitted Date 应�
 ### D-039 Events V1 使用统一 normalized Repository
 
 Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event Date` / `eventDate` 字段查询，用户可见术语统一为 `Event Time` / “事件时间”。Current Open 与 All 复用同一 `getEvents` Repository；Event Type 是动态 source value 筛选。Events 与 Actions 共用既有 Store Resolution，UI 只消费 canonical Store。KPI ASTM 输入复用 normalized Event 数据，未来 drilldown 不建立第二套 Event 数据链。V1 Detail 仅展示公共字段，type-specific schema 保持 TBD。
+
+### D-040 Client 数据访问统一经过 Server Action
+
+正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Standard Mock 是当前明确选择的 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores 暂保留 Client pagination。
 
 ## 9. 明确未决事项
 

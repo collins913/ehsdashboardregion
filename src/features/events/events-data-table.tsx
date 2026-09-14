@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useState,
@@ -11,19 +12,17 @@ import {
   columnVisibilityFeature,
   type ColumnVisibilityState,
   createColumnHelper,
-  createPaginatedRowModel,
-  createSortedRowModel,
   type OnChangeFn,
   type PaginationState,
   rowPaginationFeature,
   rowSortingFeature,
   type SortingState,
-  sortFn_text,
   tableFeatures as defineTableFeatures,
   useTable,
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
@@ -59,17 +58,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
+  EventsQueryResult,
+  EventsQuery,
+  EventSortKey,
   EventsViewMode,
   NormalizedEventRecord,
 } from "@/data/contracts/events";
-import type { DataAvailability } from "@/data/contracts/kpi";
+import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
-  clampTablePageIndex,
   paginationForPageSize,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { cn } from "@/lib/utils";
 import type { EventType } from "@/types/ehs";
 import {
@@ -81,9 +83,6 @@ const eventsTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSortingFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-  sortedRowModel: createSortedRowModel(),
-  sortFns: { text: sortFn_text },
 });
 
 type EventsTableFeatures = typeof eventsTableFeatures;
@@ -132,6 +131,10 @@ export const DEFAULT_VISIBLE_EVENT_COLUMN_IDS = [
 ] as const;
 
 export const DEFAULT_EVENTS_VIEW_MODE: EventsViewMode = "OPEN_ONLY";
+
+export function getEventRowId(record: NormalizedEventRecord): string {
+  return record.eventId;
+}
 
 const ALL_EVENT_TYPES = "__ALL_EVENT_TYPES__";
 
@@ -244,23 +247,26 @@ function DataAvailabilityNotice({
 }
 
 type EventsDataTableProps = {
-  rows: readonly NormalizedEventRecord[];
-  availability: DataAvailability;
+  context: EhsFilterContext;
+  referenceDateIso: string;
   viewMode: EventsViewMode;
   onViewModeChange: (viewMode: EventsViewMode) => void;
   eventType: EventType | null;
-  eventTypeOptions: readonly EventType[];
   onEventTypeChange: (eventType: EventType | null) => void;
+  queryEvents: (input: {
+    referenceDateIso: string;
+    query: EventsQuery;
+  }) => Promise<EventsQueryResult>;
 };
 
 export function EventsDataTable({
-  rows,
-  availability,
+  context,
+  referenceDateIso,
   viewMode,
   onViewModeChange,
   eventType,
-  eventTypeOptions,
   onEventTypeChange,
+  queryEvents,
 }: EventsDataTableProps) {
   const [selectedRecord, setSelectedRecord] =
     useState<NormalizedEventRecord | null>(null);
@@ -271,20 +277,61 @@ export function EventsDataTable({
   const [paginationState, setPaginationState] =
     useState<EventsPaginationState>({ status: "UNMEASURED" });
   const isPaginationReady = paginationState.status === "READY";
-  const pagination = useMemo<PaginationState>(() => {
-    if (paginationState.status === "UNMEASURED") {
-      return unmeasuredTablePagination;
-    }
+  const pagination =
+    paginationState.status === "READY"
+      ? paginationState.pagination
+      : unmeasuredTablePagination;
+  const sortingDescriptor =
+    sorting.length === 0
+      ? undefined
+      : {
+          key: sorting[0].id as EventSortKey,
+          direction: sorting[0].desc ? ("desc" as const) : ("asc" as const),
+        };
+  const queryInput =
+    paginationState.status === "READY"
+      ? {
+          referenceDateIso,
+          query: {
+            context,
+            viewMode,
+            eventType: eventType ?? undefined,
+            sorting: sortingDescriptor,
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+          },
+        }
+      : null;
+  const queryKey = queryInput === null ? null : JSON.stringify(queryInput);
+  const load = useCallback(
+    () => queryEvents(queryInput!),
+    [queryEvents, queryKey],
+  );
+  const queryState = useLatestAsyncQuery(
+    queryKey,
+    queryInput === null ? null : load,
+  );
+  const result: EventsQueryResult | null =
+    queryState.status === "SUCCESS" ? queryState.data : null;
+  const rows = result?.items ?? [];
+  const totalCount = result?.totalCount ?? 0;
+  const eventTypeOptions = result?.availableEventTypes ?? [];
+  const availability: DataAvailability =
+    queryState.status === "ERROR"
+      ? "UNAVAILABLE"
+      : result?.availability ?? "AVAILABLE";
+  const isQueryLoading = queryState.status === "LOADING";
+  const queryScopeKey = JSON.stringify([referenceDateIso, context]);
 
-    return {
-      pageIndex: clampTablePageIndex(
-        paginationState.pagination.pageIndex,
-        rows.length,
-        paginationState.pagination.pageSize,
-      ),
-      pageSize: paginationState.pagination.pageSize,
-    };
-  }, [paginationState, rows.length]);
+  useEffect(() => {
+    if (
+      result !== null &&
+      eventType !== null &&
+      !eventTypeOptions.includes(eventType)
+    ) {
+      onEventTypeChange(null);
+    }
+  }, [eventType, eventTypeOptions, onEventTypeChange, result]);
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
       setPaginationState((current) => {
@@ -294,7 +341,7 @@ export function EventsDataTable({
             : { pageIndex: 0, pageSize };
         const nextPagination = paginationForPageSize(
           currentPagination,
-          rows.length,
+          totalCount,
           pageSize,
         );
 
@@ -305,7 +352,7 @@ export function EventsDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [totalCount],
   );
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
@@ -314,22 +361,11 @@ export function EventsDataTable({
           return current;
         }
 
-        const currentPagination: PaginationState = {
-          pageIndex: clampTablePageIndex(
-            current.pagination.pageIndex,
-            rows.length,
-            current.pagination.pageSize,
-          ),
-          pageSize: current.pagination.pageSize,
-        };
+        const currentPagination: PaginationState = current.pagination;
         const proposedPagination =
           typeof updater === "function" ? updater(currentPagination) : updater;
         const nextPagination: AdaptivePagination = {
-          pageIndex: clampTablePageIndex(
-            proposedPagination.pageIndex,
-            rows.length,
-            current.pagination.pageSize,
-          ),
+          pageIndex: Math.max(0, proposedPagination.pageIndex),
           pageSize: current.pagination.pageSize,
         };
 
@@ -338,7 +374,7 @@ export function EventsDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [],
   );
   const {
     tableFrameRef,
@@ -355,25 +391,33 @@ export function EventsDataTable({
   });
 
   useLayoutEffect(() => {
-    setPaginationState((current) => {
-      if (current.status === "UNMEASURED") {
-        return current;
-      }
-
-      const pageIndex = clampTablePageIndex(
-        current.pagination.pageIndex,
-        rows.length,
-        current.pagination.pageSize,
-      );
-
-      return pageIndex === current.pagination.pageIndex
-        ? current
-        : {
+    setSelectedRecord(null);
+    setDetailOpen(false);
+    setPaginationState((current) =>
+      current.status === "READY" && current.pagination.pageIndex !== 0
+        ? {
             status: "READY",
-            pagination: { ...current.pagination, pageIndex },
-          };
-    });
-  }, [rows.length]);
+            pagination: { ...current.pagination, pageIndex: 0 },
+          }
+        : current,
+    );
+  }, [queryScopeKey]);
+
+  useLayoutEffect(() => {
+    if (
+      result !== null &&
+      paginationState.status === "READY" &&
+      result.pageIndex !== paginationState.pagination.pageIndex
+    ) {
+      setPaginationState({
+        status: "READY",
+        pagination: {
+          ...paginationState.pagination,
+          pageIndex: result.pageIndex,
+        },
+      });
+    }
+  }, [paginationState, result]);
 
   const openDetail = useCallback((record: NormalizedEventRecord) => {
     setSelectedRecord(record);
@@ -397,7 +441,6 @@ export function EventsDataTable({
             />
           ),
           enableHiding: false,
-          sortFn: "text",
         }),
         columnHelper.accessor("eventId", {
           id: "eventId",
@@ -414,7 +457,6 @@ export function EventsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("eventType", {
           id: "eventType",
@@ -428,7 +470,6 @@ export function EventsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("description", {
           id: "description",
@@ -445,14 +486,12 @@ export function EventsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor((row) => formatBusinessDate(row.eventDate), {
           id: "eventDate",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.eventDate} />
           ),
-          sortFn: "text",
         }),
         columnHelper.accessor("sourceStatus", {
           id: "status",
@@ -460,7 +499,6 @@ export function EventsDataTable({
             <DataTableColumnHeader column={column} title={columnLabels.status} />
           ),
           cell: ({ row }) => <StatusDisplay status={row.original.recordState} />,
-          sortFn: "text",
         }),
         columnHelper.accessor("submittedBy", {
           id: "submittedBy",
@@ -477,7 +515,6 @@ export function EventsDataTable({
               focusable={false}
             />
           ),
-          sortFn: "text",
         }),
       ]),
     [],
@@ -486,13 +523,36 @@ export function EventsDataTable({
     features: eventsTableFeatures,
     columns,
     data: rows,
-    onSortingChange: setSorting,
+    getRowId: getEventRowId,
+    manualPagination: true,
+    manualSorting: true,
+    rowCount: totalCount,
+    onSortingChange: (updater) => {
+      setSorting((current) =>
+        typeof updater === "function" ? updater(current) : updater,
+      );
+      setPaginationState((current) =>
+        current.status === "READY"
+          ? {
+              status: "READY",
+              pagination: { ...current.pagination, pageIndex: 0 },
+            }
+          : current,
+      );
+    },
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
     state: { sorting, columnVisibility, pagination },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
+    id: column.id,
+    className: cn(
+      eventColumnSizeClassName(column.id),
+      column.id === "store" && stickyStoreCellClassName,
+    ),
+  }));
 
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
@@ -509,7 +569,10 @@ export function EventsDataTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        inert={isQueryLoading ? true : undefined}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
@@ -563,7 +626,12 @@ export function EventsDataTable({
 
       <DataAvailabilityNotice availability={availability} />
 
-      <div ref={tableFrameRef} className={dataTableFrameClassName}>
+      <div
+        ref={tableFrameRef}
+        className={dataTableFrameClassName}
+        aria-busy={isQueryLoading}
+        inert={isQueryLoading ? true : undefined}
+      >
         <Table className={dataTableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -597,6 +665,13 @@ export function EventsDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
+            ) : queryState.status === "LOADING" ||
+              queryState.status === "ERROR" ? (
+              <DataTablePlaceholderRows
+                columns={placeholderColumns}
+                rowCount={pagination.pageSize}
+                hidden={queryState.status === "ERROR"}
+              />
             ) : displayedRows.length > 0 ? (
               displayedRows.map((row, rowIndex) => (
                 <TableRow
@@ -641,13 +716,14 @@ export function EventsDataTable({
 
       <div
         ref={paginationRef}
+        aria-busy={isQueryLoading}
         aria-hidden={!isPaginationReady}
         className={`flex flex-wrap items-center justify-between gap-3${
           isPaginationReady ? "" : " invisible"
         }`}
       >
         <p className="text-sm text-muted-foreground">
-          共 {rows.length} 条事件
+          共 {totalCount} 条事件
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
@@ -658,7 +734,7 @@ export function EventsDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isQueryLoading || !table.getCanPreviousPage()}
           >
             上一页
           </Button>
@@ -666,7 +742,7 @@ export function EventsDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isQueryLoading || !table.getCanNextPage()}
           >
             下一页
           </Button>

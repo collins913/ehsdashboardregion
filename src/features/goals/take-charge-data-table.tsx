@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useState,
@@ -22,6 +23,7 @@ import {
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
@@ -49,7 +51,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type {
   NormalizedTakeChargeRecord,
   TakeChargeExtraFieldValue,
@@ -57,8 +59,8 @@ import type {
   TakeChargeRecordsResult,
   TakeChargeSortKey,
   TakeChargeViewMode,
+  TakeChargeRecordsQuery,
 } from "@/data/contracts/take-charge";
-import type { EhsRepository } from "@/data/repositories";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
@@ -66,6 +68,7 @@ import {
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import {
   formatBusinessDate,
   formatBusinessDateTime,
@@ -127,7 +130,6 @@ export function getTakeChargeRowId(
   return record.tchId;
 }
 
-type GoalsRepository = Pick<EhsRepository, "getTakeChargeRecords">;
 type PaginationReadiness =
   | { status: "UNMEASURED" }
   | { status: "READY"; pagination: AdaptivePagination };
@@ -340,10 +342,15 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
 
 export function TakeChargeDataTable({
   context,
-  repository,
+  referenceDateIso,
+  queryRecords,
 }: {
-  context: KpiFilterContext;
-  repository: GoalsRepository;
+  context: EhsFilterContext;
+  referenceDateIso: string;
+  queryRecords: (input: {
+    referenceDateIso: string;
+    query: TakeChargeRecordsQuery;
+  }) => Promise<TakeChargeRecordsResult>;
 }) {
   const [selectedRecord, setSelectedRecord] =
     useState<NormalizedTakeChargeRecord | null>(null);
@@ -360,10 +367,11 @@ export function TakeChargeDataTable({
     paginationState.status === "READY"
       ? paginationState.pagination
       : unmeasuredPagination;
-  const result = useMemo<TakeChargeRecordsResult | null>(
-    () =>
-      paginationState.status === "READY"
-        ? repository.getTakeChargeRecords({
+  const queryInput =
+    paginationState.status === "READY"
+      ? {
+          referenceDateIso,
+          query: {
             context,
             viewMode,
             sorting:
@@ -371,15 +379,34 @@ export function TakeChargeDataTable({
                 ? undefined
                 : {
                     key: sorting[0].id as TakeChargeSortKey,
-                    direction: sorting[0].desc ? "desc" : "asc",
+                    direction: sorting[0].desc
+                      ? ("desc" as const)
+                      : ("asc" as const),
                   },
             pageIndex: paginationState.pagination.pageIndex,
             pageSize: paginationState.pagination.pageSize,
-          })
-        : null,
-    [context, paginationState, repository, sorting, viewMode],
-  );
-  const fieldDefinitions = result?.fieldDefinitions ?? [];
+          },
+        }
+      : null;
+  const queryKey = queryInput === null ? null : JSON.stringify(queryInput);
+  const load = useCallback(() => queryRecords(queryInput!), [queryKey, queryRecords]);
+  const queryState = useLatestAsyncQuery(queryKey, queryInput === null ? null : load);
+  const result: TakeChargeRecordsResult | null =
+    queryState.status === "SUCCESS" ? queryState.data : null;
+  const availability =
+    queryState.status === "ERROR" ? "UNAVAILABLE" : result?.availability;
+  const [knownFieldDefinitions, setKnownFieldDefinitions] = useState<
+    readonly TakeChargeFieldDefinition[]
+  >([]);
+  const fieldDefinitions = result?.fieldDefinitions ?? knownFieldDefinitions;
+  const isQueryLoading = queryState.status === "LOADING";
+  const queryScopeKey = JSON.stringify([referenceDateIso, context]);
+
+  useEffect(() => {
+    if (result !== null) {
+      setKnownFieldDefinitions(result.fieldDefinitions);
+    }
+  }, [result]);
   const defaultColumnVisibility = useMemo<ColumnVisibilityState>(
     () =>
       Object.fromEntries(
@@ -440,6 +467,19 @@ export function TakeChargeDataTable({
     });
 
   useLayoutEffect(() => {
+    setSelectedRecord(null);
+    setDetailOpen(false);
+    setPaginationState((current) =>
+      current.status === "READY" && current.pagination.pageIndex !== 0
+        ? {
+            status: "READY",
+            pagination: resetTakeChargePageIndex(current.pagination),
+          }
+        : current,
+    );
+  }, [queryScopeKey]);
+
+  useLayoutEffect(() => {
     if (
       result !== null &&
       paginationState.status === "READY" &&
@@ -474,6 +514,7 @@ export function TakeChargeDataTable({
     data: result?.items ?? [],
     getRowId: getTakeChargeRowId,
     manualPagination: true,
+    manualSorting: true,
     rowCount: totalCount,
     onSortingChange: (updater) => {
       setSorting((current) =>
@@ -497,6 +538,13 @@ export function TakeChargeDataTable({
     },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
+    id: column.id,
+    className: cn(
+      takeChargeColumnSizeClassName(column.id),
+      column.id === "store" && stickyStoreCellClassName,
+    ),
+  }));
 
   const openDetail = (record: NormalizedTakeChargeRecord) => {
     setSelectedRecord(record);
@@ -517,7 +565,10 @@ export function TakeChargeDataTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3"
+        inert={isQueryLoading ? true : undefined}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
@@ -560,11 +611,16 @@ export function TakeChargeDataTable({
         <DataTableColumnVisibility table={table} labels={labels} />
       </div>
 
-      {result && !["AVAILABLE", "CONFIRMED_EMPTY"].includes(result.availability) ? (
-        <DataAvailabilityDisplay availability={result.availability} />
+      {availability && !["AVAILABLE", "CONFIRMED_EMPTY"].includes(availability) ? (
+        <DataAvailabilityDisplay availability={availability} />
       ) : null}
 
-      <div ref={tableFrameRef} className={dataTableFrameClassName}>
+      <div
+        ref={tableFrameRef}
+        className={dataTableFrameClassName}
+        aria-busy={isQueryLoading}
+        inert={isQueryLoading ? true : undefined}
+      >
         <Table className={dataTableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -596,6 +652,13 @@ export function TakeChargeDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
+            ) : queryState.status === "LOADING" ||
+              queryState.status === "ERROR" ? (
+              <DataTablePlaceholderRows
+                columns={placeholderColumns}
+                rowCount={pagination.pageSize}
+                hidden={queryState.status === "ERROR"}
+              />
             ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row, rowIndex) => (
                 <TableRow
@@ -637,6 +700,7 @@ export function TakeChargeDataTable({
 
       <div
         ref={paginationRef}
+        aria-busy={isQueryLoading}
         aria-hidden={!isPaginationReady}
         className={cn(
           "flex flex-wrap items-center justify-between gap-3",
@@ -652,7 +716,7 @@ export function TakeChargeDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isQueryLoading || !table.getCanPreviousPage()}
           >
             上一页
           </Button>
@@ -660,7 +724,7 @@ export function TakeChargeDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isQueryLoading || !table.getCanNextPage()}
           >
             下一页
           </Button>

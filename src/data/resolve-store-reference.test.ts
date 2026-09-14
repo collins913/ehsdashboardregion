@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { mockStores } from "@/data/mock/stores";
-import { resolveActionStore } from "./resolve-action-store";
+import { resolveStoreReference } from "./resolve-store-reference";
 
-describe("Action Store Resolution", () => {
+describe("Store Reference Resolution", () => {
   it("uses a unique TRTID and validates a matching English name", () => {
-    const result = resolveActionStore(
+    const result = resolveStoreReference(
       {
         trtid: mockStores[0].trtid,
         storeNameEn: mockStores[0].storeNameEn,
@@ -19,7 +19,7 @@ describe("Action Store Resolution", () => {
   });
 
   it("falls back to a unique English name when TRTID cannot resolve", () => {
-    const result = resolveActionStore(
+    const result = resolveStoreReference(
       { trtid: "MISSING", storeNameEn: mockStores[1].storeNameEn },
       mockStores,
     );
@@ -35,7 +35,7 @@ describe("Action Store Resolution", () => {
       ...mockStores[0],
       storeNameEn: "Current New Store Name",
     };
-    const result = resolveActionStore(
+    const result = resolveStoreReference(
       {
         trtid: renamedStore.trtid,
         storeNameEn: "Historical Old Store Name",
@@ -48,7 +48,7 @@ describe("Action Store Resolution", () => {
 
   it("reports a conflict instead of silently choosing TRTID", () => {
     expect(
-      resolveActionStore(
+      resolveStoreReference(
         {
           trtid: mockStores[0].trtid,
           storeNameEn: mockStores[1].storeNameEn,
@@ -60,7 +60,7 @@ describe("Action Store Resolution", () => {
 
   it("reports unresolved missing references", () => {
     expect(
-      resolveActionStore({ storeNameEn: "Missing Store" }, mockStores),
+      resolveStoreReference({ storeNameEn: "Missing Store" }, mockStores),
     ).toEqual({ kind: "UNRESOLVED" });
   });
 });

@@ -1,5 +1,9 @@
-export type { EhsRepository } from "@/data/repositories/ehs-repository";
-export {
-  createMockEhsRepository,
-  createMockEhsRepository as createEhsRepository,
-} from "@/data/repositories/mock-ehs-repository";
+export type {
+  ActionsQueries,
+  EhsRepository,
+  EventsQueries,
+  GlobalFilterQueries,
+  KpiQueries,
+  StoresQueries,
+  TakeChargeQueries,
+} from "@/data/repositories/ehs-repository";

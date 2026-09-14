@@ -1,4 +1,4 @@
-import type { KpiFilterContext, KpiPeriod, DataAvailability } from "@/data/contracts/kpi";
+import type { EhsFilterContext, KpiPeriod, DataAvailability } from "@/data/contracts/kpi";
 import type { PerformanceResult, RecordState } from "@/lib/rules/result-types";
 import type { SourceReference, StoreId, TimezoneAwareIsoDateTime } from "@/types/ehs";
 
@@ -40,7 +40,7 @@ export type TakeChargeSortKey =
 export type TakeChargeSortDirection = "asc" | "desc";
 
 export interface TakeChargeRecordsQuery {
-  context: KpiFilterContext;
+  context: EhsFilterContext;
   viewMode: TakeChargeViewMode;
   sorting?: {
     key: TakeChargeSortKey;
@@ -85,7 +85,7 @@ export interface TakeChargeGoalsSummary {
 }
 
 export interface TakeChargeGoalsQuery {
-  context: KpiFilterContext;
+  context: EhsFilterContext;
 }
 
 export interface TakeChargeMonthlyAggregate {

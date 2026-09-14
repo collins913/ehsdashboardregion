@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NormalizedEventRecord } from "@/data/contracts/events";
+import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import {
   DEFAULT_EVENT_COLUMN_VISIBILITY,
   DEFAULT_EVENTS_VIEW_MODE,
@@ -10,6 +11,7 @@ import {
   EVENT_COLUMN_SIZE_ROLES,
   EventDetailContent,
   EventsDataTable,
+  getEventRowId,
 } from "./events-data-table";
 
 const record: NormalizedEventRecord = {
@@ -39,19 +41,26 @@ describe("Events table defaults", () => {
     expect(DEFAULT_EVENT_COLUMN_VISIBILITY).toEqual({ submittedBy: false });
   });
 
+  it("uses the stable Event ID as row identity", () => {
+    expect(getEventRowId(record)).toBe("EVENT-001");
+  });
+
   it("reuses adaptive measurement, table layout and the Event Date hint", () => {
     const markup = renderToStaticMarkup(
       createElement(
         TooltipProvider,
         null,
         createElement(EventsDataTable, {
-          rows: [record],
-          availability: "AVAILABLE",
+          context: {
+            region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" },
+            period: periodFromMonthRange("2026-09", "2026-09")!,
+          },
+          referenceDateIso: "2026-09-11T00:00:00+08:00",
           viewMode: "OPEN_ONLY",
           onViewModeChange: () => {},
           eventType: null,
-          eventTypeOptions: ["Agency Contact"],
           onEventTypeChange: () => {},
+          queryEvents: async () => { throw new Error("not called before measurement"); },
         }),
       ),
     );

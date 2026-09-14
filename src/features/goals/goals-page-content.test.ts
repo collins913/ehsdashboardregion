@@ -2,11 +2,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { TakeChargeGoalsSummary } from "@/data/contracts/take-charge";
-import { SummaryCards } from "@/features/goals/goals-page-content";
+import {
+  SummaryCards,
+  SummaryCardsPlaceholder,
+} from "@/features/goals/goals-page-content";
 
-const context: KpiFilterContext = {
+const context: EhsFilterContext = {
   region: { kind: "ALL" },
   area: { kind: "ALL" },
   store: { kind: "ALL" },
@@ -40,6 +43,17 @@ function summary(closeRate: number | null): TakeChargeGoalsSummary {
 }
 
 describe("Goals summary cards", () => {
+  it("keeps four card slots while the summary query is loading", () => {
+    const markup = renderToStaticMarkup(
+      createElement(SummaryCardsPlaceholder, { context }),
+    );
+
+    expect(markup.match(/data-slot="card"/g)).toHaveLength(4);
+    expect(markup.match(/data-slot="skeleton"/g)).toHaveLength(4);
+    expect(markup).toContain("提交总数");
+    expect(markup).toContain("今年参与率");
+  });
+
   it("renders all four values as matching plain-text metrics", () => {
     const markup = renderToStaticMarkup(
       createElement(SummaryCards, { summary: summary(50), context }),

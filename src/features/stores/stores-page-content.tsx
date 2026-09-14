@@ -1,44 +1,63 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback } from "react";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { StoresQueryResult } from "@/data/contracts/stores";
-import {
-  createEhsRepository,
-  type EhsRepository,
-} from "@/data/repositories";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { StoresDataTable } from "@/features/stores/stores-data-table";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
-type StoresPageRepository = Pick<EhsRepository, "getStores">;
+export type StoresQueryAction = (input: {
+  referenceDateIso: string;
+  query: EhsFilterContext;
+}) => Promise<StoresQueryResult>;
 
-export function loadStoresPageData(
-  context: KpiFilterContext | null,
-  repository: StoresPageRepository,
-): StoresQueryResult | null {
-  return context === null ? null : repository.getStores({ context });
+export async function loadStoresPageData(
+  context: EhsFilterContext | null,
+  referenceDateIso: string,
+  query: StoresQueryAction,
+): Promise<StoresQueryResult | null> {
+  return context === null
+    ? null
+    : query({ referenceDateIso, query: context });
 }
 
-export function StoresPageContent() {
+export function StoresPageContent({
+  queryStores,
+}: {
+  queryStores: StoresQueryAction;
+}) {
   const { filterContext, referenceDateIso } = useGlobalFilters();
-  const repository = useMemo(
-    () => createEhsRepository(new Date(referenceDateIso)),
-    [referenceDateIso],
+  const queryKey = filterContext
+    ? JSON.stringify([referenceDateIso, filterContext])
+    : null;
+  const load = useCallback(
+    () => loadStoresPageData(filterContext, referenceDateIso, queryStores),
+    [filterContext, queryStores, referenceDateIso],
   );
-  const result = useMemo(
-    () => loadStoresPageData(filterContext, repository),
-    [filterContext, repository],
-  );
+  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const result = state.status === "SUCCESS" ? state.data : null;
 
   return (
     <PageContainer>
-      {result === null ? (
+      {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成门店数据，请调整筛选条件。
         </div>
       ) : (
-        <StoresDataTable rows={result.items} />
+        <>
+          {state.status === "ERROR" ? (
+            <AsyncQueryFeedback status="ERROR" />
+          ) : null}
+          <StoresDataTable
+            rows={result?.items ?? []}
+            queryStatus={
+              state.status === "SUCCESS" ? "READY" : state.status
+            }
+          />
+        </>
       )}
     </PageContainer>
   );

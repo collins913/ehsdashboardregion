@@ -39,10 +39,10 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 ## Architecture at a Glance
 
 ```text
-Source / Mock → Adapter / Repository → Feature / Rules → UI
+Client Feature → Server Action → Repository / Adapter → Source
 ```
 
-- UI 不直接读取 Mock，业务规则不放在 UI。
+- Client 不创建 Repository 或读取 Mock；业务规则不放在 UI。
 - Production Adapter 未来替换 Repository implementation，上层 contract 保持稳定。
 - Standard Mock 与 Production 使用相同的 normalized contract 边界。
 

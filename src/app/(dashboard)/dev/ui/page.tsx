@@ -198,6 +198,7 @@ function ColumnSizingRolePreview() {
 
 export default function UiLabPage() {
   const [month, setMonth] = useState<Month>("2026-09");
+  const [showTableLoading, setShowTableLoading] = useState(false);
 
   return (
     <>
@@ -359,6 +360,7 @@ export default function UiLabPage() {
           stores={globalFilterUiStores}
           initialState={globalFilterUiState}
           nowIso="2026-09-11T00:00:00.000Z"
+          referenceMonth="2026-09"
         >
           <GlobalFilters />
         </GlobalFilterProvider>
@@ -371,7 +373,18 @@ export default function UiLabPage() {
             </p>
             <div className="mt-3 space-y-4">
               <ColumnSizingRolePreview />
-              <KpiDataTable rows={demoKpiRows} />
+              <Button
+                variant="outline"
+                size="sm"
+                aria-pressed={showTableLoading}
+                onClick={() => setShowTableLoading((current) => !current)}
+              >
+                {showTableLoading ? "显示正式数据" : "验证加载占位"}
+              </Button>
+              <KpiDataTable
+                rows={demoKpiRows}
+                queryStatus={showTableLoading ? "LOADING" : "READY"}
+              />
             </div>
           </div>
 

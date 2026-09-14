@@ -46,14 +46,14 @@ describe("KPI Period validation", () => {
     );
   });
 
-  it("rejects timestamps without timezone information", () => {
+  it("rejects timestamps without timezone information", async () => {
     expect(parseTimezoneAwareInstant("2026-09-10T00:00:00")).toBeNull();
 
     const invalidPeriod = {
       ...january,
       startInclusive: "2026-01-01T00:00:00",
     } as unknown as KpiPeriod;
-    const data = mockEhsRepository.getKpiData({
+    const data = await mockEhsRepository.getKpiData({
       region: { kind: "ALL" },
       area: { kind: "ALL" },
       store: { kind: "INCLUDE", values: ["TEST-012"] },
@@ -94,7 +94,7 @@ describe("KPI Period validation", () => {
     expect(isIsoDateInKpiPeriod("2026-02-01", parsed!)).toBe(false);
   });
 
-  it("rejects an includedMonths/date-range mismatch and degrades safely", () => {
+  it("rejects an includedMonths/date-range mismatch and degrades safely", async () => {
     const inconsistentPeriod = {
       ...january,
       includedMonths: ["2026-03"],
@@ -102,7 +102,7 @@ describe("KPI Period validation", () => {
 
     expect(parseKpiPeriod(inconsistentPeriod)).toBeNull();
 
-    const data = mockEhsRepository.getKpiData({
+    const data = await mockEhsRepository.getKpiData({
       region: { kind: "ALL" },
       area: { kind: "ALL" },
       store: { kind: "INCLUDE", values: ["TEST-012"] },

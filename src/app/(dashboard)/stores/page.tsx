@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { routes } from "@/config/navigation";
 import { StoresPageContent } from "@/features/stores/stores-page-content";
+import { queryStores } from "@/data/server/ehs-query-actions";
 
 export default function StoresPage() {
   const route = routes.stores;
@@ -12,7 +13,7 @@ export default function StoresPage() {
         description="浏览当前筛选范围内的门店主数据"
         breadcrumbs={[{ label: route.title }]}
       />
-      <StoresPageContent />
+      <StoresPageContent queryStores={queryStores} />
     </>
   );
 }

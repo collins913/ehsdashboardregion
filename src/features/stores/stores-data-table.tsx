@@ -24,6 +24,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
@@ -182,8 +183,10 @@ function StoreDetailSheet({
 
 export function StoresDataTable({
   rows,
+  queryStatus = "READY",
 }: {
   rows: readonly NormalizedStoreRecord[];
+  queryStatus?: "READY" | "LOADING" | "ERROR";
 }) {
   const [selectedRecord, setSelectedRecord] =
     useState<NormalizedStoreRecord | null>(null);
@@ -193,6 +196,15 @@ export function StoresDataTable({
     useState<ColumnVisibilityState>({});
   const [paginationState, setPaginationState] =
     useState<StoresPaginationState>({ status: "UNMEASURED" });
+  const isQueryLoading = queryStatus === "LOADING";
+  const isQueryPlaceholder = queryStatus !== "READY";
+  const tableRows = isQueryPlaceholder ? [] : rows;
+  useLayoutEffect(() => {
+    if (isQueryLoading) {
+      setSelectedRecord(null);
+      setDetailOpen(false);
+    }
+  }, [isQueryLoading]);
   const isPaginationReady = paginationState.status === "READY";
   const pagination = useMemo<PaginationState>(() => {
     if (paginationState.status === "UNMEASURED") {
@@ -202,12 +214,12 @@ export function StoresDataTable({
     return {
       pageIndex: clampTablePageIndex(
         paginationState.pagination.pageIndex,
-        rows.length,
+        tableRows.length,
         paginationState.pagination.pageSize,
       ),
       pageSize: paginationState.pagination.pageSize,
     };
-  }, [paginationState, rows.length]);
+  }, [paginationState, tableRows.length]);
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
       setPaginationState((current) => {
@@ -217,7 +229,7 @@ export function StoresDataTable({
             : { pageIndex: 0, pageSize };
         const nextPagination = paginationForPageSize(
           currentPagination,
-          rows.length,
+          tableRows.length,
           pageSize,
         );
 
@@ -228,7 +240,7 @@ export function StoresDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [tableRows.length],
   );
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
@@ -240,7 +252,7 @@ export function StoresDataTable({
         const currentPagination: PaginationState = {
           pageIndex: clampTablePageIndex(
             current.pagination.pageIndex,
-            rows.length,
+            tableRows.length,
             current.pagination.pageSize,
           ),
           pageSize: current.pagination.pageSize,
@@ -250,7 +262,7 @@ export function StoresDataTable({
         const nextPagination: AdaptivePagination = {
           pageIndex: clampTablePageIndex(
             proposedPagination.pageIndex,
-            rows.length,
+            tableRows.length,
             current.pagination.pageSize,
           ),
           pageSize: current.pagination.pageSize,
@@ -261,7 +273,7 @@ export function StoresDataTable({
           : { status: "READY", pagination: nextPagination };
       });
     },
-    [rows.length],
+    [tableRows.length],
   );
   const {
     tableFrameRef,
@@ -285,7 +297,7 @@ export function StoresDataTable({
 
       const pageIndex = clampTablePageIndex(
         current.pagination.pageIndex,
-        rows.length,
+        tableRows.length,
         current.pagination.pageSize,
       );
 
@@ -296,7 +308,7 @@ export function StoresDataTable({
             pagination: { ...current.pagination, pageIndex },
           };
     });
-  }, [rows.length]);
+  }, [tableRows.length]);
 
   const openDetail = useCallback((record: NormalizedStoreRecord) => {
     setSelectedRecord(record);
@@ -401,7 +413,7 @@ export function StoresDataTable({
   const table = useTable({
     features: storesTableFeatures,
     columns,
-    data: rows,
+    data: tableRows,
     getRowId: getStoreRowId,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
@@ -410,6 +422,13 @@ export function StoresDataTable({
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
+    id: column.id,
+    className: cn(
+      storeColumnSizeClassName(column.id),
+      column.id === "store" && stickyStoreCellClassName,
+    ),
+  }));
 
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
@@ -426,11 +445,19 @@ export function StoresDataTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div
+        className="flex justify-end"
+        inert={isQueryLoading ? true : undefined}
+      >
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 
-      <div ref={tableFrameRef} className={dataTableFrameClassName}>
+      <div
+        ref={tableFrameRef}
+        className={dataTableFrameClassName}
+        aria-busy={isQueryLoading}
+        inert={isQueryLoading ? true : undefined}
+      >
         <Table className={dataTableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -464,6 +491,12 @@ export function StoresDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
+            ) : isQueryPlaceholder ? (
+              <DataTablePlaceholderRows
+                columns={placeholderColumns}
+                rowCount={pagination.pageSize}
+                hidden={queryStatus === "ERROR"}
+              />
             ) : displayedRows.length > 0 ? (
               displayedRows.map((row, rowIndex) => (
                 <TableRow
@@ -506,12 +539,13 @@ export function StoresDataTable({
 
       <div
         ref={paginationRef}
+        aria-busy={isQueryLoading}
         aria-hidden={!isPaginationReady}
         className={`flex flex-wrap items-center justify-between gap-3${
           isPaginationReady ? "" : " invisible"
         }`}
       >
-        <p className="text-sm text-muted-foreground">共 {rows.length} 家门店</p>
+        <p className="text-sm text-muted-foreground">共 {tableRows.length} 家门店</p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             第 {table.state.pagination.pageIndex + 1} /{" "}
@@ -521,7 +555,7 @@ export function StoresDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={isQueryLoading || !table.getCanPreviousPage()}
           >
             上一页
           </Button>
@@ -529,7 +563,7 @@ export function StoresDataTable({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={isQueryLoading || !table.getCanNextPage()}
           >
             下一页
           </Button>

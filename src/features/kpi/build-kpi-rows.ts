@@ -9,7 +9,7 @@ import type {
   DataAvailability,
   DataSet,
   KpiDataSnapshot,
-  KpiFilterContext,
+  EhsFilterContext,
 } from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
@@ -63,7 +63,7 @@ function buildTraining(
 }
 
 function buildDrill(
-  context: KpiFilterContext,
+  context: EhsFilterContext,
   data: KpiDataSnapshot["drills"],
   storeId: StoreId,
 ): PerformanceKpiValue {
@@ -87,7 +87,7 @@ function buildDrill(
 }
 
 function buildInspections(
-  context: KpiFilterContext,
+  context: EhsFilterContext,
   data: KpiDataSnapshot["inspections"],
   storeId: StoreId,
 ): PerformanceKpiValue {
@@ -186,14 +186,14 @@ function buildAstmEvents(
     availability,
     result: evaluateAstmOccurrence(
       records.map((record) => ({
-        ASTMInjuryIllness: record.astmInjuryIllness,
+        astmInjuryIllness: record.astmInjuryIllness,
       })),
     ),
   };
 }
 
 export function buildKpiRows(
-  context: KpiFilterContext,
+  context: EhsFilterContext,
   snapshot: KpiDataSnapshot,
 ): readonly KpiRow[] {
   return snapshot.stores.map((store) => ({

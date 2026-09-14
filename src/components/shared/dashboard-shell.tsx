@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { KpiStore } from "@/data/contracts/kpi";
+import type { Month } from "@/types/ehs";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import type { GlobalFilterState } from "@/features/global-filters/global-filter-state";
 
@@ -10,6 +11,7 @@ type DashboardShellProps = {
   stores: readonly KpiStore[];
   initialFilterState: GlobalFilterState;
   nowIso: string;
+  referenceMonth: Month;
 };
 
 export function DashboardShell({
@@ -17,6 +19,7 @@ export function DashboardShell({
   stores,
   initialFilterState,
   nowIso,
+  referenceMonth,
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
@@ -26,6 +29,7 @@ export function DashboardShell({
           stores={stores}
           initialState={initialFilterState}
           nowIso={nowIso}
+          referenceMonth={referenceMonth}
         >
           {children}
         </GlobalFilterProvider>

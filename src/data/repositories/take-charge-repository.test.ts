@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { KpiFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import type { TakeChargeAnnualMetricContribution } from "@/data/contracts/take-charge";
 import { mockStores } from "@/data/mock/stores";
@@ -11,7 +11,7 @@ const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 function context(
   startMonth: Month = "2026-07",
   endMonth: Month = "2026-09",
-): KpiFilterContext {
+): EhsFilterContext {
   return {
     region: { kind: "ALL" },
     area: { kind: "ALL" },
@@ -38,8 +38,8 @@ function takeCharge(
 }
 
 describe("Take Charge Goals repository", () => {
-  it("provides deterministic 2026 Q3 and current-year mock results", () => {
-    const summary = createMockEhsRepository(referenceDate).getTakeChargeGoals({
+  it("provides deterministic 2026 Q3 and current-year mock results", async () => {
+    const summary = await createMockEhsRepository(referenceDate).getTakeChargeGoals({
       context: context(),
     });
 
@@ -60,7 +60,7 @@ describe("Take Charge Goals repository", () => {
     expect(summary.annual.participationRateYtd.result).toBe("ACHIEVED");
   });
 
-  it("computes period total and close rate from monthly numerator/denominator", () => {
+  it("computes period total and close rate from monthly numerator/denominator", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [
         takeCharge("JUL-CLOSED", "ClosedWithAction", "2026-07-02T09:00:00"),
@@ -72,8 +72,8 @@ describe("Take Charge Goals repository", () => {
     const filters = {
       ...context(),
       store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
-    } satisfies KpiFilterContext;
-    const summary = repository.getTakeChargeGoals({ context: filters });
+    } satisfies EhsFilterContext;
+    const summary = await repository.getTakeChargeGoals({ context: filters });
 
     expect(summary.period).toMatchObject({
       availability: "AVAILABLE",
@@ -83,11 +83,11 @@ describe("Take Charge Goals repository", () => {
     });
   });
 
-  it("returns a confirmed empty period without inventing 0% or 100%", () => {
+  it("returns a confirmed empty period without inventing 0% or 100%", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [],
     });
-    const summary = repository.getTakeChargeGoals({ context: context() });
+    const summary = await repository.getTakeChargeGoals({ context: context() });
 
     expect(summary.period).toMatchObject({
       availability: "CONFIRMED_EMPTY",
@@ -97,8 +97,8 @@ describe("Take Charge Goals repository", () => {
     });
   });
 
-  it("keeps unsupported source coverage incomplete", () => {
-    const summary = createMockEhsRepository(referenceDate).getTakeChargeGoals({
+  it("keeps unsupported source coverage incomplete", async () => {
+    const summary = await createMockEhsRepository(referenceDate).getTakeChargeGoals({
       context: context("2026-10", "2026-10"),
     });
 
@@ -106,18 +106,18 @@ describe("Take Charge Goals repository", () => {
     expect(summary.period.submissionTotal).toBeNull();
   });
 
-  it("keeps annual scope metrics independent from Global Period", () => {
+  it("keeps annual scope metrics independent from Global Period", async () => {
     const repository = createMockEhsRepository(referenceDate);
-    const month = repository.getTakeChargeGoals({
+    const month = await repository.getTakeChargeGoals({
       context: context("2026-09", "2026-09"),
     });
-    const quarter = repository.getTakeChargeGoals({ context: context() });
+    const quarter = await repository.getTakeChargeGoals({ context: context() });
 
     expect(month.annual).toEqual(quarter.annual);
     expect(month.period).not.toEqual(quarter.period);
   });
 
-  it("aggregates annual source numerators and denominators for multi-store scope", () => {
+  it("aggregates annual source numerators and denominators for multi-store scope", async () => {
     const contributions: TakeChargeAnnualMetricContribution[] = [
       {
         storeId: mockStores[0].trtid,
@@ -145,8 +145,8 @@ describe("Take Charge Goals repository", () => {
         kind: "INCLUDE",
         values: [mockStores[0].trtid, mockStores[1].trtid],
       },
-    } satisfies KpiFilterContext;
-    const annual = repository.getTakeChargeGoals({ context: filters }).annual;
+    } satisfies EhsFilterContext;
+    const annual = (await repository.getTakeChargeGoals({ context: filters })).annual;
 
     expect(annual.averageSubmissionsYtd.value).toBeCloseTo(98 / 12);
     expect(annual.participationRateYtd.value).toBeCloseTo((10 / 12) * 100);
@@ -154,27 +154,27 @@ describe("Take Charge Goals repository", () => {
     expect(annual.participationRateYtd.value).not.toBe(70);
   });
 
-  it("applies Region, Area and canonical Store scopes", () => {
+  it("applies Region, Area and canonical Store scopes", async () => {
     const repository = createMockEhsRepository(referenceDate);
-    const region = repository.getTakeChargeGoals({
+    const region = await repository.getTakeChargeGoals({
       context: {
         ...context(),
         region: { kind: "INCLUDE", values: [mockStores[0].region] },
       },
     });
-    const area = repository.getTakeChargeGoals({
+    const area = await repository.getTakeChargeGoals({
       context: {
         ...context(),
         area: { kind: "INCLUDE", values: [mockStores[0].area] },
       },
     });
-    const storeOnly = repository.getTakeChargeGoals({
+    const storeOnly = await repository.getTakeChargeGoals({
       context: {
         ...context(),
         store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
       },
     });
-    const all = repository.getTakeChargeGoals({ context: context() });
+    const all = await repository.getTakeChargeGoals({ context: context() });
 
     expect(region.period.submissionTotal).toBe(16);
     expect(area.period.submissionTotal).toBe(8);
@@ -184,7 +184,7 @@ describe("Take Charge Goals repository", () => {
 });
 
 describe("Take Charge record query", () => {
-  it("defaults are enforced by callers while OPEN_ONLY excludes CLOSED and UNKNOWN", () => {
+  it("defaults are enforced by callers while OPEN_ONLY excludes CLOSED and UNKNOWN", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [
         takeCharge("OPEN", "Submitted"),
@@ -192,13 +192,13 @@ describe("Take Charge record query", () => {
         takeCharge("UNKNOWN", "   "),
       ],
     });
-    const openOnly = repository.getTakeChargeRecords({
+    const openOnly = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "OPEN_ONLY",
       pageIndex: 0,
       pageSize: 7,
     });
-    const all = repository.getTakeChargeRecords({
+    const all = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "ALL",
       pageIndex: 0,
@@ -211,7 +211,7 @@ describe("Take Charge record query", () => {
     );
   });
 
-  it("applies sorting to the full scoped result before pagination", () => {
+  it("applies sorting to the full scoped result before pagination", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [
         takeCharge("D", "Submitted", "2026-09-04T09:00:00"),
@@ -220,14 +220,14 @@ describe("Take Charge record query", () => {
         takeCharge("B", "Submitted", "2026-09-02T09:00:00"),
       ],
     });
-    const ascendingSecondPage = repository.getTakeChargeRecords({
+    const ascendingSecondPage = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "ALL",
       sorting: { key: "tchId", direction: "asc" },
       pageIndex: 1,
       pageSize: 2,
     });
-    const descendingFirstPage = repository.getTakeChargeRecords({
+    const descendingFirstPage = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "ALL",
       sorting: { key: "tchId", direction: "desc" },
@@ -246,11 +246,11 @@ describe("Take Charge record query", () => {
     expect(ascendingSecondPage.totalCount).toBe(4);
   });
 
-  it("keeps Goals summary independent from detail view mode and sorting", () => {
+  it("keeps Goals summary independent from detail view mode and sorting", async () => {
     const repository = createMockEhsRepository(referenceDate);
-    const before = repository.getTakeChargeGoals({ context: context() });
+    const before = await repository.getTakeChargeGoals({ context: context() });
 
-    repository.getTakeChargeRecords({
+    await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "OPEN_ONLY",
       sorting: { key: "status", direction: "asc" },
@@ -258,10 +258,10 @@ describe("Take Charge record query", () => {
       pageSize: 7,
     });
 
-    expect(repository.getTakeChargeGoals({ context: context() })).toEqual(before);
+    expect(await repository.getTakeChargeGoals({ context: context() })).toEqual(before);
   });
 
-  it("uses TRTID resolution, Submitted At half-open Period, and pagination", () => {
+  it("uses TRTID resolution, Submitted At half-open Period, and pagination", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [
         takeCharge("BEFORE", "Submitted", "2026-06-30T23:59:59"),
@@ -270,7 +270,7 @@ describe("Take Charge record query", () => {
         takeCharge("END", "Submitted", "2026-10-01T00:00:00"),
       ],
     });
-    const result = repository.getTakeChargeRecords({
+    const result = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "ALL",
       pageIndex: 1,
@@ -285,7 +285,7 @@ describe("Take Charge record query", () => {
     expect(result.items[0].submittedAt).toBe("2026-07-01T00:00:00+08:00");
   });
 
-  it("clamps an invalid page and keeps extra fields definition-driven", () => {
+  it("clamps an invalid page and keeps extra fields definition-driven", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeFieldDefinitions: [
         { key: "category", label: "类别", valueType: "STRING", defaultVisible: false },
@@ -298,7 +298,7 @@ describe("Take Charge record query", () => {
         },
       ],
     });
-    const result = repository.getTakeChargeRecords({
+    const result = await repository.getTakeChargeRecords({
       context: context(),
       viewMode: "ALL",
       pageIndex: 99,
@@ -310,8 +310,8 @@ describe("Take Charge record query", () => {
     expect(result.items[0].extraFields).toEqual({ category: "安全" });
   });
 
-  it("marks unresolved TRTID and unsupported Period incomplete", () => {
-    const unresolved = createMockEhsRepository(referenceDate, {
+  it("marks unresolved TRTID and unsupported Period incomplete", async () => {
+    const unresolved = await createMockEhsRepository(referenceDate, {
       takeChargeRecords: [takeCharge("BAD", "Submitted", undefined, "MISSING")],
     }).getTakeChargeRecords({
       context: context(),
@@ -319,7 +319,7 @@ describe("Take Charge record query", () => {
       pageIndex: 0,
       pageSize: 7,
     });
-    const unsupported = createMockEhsRepository(referenceDate).getTakeChargeRecords({
+    const unsupported = await createMockEhsRepository(referenceDate).getTakeChargeRecords({
       context: context("2026-10", "2026-10"),
       viewMode: "ALL",
       pageIndex: 0,
@@ -330,20 +330,20 @@ describe("Take Charge record query", () => {
     expect(unsupported.availability).toBe("INCOMPLETE");
   });
 
-  it("does not treat a missing status as a reliable close-rate input", () => {
+  it("does not treat a missing status as a reliable close-rate input", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [takeCharge("MISSING-STATUS", "   ")],
     });
 
-    expect(repository.getTakeChargeGoals({ context: context() }).period.availability)
+    expect((await repository.getTakeChargeGoals({ context: context() })).period.availability)
       .toBe("INCOMPLETE");
     expect(
-      repository.getTakeChargeRecords({
+      (await repository.getTakeChargeRecords({
         context: context(),
         viewMode: "ALL",
         pageIndex: 0,
         pageSize: 7,
-      }).availability,
+      })).availability,
     ).toBe("INCOMPLETE");
   });
 });

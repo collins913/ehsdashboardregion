@@ -89,16 +89,24 @@ describe("record status normalization", () => {
 
 describe("ASTM occurrence", () => {
   it("returns NOT_OCCURRED when no ASTM Event exists", () => {
-    expect(evaluateAstmOccurrence([event("No")])).toBe("NOT_OCCURRED");
+    expect(evaluateAstmOccurrence([{ astmInjuryIllness: "No" }])).toBe(
+      "NOT_OCCURRED",
+    );
   });
 
   it("returns OCCURRED for one ASTM Event", () => {
-    expect(evaluateAstmOccurrence([event("Yes")])).toBe("OCCURRED");
+    expect(evaluateAstmOccurrence([{ astmInjuryIllness: "Yes" }])).toBe(
+      "OCCURRED",
+    );
   });
 
   it("returns OCCURRED when one of multiple Events is ASTM", () => {
-    expect(evaluateAstmOccurrence([event("No"), event("Yes"), event("No")])).toBe(
-      "OCCURRED",
-    );
+    expect(
+      evaluateAstmOccurrence([
+        { astmInjuryIllness: "No" },
+        { astmInjuryIllness: "Yes" },
+        { astmInjuryIllness: "No" },
+      ]),
+    ).toBe("OCCURRED");
   });
 });

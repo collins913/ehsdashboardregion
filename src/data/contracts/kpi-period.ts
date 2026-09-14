@@ -107,6 +107,24 @@ export function periodForMode(
   now: Date,
 ): KpiPeriod {
   const { year, month } = shanghaiYearMonth(now);
+  return periodForModeFromMonth(
+    mode,
+    `${year}-${String(month).padStart(2, "0")}` as Month,
+  );
+}
+
+export function periodForModeFromMonth(
+  mode: NaturalPeriodMode,
+  referenceMonth: Month,
+): KpiPeriod {
+  const referenceMonthIndex = monthIndex(referenceMonth);
+
+  if (referenceMonthIndex === null) {
+    throw new Error("Unable to resolve the reference month.");
+  }
+
+  const year = Math.floor(referenceMonthIndex / 12);
+  const month = (referenceMonthIndex % 12) + 1;
   let startMonth: Month;
   let endMonth: Month;
 

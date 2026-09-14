@@ -8,7 +8,7 @@ import type {
   KpiActionClosureRateRecord,
   KpiDataSnapshot,
   KpiDrillRecord,
-  KpiFilterContext,
+  EhsFilterContext,
   KpiStore,
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
@@ -18,7 +18,7 @@ import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 import type { ParsedActionStatus, StoreMasterData } from "@/types/ehs";
 import type { RecordState } from "@/lib/rules/result-types";
 
-const q1Context: KpiFilterContext = {
+const q1Context: EhsFilterContext = {
   region: { kind: "ALL" },
   area: { kind: "ALL" },
   store: { kind: "ALL" },
@@ -128,34 +128,34 @@ describe("KPI assembly", () => {
     ]);
   });
 
-  it("honors repository store filtering", () => {
-    const context: KpiFilterContext = {
+  it("honors repository store filtering", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       store: { kind: "INCLUDE", values: ["TEST-002"] },
     };
-    const rows = buildKpiRows(context, mockEhsRepository.getKpiData(context));
+    const rows = buildKpiRows(context, await mockEhsRepository.getKpiData(context));
 
     expect(rows).toHaveLength(1);
     expect(rows[0].store.storeId).toBe("TEST-002");
   });
 
-  it("honors repository Region filtering", () => {
-    const context: KpiFilterContext = {
+  it("honors repository Region filtering", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       region: { kind: "INCLUDE", values: ["南屿区"] },
     };
-    const rows = buildKpiRows(context, mockEhsRepository.getKpiData(context));
+    const rows = buildKpiRows(context, await mockEhsRepository.getKpiData(context));
 
     expect(rows).toHaveLength(4);
     expect(rows.every(({ store }) => store.region === "南屿区")).toBe(true);
   });
 
-  it("honors repository Area filtering", () => {
-    const context: KpiFilterContext = {
+  it("honors repository Area filtering", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       area: { kind: "INCLUDE", values: ["西岭二部"] },
     };
-    const rows = buildKpiRows(context, mockEhsRepository.getKpiData(context));
+    const rows = buildKpiRows(context, await mockEhsRepository.getKpiData(context));
 
     expect(rows.map(({ store }) => store.storeId)).toEqual([
       "TEST-011",
@@ -163,8 +163,8 @@ describe("KPI assembly", () => {
     ]);
   });
 
-  it("honors the explicit period supplied to the repository", () => {
-    const context: KpiFilterContext = {
+  it("honors the explicit period supplied to the repository", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       store: { kind: "INCLUDE", values: ["TEST-003"] },
       period: {
@@ -173,14 +173,14 @@ describe("KPI assembly", () => {
         includedMonths: ["2026-03"],
       },
     };
-    const data = mockEhsRepository.getKpiData(context);
+    const data = await mockEhsRepository.getKpiData(context);
 
     expect(data.training.items.map(({ month }) => month)).toEqual(["2026-03"]);
     expect(data.events.items).toHaveLength(1);
   });
 
-  it("does not infer confirmed empty outside declared fixture coverage", () => {
-    const context: KpiFilterContext = {
+  it("does not infer confirmed empty outside declared fixture coverage", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       store: { kind: "INCLUDE", values: ["TEST-012"] },
       period: {
@@ -189,14 +189,14 @@ describe("KPI assembly", () => {
         includedMonths: ["2026-09"],
       },
     };
-    const data = mockEhsRepository.getKpiData(context);
+    const data = await mockEhsRepository.getKpiData(context);
 
     expect(data.training.availability).toBe("INCOMPLETE");
     expect(data.events.availability).toBe("INCOMPLETE");
   });
 
-  it("returns confirmed empty only inside declared fixture coverage", () => {
-    const context: KpiFilterContext = {
+  it("returns confirmed empty only inside declared fixture coverage", async () => {
+    const context: EhsFilterContext = {
       ...q1Context,
       store: { kind: "INCLUDE", values: ["TEST-012"] },
       period: {
@@ -205,12 +205,12 @@ describe("KPI assembly", () => {
         includedMonths: ["2026-01"],
       },
     };
-    const data = mockEhsRepository.getKpiData(context);
+    const data = await mockEhsRepository.getKpiData(context);
 
     expect(data.events.availability).toBe("CONFIRMED_EMPTY");
   });
 
-  it("does not treat an uncovered store in ALL scope as confirmed empty ASTM", () => {
+  it("does not treat an uncovered store in ALL scope as confirmed empty ASTM", async () => {
     const uncoveredStore: StoreMasterData = {
       region: "北辰区",
       area: "北辰一部",
@@ -224,7 +224,7 @@ describe("KPI assembly", () => {
     mutableStores.push(uncoveredStore);
 
     try {
-      const data = mockEhsRepository.getKpiData(q1Context);
+      const data = await mockEhsRepository.getKpiData(q1Context);
       const row = buildKpiRows(q1Context, data).find(
         ({ store }) => store.storeId === uncoveredStore.trtid,
       );

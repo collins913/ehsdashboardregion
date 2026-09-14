@@ -97,10 +97,9 @@ describe("Take Charge Data Table contract", () => {
             store: { kind: "ALL" },
             period: periodFromMonthRange("2026-09", "2026-09")!,
           },
-          repository: {
-            getTakeChargeRecords: () => {
+          referenceDateIso: "2026-09-11T00:00:00+08:00",
+          queryRecords: async () => {
               throw new Error("not called before measurement");
-            },
           },
         }),
       ),

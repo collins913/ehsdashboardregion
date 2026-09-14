@@ -8,8 +8,18 @@ const mockData = createKpiMockData(referenceDate);
 const mockEhsRepository = createMockEhsRepository(referenceDate);
 
 describe("Action source status parsing", () => {
-  it("passes source Status values through the parser in the Repository", () => {
-    const repositoryRecords = mockEhsRepository.listActionRecords();
+  it("passes source Status values through the parser in the Repository", async () => {
+    const repositoryRecords = (await mockEhsRepository.getActions({
+      context: {
+        region: { kind: "ALL" },
+        area: { kind: "ALL" },
+        store: { kind: "ALL" },
+        period: mockData.supportedPeriod,
+      },
+      viewMode: "ALL",
+      pageIndex: 0,
+      pageSize: 100,
+    })).items;
 
     expect(repositoryRecords).toHaveLength(mockData.actionRecords.length);
     expect(new Set(mockData.actionRecords.map(({ Status }) => Status))).toEqual(
@@ -23,9 +33,8 @@ describe("Action source status parsing", () => {
         "Pending Verification",
       ]),
     );
-    expect(repositoryRecords.map(({ Status }) => Status)).toEqual(
-      mockData.actionRecords.map(({ Status }) => parseActionStatus(Status)),
-    );
+    expect(new Set(repositoryRecords.map(({ sourceStatus }) => JSON.stringify(sourceStatus))))
+      .toEqual(new Set(mockData.actionRecords.map(({ Status }) => JSON.stringify(parseActionStatus(Status)))));
   });
 
   it.each([
@@ -48,8 +57,8 @@ describe("Action source status parsing", () => {
 });
 
 describe("normalized filter stores", () => {
-  it("exposes canonical storeId values through the Repository boundary", () => {
-    const stores = mockEhsRepository.listFilterStores();
+  it("exposes canonical storeId values through the Repository boundary", async () => {
+    const stores = await mockEhsRepository.getFilterStores();
 
     expect(stores.length).toBeGreaterThan(0);
     expect(stores[0]).toEqual({

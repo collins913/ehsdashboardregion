@@ -8,7 +8,7 @@
 ```text
 Source data
 → Store Mapping / Resolution
-→ Repository / normalized logical data
+→ Server Repository / normalized logical data
 → Centralized business rules
 → Page-ready results
 → UI
@@ -19,6 +19,20 @@ Source data
 - 数据源直接提供的汇总值不得由 Dashboard 根据明细重算。
 - Source Status、Display Status、Business Result 必须分层。
 - 逻辑字段与对象见 `data-contract.md`；它们不是数据库或 API 物理 Schema。
+
+正式页面的数据访问链为：
+
+```text
+Client Feature
+→ serializable async query
+→ Server Action boundary
+→ server-only Repository factory
+→ Source Adapter / Mock Repository
+→ normalized result
+→ Client Feature
+```
+
+Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领域组织的 normalized async query；raw source access 留在 Adapter / Repository implementation 内部。当前 server-only factory 明确选择 Standard Mock，未来 Production Adapter 在同一边界替换，不改变 Feature query contract。
 
 ## V1 领域边界
 
@@ -44,21 +58,21 @@ TRTID 不保证是所有数据源的唯一关联键。Events 与 Actions 使用�
 ## KPI 数据组装
 
 ```text
-KpiFilterContext
+EhsFilterContext
 → Repository scoped snapshot
 → KPI View Model Builder
 → Centralized Rule Engine
 → KpiRow[]
 ```
 
-- `KpiFilterContext` 显式提供 `[startInclusive, endExclusive)` 与 `includedMonths`；时间戳必须包含 `Z` 或 UTC offset，契约不一致时 Repository 安全降级为 `INCOMPLETE`。
+- `EhsFilterContext` 显式提供 `[startInclusive, endExclusive)` 与 `includedMonths`；时间戳必须包含 `Z` 或 UTC offset，契约不一致时 Repository 安全降级为 `INCOMPLETE`。
 - Repository 返回带 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE` 或 `UNAVAILABLE` 的数据集。
 - 只有数据源或 fixture 明确保证请求范围完整时，零记录才可表示 `CONFIRMED_EMPTY`。
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
 - Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI Action 明细复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 过滤。Store Resolution、Status 解析、RecordState 和 OPEN 过滤只在 Repository 链中执行一次；Builder 只按门店分配结果。
-- 当前 mock 阶段由 KPI feature client component 读取 Dashboard 共享 Filter Context，再调用 Repository 与 Builder；页面本身不读取 mock、不组装筛选参数、不执行业务计算。
+- KPI feature 读取 Dashboard 共享 Filter Context，经 Server Action 调用 Repository 与 Builder；Client 不读取 mock、不创建 Repository、不执行业务计算。
 - Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
 - Mock Action Closure Rate 使用显式 `[startInclusive, endExclusive)` 标识源汇总周期；每个值均为源 fixture 直接提供，不从月度值或 Action 明细计算。
@@ -83,7 +97,7 @@ Raw Take Charge (TRTID only)
 
 ```text
 Raw Action
-→ Action Store Resolution
+→ Store Reference Resolution
 → ParsedActionStatus / RecordState
 → Region / Area / canonical Store / Submitted Date filtering
 → OPEN_ONLY or ALL
@@ -91,10 +105,11 @@ Raw Action
 → Actions feature UI / KPI Actions drill-down
 ```
 
-- Actions 页面复用 Dashboard 的 `KpiFilterContext`，Period 只解释为 Submitted Date 的 Asia/Shanghai 半开区间。
+- Actions 页面复用 Dashboard 的 `EhsFilterContext`，Period 只解释为 Submitted Date 的 Asia/Shanghai 半开区间。
 - Repository 输出 canonical `storeId`、中文门店名、原始状态解析结果与 RecordState；UI 不读取 Store Reference，也不解析状态。
 - `OPEN_ONLY` 与 `ALL` 是 Actions feature view state，不进入 Global Filter Context。
 - KPI Action 下钻与 Actions 页面 Open 视图复用同一查询；相同 Filter Context 下必须返回相同 OPEN Action ID。Actions 页面 All 视图仅改变 view mode，不改变 Store 或 Period 解释。
+- Actions query 对完整 scoped result 依次执行 Period、view mode、sorting、pagination，并返回当前页、`totalCount` 与 availability。
 
 ## Events scoped query
 
@@ -112,13 +127,14 @@ Raw Event
 此处 `Event Date` 指稳定的 source / contract 字段；用户可见术语为 `Event Time` / “事件时间”。
 
 - Event Type 选项从当前 Global Filter + view mode 的未按 type 过滤结果生成，避免选中后其它选项消失。
+- Events query 在分页前生成 `availableEventTypes`，并对完整 scoped result 先过滤、排序、再分页。
 - KPI ASTM 输入与 Events 页面复用同一 normalized Event Repository 数据；ASTM 规则仍只读取 `ASTMInjuryIllness`，不在页面重算。
 - 完整 coverage 下空结果为 `CONFIRMED_EMPTY`；超出 coverage 或 Store Resolution 不完整时为 `INCOMPLETE`。
 
 ## Global Filters
 
 - Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
-- Region、Area、Store 沿用 `KpiFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
+- Region、Area、Store 沿用 `EhsFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
 - Repository 向筛选 UI 提供 `storeId`、`displayName`、Region、Area，不允许 UI 使用名称或 TRTID 自行关联。
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
 - 当前未结束月份的业务完整性仍由既有 DataAvailability 机制表达；Global Filters 不增加 KPI 判定规则。

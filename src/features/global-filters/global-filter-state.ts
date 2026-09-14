@@ -1,12 +1,13 @@
 import type {
   FilterScope,
-  KpiFilterContext,
+  EhsFilterContext,
   KpiStore,
 } from "@/data/contracts/kpi";
 import {
   BUSINESS_TIME_ZONE,
   includedMonthsBetween,
   periodForMode,
+  periodForModeFromMonth,
   periodFromMonthRange,
   shanghaiYearMonth,
 } from "@/data/contracts/kpi-period";
@@ -16,6 +17,7 @@ export {
   BUSINESS_TIME_ZONE,
   includedMonthsBetween,
   periodForMode,
+  periodForModeFromMonth,
   periodFromMonthRange,
   shanghaiYearMonth,
 };
@@ -130,11 +132,11 @@ export function changeArea(
   };
 }
 
-export function toKpiFilterContext(
+export function toEhsFilterContext(
   state: GlobalFilterState,
-  now: Date,
+  referenceDate: Date | Month,
   stores: readonly KpiStore[],
-): KpiFilterContext | null {
+): EhsFilterContext | null {
   const period =
     state.period.mode === "CUSTOM"
       ? state.period.startMonth !== null && state.period.endMonth !== null
@@ -143,7 +145,9 @@ export function toKpiFilterContext(
             state.period.endMonth,
           )
         : null
-      : periodForMode(state.period.mode, now);
+      : typeof referenceDate === "string"
+        ? periodForModeFromMonth(state.period.mode, referenceDate)
+        : periodForMode(state.period.mode, referenceDate);
 
   const hasValidScope = hasValidFilterScopes(state, stores);
 

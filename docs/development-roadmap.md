@@ -1,6 +1,6 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-13
+- 更新日期：2026-09-14
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
@@ -23,14 +23,27 @@
 - Stores V1
 - Store Resolver historical rename compatibility
 
-## 近期开发顺序
+## Architecture Hardening
 
-1. ASTM KPI Drilldown
-2. Risk & Compliance → Environment
-3. Risk & Compliance → Certificates
-4. Overview
+当前阶段收口 Production Source 替换边界：
 
-依赖原则：Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository；Stores 进一步稳定后再启动首轮规模验证。
+- Async Repository Contract 与按领域分组的 public query
+- Client → Server Action → server-only Repository factory
+- raw `list*` 退出 Public Repository API
+- `EhsFilterContext`、`resolveStoreReference` 中性命名
+- Actions / Events Repository-side sorting 与 pagination
+- latest-request-wins、loading / error 基础能力
+- GitHub CI 基线
+
+## 后续开发顺序
+
+1. Performance V1
+2. ASTM KPI Drilldown
+3. Risk & Compliance → Environment
+4. Risk & Compliance → Certificates
+5. Overview
+
+依赖原则：Architecture Hardening 完成后先进行 Performance V1；Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository。
 
 ## Performance & Scale Validation
 
@@ -40,7 +53,7 @@
 
 ### Performance V1
 
-在 Stores 等主要结构进一步稳定后，引入独立 Performance Mock Profile，约 500 Stores，用于验证真实 400+ 门店规模下的：
+Architecture Hardening 完成后引入独立 Performance Mock Profile，约 500 Stores，用于验证真实 400+ 门店规模下的：
 
 - Global Store Filter
 - Region / Area / Store 联动
