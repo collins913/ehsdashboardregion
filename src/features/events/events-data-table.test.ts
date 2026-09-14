@@ -7,6 +7,7 @@ import {
   DEFAULT_EVENT_COLUMN_VISIBILITY,
   DEFAULT_EVENTS_VIEW_MODE,
   DEFAULT_VISIBLE_EVENT_COLUMN_IDS,
+  EVENT_COLUMN_SIZE_ROLES,
   EventDetailContent,
   EventsDataTable,
 } from "./events-data-table";
@@ -57,9 +58,16 @@ describe("Events table defaults", () => {
 
     expect(markup).toContain("data-adaptive-table-measurement-row");
     expect(markup).toContain("时间范围：事件时间");
-    expect(markup).toContain("w-28 min-w-28 max-w-28");
-    expect(markup).toContain("w-36 min-w-36 max-w-36");
-    expect(markup).toContain("w-[20%] min-w-32");
+    expect(EVENT_COLUMN_SIZE_ROLES).toEqual({
+      store: "primary",
+      eventId: "compact",
+      eventType: "standard",
+      description: "content",
+      eventDate: "compact",
+      status: "compact",
+      submittedBy: "standard",
+    });
+    expect(markup).toContain("w-[22%] min-w-36 max-w-72");
     expect(markup).not.toContain("EVENT-001");
   });
 });

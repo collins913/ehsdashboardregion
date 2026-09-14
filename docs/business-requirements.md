@@ -337,29 +337,17 @@ Stores 仅用于查看和核对 Store Master Data，不展示或计算 Performan
 
 ### 10.2 默认显示字段
 
-Stores 列表默认勾选并显示七个字段：
-
-- Region
-- Area
-- Store Name CN
-- Store Name EN
-- TRTID
-- Manager
-- EHS Ambassador
+Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表。Store Name EN 在 Store Detail 中展示。
 
 未来允许增加其它门店主数据字段；新增字段是否默认显示：TBD。
 
 ### 10.3 列表与详情
 
-列表支持：
-
-- 搜索
-- 排序
-- 列显示控制
+列表支持排序、列显示控制与 adaptive pagination。排序作用于完整 scoped Store 集合，再进行分页。
 
 上述功能优先放在表格标题行或表头区域。只有后续复杂度确有需要时才增加独立工具栏。
 
-点击门店后，仅展示该门店完整主数据，当前至少包括上述七个字段。
+点击门店后，仅展示中文门店名、英文门店名、TRTID、Region、Area、Manager、EHS&S 代表。底层稳定字段名可继续使用 `ehsAmbassador`。
 
 ### 10.4 空值
 

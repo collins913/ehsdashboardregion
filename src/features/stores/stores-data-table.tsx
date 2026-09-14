@@ -18,11 +18,12 @@ import {
   rowPaginationFeature,
   rowSortingFeature,
   type SortingState,
-  sortFn_basic,
   sortFn_text,
   tableFeatures as defineTableFeatures,
   useTable,
 } from "@tanstack/react-table";
+import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
@@ -32,8 +33,6 @@ import {
   stickyStoreHeaderClassName,
   type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
-import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,12 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type {
-  ActionsViewMode,
-  NormalizedActionRecord,
-} from "@/data/contracts/actions";
-import type { DataAvailability } from "@/data/contracts/kpi";
-import { ActionStatusDisplay } from "@/features/actions/action-status-display";
+import type { NormalizedStoreRecord } from "@/data/contracts/stores";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
@@ -65,81 +59,56 @@ import {
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
-import {
-  formatBusinessDate,
-  formatBusinessDateTime,
-} from "@/lib/format-business-date-time";
 
-const actionsTableFeatures = defineTableFeatures({
+const storesTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSortingFeature,
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
-  sortFns: {
-    basic: sortFn_basic,
-    text: sortFn_text,
-  },
+  sortFns: { text: sortFn_text },
 });
 
-type ActionsTableFeatures = typeof actionsTableFeatures;
-
+type StoresTableFeatures = typeof storesTableFeatures;
 const columnHelper =
-  createColumnHelper<ActionsTableFeatures, NormalizedActionRecord>();
+  createColumnHelper<StoresTableFeatures, NormalizedStoreRecord>();
 
 const columnLabels: Record<string, string> = {
   store: "门店",
-  actionId: "行动项编号",
-  problem: "问题",
-  action: "行动项",
-  dueDate: "截止时间",
-  status: "状态",
-  owner: "负责人",
-  submittedBy: "提交人",
-  submittedDate: "提交时间",
-  closedDate: "关闭时间",
+  region: "区域",
+  area: "小区",
+  trtid: "TRTID",
+  manager: "门店经理",
+  ehsAmbassador: "EHS&S 代表",
 };
 
-export const ACTION_COLUMN_SIZE_ROLES = {
+export const STORE_COLUMN_SIZE_ROLES = {
   store: "primary",
-  actionId: "compact",
-  problem: "content",
-  action: "content",
-  dueDate: "compact",
-  status: "compact",
-  owner: "standard",
-  submittedBy: "standard",
-  submittedDate: "compact",
-  closedDate: "compact",
+  region: "standard",
+  area: "standard",
+  trtid: "compact",
+  manager: "standard",
+  ehsAmbassador: "standard",
 } satisfies Record<string, DataTableColumnSizeRole>;
 
-function actionColumnSizeClassName(columnId: string) {
-  const role = ACTION_COLUMN_SIZE_ROLES[
-    columnId as keyof typeof ACTION_COLUMN_SIZE_ROLES
+function storeColumnSizeClassName(columnId: string) {
+  const role = STORE_COLUMN_SIZE_ROLES[
+    columnId as keyof typeof STORE_COLUMN_SIZE_ROLES
   ];
 
   return role ? dataTableColumnSizeClassNames[role] : undefined;
 }
 
-export const DEFAULT_ACTION_COLUMN_VISIBILITY: ColumnVisibilityState = {
-  owner: false,
-  submittedBy: false,
-  submittedDate: false,
-  closedDate: false,
-};
-
-export const DEFAULT_VISIBLE_ACTION_COLUMN_IDS = [
+export const DEFAULT_VISIBLE_STORE_COLUMN_IDS = [
   "store",
-  "actionId",
-  "problem",
-  "action",
-  "dueDate",
-  "status",
+  "region",
+  "area",
+  "trtid",
+  "manager",
+  "ehsAmbassador",
 ] as const;
 
-export const DEFAULT_ACTIONS_VIEW_MODE: ActionsViewMode = "OPEN_ONLY";
-
-type ActionsPaginationState =
+type StoresPaginationState =
   | { status: "UNMEASURED" }
   | { status: "READY"; pagination: AdaptivePagination };
 
@@ -148,86 +117,53 @@ const unmeasuredTablePagination: PaginationState = {
   pageSize: 1,
 };
 
-export function ActionDetailContent({
+export function getStoreRowId(record: NormalizedStoreRecord) {
+  return record.storeId;
+}
+
+export function isStoreRowActivationKey(key: string) {
+  return key === "Enter" || key === " ";
+}
+
+function displayValue(value: string) {
+  return value.trim().length > 0 ? value : "—";
+}
+
+export function StoreDetailContent({
   record,
 }: {
-  record: NormalizedActionRecord;
+  record: NormalizedStoreRecord;
 }) {
+  const fields = [
+    ["中文门店名", record.storeNameCn],
+    ["英文门店名", record.storeNameEn],
+    ["TRTID", record.trtid],
+    ["区域", record.region],
+    ["小区", record.area],
+    ["门店经理", record.manager],
+    ["EHS&S 代表", record.ehsAmbassador],
+  ] as const;
+
   return (
-    <div className="space-y-6 px-4 pb-4">
-      <section className="space-y-3">
-        <h3 className="font-medium">基本信息</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">门店</dt>
-            <dd className="mt-1">{record.storeDisplayName}</dd>
+    <div className="px-4 pb-4">
+      <dl className="grid gap-4 sm:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="mt-1 break-words">{displayValue(value)}</dd>
           </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">行动项编号</dt>
-            <dd className="mt-1">{record.actionId}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">状态</dt>
-            <dd className="mt-1">
-              <ActionStatusDisplay status={record.sourceStatus} />
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">问题</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {record.problem}
-        </p>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">行动项</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {record.action}
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="font-medium">人员与时间</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">负责人</dt>
-            <dd className="mt-1">{record.owner}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">提交人</dt>
-            <dd className="mt-1">{record.submittedBy}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">提交时间</dt>
-            <dd className="mt-1">
-              {formatBusinessDateTime(record.submittedDate)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">截止时间</dt>
-            <dd className="mt-1">{formatBusinessDateTime(record.dueDate)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">关闭时间</dt>
-            <dd className="mt-1">
-              {formatBusinessDateTime(record.closedDate)}
-            </dd>
-          </div>
-        </dl>
-      </section>
+        ))}
+      </dl>
     </div>
   );
 }
 
-function ActionDetailSheet({
+function StoreDetailSheet({
   record,
   open,
   onOpenChange,
 }: {
-  record: NormalizedActionRecord | null;
+  record: NormalizedStoreRecord | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -235,56 +171,28 @@ function ActionDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto sm:max-w-xl!">
         <SheetHeader>
-          <SheetTitle>行动项详情</SheetTitle>
-          <SheetDescription>
-            {record ? `${record.storeDisplayName} · ${record.actionId}` : ""}
-          </SheetDescription>
+          <SheetTitle>门店详情</SheetTitle>
+          <SheetDescription>{record?.storeNameCn ?? ""}</SheetDescription>
         </SheetHeader>
-        {record ? <ActionDetailContent record={record} /> : null}
+        {record ? <StoreDetailContent record={record} /> : null}
       </SheetContent>
     </Sheet>
   );
 }
 
-function DataAvailabilityNotice({
-  availability,
-}: {
-  availability: DataAvailability;
-}) {
-  if (availability === "AVAILABLE" || availability === "CONFIRMED_EMPTY") {
-    return null;
-  }
-
-  return (
-    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-      {availability === "INCOMPLETE"
-        ? "行动项数据不完整，当前结果可能缺少记录。"
-        : "行动项数据不可用。"}
-    </div>
-  );
-}
-
-type ActionsDataTableProps = {
-  rows: readonly NormalizedActionRecord[];
-  availability: DataAvailability;
-  viewMode: ActionsViewMode;
-  onViewModeChange: (viewMode: ActionsViewMode) => void;
-};
-
-export function ActionsDataTable({
+export function StoresDataTable({
   rows,
-  availability,
-  viewMode,
-  onViewModeChange,
-}: ActionsDataTableProps) {
+}: {
+  rows: readonly NormalizedStoreRecord[];
+}) {
   const [selectedRecord, setSelectedRecord] =
-    useState<NormalizedActionRecord | null>(null);
+    useState<NormalizedStoreRecord | null>(null);
   const [isDetailOpen, setDetailOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
-    useState<ColumnVisibilityState>(DEFAULT_ACTION_COLUMN_VISIBILITY);
+    useState<ColumnVisibilityState>({});
   const [paginationState, setPaginationState] =
-    useState<ActionsPaginationState>({ status: "UNMEASURED" });
+    useState<StoresPaginationState>({ status: "UNMEASURED" });
   const isPaginationReady = paginationState.status === "READY";
   const pagination = useMemo<PaginationState>(() => {
     if (paginationState.status === "UNMEASURED") {
@@ -390,21 +298,21 @@ export function ActionsDataTable({
     });
   }, [rows.length]);
 
-  const openDetail = useCallback((record: NormalizedActionRecord) => {
+  const openDetail = useCallback((record: NormalizedStoreRecord) => {
     setSelectedRecord(record);
     setDetailOpen(true);
   }, []);
   const columns = useMemo(
     () =>
       columnHelper.columns([
-        columnHelper.accessor((row) => row.storeDisplayName, {
+        columnHelper.accessor("storeNameCn", {
           id: "store",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.store} />
           ),
-          cell: ({ row }) => (
+          cell: ({ getValue }) => (
             <OverflowTooltip
-              text={row.original.storeDisplayName}
+              text={getValue()}
               className={cn(
                 dataTableColumnContentClassNames.primary,
                 "font-medium",
@@ -414,130 +322,87 @@ export function ActionsDataTable({
           enableHiding: false,
           sortFn: "text",
         }),
-        columnHelper.accessor("actionId", {
-          id: "actionId",
+        columnHelper.accessor("region", {
+          id: "region",
           header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.actionId} />
+            <DataTableColumnHeader column={column} title={columnLabels.region} />
           ),
           cell: ({ getValue }) => (
             <OverflowTooltip
-              text={getValue()}
-              className={cn(
-                dataTableColumnContentClassNames.compact,
-                "font-medium",
-              )}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("problem", {
-          id: "problem",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.problem} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={getValue()}
-              className={dataTableColumnContentClassNames.content}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("action", {
-          id: "action",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.action} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={getValue()}
-              className={dataTableColumnContentClassNames.content}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor((row) => formatBusinessDate(row.dueDate), {
-          id: "dueDate",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.dueDate} />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor((row) => row.sourceStatus.value, {
-          id: "status",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.status} />
-          ),
-          cell: ({ row }) => (
-            <ActionStatusDisplay status={row.original.sourceStatus} />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("owner", {
-          id: "owner",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.owner} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={getValue()}
+              text={displayValue(getValue())}
               className={dataTableColumnContentClassNames.standard}
               focusable={false}
             />
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor("submittedBy", {
-          id: "submittedBy",
+        columnHelper.accessor("area", {
+          id: "area",
           header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={columnLabels.submittedBy}
-            />
+            <DataTableColumnHeader column={column} title={columnLabels.area} />
           ),
           cell: ({ getValue }) => (
             <OverflowTooltip
-              text={getValue()}
+              text={displayValue(getValue())}
               className={dataTableColumnContentClassNames.standard}
               focusable={false}
             />
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor((row) => formatBusinessDate(row.submittedDate), {
-          id: "submittedDate",
+        columnHelper.accessor("trtid", {
+          id: "trtid",
           header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={columnLabels.submittedDate}
+            <DataTableColumnHeader column={column} title={columnLabels.trtid} />
+          ),
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={displayValue(getValue())}
+              className={dataTableColumnContentClassNames.compact}
+              focusable={false}
             />
           ),
           sortFn: "text",
         }),
-        columnHelper.accessor(
-          (row) =>
-            row.closedDate === null ? "—" : formatBusinessDate(row.closedDate),
-          {
-            id: "closedDate",
-            header: ({ column }) => (
-              <DataTableColumnHeader
-                column={column}
-                title={columnLabels.closedDate}
-              />
-            ),
-            sortFn: "text",
-          },
-        ),
+        columnHelper.accessor("manager", {
+          id: "manager",
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={columnLabels.manager} />
+          ),
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={displayValue(getValue())}
+              className={dataTableColumnContentClassNames.standard}
+              focusable={false}
+            />
+          ),
+          sortFn: "text",
+        }),
+        columnHelper.accessor("ehsAmbassador", {
+          id: "ehsAmbassador",
+          header: ({ column }) => (
+            <DataTableColumnHeader
+              column={column}
+              title={columnLabels.ehsAmbassador}
+            />
+          ),
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={displayValue(getValue())}
+              className={dataTableColumnContentClassNames.standard}
+              focusable={false}
+            />
+          ),
+          sortFn: "text",
+        }),
       ]),
     [],
   );
   const table = useTable({
-    features: actionsTableFeatures,
+    features: storesTableFeatures,
     columns,
     data: rows,
+    getRowId: getStoreRowId,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
@@ -548,11 +413,11 @@ export function ActionsDataTable({
 
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
-    record: NormalizedActionRecord,
+    record: NormalizedStoreRecord,
   ) => {
     if (
       event.target === event.currentTarget &&
-      (event.key === "Enter" || event.key === " ")
+      isStoreRowActivationKey(event.key)
     ) {
       event.preventDefault();
       openDetail(record);
@@ -561,36 +426,9 @@ export function ActionsDataTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "OPEN_ONLY"}
-            onClick={() => {
-              table.firstPage();
-              onViewModeChange("OPEN_ONLY");
-            }}
-          >
-            当前未关闭
-          </Button>
-          <Button
-            variant={viewMode === "ALL" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "ALL"}
-            onClick={() => {
-              table.firstPage();
-              onViewModeChange("ALL");
-            }}
-          >
-            全部行动项
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            时间范围：提交时间
-          </span>
-        </div>
+      <div className="flex justify-end">
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
-
-      <DataAvailabilityNotice availability={availability} />
 
       <div ref={tableFrameRef} className={dataTableFrameClassName}>
         <Table className={dataTableClassName}>
@@ -601,7 +439,7 @@ export function ActionsDataTable({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      actionColumnSizeClassName(header.column.id),
+                      storeColumnSizeClassName(header.column.id),
                       header.column.id === "store" &&
                         stickyStoreHeaderClassName,
                     )}
@@ -633,7 +471,7 @@ export function ActionsDataTable({
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
                   tabIndex={0}
-                  aria-label={`查看行动项 ${row.original.actionId}`}
+                  aria-label={`查看门店 ${row.original.storeNameCn}`}
                   className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   onClick={() => openDetail(row.original)}
                   onKeyDown={(event) => handleRowKeyDown(event, row.original)}
@@ -642,7 +480,7 @@ export function ActionsDataTable({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        actionColumnSizeClassName(cell.column.id),
+                        storeColumnSizeClassName(cell.column.id),
                         cell.column.id === "store" &&
                           stickyStoreCellClassName,
                       )}
@@ -658,9 +496,7 @@ export function ActionsDataTable({
                   colSpan={visibleColumnCount}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  {viewMode === "OPEN_ONLY"
-                    ? "当前筛选范围内没有未关闭行动项。"
-                    : "当前筛选范围内没有行动项。"}
+                  当前筛选范围内没有门店。
                 </TableCell>
               </TableRow>
             )}
@@ -675,9 +511,7 @@ export function ActionsDataTable({
           isPaginationReady ? "" : " invisible"
         }`}
       >
-        <p className="text-sm text-muted-foreground">
-          共 {rows.length} 条行动项
-        </p>
+        <p className="text-sm text-muted-foreground">共 {rows.length} 家门店</p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             第 {table.state.pagination.pageIndex + 1} /{" "}
@@ -702,7 +536,7 @@ export function ActionsDataTable({
         </div>
       </div>
 
-      <ActionDetailSheet
+      <StoreDetailSheet
         record={selectedRecord}
         open={isDetailOpen}
         onOpenChange={setDetailOpen}

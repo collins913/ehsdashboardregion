@@ -51,6 +51,11 @@ import type {
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
 import type {
+  NormalizedStoreRecord,
+  StoresQuery,
+  StoresQueryResult,
+} from "@/data/contracts/stores";
+import type {
   ActionClosureRateRecord,
   ActionRecord,
   EventRecord,
@@ -99,15 +104,32 @@ function toKpiStore(store: StoreMasterData): KpiStore {
   };
 }
 
+function toNormalizedStoreRecord(
+  store: StoreMasterData,
+): NormalizedStoreRecord {
+  return {
+    storeId: store.trtid,
+    storeNameCn: store.storeNameCn,
+    storeNameEn: store.storeNameEn,
+    trtid: store.trtid,
+    region: store.region,
+    area: store.area,
+    manager: store.manager,
+    ehsAmbassador: store.ehsAmbassador,
+  };
+}
+
+function scopedStoreMaster(context: KpiFilterContext) {
+  return mockStores.filter(
+    (store) =>
+      scopeIncludes(context.region, store.region) &&
+      scopeIncludes(context.area, store.area) &&
+      scopeIncludes(context.store, store.trtid),
+  );
+}
+
 function requestedStores(context: KpiFilterContext): readonly KpiStore[] {
-  return mockStores
-    .filter(
-      (store) =>
-        scopeIncludes(context.region, store.region) &&
-        scopeIncludes(context.area, store.area) &&
-        scopeIncludes(context.store, store.trtid),
-    )
-    .map(toKpiStore);
+  return scopedStoreMaster(context).map(toKpiStore);
 }
 
 function isWithinDeclaredCoverage(
@@ -841,12 +863,19 @@ export function createMockEhsRepository(
     };
   }
 
+  function getStores({ context }: StoresQuery): StoresQueryResult {
+    return completeDataSet(
+      scopedStoreMaster(context).map(toNormalizedStoreRecord),
+    );
+  }
+
   return {
     getKpiData,
     getActions,
     getEvents,
     getTakeChargeGoals,
     getTakeChargeRecords,
+    getStores,
     listFilterStores: () => mockStores.map(toKpiStore),
     listStores: () => mockStores,
     findStoreCandidates: (reference) =>

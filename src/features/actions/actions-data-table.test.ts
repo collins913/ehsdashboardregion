@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NormalizedActionRecord } from "@/data/contracts/actions";
 import {
+  ACTION_COLUMN_SIZE_ROLES,
   ActionDetailContent,
   ActionsDataTable,
   DEFAULT_ACTION_COLUMN_VISIBILITY,
@@ -68,8 +69,19 @@ describe("Actions table defaults", () => {
 
     expect(markup).toContain("data-adaptive-table-measurement-row");
     expect(markup).toContain("时间范围：提交时间");
-    expect(markup).toContain("w-32 min-w-32 max-w-32");
-    expect(markup).toContain("w-[18%] min-w-36 max-w-52");
+    expect(ACTION_COLUMN_SIZE_ROLES).toEqual({
+      store: "primary",
+      actionId: "compact",
+      problem: "content",
+      action: "content",
+      dueDate: "compact",
+      status: "compact",
+      owner: "standard",
+      submittedBy: "standard",
+      submittedDate: "compact",
+      closedDate: "compact",
+    });
+    expect(markup).toContain("w-[22%] min-w-36 max-w-72");
     expect(markup).not.toContain("ACTION-001");
     expect(markup).not.toContain("完整问题内容");
   });

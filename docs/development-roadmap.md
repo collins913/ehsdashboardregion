@@ -20,15 +20,15 @@
 - Risk & Compliance → Actions
 - Risk & Compliance → Events
 - Performance → Goals / Take Charge
+- Stores V1
 - Store Resolver historical rename compatibility
 
 ## 近期开发顺序
 
-1. Stores
-2. ASTM KPI Drilldown
-3. Risk & Compliance → Environment
-4. Risk & Compliance → Certificates
-5. Overview
+1. ASTM KPI Drilldown
+2. Risk & Compliance → Environment
+3. Risk & Compliance → Certificates
+4. Overview
 
 依赖原则：Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository；Stores 进一步稳定后再启动首轮规模验证。
 

@@ -74,9 +74,9 @@ Dashboard 不根据明细猜测分子、分母或人员基数。
 
 Store Detail 不承载 Performance 或 Risk & Compliance 内容，也不进行 KPI、风险或合规计算。
 
-### D-010 默认显示七个门店字段
+### D-010 Stores 列表与详情字段边界
 
-Stores 列表默认勾选：Region、Area、Store Name CN、Store Name EN、TRTID、Manager、EHS Ambassador。未来允许扩展字段。
+Stores 列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表；Store Name EN 仅在 Store Detail 展示。底层 `ehsAmbassador` 字段名保持稳定。未来允许扩展字段，但新增字段是否进入列表或详情必须另行确认。
 
 ### D-011 TRTID 不是所有数据源的强制唯一关联键
 

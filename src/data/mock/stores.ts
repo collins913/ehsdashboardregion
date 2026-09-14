@@ -1,4 +1,5 @@
 import type { StoreMasterData } from "@/types/ehs";
+import { mockPersonAt } from "@/data/mock/people";
 
 export const mockStores = [
   {
@@ -7,8 +8,8 @@ export const mockStores = [
     storeNameCn: "云川引力场中心",
     storeNameEn: "Yunchuan Gravity Center",
     trtid: "TEST-001",
-    manager: "测试经理甲",
-    ehsAmbassador: "测试专员甲",
+    manager: mockPersonAt(0),
+    ehsAmbassador: mockPersonAt(6),
   },
   {
     region: "北辰区",
@@ -16,8 +17,8 @@ export const mockStores = [
     storeNameCn: "澜州北岸引力场直营跃迁中心",
     storeNameEn: "Lanzhou Beian Gravity Direct Transit Center",
     trtid: "TEST-002",
-    manager: "测试经理乙",
-    ehsAmbassador: "测试专员乙",
+    manager: mockPersonAt(1),
+    ehsAmbassador: mockPersonAt(7),
   },
   {
     region: "北辰区",
@@ -25,8 +26,8 @@ export const mockStores = [
     storeNameCn: "星原望川里引力场中心",
     storeNameEn: "Xingyuan Wangchuanli Gravity Center",
     trtid: "TEST-003",
-    manager: "测试经理丙",
-    ehsAmbassador: "测试专员丙",
+    manager: mockPersonAt(2),
+    ehsAmbassador: mockPersonAt(8),
   },
   {
     region: "北辰区",
@@ -34,8 +35,8 @@ export const mockStores = [
     storeNameCn: "辰川引力场直营跃迁中心",
     storeNameEn: "Chenchuan Gravity Direct Transit Center",
     trtid: "TEST-004",
-    manager: "测试经理丁",
-    ehsAmbassador: "测试专员丁",
+    manager: mockPersonAt(3),
+    ehsAmbassador: mockPersonAt(9),
   },
   {
     region: "南屿区",
@@ -43,8 +44,8 @@ export const mockStores = [
     storeNameCn: "云岚东岭引力场中心",
     storeNameEn: "Yunlan Dongling Gravity Center",
     trtid: "TEST-005",
-    manager: "测试经理戊",
-    ehsAmbassador: "测试专员戊",
+    manager: mockPersonAt(4),
+    ehsAmbassador: mockPersonAt(10),
   },
   {
     region: "南屿区",
@@ -52,8 +53,8 @@ export const mockStores = [
     storeNameCn: "澜川云谷新区引力场直营跃迁中心",
     storeNameEn: "Lanchuan Yungu Xinqu Gravity Direct Transit Center",
     trtid: "TEST-006",
-    manager: "测试经理己",
-    ehsAmbassador: "测试专员己",
+    manager: mockPersonAt(5),
+    ehsAmbassador: mockPersonAt(11),
   },
   {
     region: "南屿区",
@@ -61,8 +62,8 @@ export const mockStores = [
     storeNameCn: "星原南庭引力场中心",
     storeNameEn: "Xingyuan Nanting Gravity Center",
     trtid: "TEST-007",
-    manager: "测试经理庚",
-    ehsAmbassador: "测试专员庚",
+    manager: mockPersonAt(6),
+    ehsAmbassador: mockPersonAt(0),
   },
   {
     region: "南屿区",
@@ -70,8 +71,8 @@ export const mockStores = [
     storeNameCn: "辰川天际城引力场直营跃迁中心",
     storeNameEn: "Chenchuan Tianjicheng Gravity Direct Transit Center",
     trtid: "TEST-008",
-    manager: "测试经理辛",
-    ehsAmbassador: "测试专员辛",
+    manager: mockPersonAt(7),
+    ehsAmbassador: mockPersonAt(1),
   },
   {
     region: "西岭区",
@@ -79,8 +80,8 @@ export const mockStores = [
     storeNameCn: "霁川北辰新城引力场中心",
     storeNameEn: "Jichuan Beichen Xincheng Gravity Center",
     trtid: "TEST-009",
-    manager: "测试经理壬",
-    ehsAmbassador: "测试专员壬",
+    manager: mockPersonAt(8),
+    ehsAmbassador: mockPersonAt(2),
   },
   {
     region: "西岭区",
@@ -88,8 +89,8 @@ export const mockStores = [
     storeNameCn: "云州望澜里引力场直营跃迁中心",
     storeNameEn: "Yunzhou Wanglanli Gravity Direct Transit Center",
     trtid: "TEST-010",
-    manager: "测试经理癸",
-    ehsAmbassador: "测试专员癸",
+    manager: mockPersonAt(9),
+    ehsAmbassador: mockPersonAt(3),
   },
   {
     region: "西岭区",
@@ -97,8 +98,8 @@ export const mockStores = [
     storeNameCn: "澜原时湾新区引力场中心",
     storeNameEn: "Lanyuan Shiwan Xinqu Gravity Center",
     trtid: "TEST-011",
-    manager: "测试经理子",
-    ehsAmbassador: "测试专员子",
+    manager: mockPersonAt(10),
+    ehsAmbassador: mockPersonAt(4),
   },
   {
     region: "西岭区",
@@ -106,7 +107,7 @@ export const mockStores = [
     storeNameCn: "辰岚浮光云庭新城引力场直营跃迁中心",
     storeNameEn: "Chenlan Fuguang Yunting Xincheng Gravity Direct Transit Center",
     trtid: "TEST-012",
-    manager: "测试经理丑",
-    ehsAmbassador: "测试专员丑",
+    manager: mockPersonAt(11),
+    ehsAmbassador: mockPersonAt(5),
   },
 ] satisfies readonly StoreMasterData[];

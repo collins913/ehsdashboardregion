@@ -95,7 +95,7 @@ Source Reference 为可选结构，可包含：
 
 ## 3. Store Master Data
 
-当前默认显示的逻辑字段：
+当前 Store Master normalized contract 的逻辑字段：
 
 | 字段 | 含义 | 备注 |
 |---|---|---|
@@ -105,9 +105,9 @@ Source Reference 为可选结构，可包含：
 | Store Name EN | 门店英文名称 | 可能参与 Store Resolution |
 | TRTID | 内部门店标识 | 不称为 Store ID；跨源唯一性不保证 |
 | Manager | 门店经理 | 人员标识方式 TBD |
-| EHS Ambassador | 门店 EHS Ambassador | 人员标识方式 TBD |
+| EHS Ambassador | 门店 EHS Ambassador；用户可见标签为“EHS&S 代表” | 人员标识方式 TBD |
 
-允许未来增加其它主数据字段。新增字段是否默认显示：TBD。
+Stores Repository 按 Global Region / Area / canonical Store scope 返回上述字段，并忽略 Period。列表默认列与 Detail 字段范围见 `business-requirements.md`。允许未来增加其它主数据字段；新增字段是否进入列表或详情仍为 TBD。
 
 ## 4. Performance → KPI 输入
 

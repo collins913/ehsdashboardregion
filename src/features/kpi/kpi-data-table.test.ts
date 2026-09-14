@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   ActionsCell,
+  KPI_COLUMN_SIZE_ROLES,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
 import type { ActionKpiValue, KpiRow } from "@/features/kpi/types";
@@ -68,6 +69,17 @@ describe("KPI Actions cell", () => {
 });
 
 describe("KPI adaptive table hydration", () => {
+  it("uses a primary Store column and compact KPI value columns", () => {
+    expect(KPI_COLUMN_SIZE_ROLES).toEqual({
+      store: "primary",
+      training: "compact",
+      drill: "compact",
+      actions: "compact",
+      inspections: "compact",
+      astmEvents: "compact",
+    });
+  });
+
   it("renders a measurement shell without business rows before measurement", () => {
     const markup = renderToStaticMarkup(
       createElement(

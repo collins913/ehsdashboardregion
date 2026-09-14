@@ -2,6 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import {
+  dataTableClassName,
+  dataTableColumnContentClassNames,
+  dataTableColumnSizeClassNames,
+  dataTableFrameClassName,
+  stickyStoreCellClassName,
+  stickyStoreHeaderClassName,
+} from "@/components/shared/data-table-layout";
 import { GlobalFilters } from "@/components/shared/global-filters";
 import { MonthPicker } from "@/components/shared/month-picker";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
@@ -21,6 +29,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
 import type { Month } from "@/types/ehs";
@@ -126,6 +142,57 @@ function DetailSheetDemo() {
         </dl>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function ColumnSizingRolePreview() {
+  return (
+    <div className={dataTableFrameClassName}>
+      <Table className={dataTableClassName}>
+        <TableHeader>
+          <TableRow>
+            <TableHead
+              className={`${dataTableColumnSizeClassNames.primary} ${stickyStoreHeaderClassName}`}
+            >
+              Primary
+            </TableHead>
+            <TableHead className={dataTableColumnSizeClassNames.content}>
+              Content
+            </TableHead>
+            <TableHead className={dataTableColumnSizeClassNames.standard}>
+              Standard
+            </TableHead>
+            <TableHead className={dataTableColumnSizeClassNames.compact}>
+              Compact
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell
+              className={`${dataTableColumnSizeClassNames.primary} ${stickyStoreCellClassName}`}
+            >
+              <OverflowTooltip
+                text="辰岚浮光云庭新城引力场直营跃迁中心"
+                className={dataTableColumnContentClassNames.primary}
+              />
+            </TableCell>
+            <TableCell className={dataTableColumnSizeClassNames.content}>
+              <OverflowTooltip
+                text="这是用于观察正文列适度扩展并在合理阅读宽度停止增长的长文本。"
+                className={dataTableColumnContentClassNames.content}
+              />
+            </TableCell>
+            <TableCell className={dataTableColumnSizeClassNames.standard}>
+              Ming LI（李 明）
+            </TableCell>
+            <TableCell className={dataTableColumnSizeClassNames.compact}>
+              EVT-12345
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
@@ -300,10 +367,10 @@ export default function UiLabPage() {
           <div>
             <h3 className="text-sm font-medium">Representative Data Table</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              直接复用正式 KpiDataTable，集中验证排序、列显示、Sticky
-              Store、状态、可用性、点击单元格和 5 / 7 / 10 自适应分页。将表格滚动到视口后调整窗口高度即可观察档位变化。
+              先验证 primary、content、standard、compact 四种共享列宽角色，再通过正式 KpiDataTable 验证排序、列显示、Sticky Store、状态、可用性、点击单元格和 5 / 7 / 10 自适应分页。
             </p>
-            <div className="mt-3">
+            <div className="mt-3 space-y-4">
+              <ColumnSizingRolePreview />
               <KpiDataTable rows={demoKpiRows} />
             </div>
           </div>

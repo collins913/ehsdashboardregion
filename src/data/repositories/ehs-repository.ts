@@ -30,6 +30,7 @@ import type {
   TakeChargeRecordsQuery,
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
+import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
 
 export interface EhsRepository {
   getKpiData(context: KpiFilterContext): KpiDataSnapshot;
@@ -37,6 +38,7 @@ export interface EhsRepository {
   getEvents(query: EventsQuery): EventsQueryResult;
   getTakeChargeGoals(query: TakeChargeGoalsQuery): TakeChargeGoalsSummary;
   getTakeChargeRecords(query: TakeChargeRecordsQuery): TakeChargeRecordsResult;
+  getStores(query: StoresQuery): StoresQueryResult;
   listFilterStores(): readonly KpiStore[];
   listStores(): readonly StoreMasterData[];
   findStoreCandidates(reference: StoreReference): readonly StoreMasterData[];

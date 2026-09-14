@@ -19,7 +19,7 @@ const storeNames = [
   "山城店",
   "花园店",
   "都会店",
-  "公园大道店",
+  "辰岚浮光云庭新城引力场直营跃迁中心",
 ] as const;
 
 function performance(

@@ -25,10 +25,13 @@ import {
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import {
+  dataTableColumnContentClassNames,
+  dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
+  type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
@@ -97,14 +100,23 @@ const columnLabels: Record<string, string> = {
   submittedBy: "提交人",
 };
 
-const columnSizingClassNames: Record<string, string> = {
-  eventId: "w-28 min-w-28 max-w-28",
-  eventType: "w-36 min-w-36 max-w-36",
-  description: "w-[20%] min-w-32",
-  eventDate: "w-28 min-w-28",
-  status: "w-24 min-w-24",
-  submittedBy: "w-28 min-w-28",
-};
+export const EVENT_COLUMN_SIZE_ROLES = {
+  store: "primary",
+  eventId: "compact",
+  eventType: "standard",
+  description: "content",
+  eventDate: "compact",
+  status: "compact",
+  submittedBy: "standard",
+} satisfies Record<string, DataTableColumnSizeRole>;
+
+function eventColumnSizeClassName(columnId: string) {
+  const role = EVENT_COLUMN_SIZE_ROLES[
+    columnId as keyof typeof EVENT_COLUMN_SIZE_ROLES
+  ];
+
+  return role ? dataTableColumnSizeClassNames[role] : undefined;
+}
 
 export const DEFAULT_EVENT_COLUMN_VISIBILITY: ColumnVisibilityState = {
   submittedBy: false,
@@ -378,7 +390,10 @@ export function EventsDataTable({
           cell: ({ row }) => (
             <OverflowTooltip
               text={row.original.storeDisplayName}
-              className="w-44 font-medium"
+              className={cn(
+                dataTableColumnContentClassNames.primary,
+                "font-medium",
+              )}
             />
           ),
           enableHiding: false,
@@ -389,13 +404,29 @@ export function EventsDataTable({
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.eventId} />
           ),
-          cell: ({ getValue }) => <span className="font-medium">{getValue()}</span>,
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={getValue()}
+              className={cn(
+                dataTableColumnContentClassNames.compact,
+                "font-medium",
+              )}
+              focusable={false}
+            />
+          ),
           sortFn: "text",
         }),
         columnHelper.accessor("eventType", {
           id: "eventType",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title={columnLabels.eventType} />
+          ),
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={getValue()}
+              className={dataTableColumnContentClassNames.standard}
+              focusable={false}
+            />
           ),
           sortFn: "text",
         }),
@@ -408,9 +439,11 @@ export function EventsDataTable({
             />
           ),
           cell: ({ getValue }) => (
-            <span className="block w-full min-w-0 max-w-72 truncate">
-              {getValue()}
-            </span>
+            <OverflowTooltip
+              text={getValue()}
+              className={dataTableColumnContentClassNames.content}
+              focusable={false}
+            />
           ),
           sortFn: "text",
         }),
@@ -435,6 +468,13 @@ export function EventsDataTable({
             <DataTableColumnHeader
               column={column}
               title={columnLabels.submittedBy}
+            />
+          ),
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={getValue()}
+              className={dataTableColumnContentClassNames.standard}
+              focusable={false}
             />
           ),
           sortFn: "text",
@@ -532,7 +572,7 @@ export function EventsDataTable({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      columnSizingClassNames[header.column.id],
+                      eventColumnSizeClassName(header.column.id),
                       header.column.id === "store" &&
                         stickyStoreHeaderClassName,
                     )}
@@ -573,7 +613,7 @@ export function EventsDataTable({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        columnSizingClassNames[cell.column.id],
+                        eventColumnSizeClassName(cell.column.id),
                         cell.column.id === "store" &&
                           stickyStoreCellClassName,
                       )}

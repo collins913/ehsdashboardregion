@@ -125,7 +125,14 @@ Raw Event
 
 ## Store Master Data
 
-默认显示：Region、Area、Store Name CN、Store Name EN、TRTID、Manager、EHS Ambassador。
+```text
+Store Master source
+→ scoped Stores Repository query
+→ Stores feature
+→ Table / Store Detail
+```
+
+Repository 直接按 Global Region / Area / canonical Store 过滤 Store Master；Store Master 本身不经过 Store Resolution。列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表，Store Name EN 在 Detail 中展示。
 
 Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、约束、来源和物理存储仍为 TBD。
 
@@ -147,6 +154,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - Actions 规范化查询契约：`src/data/contracts/actions.ts`
 - Events 规范化查询契约：`src/data/contracts/events.ts`
 - Take Charge / Goals 规范化查询契约：`src/data/contracts/take-charge.ts`
+- Stores 规范化查询契约：`src/data/contracts/stores.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

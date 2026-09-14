@@ -25,10 +25,13 @@ import {
   DataAvailabilityDisplay,
 } from "@/components/shared/data-availability-display";
 import {
+  dataTableColumnContentClassNames,
+  dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
+  type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
@@ -73,6 +76,7 @@ import type {
   OccurrenceResult,
   PerformanceResult,
 } from "@/lib/rules/result-types";
+import { cn } from "@/lib/utils";
 
 const kpiTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
@@ -98,6 +102,23 @@ const columnLabels: Record<string, string> = {
   inspections: "检查",
   astmEvents: "ASTM 事件",
 };
+
+export const KPI_COLUMN_SIZE_ROLES = {
+  store: "primary",
+  training: "compact",
+  drill: "compact",
+  actions: "compact",
+  inspections: "compact",
+  astmEvents: "compact",
+} satisfies Record<string, DataTableColumnSizeRole>;
+
+function kpiColumnSizeClassName(columnId: string) {
+  const role = KPI_COLUMN_SIZE_ROLES[
+    columnId as keyof typeof KPI_COLUMN_SIZE_ROLES
+  ];
+
+  return role ? dataTableColumnSizeClassNames[role] : undefined;
+}
 
 function ResultCell({ value }: { value: PerformanceKpiValue }) {
   if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
@@ -139,7 +160,15 @@ function rowHasNegativeResult(row: KpiRow): boolean {
 }
 
 function StoreNameCell({ name }: { name: string }) {
-  return <OverflowTooltip text={name} className="w-44 font-medium" />;
+  return (
+    <OverflowTooltip
+      text={name}
+      className={cn(
+        dataTableColumnContentClassNames.primary,
+        "font-medium",
+      )}
+    />
+  );
 }
 
 export function ActionsCell({
@@ -501,11 +530,11 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={
-                      header.column.id === "store"
-                        ? stickyStoreHeaderClassName
-                        : undefined
-                    }
+                    className={cn(
+                      kpiColumnSizeClassName(header.column.id),
+                      header.column.id === "store" &&
+                        stickyStoreHeaderClassName,
+                    )}
                   >
                     {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                   </TableHead>
@@ -534,11 +563,11 @@ export function KpiDataTable({ rows }: KpiDataTableProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={
-                        cell.column.id === "store"
-                          ? stickyStoreCellClassName
-                          : undefined
-                      }
+                      className={cn(
+                        kpiColumnSizeClassName(cell.column.id),
+                        cell.column.id === "store" &&
+                          stickyStoreCellClassName,
+                      )}
                     >
                       <table.FlexRender cell={cell} />
                     </TableCell>

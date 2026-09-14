@@ -23,10 +23,13 @@ import { DataAvailabilityDisplay } from "@/components/shared/data-availability-d
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import {
+  dataTableColumnContentClassNames,
+  dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
+  type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
@@ -87,13 +90,26 @@ const coreColumnLabels: Record<string, string> = {
   status: "状态",
 };
 
-const columnSizingClassNames: Record<string, string> = {
-  tchId: "w-28 min-w-28 max-w-28",
-  submittedBy: "w-28 min-w-28",
-  submittedAt: "w-28 min-w-28 max-w-28",
-  summary: "w-[24%] min-w-40",
-  status: "w-28 min-w-28",
-};
+export const TAKE_CHARGE_COLUMN_SIZE_ROLES = {
+  store: "primary",
+  tchId: "compact",
+  submittedBy: "standard",
+  submittedAt: "compact",
+  summary: "content",
+  status: "standard",
+} satisfies Record<string, DataTableColumnSizeRole>;
+
+function takeChargeColumnSizeRole(columnId: string): DataTableColumnSizeRole {
+  return (
+    TAKE_CHARGE_COLUMN_SIZE_ROLES[
+      columnId as keyof typeof TAKE_CHARGE_COLUMN_SIZE_ROLES
+    ] ?? "standard"
+  );
+}
+
+function takeChargeColumnSizeClassName(columnId: string) {
+  return dataTableColumnSizeClassNames[takeChargeColumnSizeRole(columnId)];
+}
 
 export const DEFAULT_VISIBLE_TAKE_CHARGE_COLUMN_IDS = [
   "store",
@@ -224,7 +240,13 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
         <DataTableColumnHeader column={column} title={coreColumnLabels.store} />
       ),
       cell: ({ getValue }) => (
-        <OverflowTooltip text={getValue()} className="w-44 font-medium" />
+        <OverflowTooltip
+          text={getValue()}
+          className={cn(
+            dataTableColumnContentClassNames.primary,
+            "font-medium",
+          )}
+        />
       ),
       enableHiding: false,
     }),
@@ -233,7 +255,16 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={coreColumnLabels.tchId} />
       ),
-      cell: ({ getValue }) => <span className="font-medium">{getValue()}</span>,
+      cell: ({ getValue }) => (
+        <OverflowTooltip
+          text={getValue()}
+          className={cn(
+            dataTableColumnContentClassNames.compact,
+            "font-medium",
+          )}
+          focusable={false}
+        />
+      ),
     }),
     columnHelper.accessor("submittedBy", {
       id: "submittedBy",
@@ -241,6 +272,13 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
         <DataTableColumnHeader
           column={column}
           title={coreColumnLabels.submittedBy}
+        />
+      ),
+      cell: ({ getValue }) => (
+        <OverflowTooltip
+          text={getValue()}
+          className={dataTableColumnContentClassNames.standard}
+          focusable={false}
         />
       ),
     }),
@@ -261,9 +299,11 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
       header: coreColumnLabels.summary,
       enableSorting: false,
       cell: ({ getValue }) => (
-        <span className="block w-full min-w-0 max-w-72 truncate">
-          {getValue()}
-        </span>
+        <OverflowTooltip
+          text={getValue()}
+          className={dataTableColumnContentClassNames.content}
+          focusable={false}
+        />
       ),
     }),
     columnHelper.accessor("sourceStatus", {
@@ -285,6 +325,13 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
           id: `extra:${definition.key}`,
           header: definition.label,
           enableSorting: false,
+          cell: ({ getValue }) => (
+            <OverflowTooltip
+              text={getValue()}
+              className={dataTableColumnContentClassNames.standard}
+              focusable={false}
+            />
+          ),
         },
       ),
     ),
@@ -526,7 +573,7 @@ export function TakeChargeDataTable({
                   <TableHead
                     key={header.id}
                     className={cn(
-                      columnSizingClassNames[header.column.id],
+                      takeChargeColumnSizeClassName(header.column.id),
                       header.column.id === "store" && stickyStoreHeaderClassName,
                     )}
                   >
@@ -565,7 +612,7 @@ export function TakeChargeDataTable({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        columnSizingClassNames[cell.column.id],
+                        takeChargeColumnSizeClassName(cell.column.id),
                         cell.column.id === "store" && stickyStoreCellClassName,
                       )}
                     >

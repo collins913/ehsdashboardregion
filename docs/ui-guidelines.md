@@ -40,6 +40,12 @@
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
 - 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。
 
+## Data tables
+
+- Shared Table 提供 `primary`、`content`、`standard`、`compact` 四种列宽角色；Feature 必须按字段语义显式声明，不由 Shared 根据列名猜测。
+- `primary` 用于 Store 等主要识别字段，保留可读最小宽度并优先扩展；`content` 用于正文长文本，在最小、首选和最大阅读宽度之间伸缩；`standard` 用于姓名、区域、分类等中短文本；`compact` 用于 ID、日期、状态等结构化短字段。
+- 空间不足时使用 CSS truncate，并按真实 overflow 启用 Tooltip；共享最小表宽和横向滚动继续保证窄 viewport 的最低可读性。Sticky 只负责定位、背景和层级，不自行决定列宽。
+
 ## Navigation
 
 - 侧栏只回答“去哪里”，页面内容回答“看什么”。

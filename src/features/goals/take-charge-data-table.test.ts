@@ -7,6 +7,7 @@ import {
   DEFAULT_VISIBLE_TAKE_CHARGE_COLUMN_IDS,
   getTakeChargeRowId,
   resetTakeChargePageIndex,
+  TAKE_CHARGE_COLUMN_SIZE_ROLES,
   TakeChargeDataTable,
   TakeChargeDetailContent,
 } from "@/features/goals/take-charge-data-table";
@@ -71,6 +72,17 @@ describe("Take Charge Data Table contract", () => {
       "summary",
       "status",
     ]);
+  });
+
+  it("declares semantic sizing roles for core columns", () => {
+    expect(TAKE_CHARGE_COLUMN_SIZE_ROLES).toEqual({
+      store: "primary",
+      tchId: "compact",
+      submittedBy: "standard",
+      submittedAt: "compact",
+      summary: "content",
+      status: "standard",
+    });
   });
 
   it("reuses sortable headers for core fields but not Summary", () => {
