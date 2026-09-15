@@ -31,7 +31,7 @@ export function StoresPageContent({
   queryStores: StoresQueryAction;
 }) {
   const { storeScope, referenceDateIso } = useGlobalFilters();
-  const queryKey = storeScopeQueryKey(storeScope, referenceDateIso);
+  const queryKey = storeScopeQueryKey(storeScope);
   const load = useCallback(
     () => loadStoresPageData(storeScope, referenceDateIso, queryStores),
     [storeScope, queryStores, referenceDateIso],

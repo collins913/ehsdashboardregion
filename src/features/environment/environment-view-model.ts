@@ -23,6 +23,6 @@ export function buildEnvironmentDetail(record: NormalizedEnvironmentRecord, key:
 
 export type EnvironmentDetail = ReturnType<typeof buildEnvironmentDetail>;
 
-export function environmentQueryKey(context: EhsStoreScope | null, referenceDateIso: string) {
-  return storeScopeQueryKey(context, referenceDateIso);
+export function environmentQueryKey(context: EhsStoreScope | null) {
+  return storeScopeQueryKey(context);
 }

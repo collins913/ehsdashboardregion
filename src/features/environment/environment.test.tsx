@@ -55,8 +55,8 @@ describe("Environment feature", () => {
   });
   it("does not change query identity on Period change but does on Store change", () => {
     const otherPeriod = { ...context, period: periodFromMonthRange("2030-01", "2030-02")! };
-    expect(environmentQueryKey(otherPeriod, "reference")).toBe(environmentQueryKey(context, "reference"));
-    expect(environmentQueryKey({ ...context, store: { kind: "INCLUDE", values: [record.storeId] } }, "reference")).not.toBe(environmentQueryKey(context, "reference"));
+    expect(environmentQueryKey(otherPeriod)).toBe(environmentQueryKey(context));
+    expect(environmentQueryKey({ ...context, store: { kind: "INCLUDE", values: [record.storeId] } })).not.toBe(environmentQueryKey(context));
   });
   it("routes through the persistent shell and wires all six cell triggers", () => {
     const table = readFileSync("src/features/environment/environment-data-table.tsx", "utf8");

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import type { KpiStore } from "@/data/contracts/kpi";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { StoresPageContent } from "@/features/stores/stores-page-content";
 import { EnvironmentPageContent } from "@/features/environment/environment-page-content";
 import { CertificatesPageContent } from "@/features/certificates/certificates-page-content";
@@ -41,7 +42,9 @@ vi.mock("react", async (original) => ({
 }));
 vi.mock("./global-filter-provider", () => ({ useGlobalFilters: () => runtime.filters }));
 
-const referenceDateIso = "2026-09-15T00:00:00+08:00";
+const initialReferenceDateIso = "2026-09-15T00:00:00+08:00";
+let referenceDateIso = initialReferenceDateIso;
+const dataset = createKpiMockData(new Date(initialReferenceDateIso));
 const repository = createMockEhsRepository(new Date(referenceDateIso));
 const stores: readonly KpiStore[] = await repository.getFilterStores();
 let state: GlobalFilterState;
@@ -69,14 +72,15 @@ beforeEach(() => {
   runtime.cleanup?.(); runtime.slots = []; runtime.dependencies = undefined;
   runtime.cleanup = undefined; runtime.effect = undefined;
   state = createInitialGlobalFilterState();
+  referenceDateIso = initialReferenceDateIso;
 });
 
 const modules = [
   { name: "Stores", query: vi.fn(({ query }) => repository.getStores({ context: query })), page: StoresPageContent, prop: "queryStores" },
   { name: "Environment", query: vi.fn(({ query }) => repository.getEnvironment({ context: query })), page: EnvironmentPageContent, prop: "queryEnvironment" },
-  { name: "Certificates", query: vi.fn(({ query }) => repository.getCertificates({ context: query })), page: CertificatesPageContent, prop: "queryCertificates" },
+  { name: "Certificates", query: vi.fn(({ query, referenceDateIso }) => createMockEhsRepository(new Date(referenceDateIso), { dataset }).getCertificates({ context: query })), page: CertificatesPageContent, prop: "queryCertificates" },
 ] as const;
-describe.each(modules)("$name Store-scope dependency", ({ query, page, prop }) => {
+describe.each(modules)("$name Store-scope dependency", ({ name, query, page, prop }) => {
   // The discriminated page signatures are exercised through their actual query prop.
   const view = () => (page as (props: never) => ReactElement)({ [prop]: query } as never);
   async function loaded() {
@@ -84,6 +88,25 @@ describe.each(modules)("$name Store-scope dependency", ({ query, page, prop }) =
     await vi.waitFor(() => expect(tableProps(render(view))?.queryStatus).toBe("READY"));
     return tableProps(render(view))!;
   }
+  it("uses referenceDate only for Certificates query identity", async () => {
+    query.mockClear();
+    const before = await loaded();
+    referenceDateIso = "2026-09-16T00:00:00+08:00";
+    const during = tableProps(render(view))!;
+    if (name === "Certificates") {
+      expect(during.queryStatus).toBe("LOADING");
+      expect(during.queryKey).not.toBe(before.queryKey);
+      const after = await loaded();
+      expect(query).toHaveBeenCalledTimes(2);
+      expect(after.rows).not.toEqual(before.rows);
+    } else {
+      expect(during.queryStatus).toBe("READY");
+      expect(during.queryKey).toBe(before.queryKey);
+      expect(during.rows).toEqual(before.rows);
+      await Promise.resolve();
+      expect(query).toHaveBeenCalledTimes(1);
+    }
+  });
   it("queries from an initially incomplete Period without inventing a Period", async () => {
     query.mockClear();
     state = { ...state, period: { mode: "CUSTOM", startMonth: null, endMonth: null } };

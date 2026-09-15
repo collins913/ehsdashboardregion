@@ -22,7 +22,7 @@
 
 ### 2.1 Global Filter Context
 
-查询上下文按实际依赖区分：Store scope 仅含 Region / Area / canonical Store；完整 period-aware context 在此基础上增加有效 Period。Stores、Environment、Certificates 使用 Store scope，不携带虚构 Period，Period 无效不影响其查询就绪。依赖 Period 的查询继续要求完整 context。查询身份只包含影响该查询结果的维度及独立 referenceDate，不依赖 executor identity。
+查询上下文按实际依赖区分：Store scope 仅含 Region / Area / canonical Store；完整 period-aware context 在此基础上增加有效 Period。Stores、Environment、Certificates 使用 Store scope，不携带虚构 Period，Period 无效不影响其查询就绪。依赖 Period 的查询继续要求完整 context。查询身份只包含实际影响结果的业务输入：Stores / Environment 仅使用 Store scope，Certificates 另包含用于有效期评价的 referenceDate；不依赖 executor identity。
 
 业务查询上下文包含：
 

@@ -18,7 +18,7 @@ export async function loadEnvironmentPageData(context: EhsStoreScope | null, ref
 
 export function EnvironmentPageContent({ queryEnvironment }: { queryEnvironment: EnvironmentQueryAction }) {
   const { storeScope, referenceDateIso } = useGlobalFilters();
-  const queryKey = environmentQueryKey(storeScope, referenceDateIso);
+  const queryKey = environmentQueryKey(storeScope);
   const load = useCallback(() => loadEnvironmentPageData(storeScope, referenceDateIso, queryEnvironment), [storeScope, referenceDateIso, queryEnvironment]);
   const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
   const result = state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;

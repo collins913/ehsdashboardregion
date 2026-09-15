@@ -48,5 +48,6 @@ export function buildCertificatesDetail(record: CertificatesTableRow, key: Certi
 }
 export type CertificatesDetail = ReturnType<typeof buildCertificatesDetail>;
 export function certificatesQueryKey(context: EhsStoreScope | null, referenceDateIso: string) {
-  return storeScopeQueryKey(context, referenceDateIso);
+  const scopeKey = storeScopeQueryKey(context);
+  return scopeKey === null ? null : JSON.stringify([referenceDateIso, scopeKey]);
 }

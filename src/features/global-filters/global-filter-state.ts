@@ -142,8 +142,8 @@ export function toEhsStoreScope(
     : null;
 }
 
-export function storeScopeQueryKey(scope: EhsStoreScope | null, referenceDateIso: string) {
-  return scope ? JSON.stringify([referenceDateIso, scope.region, scope.area, scope.store]) : null;
+export function storeScopeQueryKey(scope: EhsStoreScope | null) {
+  return scope ? JSON.stringify([scope.region, scope.area, scope.store]) : null;
 }
 
 export function toEhsFilterContext(
