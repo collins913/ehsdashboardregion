@@ -3,6 +3,7 @@ import {
   type KpiMockCoverage,
 } from "@/data/mock";
 import type { MockDataset } from "@/data/mock/mock-dataset";
+import type { EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import { parseActionStatus } from "@/data/parse-action-status";
 import {
   createStoreReferenceResolver,
@@ -59,6 +60,7 @@ import type {
   ActionRecord,
   EventRecord,
   RawActionRecord,
+  RawEnvironmentRecord,
   StoreId,
   StoreMasterData,
   StoreReference,
@@ -252,6 +254,7 @@ function isActionAggregateScopeCovered(
 }
 
 type MockEhsRepositoryOptions = {
+  environmentRecords?: readonly RawEnvironmentRecord[];
   dataset?: MockDataset;
   actionRecords?: readonly RawActionRecord[];
   eventRecords?: readonly EventRecord[];
@@ -1088,6 +1091,42 @@ export function createMockEhsRepository(
     );
   }
 
+  async function getEnvironment({ context }: EnvironmentQuery): Promise<EnvironmentQueryResult> {
+    const selectedStores = requestedStores(context, stores);
+    const selectedIds = new Set(selectedStores.map((store) => store.storeId));
+    const records = new Map<string, NormalizedEnvironmentRecord>();
+    let complete = true;
+    for (const raw of options.environmentRecords ?? mockData.environmentRecords) {
+      const resolution = resolveStoreReference({ trtid: raw.TRTID, storeNameEn: raw["English Store Name"] });
+      if (resolution.kind !== "RESOLVED") {
+        complete = false;
+        continue;
+      }
+      // Canonical identity comes from the same Store projection used by Global Filters.
+      const store = toKpiStore(resolution.store);
+      if (!selectedIds.has(store.storeId)) continue;
+      const sourceValues = [raw.环境影响评价, raw.排污许可, raw.排水许可, raw.环境预案, raw.监测, raw.废弃物合同];
+      if (records.has(store.storeId) || sourceValues.some((value) => !["有", "无", "不适用"].includes(value))) {
+        complete = false;
+        continue;
+      }
+      records.set(store.storeId, {
+        storeId: store.storeId,
+        storeDisplayName: store.displayName,
+        environmentalImpactAssessment: raw.环境影响评价,
+        dischargePermit: raw.排污许可,
+        drainagePermit: raw.排水许可,
+        emergencyPlan: raw.环境预案,
+        monitoring: raw.监测,
+        wasteContract: raw.废弃物合同,
+      });
+    }
+    const items = [...records.values()];
+    return complete && selectedStores.every((store) => records.has(store.storeId))
+      ? completeDataSet(items)
+      : incompleteDataSet(items);
+  }
+
   return {
     getKpiData,
     getActions,
@@ -1095,6 +1134,7 @@ export function createMockEhsRepository(
     getTakeChargeGoals,
     getTakeChargeRecords,
     getStores,
+    getEnvironment,
     getFilterStores: async () => stores.map(toKpiStore),
   };
 }

@@ -3,6 +3,7 @@ import { periodForMode } from "@/data/contracts/kpi-period";
 import { createMockAggregateScopes } from "@/data/mock/kpi-mock-factory";
 import type { MockDataset } from "@/data/mock/mock-dataset";
 import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
+import { createEnvironmentMockRecords } from "@/data/mock/environment-v1";
 import { mockPersonAt } from "@/data/mock/people";
 import { mockStores } from "@/data/mock/stores";
 import type {
@@ -316,6 +317,7 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
     ),
     actionRecords: performanceActions(stores, supportedMonths),
     eventRecords: performanceEvents(stores, supportedMonths),
+    environmentRecords: createEnvironmentMockRecords(stores),
     takeChargeRecords: performanceTakeCharge(stores, supportedMonths),
     takeChargeAnnualMetricContributions: performanceAnnualContributions(
       stores,

@@ -53,7 +53,7 @@ Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认�
 
 - TRTID 不保证是所有数据源的唯一关联键。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
-- Events 与 Actions 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
+- Events、Actions 与 Environment V1 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
 - Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
 ### 2.3 Data Availability
@@ -95,7 +95,7 @@ Source Reference 为可选结构，可包含：
 
 ### 2.6 Async Query Boundary
 
-`EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
+`EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
 
 Client 传入 Server Action 的查询 DTO 仅包含 `EhsFilterContext`、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
 
@@ -354,6 +354,18 @@ V1 默认类别：
 
 ## 9. Risk & Compliance → Environment
 
+### 9.0 Environment V1 当前状态契约
+
+Raw Source 保留八个源字段：`TRTID`、`English Store Name`、`环境影响评价`、`排污许可`、`排水许可`、`环境预案`、`监测`、`废弃物合同`。六个环境字段均且仅允许“有 / 无 / 不适用”。Raw 不保存中文门店名，不包含日期、证号、有效期、机构、备注或业务结果。
+
+Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`，以及对应六个当前源值（包含废弃物合同）；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
+
+Environment query 接收既有 `EhsFilterContext`，仅使用 Region / Area / canonical Store，忽略 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
+
+Detail 只提供门店中文名、当前点击项目名称、当前状态；其他详情字段 TBD。V1 不输出 Environment Business Result，也不套用既有合规规则。
+
+以下 9.1–9.5 保留既有合规输入需求，**不属于当前状态 V1 的源字段或实现范围**；后续扩展必须另行确认。
+
 ### 9.1 Waste Contract Record
 
 至少需要：
@@ -426,8 +438,8 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 | Goal Result | 直接值及按已确认阈值得出的达成结果 |
 | Certificate Display Status | 由展示层根据规范化结果与原因映射 |
 | Certificate Business Result | `NORMAL`、`ABNORMAL`、`UNDETERMINED`，并附标准 Reason Code |
-| Environment Display Status | 类别结果；监测为无/查看 |
-| Environment Business Result | 已定义类别的正常/异常；Environmental Monitoring 不因记录存在性输出此结果 |
+| Environment V1 value | 六个项目的原始“有 / 无 / 不适用”，不作业务归类 |
+| Environment Business Result | 当前状态 V1 不提供；既有合规需求独立于 V1 源值 |
 
 字段命名、枚举编码和错误返回结构：TBD。
 

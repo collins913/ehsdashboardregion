@@ -7,6 +7,8 @@
 
 项目已完成基础架构和首批正式业务页面，当前进入其余业务模块的逐步实现阶段。
 
+Environment V1 当前状态表已完成实现、自动质量门与人工验收：六个“有 / 无 / 不适用”源值（含废弃物合同），忽略 Period，复用 Store Resolution 与 shared Table / Detail Sheet。真实详情字段及后续合规扩展保持 TBD，不纳入本阶段。
+
 ### 已完成
 
 - Foundation / Architecture
@@ -24,6 +26,7 @@
 - Store Resolver historical rename compatibility
 - Architecture Hardening
 - Performance V1（实现、自动质量门与人工验收完成）
+- Risk & Compliance → Environment V1
 
 ## Architecture Hardening
 
@@ -40,9 +43,8 @@
 ## 后续开发顺序
 
 1. ASTM KPI Drilldown
-2. Risk & Compliance → Environment
-3. Risk & Compliance → Certificates
-4. Overview
+2. Risk & Compliance → Certificates
+3. Overview
 
 依赖原则：Architecture Hardening 与 Performance V1 已完成；Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository。
 

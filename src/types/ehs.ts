@@ -6,6 +6,19 @@ export type TimezoneAwareIsoDateTime =
 export type Month = `${number}-${number}`;
 export type StoreId = string;
 
+export type EnvironmentSourceValue = "有" | "无" | "不适用";
+
+export interface RawEnvironmentRecord {
+  TRTID: string;
+  "English Store Name": string;
+  环境影响评价: EnvironmentSourceValue;
+  排污许可: EnvironmentSourceValue;
+  排水许可: EnvironmentSourceValue;
+  环境预案: EnvironmentSourceValue;
+  监测: EnvironmentSourceValue;
+  废弃物合同: EnvironmentSourceValue;
+}
+
 export type StoreReference =
   | { trtid: string; storeNameEn?: string }
   | { storeNameCn: string }

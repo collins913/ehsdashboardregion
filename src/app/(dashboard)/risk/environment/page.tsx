@@ -1,5 +1,6 @@
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { queryEnvironment } from "@/data/server/ehs-query-actions";
+import { EnvironmentPageContent } from "@/features/environment/environment-page-content";
 
 export default function EnvironmentPage() {
-  return <PlaceholderPage />;
+  return <EnvironmentPageContent queryEnvironment={queryEnvironment} />;
 }

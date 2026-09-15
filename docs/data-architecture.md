@@ -63,7 +63,7 @@ Performance Dataset 在相同 reference month 下保持 deterministic，用于�
 - Store Name CN
 - Store Name EN
 
-TRTID 不保证是所有数据源的唯一关联键。Events 与 Actions 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
+TRTID 不保证是所有数据源的唯一关联键。Events、Actions 与 Environment V1 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
 
 页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID、Store Name CN、Store Name EN 必须由 Adapter / Repository 解析为 `storeId`；当前 mock Repository 仅使用现有精确匹配，无法唯一匹配时将数据标记为不完整，不推测生产匹配策略。
 
@@ -151,6 +151,21 @@ Raw Event
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
 - 当前未结束月份的业务完整性仍由既有 DataAvailability 机制表达；Global Filters 不增加 KPI 判定规则。
 
+## Environment V1 current-state query
+
+```text
+Environment Raw Source (TRTID / English Store Name + six current values)
+→ existing Mock Dataset / Source boundary
+→ existing Store Resolution / same EHS Repository
+→ normalized Environment result
+→ Server Action boundary
+→ Environment Feature / Table / shared Detail Sheet
+```
+
+六个源值只表达“有 / 无 / 不适用”，不进入 Rule Engine。Region / Area / canonical Store 有效，Period 忽略。中文名称来自 Store Master，Raw 不携带中文名；Detail 只展示门店、项目、当前值，其余字段 TBD。
+
+Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，不创建独立 Repository runtime 或 Table / Detail framework。Mock 使用既有 Store Master 生成少量 deterministic 当前状态记录；不扩展 Performance V1 规模目标，未覆盖门店明确返回不完整数据。
+
 ## Store Master Data
 
 ```text
@@ -183,6 +198,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - Events 规范化查询契约：`src/data/contracts/events.ts`
 - Take Charge / Goals 规范化查询契约：`src/data/contracts/take-charge.ts`
 - Stores 规范化查询契约：`src/data/contracts/stores.ts`
+- Environment 当前状态规范化查询契约：`src/data/contracts/environment.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

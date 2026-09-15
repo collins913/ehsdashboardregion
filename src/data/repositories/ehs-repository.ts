@@ -15,6 +15,7 @@ import type {
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
+import type { EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
 
 export interface KpiQueries {
   getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot>;
@@ -41,6 +42,10 @@ export interface StoresQueries {
   getStores(query: StoresQuery): Promise<StoresQueryResult>;
 }
 
+export interface EnvironmentQueries {
+  getEnvironment(query: EnvironmentQuery): Promise<EnvironmentQueryResult>;
+}
+
 export interface GlobalFilterQueries {
   getFilterStores(): Promise<readonly KpiStore[]>;
 }
@@ -51,4 +56,5 @@ export interface EhsRepository
     EventsQueries,
     TakeChargeQueries,
     StoresQueries,
+    EnvironmentQueries,
     GlobalFilterQueries {}

@@ -51,6 +51,7 @@ Global Filters 属于全局应用框架，包含：
 
 - Stores 页面使用 Region、Area、Store。
 - Period 对 Store Master Data 没有业务意义，不参与门店主数据筛选、判断或计算。
+- Environment V1 使用当前状态，仅跟随 Region、Area、Store，忽略 Period。
 
 V1 已确认：
 
@@ -273,59 +274,23 @@ Closed Date 为空时显示 `—`。页面和详情不展示 TRTID 或 Store Eng
 
 ## 9. Risk & Compliance → Environment
 
-### 9.1 页面结构
+### 9.1 Environment V1 当前状态表
 
-页面按 `Store × Environment Category` 展示，提供 Environment Category 筛选。
+固定默认七列：门店、环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同。门店只显示 Store Master 的中文名称。
 
-默认类别：
+六个环境字段只允许源值“有 / 无 / 不适用”，中性展示，不产生正常、异常、评分或生命周期归类；“无”不得自动视为异常。页面不展示未定义的 availability 业务标签。支持完整 scoped 集合排序、列显示控制与 adaptive pagination，不增加类别筛选。
 
-- Hazardous Waste Contract
-- General Solid Waste Contract
-- Car Wash / Drainage Permit
-- EIA
-- Discharge Permit
-- Environmental Monitoring
+### 9.2 数据与筛选边界
 
-各类别读取集中规则结果，页面不重复判定。
+Raw Source 仅含 TRTID、English Store Name 与六个环境字段，不保存中文门店名。完全复用已有 TRTID 优先、英文名辅助的 Store Resolution，保留 fallback、conflict 与历史名称语义；UI 只消费 canonical Store。
 
-### 9.2 危废与一般固废合同
+Region / Area / Store 有效，Period 当前不适用。没有时间维度，不新增日期、证号、有效期、机构或备注。
 
-业务要求同时核对危废合同和一般固废合同：
+### 9.3 Detail V1
 
-- 两种合同类别均必须存在。
-- 缺少任一类别为异常。
-- 任一相关合同过期为异常。
-- 两种类别均存在且所有相关合同均有效时为正常。
+六个状态单元格均可点击，使用同一详情结构：门店中文名称、环境项目名称、当前状态，并明确显示“详情字段待定义”。其余详情字段为 TBD，不生成假字段。
 
-该组合判定如何显示在两个独立类别列中：TBD。不得在未确认前复制为两个含义相同的结果。
-
-### 9.3 洗车业务与排水许可
-
-核对门店是否有洗车业务、是否持有排水许可及许可是否有效。结果为正常或异常，具体规则见 `metric-rules.md`。
-
-### 9.4 EIA
-
-- EIA Required 为 No 时正常。
-- EIA Required 为 Yes 时必须存在 EIA Information。
-- EIA 不进行有效期判断。
-
-### 9.5 Discharge Permit
-
-- Discharge Permit Required 为 No 时正常。
-- Required 为 Yes 时必须存在 Permit Information，且许可未过期。
-
-### 9.6 Environmental Monitoring
-
-页面格子仅显示：
-
-- 无：当前筛选范围内没有环境监测记录。
-- 查看：存在环境监测记录。
-
-点击“查看”打开该门店环境监测明细。
-
-- 环境监测明细字段：TBD，待真实数据源确认。
-- “无”仅表示没有记录，不进行正常或异常判断。
-- 监测结果是否达标及如何判定：TBD。
+既有 `metric-rules.md` 中的环境合规需求不属于本次当前状态 V1；不得将其套用到这六个源值。后续合规功能及真实详情输入另行确认。
 
 ## 10. Stores → Store Detail
 
@@ -359,7 +324,7 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 - TRTID 是重要门店标识，但不保证是所有数据源的唯一关联键。
 - 数据源可能使用 TRTID、Store Name CN 或 Store Name EN 关联门店。
 - 关联必须由数据层统一完成，页面和业务组件不得临时匹配。
-- Events 与 Actions 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
+- Events、Actions 与 Environment V1 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
 
 ## 11. 本次不定义
 

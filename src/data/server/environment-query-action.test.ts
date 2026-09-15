@@ -1,0 +1,23 @@
+import { describe, expect, it, vi } from "vitest";
+
+const { getEnvironment, factory } = vi.hoisted(() => {
+  const getEnvironment = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", items: [] }));
+  return { getEnvironment, factory: vi.fn(() => ({ getEnvironment })) };
+});
+vi.mock("@/data/repositories/create-ehs-repository.server", () => ({ createEhsRepository: factory }));
+import { queryEnvironment } from "./ehs-query-actions";
+import { periodFromMonthRange } from "@/data/contracts/kpi-period";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
+
+describe("Environment Server Action", () => {
+  it("delegates the serializable context to the same server Repository factory", async () => {
+    const query: EhsFilterContext = {
+      region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" },
+      period: periodFromMonthRange("2026-07", "2026-09")!,
+    };
+    const referenceDateIso = "2026-09-15T00:00:00+08:00";
+    expect(await queryEnvironment({ referenceDateIso, query })).toEqual({ availability: "CONFIRMED_EMPTY", items: [] });
+    expect(factory).toHaveBeenCalledWith(new Date(referenceDateIso));
+    expect(getEnvironment).toHaveBeenCalledWith({ context: query });
+  });
+});
