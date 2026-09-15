@@ -3,19 +3,20 @@
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import type { StoresQueryResult } from "@/data/contracts/stores";
+import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { StoresDataTable } from "@/features/stores/stores-data-table";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
 export type StoresQueryAction = (input: {
   referenceDateIso: string;
-  query: EhsFilterContext;
+  query: EhsStoreScope;
 }) => Promise<StoresQueryResult>;
 
 export async function loadStoresPageData(
-  context: EhsFilterContext | null,
+  context: EhsStoreScope | null,
   referenceDateIso: string,
   query: StoresQueryAction,
 ): Promise<StoresQueryResult | null> {
@@ -29,15 +30,13 @@ export function StoresPageContent({
 }: {
   queryStores: StoresQueryAction;
 }) {
-  const { filterContext, referenceDateIso } = useGlobalFilters();
-  const queryKey = filterContext
-    ? JSON.stringify([referenceDateIso, filterContext])
-    : null;
+  const { storeScope, referenceDateIso } = useGlobalFilters();
+  const queryKey = storeScopeQueryKey(storeScope, referenceDateIso);
   const load = useCallback(
-    () => loadStoresPageData(filterContext, referenceDateIso, queryStores),
-    [filterContext, queryStores, referenceDateIso],
+    () => loadStoresPageData(storeScope, referenceDateIso, queryStores),
+    [storeScope, queryStores, referenceDateIso],
   );
-  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
   const result =
     state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
 

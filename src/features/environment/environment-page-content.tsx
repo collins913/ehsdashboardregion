@@ -4,23 +4,23 @@ import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
 import type { EnvironmentQueryResult } from "@/data/contracts/environment";
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { EnvironmentDataTable } from "./environment-data-table";
 import { environmentQueryKey } from "./environment-view-model";
 
-export type EnvironmentQueryAction = (input: { referenceDateIso: string; query: EhsFilterContext }) => Promise<EnvironmentQueryResult>;
+export type EnvironmentQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<EnvironmentQueryResult>;
 
-export async function loadEnvironmentPageData(context: EhsFilterContext | null, referenceDateIso: string, query: EnvironmentQueryAction) {
+export async function loadEnvironmentPageData(context: EhsStoreScope | null, referenceDateIso: string, query: EnvironmentQueryAction) {
   return context ? query({ referenceDateIso, query: context }) : null;
 }
 
 export function EnvironmentPageContent({ queryEnvironment }: { queryEnvironment: EnvironmentQueryAction }) {
-  const { filterContext, referenceDateIso } = useGlobalFilters();
-  const queryKey = environmentQueryKey(filterContext, referenceDateIso);
-  const load = useCallback(() => loadEnvironmentPageData(filterContext, referenceDateIso, queryEnvironment), [filterContext, referenceDateIso, queryEnvironment]);
-  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const { storeScope, referenceDateIso } = useGlobalFilters();
+  const queryKey = environmentQueryKey(storeScope, referenceDateIso);
+  const load = useCallback(() => loadEnvironmentPageData(storeScope, referenceDateIso, queryEnvironment), [storeScope, referenceDateIso, queryEnvironment]);
+  const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
   const result = state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
   return (
     <PageContainer>

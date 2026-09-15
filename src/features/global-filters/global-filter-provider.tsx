@@ -11,6 +11,7 @@ import {
 import type {
   FilterScope,
   EhsFilterContext,
+  EhsStoreScope,
   KpiStore,
 } from "@/data/contracts/kpi";
 import type { Month, StoreId } from "@/types/ehs";
@@ -23,11 +24,13 @@ import {
   type GlobalFilterState,
   type PeriodMode,
   toEhsFilterContext,
+  toEhsStoreScope,
 } from "@/features/global-filters/global-filter-state";
 
 type GlobalFiltersProviderValue = {
   state: GlobalFilterState;
   filterContext: EhsFilterContext | null;
+  storeScope: EhsStoreScope | null;
   referenceDateIso: string;
   readiness: "READY" | "INVALID_PERIOD" | "INVALID_SCOPE";
   options: ReturnType<typeof filterOptions>;
@@ -58,6 +61,10 @@ export function GlobalFilterProvider({
   referenceMonth,
 }: GlobalFilterProviderProps) {
   const [state, setState] = useState(initialState);
+  const storeScope = useMemo(
+    () => toEhsStoreScope(state, stores),
+    [state.region, state.area, state.store, stores],
+  );
   const filterContext = useMemo(
     () => toEhsFilterContext(state, referenceMonth, stores),
     [referenceMonth, state, stores],
@@ -122,6 +129,7 @@ export function GlobalFilterProvider({
     () => ({
       state,
       filterContext,
+      storeScope,
       referenceDateIso: nowIso,
       readiness,
       options,
@@ -134,6 +142,7 @@ export function GlobalFilterProvider({
     }),
     [
       filterContext,
+      storeScope,
       nowIso,
       options,
       readiness,

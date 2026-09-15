@@ -1,4 +1,5 @@
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import type { CertificatesStoreRow, CertificateCategorySummary, NormalizedCertificateRecord } from "@/data/contracts/certificates";
 
 export const CERTIFICATES_ITEMS = [
@@ -46,6 +47,6 @@ export function buildCertificatesDetail(record: CertificatesTableRow, key: Certi
   return { storeDisplayName: record.storeDisplayName, ...summary, groups: groupCertificateRecords(summary.records) };
 }
 export type CertificatesDetail = ReturnType<typeof buildCertificatesDetail>;
-export function certificatesQueryKey(context: EhsFilterContext | null, referenceDateIso: string) {
-  return context ? JSON.stringify([referenceDateIso, context.region, context.area, context.store]) : null;
+export function certificatesQueryKey(context: EhsStoreScope | null, referenceDateIso: string) {
+  return storeScopeQueryKey(context, referenceDateIso);
 }

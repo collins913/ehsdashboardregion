@@ -8,15 +8,15 @@
 | Breadcrumb | `src/components/ui/breadcrumb.tsx` | PageHeader, UI Lab |
 | Sidebar | `src/components/ui/sidebar.tsx` | Application navigation shell |
 | Separator | `src/components/ui/separator.tsx` | PageHeader, Sidebar dependency, UI Lab |
-| Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels |
+| Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels and shared OverflowTooltip |
 | Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | UI Lab reference |
-| Table | `src/components/ui/table.tsx` | KPI, Actions, Events, Take Charge and Stores Data Tables plus detail tables |
+| Table | `src/components/ui/table.tsx` | KPI, Actions, Events, Take Charge, Stores, Environment and Certificates Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
-| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus KPI, Actions, Events, Take Charge and Store detail |
+| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment and Certificates |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
-| Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel |
+| Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
 | Card | `src/components/ui/card.tsx` | Goals summary metrics |
 
@@ -71,6 +71,6 @@
 | GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; metric cards use consistent plain-text values |
 | TakeChargeDataTable | Repository-paginated Take Charge records with Current Open / All view mode, repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 | StoresDataTable | Store Master browser with sortable confirmed fields, column visibility, adaptive pagination, sticky Store column and Store Detail Sheet |
-| StoresPageContent | Connects shared Global Filter Context to the injected async Stores query; Period is ignored by the Repository |
+| StoresPageContent | Connects shared canonical Store scope to the injected async Stores query; Period does not affect query readiness or identity |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.

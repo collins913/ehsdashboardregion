@@ -38,7 +38,7 @@ Related documents:
 
 ### 2.1 Global Filter Scope
 
-Except for Store Master Data and current-state Environment / Certificates V1 (which ignore Period), business results are evaluated within the current Global Filters scope:
+Except for Store Master Data, current-state Environment / Certificates V1, and Goals YTD metrics (which ignore Period), business results are evaluated within the current Global Filters scope:
 
 - Region
 - Area
@@ -550,6 +550,12 @@ Region / Area / canonical Store 生效。Period ignored；referenceDate 仅用�
 
 # 8. Risk & Compliance → Environment
 
+## 8.0 Current-state Environment V1 boundary
+
+当前 V1 仅提供环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同六个源值；各值仅为“有 / 无 / 不适用”，不产生 Business Result。“无”不能推导异常、健康度或评分。Region / Area / Store 生效，Period ignored。
+
+以下 8.1–8.8 是历史环境合规需求，**不属于 Environment 当前状态 V1，也不是 Overview 可直接消费的当前合规结果**。后续适用关系与真实输入需另行确认；不得将这些规则应用到六个当前源值。
+
 ## 8.1 Result Type
 
 Compliance rules return:
@@ -744,13 +750,13 @@ Training
 → `PerformanceResult`
 
 Certificate
-→ `ComplianceResult + reason`
+→ V1 `NORMAL / ABNORMAL + reason + daysUntilExpiry`
 
 ASTM
 → `OccurrenceResult`
 
 Environmental Monitoring
-→ `AvailabilityState`
+→ historical compliance scope `AvailabilityState`; current-state Environment V1 remains a neutral source value
 
 Record lifecycle status such as Event / Action / Take Charge Open/Closed is defined by `status-dictionary.md`.
 

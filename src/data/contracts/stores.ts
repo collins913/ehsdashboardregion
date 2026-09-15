@@ -1,4 +1,4 @@
-import type { DataSet, EhsFilterContext } from "@/data/contracts/kpi";
+import type { DataSet, EhsStoreScope } from "@/data/contracts/kpi";
 import type { StoreId } from "@/types/ehs";
 
 export interface NormalizedStoreRecord {
@@ -13,7 +13,7 @@ export interface NormalizedStoreRecord {
 }
 
 export interface StoresQuery {
-  context: EhsFilterContext;
+  context: EhsStoreScope;
 }
 
 export type StoresQueryResult = DataSet<NormalizedStoreRecord>;

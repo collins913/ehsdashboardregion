@@ -57,7 +57,8 @@ describe("Environment V1 query", () => {
 
   it("ignores Period, including unsupported months", async () => {
     const repository = createMockEhsRepository(referenceDate);
-    expect(await repository.getEnvironment({ context: { ...context, period: periodFromMonthRange("2030-01", "2030-02")! } })).toEqual(await repository.getEnvironment({ context }));
+    const otherPeriod = { ...context, period: periodFromMonthRange("2030-01", "2030-02")! };
+    expect(await repository.getEnvironment({ context: otherPeriod })).toEqual(await repository.getEnvironment({ context }));
   });
 
   it.each([

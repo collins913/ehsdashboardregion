@@ -1,17 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import type { EhsFilterContext } from "@/data/contracts/kpi";
-import { periodFromMonthRange } from "@/data/contracts/kpi-period";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import { loadStoresPageData } from "@/features/stores/stores-page-content";
 
-const context: EhsFilterContext = {
+const context: EhsStoreScope = {
   region: { kind: "ALL" },
   area: { kind: "ALL" },
   store: { kind: "ALL" },
-  period: periodFromMonthRange("2026-07", "2026-09")!,
 };
 
 describe("Stores page data binding", () => {
-  it("passes the shared Filter Context directly to the server query", async () => {
+  it("passes the shared Store scope without Period to the server query", async () => {
     const queryStores = vi.fn(async () => ({
       availability: "CONFIRMED_EMPTY" as const,
       items: [] as const,
@@ -27,7 +25,7 @@ describe("Stores page data binding", () => {
     });
   });
 
-  it("does not query when Global Filter Context is invalid", async () => {
+  it("does not query when Store scope is invalid", async () => {
     const queryStores = vi.fn();
 
     expect(await loadStoresPageData(null, "2026-09-11T00:00:00+08:00", queryStores)).toBeNull();

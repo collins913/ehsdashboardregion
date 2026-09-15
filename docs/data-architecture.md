@@ -146,6 +146,7 @@ Raw Event
 ## Global Filters
 
 - Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
+- 同一筛选状态派生有效 Store scope 与完整 period-aware context；query readiness / identity 仅依赖实际使用的维度。Stores、Environment、Certificates 使用无 Period 的 typed scope，经既有 Server Action / Repository 查询；自定义 Period 未完整不阻断它们，不建立第二套 Provider 或默认 Period workaround。
 - Region、Area、Store 沿用 `EhsFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
 - Repository 向筛选 UI 提供 `storeId`、`displayName`、Region、Area，不允许 UI 使用名称或 TRTID 自行关联。
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
@@ -207,6 +208,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - Take Charge / Goals 规范化查询契约：`src/data/contracts/take-charge.ts`
 - Stores 规范化查询契约：`src/data/contracts/stores.ts`
 - Environment 当前状态规范化查询契约：`src/data/contracts/environment.ts`
+- Certificates 单证与门店类别汇总契约：`src/data/contracts/certificates.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`
 - Mock KPI 完整性声明：`src/data/mock/kpi-coverage.ts`，由 factory 与数据同步生成

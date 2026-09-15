@@ -34,6 +34,8 @@ Stores
 
 Store Master Data 不使用 Period；其它筛选关系仍按各模块需求执行。
 
+Query readiness / identity 只依赖该业务查询真正使用的 filter dimensions。Stores、Environment、Certificates 从同一 Global Filter State 消费有效 Store scope，不依赖 Period 有效性，不补造默认 Period；period-aware 查询继续要求完整有效 Period。保持一份 Provider 和现有 Repository / async 边界。
+
 Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
 
 Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支持本年、本季度、本月及自定义月份范围。本季度为季度首月至当前月，本年为当年 1 月至当前月，不纳入未来月份；不提供日级日期或部分月份输入。
@@ -52,7 +54,7 @@ Overview 只汇总前述模块的统一结果，不产生另一套业务事实�
 
 ### D-006 业务规则不得散落在页面组件
 
-Training、Drill、Inspections、ASTM、Actions Open 分类、Certificates、Environment 等判定由集中业务逻辑维护。页面组件只消费结果。
+Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判定由集中业务逻辑维护。Environment 当前状态 V1 仅展示中性源值，不产生合规判定。页面组件只消费结果。
 
 ### D-007 数据源直接值不得由 Dashboard 重算
 
@@ -80,7 +82,7 @@ Stores 列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&
 
 ### D-011 TRTID 不是所有数据源的强制唯一关联键
 
-不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Events 与 Actions 已确认 TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时判定冲突。其它数据源策略仍为 TBD。
+不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Events、Actions、Environment V1 与 Certificates V1 共用 TRTID 精确唯一匹配优先、失败时 Store English Name 精确唯一 fallback 的策略。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时判定冲突。Take Charge 当前仅提供 TRTID，复用同一 resolver。其它生产数据源策略仍为 TBD。
 
 ### D-012 Stores 列表交互位置
 
@@ -141,27 +143,23 @@ Actions 页面展示明细；KPI 页面读取数据源提供的 Action Closure R
 
 ## 7. Certificates
 
-### D-020 默认五类证件并保留 Required Slot
+### D-020 Certificates V1 四类别与集中 exact mapping（替代旧五类别 / Required Slot 决策）
 
-默认类别为安全证书、职业卫生证书、急救员、焊工证、内驾证。类别允许扩展。Required Slot 及 Certificate Type 精确匹配表由集中规则维护；不使用 Person、Role / Title，不使用别名或模糊匹配。
+V1 类别为安全健康、急救员、特种作业、安全驾驶。Category 由集中 Certificate Type exact mapping 得到，不来自 Raw，不使用 Person、Business Title、别名或模糊匹配。未知 Type 保留独立 normalized record，不影响四类别评价。Required Slot 不参与 V1，不提前建立完整性 framework；未来扩展需另行确认。
 
-### D-021 “无”是展示原因，同时归类为异常
+### D-021 Certificates V1 单证与类别只使用正常 / 异常（替代旧“无” / 缺日期未确定决策）
 
-证件类别完全没有任何记录时：
-
-- Display Status：无
-- Business Result：异常
-
-有记录但缺 Required Slot 或存在过期证件时显示异常；全部满足且有效时显示正常。
-
-缺失必要 Expiry Date 且没有更早异常结论时，Business Result 为
-`UNDETERMINED`，Reason Code 为 `MISSING_EXPIRY_DATE`。规则层不返回中文文案。
+有效 date-only 到期日不早于 Dashboard referenceDate 时单证 NORMAL；过期、缺日期、无效日期均 ABNORMAL，并区分原因。Store × Category 零记录或任一单证异常则 ABNORMAL，至少一张且全部有效则 NORMAL。不检查具体 Type 是否齐全；主表不显示“无 / 未确定”。Region / Area / Store 生效，Period ignored；referenceDate 用于有效期和自然日差。
 
 ### D-022 不提供证件到期提醒
 
 V1 不设置“即将到期”状态，不定义提前提醒天数，也不实现到期提醒功能。
 
 ## 8. Environment
+
+Environment 当前状态 V1 的六字段为环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同，仅允许“有 / 无 / 不适用”。Region / Area / Store 生效，Period ignored；无正常 / 异常计算，不将“无”视为异常。
+
+以下 D-023–D-027 保留历史环境合规需求，**不属于 Environment 当前状态 V1**；后续真实输入与适用关系需另行确认，不可作为 Overview 当前环境健康度的依据。
 
 ### D-023 危废与一般固废合同共同满足才正常
 
@@ -198,7 +196,9 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 
 - `Expiry Date < Reference Date`：过期。
 - `Expiry Date >= Reference Date`：有效，到期日当天仍有效。
-- 缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`。
+- 历史环境合规需求中，缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`；不适用于 Environment 当前状态 V1。
+- Certificates V1 缺失 / 无效日期为 `ABNORMAL`，具体以 D-021 为准，不沿用历史缺日期规则。
+- 共享 Dashboard referenceDate 与 Global Period 独立；规则接受注入值，不另读系统或浏览器当前时间。
 - 生产环境如何确定 Reference Date：TBD。
 
 ### D-029 KPI 使用集中数据组装契约
@@ -211,7 +211,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-031 KPI 使用规范化 Store ID
 
-页面和 KPI Builder 只消费 `storeId`。TRTID、Store Name CN、Store Name EN 到 `storeId` 的解析属于 Adapter / Repository；生产解析策略保持 TBD。
+页面和 KPI Builder 只消费 `storeId`。TRTID、Store Name CN、Store Name EN 到 `storeId` 的解析属于 Adapter / Repository，UI 不假设 storeId 等于 TRTID；已确认源策略见 D-011，尚未确认的其它生产源策略保持 TBD。
 
 ### D-032 Action KPI 汇总与明细边界
 
@@ -251,7 +251,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 
 ### D-040 Client 数据访问统一经过 Server Action
 
-正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Mock Repository 是当前 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores 暂保留 Client pagination。
+正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Mock Repository 是当前 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores、Environment 与 Certificates 当前保留 Client pagination。
 
 ### D-041 Mock Profile 只切换 server-only Dataset
 
@@ -266,7 +266,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 - 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
-- Events / Actions 以外数据源的 Store Resolution 策略
+- 尚未确认的其它生产数据源 Store Resolution 策略；当前 Environment / Certificates 复用 D-011，Take Charge 使用 TRTID
 - 数据库、API、权限、刷新、持久化及视觉状态规范
 
 ## 10. 项目技术决策（既有）

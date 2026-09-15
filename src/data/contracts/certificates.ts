@@ -1,4 +1,4 @@
-import type { DataSet, EhsFilterContext } from "@/data/contracts/kpi";
+import type { DataSet, EhsStoreScope } from "@/data/contracts/kpi";
 import type { DefaultCertificateCategory, StoreId } from "@/types/ehs";
 
 export type CertificateStatus = "NORMAL" | "ABNORMAL";
@@ -26,7 +26,7 @@ export interface CertificatesStoreRow {
   storeDisplayName: string;
   categories: readonly CertificateCategorySummary[];
 }
-export interface CertificatesQuery { context: EhsFilterContext }
+export interface CertificatesQuery { context: EhsStoreScope }
 export type CertificatesQueryResult = DataSet<CertificatesStoreRow> & {
   unknownTypeRecords: readonly NormalizedCertificateRecord[];
 };

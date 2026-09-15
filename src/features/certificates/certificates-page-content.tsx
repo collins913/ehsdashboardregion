@@ -4,23 +4,23 @@ import { useCallback, useMemo } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
 import type { CertificatesQueryResult } from "@/data/contracts/certificates";
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { CertificatesDataTable } from "./certificates-data-table";
 import { certificatesQueryKey, toCertificatesTableRows } from "./certificates-view-model";
 
-export type CertificatesQueryAction = (input: { referenceDateIso: string; query: EhsFilterContext }) => Promise<CertificatesQueryResult>;
+export type CertificatesQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<CertificatesQueryResult>;
 
-export async function loadCertificatesPageData(context: EhsFilterContext | null, referenceDateIso: string, query: CertificatesQueryAction) {
+export async function loadCertificatesPageData(context: EhsStoreScope | null, referenceDateIso: string, query: CertificatesQueryAction) {
   return context ? query({ referenceDateIso, query: context }) : null;
 }
 
 export function CertificatesPageContent({ queryCertificates }: { queryCertificates: CertificatesQueryAction }) {
-  const { filterContext, referenceDateIso } = useGlobalFilters();
-  const queryKey = certificatesQueryKey(filterContext, referenceDateIso);
-  const load = useCallback(() => loadCertificatesPageData(filterContext, referenceDateIso, queryCertificates), [filterContext, referenceDateIso, queryCertificates]);
-  const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const { storeScope, referenceDateIso } = useGlobalFilters();
+  const queryKey = certificatesQueryKey(storeScope, referenceDateIso);
+  const load = useCallback(() => loadCertificatesPageData(storeScope, referenceDateIso, queryCertificates), [storeScope, referenceDateIso, queryCertificates]);
+  const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
   const result = state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
   const rows = useMemo(() => toCertificatesTableRows(result?.items ?? []), [result]);
   return (

@@ -1,5 +1,8 @@
 # Business Documentation Conflict Review
 
+- 定位：historical / resolved review，保留早期迁移记录，不是当前 active rule source。
+- 以下结论是早期审查快照，后续 Certificates V1、Environment V1、Goals 与 Store Resolution 已有更新。当前实施以 `business-requirements.md`、`data-contract.md`、`metric-rules.md`、`status-dictionary.md` 和 `decisions.md` 的现行定义为准。
+
 - 审查日期：2026-09-10
 - 对比范围：附件四份 V1 业务文档、原项目 docs、当前源码中的相关名称
 

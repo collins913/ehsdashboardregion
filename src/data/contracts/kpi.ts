@@ -19,10 +19,13 @@ export interface KpiPeriod {
   includedMonths: NonEmptySelection<Month>;
 }
 
-export interface EhsFilterContext {
+export interface EhsStoreScope {
   region: FilterScope<string>;
   area: FilterScope<string>;
   store: FilterScope<StoreId>;
+}
+
+export interface EhsFilterContext extends EhsStoreScope {
   period: KpiPeriod;
 }
 

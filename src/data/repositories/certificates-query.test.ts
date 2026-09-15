@@ -88,6 +88,7 @@ describe("Certificates V1 Repository", () => {
     const repo = repository([{ ...raw, "Expiry Date": "2026-09-15" }]);
     const result = await repo.getCertificates({ context });
     expect(result.items[0]?.categories[0].records[0]?.daysUntilExpiry).toBe(0);
-    expect(await repo.getCertificates({ context: { ...context, period: periodFromMonthRange("2030-01", "2030-02")! } })).toEqual(result);
+    const otherPeriod = { ...context, period: periodFromMonthRange("2030-01", "2030-02")! };
+    expect(await repo.getCertificates({ context: otherPeriod })).toEqual(result);
   });
 });

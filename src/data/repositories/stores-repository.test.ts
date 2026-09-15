@@ -98,9 +98,8 @@ describe("scoped Stores repository query", () => {
       region: { kind: "INCLUDE", values: [mockStores[0].region] },
     } satisfies EhsFilterContext;
     const quarter = await repository.getStores({ context: scoped });
-    const month = await repository.getStores({
-      context: { ...scoped, period: periodFromMonthRange("2026-09", "2026-09")! },
-    });
+    const otherPeriod = { ...scoped, period: periodFromMonthRange("2026-09", "2026-09")! };
+    const month = await repository.getStores({ context: otherPeriod });
 
     expect(month).toEqual(quarter);
   });

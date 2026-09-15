@@ -22,6 +22,8 @@
 
 ### 2.1 Global Filter Context
 
+查询上下文按实际依赖区分：Store scope 仅含 Region / Area / canonical Store；完整 period-aware context 在此基础上增加有效 Period。Stores、Environment、Certificates 使用 Store scope，不携带虚构 Period，Period 无效不影响其查询就绪。依赖 Period 的查询继续要求完整 context。查询身份只包含影响该查询结果的维度及独立 referenceDate，不依赖 executor identity。
+
 业务查询上下文包含：
 
 - Region
@@ -97,7 +99,7 @@ Source Reference 为可选结构，可包含：
 
 `EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment、Certificates 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
 
-Client 传入 Server Action 的查询 DTO 仅包含 `EhsFilterContext`、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
+Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 period-aware context、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
 
 ## 3. Store Master Data
 
@@ -259,7 +261,7 @@ Events Repository 必须复用 Actions 已采用的 Store Resolution，将源 TR
 
 规范化 Event 公共字段包含 canonical Store、Event ID、Event Type、Submitted By、Event Date、Description、Raw Status、RecordState 与 ASTM 源值。Event Type 专属详情字段为 TBD，不使用未约束的 `Record<string, unknown>` 向 UI 透传。
 
-Events scoped Repository query 复用 `EhsFilterContext`，以 Event Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回 `RecordState = OPEN`；`ALL` 返回当前已确认的 OPEN 与 CLOSED。Event Type 是 feature-local 可选查询条件，不进入 Global Filter Context。
+Events scoped Repository query 复用 `EhsFilterContext`，以 Event Date 应用 Asia/Shanghai 完整自然月半开区间。`OPEN_ONLY` 仅返回 `RecordState = OPEN`；`ALL` 保留当前范围全部 normalized records，包括未知未来状态的 `UNKNOWN`，不猜测为 OPEN。Event Type 是 feature-local 可选查询条件，不进入 Global Filter Context。
 
 Events query 还接收 sorting、`pageIndex`、`pageSize`，返回当前页 records、`totalCount`、DataAvailability 及分页前从当前 Global Scope + view mode 生成的 `availableEventTypes`。
 
@@ -326,7 +328,7 @@ Raw Source 保留八个源字段：`TRTID`、`English Store Name`、`环境影�
 
 Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`，以及对应六个当前源值（包含废弃物合同）；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
 
-Environment query 接收既有 `EhsFilterContext`，仅使用 Region / Area / canonical Store，忽略 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
+Environment query 接收 typed Store scope，仅使用 Region / Area / canonical Store，不要求 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
 
 Detail 只提供门店中文名、当前点击项目名称、当前状态；其他详情字段 TBD。V1 不输出 Environment Business Result，也不套用既有合规规则。
 

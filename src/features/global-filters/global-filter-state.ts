@@ -1,6 +1,7 @@
 import type {
   FilterScope,
   EhsFilterContext,
+  EhsStoreScope,
   KpiStore,
 } from "@/data/contracts/kpi";
 import {
@@ -132,6 +133,19 @@ export function changeArea(
   };
 }
 
+export function toEhsStoreScope(
+  state: GlobalFilterState,
+  stores: readonly KpiStore[],
+): EhsStoreScope | null {
+  return hasValidFilterScopes(state, stores)
+    ? { region: state.region, area: state.area, store: state.store }
+    : null;
+}
+
+export function storeScopeQueryKey(scope: EhsStoreScope | null, referenceDateIso: string) {
+  return scope ? JSON.stringify([referenceDateIso, scope.region, scope.area, scope.store]) : null;
+}
+
 export function toEhsFilterContext(
   state: GlobalFilterState,
   referenceDate: Date | Month,
@@ -149,14 +163,12 @@ export function toEhsFilterContext(
         ? periodForModeFromMonth(state.period.mode, referenceDate)
         : periodForMode(state.period.mode, referenceDate);
 
-  const hasValidScope = hasValidFilterScopes(state, stores);
+  const storeScope = toEhsStoreScope(state, stores);
 
-  return period === null || !hasValidScope
+  return period === null || storeScope === null
     ? null
     : {
-        region: state.region,
-        area: state.area,
-        store: state.store,
+        ...storeScope,
         period,
       };
 }

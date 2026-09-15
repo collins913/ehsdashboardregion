@@ -29,6 +29,7 @@ import type {
   KpiDataSnapshot,
   KpiDrillRecord,
   EhsFilterContext,
+  EhsStoreScope,
   KpiInspectionRecord,
   KpiStore,
   KpiTrainingRecord,
@@ -111,7 +112,7 @@ function toNormalizedStoreRecord(
 }
 
 function scopedStoreMaster(
-  context: EhsFilterContext,
+  context: EhsStoreScope,
   stores: readonly StoreMasterData[],
 ) {
   return stores.filter(
@@ -123,7 +124,7 @@ function scopedStoreMaster(
 }
 
 function requestedStores(
-  context: EhsFilterContext,
+  context: EhsStoreScope,
   stores: readonly StoreMasterData[],
 ): readonly KpiStore[] {
   return scopedStoreMaster(context, stores).map(toKpiStore);

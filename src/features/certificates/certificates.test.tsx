@@ -94,7 +94,8 @@ describe("Certificates V1 feature", () => {
     expect(html).toContain("table-fixed"); expect(html).toContain("列显示"); expect(html).toContain("data-adaptive-table-measurement-row");
   });
   it("excludes Period from query identity but includes semantic Store scope", () => {
-    expect(certificatesQueryKey({ ...context, period: periodFromMonthRange("2030-01", "2030-02")! }, "reference")).toBe(certificatesQueryKey(context, "reference"));
+    const otherPeriod = { ...context, period: periodFromMonthRange("2030-01", "2030-02")! };
+    expect(certificatesQueryKey(otherPeriod, "reference")).toBe(certificatesQueryKey(context, "reference"));
     expect(certificatesQueryKey({ ...context, store: { kind: "INCLUDE", values: ["canonical"] } }, "reference")).not.toBe(certificatesQueryKey(context, "reference"));
   });
   it("uses shared async pending and leaves rules and Mock outside UI", () => {

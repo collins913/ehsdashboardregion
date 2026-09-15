@@ -53,6 +53,7 @@ Global Filters 属于全局应用框架，包含：
 - Period 对 Store Master Data 没有业务意义，不参与门店主数据筛选、判断或计算。
 - Environment V1 使用当前状态，仅跟随 Region、Area、Store，忽略 Period。
 - Certificates V1 仅跟随 Region、Area、Store，忽略 Period；有效期使用独立 referenceDate。
+- Certificates、Environment、Stores 的查询就绪与查询身份仅依赖有效门店范围；Period 改变或自定义 Period 暂未完整时，不重新查询、不 loading、不清空页面。
 
 V1 已确认：
 
@@ -157,7 +158,7 @@ Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明
 
 - Event Type 筛选；选项来自当前 scoped normalized Event 数据，不在 UI 固定 taxonomy。
 - Current Open / All 切换；默认 Current Open。
-- Current Open 仅显示 `Status = Open`；All 显示 `Open` 与 `Closed`。
+- Current Open 仅显示 `RecordState = OPEN`；All 保留当前范围全部记录，当前已确认源状态为 `Open` 与 `Closed`，未知未来值保留原文并归类 `UNKNOWN`，不进入 Current Open。
 - 点击记录打开 Event Detail。
 
 当前已知 source Event Type 包括 `Agency` 与 `Non-Agency Event`，未来新增 source value 时筛选与列表应自动支持。

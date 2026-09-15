@@ -183,6 +183,8 @@ UI semantic intent:
 
 Used for occurrence-based KPI such as ASTM Incident.
 
+OccurrenceResult 本身仅含 OCCURRED / NOT_OCCURRED。KPI ASTM 数据 INCOMPLETE / UNAVAILABLE 时 result 为 null，并附 Data Availability；不新增 OccurrenceResult.UNDETERMINED，也不把 null 展示为“无”。
+
 Allowed values:
 
 ## NOT_OCCURRED
@@ -234,7 +236,7 @@ Allowed values:
 
 RecordState is used to normalize record lifecycle and filter record details.
 
-It must not be used to calculate KPI aggregate values, numerators, or denominators.
+It must not be used to recalculate the source-provided Action Closure Rate. Take Charge counts use its confirmed terminal-status mapping at the data/rule boundary, not in UI.
 
 It does not overwrite the original source `Status`.
 
@@ -435,6 +437,12 @@ Certificates V1 单证和类别均仅使用 NORMAL / ABNORMAL，统一展示“�
 类别零记录或任一记录异常则 ABNORMAL，否则 NORMAL。零记录详情展示明确空状态，但主表仍显示“异常”。Required Slot 不参与 V1。其他模块的 ComplianceResult 可继续使用 UNDETERMINED，不将其套用到 Certificates V1。
 
 # 12. Environmental Monitoring Availability
+
+## Environment current-state V1
+
+环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同仅使用“有 / 无 / 不适用”，中性展示，不属于 ComplianceResult 或 AvailabilityState。缺失源记录不得补成“无”。
+
+以下 NONE / AVAILABLE 为历史监测记录存在性定义，**不属于 Environment 当前状态 V1**，不能套用到当前“监测”列。
 
 Environmental Monitoring currently does NOT use `ComplianceResult`.
 
@@ -646,8 +654,7 @@ Event:
 `Open` → `OPEN`; `Closed` → `CLOSED`; any unsupported value → `UNKNOWN`.
 
 Take Charge:
-Any status outside the three confirmed Closed statuses
-→ `OPEN`
+Any non-empty status outside the three confirmed Closed statuses → `OPEN`; missing / blank status → `UNKNOWN`.
 
 Action:
 Any status outside the explicitly confirmed map
@@ -667,7 +674,9 @@ Event, Action and Take Charge mappings are independent.
 | Compliance Result | NORMAL / ABNORMAL / UNDETERMINED | Compliance; Certificates V1 uses only NORMAL / ABNORMAL |
 | Occurrence Result | OCCURRED / NOT_OCCURRED | ASTM Incident |
 | Record State | OPEN / CLOSED / EXCLUDED / UNKNOWN | Record lifecycle/filtering |
-| Availability State | NONE / AVAILABLE | Environmental Monitoring record availability |
+| Availability State | NONE / AVAILABLE | Historical Environmental Monitoring record availability; not current-state V1 |
+| Environment V1 value | 有 / 无 / 不适用 | Neutral source values; no Business Result |
+| Data Availability | AVAILABLE / CONFIRMED_EMPTY / INCOMPLETE / UNAVAILABLE | Source completeness; separate from business status |
 | View Filter | OPEN_ONLY / ALL | Table/list filtering |
 | UI Intent | POSITIVE / NEGATIVE / NEUTRAL / INFORMATIONAL | Shared visual semantics |
 

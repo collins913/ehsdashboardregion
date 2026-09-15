@@ -1,4 +1,5 @@
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import type { NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 
 export const ENVIRONMENT_ITEMS = [
@@ -22,6 +23,6 @@ export function buildEnvironmentDetail(record: NormalizedEnvironmentRecord, key:
 
 export type EnvironmentDetail = ReturnType<typeof buildEnvironmentDetail>;
 
-export function environmentQueryKey(context: EhsFilterContext | null, referenceDateIso: string) {
-  return context ? JSON.stringify([referenceDateIso, context.region, context.area, context.store]) : null;
+export function environmentQueryKey(context: EhsStoreScope | null, referenceDateIso: string) {
+  return storeScopeQueryKey(context, referenceDateIso);
 }

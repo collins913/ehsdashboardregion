@@ -47,6 +47,8 @@
 - 空间不足时使用 CSS truncate，并按真实 overflow 启用 Tooltip；共享最小表宽和横向滚动继续保证窄 viewport 的最低可读性。Sticky 只负责定位、背景和层级，不自行决定列宽。
 - 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
+- adaptive page sizing 复用共享测量行为，仅使用 5 / 7 / 10 档位；分页状态由 Feature 持有，不另建 responsive table engine。
+- 可下钻单元格复用 `TableCellTrigger`，详情复用已有 Sheet；同一领域的类别共用详情结构，不创建 Generic Detail framework。
 
 ## Navigation
 
@@ -55,6 +57,7 @@
 - 全局面包屑统一从“首页”开始，并链接 Dashboard 总览页；侧栏名称仍为“总览”。
 - 单项 KPI 与 Goal 指标不进入侧栏。
 - 全局筛选由共享组件统一渲染，状态由 Dashboard route layout 持有；页面不重复拼装筛选参数。
+- 页面查询只依赖实际使用的筛选维度；Period-independent 页面不因 Period 切换或暂时无效而 loading / IDLE。
 - 全局筛选使用与 Dashboard Shell 连续的全宽紧凑 Filter Bar，不使用 Card、圆角外框或阴影。
 - 筛选触发器文本保持单行截断；只对确实可能溢出的门店名称复用 `OverflowTooltip`，且仅在 DOM 实际溢出时启用提示。
 - Region / Area / Period Select 与 Store Button 复用 GlobalFilters 内同一触发器 presentation；Store 继续使用 Popover + Command 搜索多选，不替换选择业务逻辑。

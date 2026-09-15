@@ -5,7 +5,7 @@
 
 ## 当前阶段
 
-项目已完成基础架构和首批正式业务页面，当前进入其余业务模块的逐步实现阶段。
+项目已完成基础架构及七个正式业务模块，当前进入 Overview readiness / Overview V1。Overview 仍为占位页，业务展示范围与汇总规则待确认，不标记完成。
 
 Environment V1 当前状态表已完成实现、自动质量门与人工验收：六个“有 / 无 / 不适用”源值（含废弃物合同），忽略 Period，复用 Store Resolution 与 shared Table / Detail Sheet。真实详情字段及后续合规扩展保持 TBD，不纳入本阶段。
 
@@ -45,10 +45,11 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 
 ## 后续开发顺序
 
-1. ASTM KPI Drilldown
-2. Overview
+1. Overview readiness / 业务范围确认
+2. Overview V1
+3. ASTM KPI Drilldown（独立后续增强，不是 Overview 前置条件）
 
-依赖原则：Architecture Hardening 与 Performance V1 已完成；Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository。
+依赖原则：Architecture Hardening、Performance V1、Environment V1 与 Certificates V1 已完成；Overview 组合既有 domain results，不复制业务规则。ASTM KPI Drilldown 复用现有 normalized Event Repository。Production Data Package Contract / Production Adapter 与帮助说明页面均留在 Overview 之后，不作为当前前置条件。
 
 ## Performance & Scale Validation
 

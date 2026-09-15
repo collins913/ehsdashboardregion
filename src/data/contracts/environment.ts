@@ -1,4 +1,4 @@
-import type { DataSet, EhsFilterContext } from "@/data/contracts/kpi";
+import type { DataSet, EhsStoreScope } from "@/data/contracts/kpi";
 import type { EnvironmentSourceValue, StoreId } from "@/types/ehs";
 
 export interface NormalizedEnvironmentRecord {
@@ -13,7 +13,7 @@ export interface NormalizedEnvironmentRecord {
 }
 
 export interface EnvironmentQuery {
-  context: EhsFilterContext;
+  context: EhsStoreScope;
 }
 
 export type EnvironmentQueryResult = DataSet<NormalizedEnvironmentRecord>;
