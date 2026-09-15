@@ -63,7 +63,7 @@ Performance Dataset 在相同 reference month 下保持 deterministic，用于�
 - Store Name CN
 - Store Name EN
 
-TRTID 不保证是所有数据源的唯一关联键。Events、Actions 与 Environment V1 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
+TRTID 不保证是所有数据源的唯一关联键。Events、Actions、Environment V1 与 Certificates V1 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
 
 页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID、Store Name CN、Store Name EN 必须由 Adapter / Repository 解析为 `storeId`；当前 mock Repository 仅使用现有精确匹配，无法唯一匹配时将数据标记为不完整，不推测生产匹配策略。
 
@@ -165,6 +165,14 @@ Environment Raw Source (TRTID / English Store Name + six current values)
 六个源值只表达“有 / 无 / 不适用”，不进入 Rule Engine。Region / Area / canonical Store 有效，Period 忽略。中文名称来自 Store Master，Raw 不携带中文名；Detail 只展示门店、项目、当前值，其余字段 TBD。
 
 Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，不创建独立 Repository runtime 或 Table / Detail framework。Mock 使用既有 Store Master 生成少量 deterministic 当前状态记录；不扩展 Performance V1 规模目标，未覆盖门店明确返回不完整数据。
+
+## Certificates V1 current-state query
+
+Raw Certificate → existing Mock Dataset → same EHS Repository / existing Store Resolution → typed normalized records / centralized rules → Store × Category summary → Feature / shared Table / one Detail Sheet。
+
+Detail 的 Type grouping 属于纯 presentation：根据当前类别已规范化 records 形成 typed groups，保持所有同 Type 记录，纵向展示 Type sections / record cards。不硬编码 Type 布局，也不重新计算类别、有效期或状态。
+
+TRTID primary、English Store Name fallback 与 conflict / historical-name 语义沿用现有 resolver。Raw 不携带中文名称或 Category；Type 使用集中 exact mapping，未知 Type 保留独立 normalized records，不猜分类。每张记录和类别仅 NORMAL / ABNORMAL；Period ignored，referenceDate 用于 date-only 有效期与自然日差。UI 不计算规则，不创建独立 Repository、Table、Detail 或 Required Slot framework。未来字段通过显式 typed contract 扩展。Performance Profile 仅提供少量 deterministic shape compatibility。
 
 ## Store Master Data
 

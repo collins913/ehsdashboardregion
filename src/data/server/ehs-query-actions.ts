@@ -5,6 +5,7 @@ import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { StoresQueryResult } from "@/data/contracts/stores";
 import type { EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { CertificatesQueryResult } from "@/data/contracts/certificates";
 import type {
   TakeChargeGoalsSummary,
   TakeChargeRecordsQuery,
@@ -68,4 +69,8 @@ export async function queryStores({
 
 export async function queryEnvironment({ referenceDateIso, query: context }: QueryEnvelope<EhsFilterContext>): Promise<EnvironmentQueryResult> {
   return repositoryFor(referenceDateIso).getEnvironment({ context });
+}
+
+export async function queryCertificates({ referenceDateIso, query: context }: QueryEnvelope<EhsFilterContext>): Promise<CertificatesQueryResult> {
+  return repositoryFor(referenceDateIso).getCertificates({ context });
 }

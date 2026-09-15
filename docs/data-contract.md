@@ -53,7 +53,7 @@ Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认�
 
 - TRTID 不保证是所有数据源的唯一关联键。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
-- Events、Actions 与 Environment V1 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
+- Events、Actions、Environment V1 与 Certificates V1 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
 - Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
 ### 2.3 Data Availability
@@ -95,7 +95,7 @@ Source Reference 为可选结构，可包含：
 
 ### 2.6 Async Query Boundary
 
-`EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
+`EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment、Certificates 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
 
 Client 传入 Server Action 的查询 DTO 仅包含 `EhsFilterContext`、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
 
@@ -298,59 +298,25 @@ Actions query 还接收 sorting、`pageIndex`、`pageSize`，Repository 对完�
 
 ## 8. Risk & Compliance → Certificates
 
-### 8.1 Certificate Record
+### 8.1 Raw Source
 
-至少需要：
+仅七字段：TRTID、English Store Name、Certificate Type、Expiry Date、Person、Person Email、Business Title。Expiry Date 为 date-only 源字符串或 null，允许保留无效字符串用于异常原因。无中文门店名、源 Category、证号、发证日期、Source Reference 或 Required Slot。
 
-- Store Reference
-- Certificate Category
-- Certificate Type
-- Person
-- Role / Title
-- Expiry Date；可为 null。缺失且没有更早的异常结论时，业务结果为 `UNDETERMINED`，原因为 `MISSING_EXPIRY_DATE`
-- Source Reference（可选）
+### 8.2 Normalized contract
 
-数据源如有可额外提供：
+每张记录提供 canonical storeId、中文 storeDisplayName、certificateCategory、certificateType、person、personEmail、businessTitle、expiryDate、daysUntilExpiry、certificateStatus、certificateReason。Raw 门店引用不暴露给 UI。
 
-- Certificate Number
-- Issue Date
+Category 为安全健康、急救员、特种作业、安全驾驶；未知 Type 的 Category 为 null，保留完整 normalized record，独立于四类别汇总输出，不参与其评价。Type exact mapping 见业务需求与集中规则；不使用别名或人员岗位推断。
 
-数据源不提供最终业务结论。证件规则只返回规范化 Business Result 与 Reason Code；Display Status 由展示层映射。
+单证状态仅 NORMAL / ABNORMAL；Reason 为 NORMAL、EXPIRED、MISSING_EXPIRY_DATE、INVALID_EXPIRY_DATE。日期无效或缺失时天数为 null，状态异常。天数使用 Dashboard referenceDate 的 Asia/Shanghai 业务日期做自然日差。
 
-### 8.2 Certificate Requirement
+每个 scoped Store 的结果包含四类别 summary（类别、状态、normalized records），即使无证件也保留门店及空类别。类别无记录或任一单证异常则 ABNORMAL，否则 NORMAL。
 
-Slot 匹配另需一套逻辑要求数据：
+### 8.3 Query 与 Detail
 
-- Certificate Category
-- Required Slot
-- Slot 可匹配的 Certificate Type
+复用现有 Store Resolution：TRTID primary、English Store Name fallback，保留 conflict / historical-name / duplicate / unresolved 语义。Region / Area / canonical Store 生效，Period ignored。查询使用现有 Data Availability 表达源解析完整性，不额外创造证件业务状态。
 
-Required Slot 仅按 Certificate Type 精确匹配；不使用 Person、Role / Title。一个证件记录只能匹配一个 Slot。
-
-| Certificate Category | Required Slot | 可匹配 Certificate Type |
-|---|---|---|
-| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
-| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
-| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
-| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
-| 急救员 | First Aid | `急救员证`、`红十字急救员` |
-| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
-| 内驾证 | Trainer | `内训师` |
-| 内驾证 | Internal Driving | `内驾证` |
-
-不使用别名或模糊匹配。Requirement 的来源与维护方式仍为 TBD。
-
-### 8.3 证件类别
-
-V1 默认类别：
-
-- 安全证书
-- 职业卫生证书
-- 急救员
-- 焊工证
-- 内驾证
-
-类别字典需支持扩展；编码方式：TBD。
+Detail Header：中文门店、类别、类别状态。按当前 records 的实际 Type 形成纵向 sections，每个 Type 下全部记录使用纵向 cards 展示 Person、Person Email、Business Title、Expiry Date、距离到期天数、单证状态；Type 只作为 section heading。新 normalized Type 自动追加，同 Type 多记录不去重或覆盖。未来新增字段必须显式扩展 typed contract 和 presentation。不实现 Required Slot 完整性或到期提醒。
 
 ## 9. Risk & Compliance → Environment
 
@@ -437,7 +403,7 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 | KPI Result | 达成/未达成、发生/未发生或直接数值 |
 | Goal Result | 直接值及按已确认阈值得出的达成结果 |
 | Certificate Display Status | 由展示层根据规范化结果与原因映射 |
-| Certificate Business Result | `NORMAL`、`ABNORMAL`、`UNDETERMINED`，并附标准 Reason Code |
+| Certificate Business Result | V1 仅 `NORMAL`、`ABNORMAL`；单证附标准 Reason Code |
 | Environment V1 value | 六个项目的原始“有 / 无 / 不适用”，不作业务归类 |
 | Environment Business Result | 当前状态 V1 不提供；既有合规需求独立于 V1 源值 |
 

@@ -4,6 +4,10 @@ import {
 } from "@/data/mock";
 import type { MockDataset } from "@/data/mock/mock-dataset";
 import type { EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
+import type { CertificatesQuery, CertificatesQueryResult, NormalizedCertificateRecord } from "@/data/contracts/certificates";
+import { CERTIFICATE_CATEGORIES, certificateCategoryForType } from "@/lib/rules/certificate-types";
+import { evaluateCertificateCategory, evaluateCertificateRecord } from "@/lib/rules/certificate-rules";
+import { formatBusinessDate } from "@/lib/format-business-date-time";
 import { parseActionStatus } from "@/data/parse-action-status";
 import {
   createStoreReferenceResolver,
@@ -61,6 +65,7 @@ import type {
   EventRecord,
   RawActionRecord,
   RawEnvironmentRecord,
+  RawCertificateRecord,
   StoreId,
   StoreMasterData,
   StoreReference,
@@ -255,6 +260,7 @@ function isActionAggregateScopeCovered(
 
 type MockEhsRepositoryOptions = {
   environmentRecords?: readonly RawEnvironmentRecord[];
+  certificateRecords?: readonly RawCertificateRecord[];
   dataset?: MockDataset;
   actionRecords?: readonly RawActionRecord[];
   eventRecords?: readonly EventRecord[];
@@ -1127,6 +1133,42 @@ export function createMockEhsRepository(
       : incompleteDataSet(items);
   }
 
+  async function getCertificates({ context }: CertificatesQuery): Promise<CertificatesQueryResult> {
+    const selectedStores = requestedStores(context, stores);
+    const selectedIds = new Set(selectedStores.map((store) => store.storeId));
+    const records: NormalizedCertificateRecord[] = [];
+    let complete = true;
+    const referenceDay = formatBusinessDate(referenceDate.toISOString());
+    for (const raw of options.certificateRecords ?? mockData.certificateRecords) {
+      const resolution = resolveStoreReference({ trtid: raw.TRTID, storeNameEn: raw["English Store Name"] });
+      if (resolution.kind !== "RESOLVED") {
+        complete = false;
+        continue;
+      }
+      const store = toKpiStore(resolution.store);
+      if (!selectedIds.has(store.storeId)) continue;
+      records.push({
+        storeId: store.storeId, storeDisplayName: store.displayName,
+        certificateCategory: certificateCategoryForType(raw["Certificate Type"]),
+        certificateType: raw["Certificate Type"], person: raw.Person,
+        personEmail: raw["Person Email"], businessTitle: raw["Business Title"],
+        expiryDate: raw["Expiry Date"],
+        ...evaluateCertificateRecord(raw["Expiry Date"], referenceDay),
+      });
+    }
+    const items = selectedStores.map((store) => ({
+      storeId: store.storeId, storeDisplayName: store.displayName,
+      categories: CERTIFICATE_CATEGORIES.map((certificateCategory) => {
+        const categoryRecords = records.filter((record) => record.storeId === store.storeId && record.certificateCategory === certificateCategory);
+        return { certificateCategory, status: evaluateCertificateCategory(categoryRecords), records: categoryRecords };
+      }),
+    }));
+    return {
+      ...(complete ? completeDataSet(items) : incompleteDataSet(items)),
+      unknownTypeRecords: records.filter((record) => record.certificateCategory === null),
+    };
+  }
+
   return {
     getKpiData,
     getActions,
@@ -1135,6 +1177,7 @@ export function createMockEhsRepository(
     getTakeChargeRecords,
     getStores,
     getEnvironment,
+    getCertificates,
     getFilterStores: async () => stores.map(toKpiStore),
   };
 }

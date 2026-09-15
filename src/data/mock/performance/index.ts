@@ -4,6 +4,7 @@ import { createMockAggregateScopes } from "@/data/mock/kpi-mock-factory";
 import type { MockDataset } from "@/data/mock/mock-dataset";
 import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
 import { createEnvironmentMockRecords } from "@/data/mock/environment-v1";
+import { createMockCertificateRecords } from "@/data/mock/certificates";
 import { mockPersonAt } from "@/data/mock/people";
 import { mockStores } from "@/data/mock/stores";
 import type {
@@ -318,6 +319,7 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
     actionRecords: performanceActions(stores, supportedMonths),
     eventRecords: performanceEvents(stores, supportedMonths),
     environmentRecords: createEnvironmentMockRecords(stores),
+    certificateRecords: createMockCertificateRecords(stores, referenceDate),
     takeChargeRecords: performanceTakeCharge(stores, supportedMonths),
     takeChargeAnnualMetricContributions: performanceAnnualContributions(
       stores,

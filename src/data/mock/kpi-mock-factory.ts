@@ -10,6 +10,7 @@ import {
 import { createMockDrillRecords } from "@/data/mock/drills";
 import { createMockEventRecords } from "@/data/mock/events";
 import { createEnvironmentMockRecords } from "@/data/mock/environment-v1";
+import { createMockCertificateRecords } from "@/data/mock/certificates";
 import { createMockInspectionRecords } from "@/data/mock/inspections";
 import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
 import { mockStores } from "@/data/mock/stores";
@@ -66,6 +67,7 @@ export function createKpiMockData(referenceDate: Date) {
     actionRecords: createMockActionRecords(supportedMonths),
     eventRecords: createMockEventRecords(supportedMonths),
     environmentRecords: createEnvironmentMockRecords(mockStores),
+    certificateRecords: createMockCertificateRecords(mockStores, referenceDate),
     takeChargeRecords: createMockTakeChargeRecords(supportedMonths),
     takeChargeAnnualMetricContributions:
       createMockTakeChargeAnnualMetricContributions(

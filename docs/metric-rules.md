@@ -38,7 +38,7 @@ Related documents:
 
 ### 2.1 Global Filter Scope
 
-Except for Store Master Data, business results are evaluated within the current Global Filters scope:
+Except for Store Master Data and current-state Environment / Certificates V1 (which ignore Period), business results are evaluated within the current Global Filters scope:
 
 - Region
 - Area
@@ -506,145 +506,47 @@ Due Date must not be used to automatically derive an `Overdue` status unless a f
 
 # 7. Risk & Compliance → Certificates
 
-## 7.1 Purpose
+## 7.1 Certificate Type → Category
 
-Evaluate each:
+仅允许以下 exact match；不 trim、猜别名、模糊匹配或使用 Person / Business Title：
 
-`Store × Certificate Category`
+| Category | Certificate Type（exact match） |
+|---|---|
+| 安全健康 | `主要负责人安全生产培训合格证书-S` |
+| 安全健康 | `安全生产管理人员安全生产培训合格证书-M` |
+| 安全健康 | `主要负责人职业卫生培训合格证书-H1` |
+| 安全健康 | `职业卫生管理人员职业卫生培训合格证书-H2` |
+| 急救员 | `急救员证` |
+| 特种作业 | `熔化焊接与热切割作业` |
+| 安全驾驶 | `安全驾驶内训师` |
+| 安全驾驶 | `安全驾驶内驾证` |
 
-for certificate completeness and validity.
+未知 Type 保留原始值与 null Category，不参与四个已知类别汇总。
 
----
+## 7.2 单证规则
 
-## 7.2 Result Type
+输入为 date-only Expiry Date 与注入的 Dashboard referenceDate（Asia/Shanghai 业务日期），不得读取当前系统或浏览器时间。
 
-`ComplianceResult`
+- 有效日期 >= referenceDate → NORMAL / NORMAL。
+- 有效日期 < referenceDate → ABNORMAL / EXPIRED。
+- 日期 null 或空值 → ABNORMAL / MISSING_EXPIRY_DATE。
+- 无法解析为合法 YYYY-MM-DD → ABNORMAL / INVALID_EXPIRY_DATE。
 
-Possible rule results:
+daysUntilExpiry 为两个业务日期的自然日差；到期当天为 0 且有效，过去日期保留负值。缺失或无效日期为 null。不得产生时区 ±1 天偏差。
 
-- `NORMAL`
-- `ABNORMAL`
-- `UNDETERMINED`
+## 7.3 Store × Category
 
-Display reasons are defined separately in:
+- 零记录 → ABNORMAL。
+- 任一单证 ABNORMAL → ABNORMAL。
+- 至少一张且全部 NORMAL → NORMAL。
 
-`status-dictionary.md`
+仅评价已上传记录，不检查 S / M / H1 / H2 或安全驾驶两种 Type 是否齐全。无 Required Slot、人数要求、UNDETERMINED、即将到期或提醒规则。输出仅业务语义，不返回 UI 样式。
 
----
+## 7.4 Filters
 
-## 7.3 Required Slot Definitions
+Region / Area / canonical Store 生效。Period ignored；referenceDate 仅用于有效期和天数评价，与 Global Period 独立。
 
-Certificate Type matching is exact against the explicitly accepted values below.
-
-No additional alias, fuzzy matching, Person, Role, or Title matching is permitted.
-
-| Certificate Category | Required Slot | Accepted Certificate Type |
-|---|---|---|
-| 安全证书 | S | `主要负责人安全生产培训合格证书-S` |
-| 安全证书 | S | `店长安全证` |
-| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M` |
-| 安全证书 | M | `EHS RN安全证` |
-| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1` |
-| 职业卫生证书 | H1 | `职业健康证` |
-| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2` |
-| 职业卫生证书 | H2 | `职业健康证` |
-| 急救员 | First Aid | `急救员证` |
-| 急救员 | First Aid | `红十字急救员` |
-| 焊工证 | Welding | `熔化焊接与热切割作业` |
-| 焊工证 | Welding | `焊工证` |
-| 内驾证 | Trainer | `内训师` |
-| 内驾证 | Internal Driving | `内驾证` |
-
----
-
-## 7.4 Slot Matching Rules
-
-1. Retrieve all Certificate records belonging to the Store and Certificate Category.
-2. Match Required Slots using exact Certificate Type values listed in section 7.3.
-3. One Certificate record may satisfy only one Required Slot.
-4. A Certificate record already assigned to one Slot cannot be reused.
-5. Person, Role and Title do not participate in Slot matching.
-6. Explicit accepted values in section 7.3 are the complete matching dictionary.
-7. No additional aliases or fuzzy text matching may be introduced.
-8. Certificate records not used by a Required Slot remain additional Certificate records for that category.
-
-Special case:
-
-Both H1 and H2 accept:
-
-`职业健康证`
-
-Therefore:
-
-- one `职业健康证` record can satisfy only H1 or H2;
-- two separate `职业健康证` records may satisfy both H1 and H2.
-
----
-
-## 7.5 Certificate Category Evaluation
-
-Evaluation order:
-
-### Step 1 — No Records
-
-No Certificate records exist for the category
-→ `ABNORMAL`
-
-Reason:
-`NO_RECORD`
-
-### Step 2 — Required Slot Completeness
-
-One or more Required Slots cannot be matched
-→ `ABNORMAL`
-
-Reason:
-`MISSING_REQUIRED_SLOT`
-
-### Step 3 — Expiry Validation
-
-Evaluate ALL Certificate records in the category, including:
-
-- records used for Required Slots;
-- additional/unmatched records.
-
-Any Certificate is expired
-→ `ABNORMAL`
-
-Reason:
-`EXPIRED_CERTIFICATE`
-
-Therefore, an expired additional Certificate also makes the entire category abnormal.
-
-### Step 4 — Missing Expiry Date
-
-If an expiry date required for evaluation is missing and no earlier rule has already produced `ABNORMAL`
-→ `UNDETERMINED`
-
-Reason:
-`MISSING_EXPIRY_DATE`
-
-### Step 5 — Normal
-
-All Required Slots are matched AND all Certificate records are valid
-→ `NORMAL`
-
-Reason:
-`NORMAL`
-
----
-
-## 7.6 Certificate Exclusions
-
-The system does NOT implement:
-
-- expiring-soon status;
-- expiry reminders;
-- role-based Slot matching;
-- fuzzy matching;
-- automatic alias discovery.
-
----
+本次正式 V1 覆盖旧 Certificates 完整性与别名规则。
 
 # 8. Risk & Compliance → Environment
 

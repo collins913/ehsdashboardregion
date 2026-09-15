@@ -52,6 +52,7 @@ Global Filters 属于全局应用框架，包含：
 - Stores 页面使用 Region、Area、Store。
 - Period 对 Store Master Data 没有业务意义，不参与门店主数据筛选、判断或计算。
 - Environment V1 使用当前状态，仅跟随 Region、Area、Store，忽略 Period。
+- Certificates V1 仅跟随 Region、Area、Store，忽略 Period；有效期使用独立 referenceDate。
 
 V1 已确认：
 
@@ -217,60 +218,40 @@ Closed Date 为空时显示 `—`。页面和详情不展示 TRTID 或 Store Eng
 
 ## 8. Risk & Compliance → Certificates
 
-### 8.1 页面目的
+### 8.1 Certificates V1
 
-核对门店所需证件是否齐全、是否有效，以及是否存在缺失或过期。
+一行一个 canonical Store，默认五列：门店、安全健康、急救员、特种作业、安全驾驶。门店仅显示 Store Master 中文名称。类别格子只展示“正常 / 异常”，支持排序、列显示控制与 adaptive pagination。
 
-### 8.2 证件类别
+### 8.2 Type 与 Category
 
-页面提供 Certificate Category 筛选，默认包含五类：
+Category 不来自源数据，仅通过集中 Certificate Type exact mapping 得到：
 
-- 安全证书
-- 职业卫生证书
-- 急救员
-- 焊工证
-- 内驾证
+| Category | Certificate Type（exact match） |
+|---|---|
+| 安全健康 | `主要负责人安全生产培训合格证书-S` |
+| 安全健康 | `安全生产管理人员安全生产培训合格证书-M` |
+| 安全健康 | `主要负责人职业卫生培训合格证书-H1` |
+| 安全健康 | `职业卫生管理人员职业卫生培训合格证书-H2` |
+| 急救员 | `急救员证` |
+| 特种作业 | `熔化焊接与热切割作业` |
+| 安全驾驶 | `安全驾驶内训师` |
+| 安全驾驶 | `安全驾驶内驾证` |
 
-未来可扩展其它类别，不把数据结构限制为仅五类。
+不使用别名、模糊匹配、Person 或 Business Title。未知 Type 保留原值，不猜测类别，不参与四个已定义类别的计算。
 
-### 8.3 页面结构与交互
+### 8.3 状态与筛选
 
-页面按 `Store × Certificate Category` 展示每个门店、每个证件类别的 Display Status：
+证件有效期按 Dashboard referenceDate 评价：到期日当天有效；过期、缺失或无效日期均异常。类别无记录或任一记录异常则异常，否则正常。不检查证件种类是否齐全，不实现 Required Slot、人数要求或到期提醒。
 
-- 无
-- 异常
-- 正常
+Region / Area / Store 生效；Period ignored，变化不查询、不 loading，不与 referenceDate 混用。Raw 仅含 TRTID、English Store Name、Certificate Type、Expiry Date、Person、Person Email、Business Title；门店解析复用既有 TRTID primary / English fallback、conflict 与历史名称语义。
 
-其中“无”是缺少任何证件记录的原因提示，其 Business Result 为异常。
+### 8.4 Detail
 
-点击格子后：
+详情按当前 normalized records 中实际出现的 Certificate Type 分组，类别内各 Type 纵向展示，同 Type 的全部记录使用纵向 label/value 展示。新增已规范化 Type 自动形成新 section，不硬编码 Type 或自动渲染全部字段。
 
-- 若 Display Status 为“无”，显示该类别暂无证件记录。
-- 若存在记录，展示已有证件及 Required Slot 匹配结果。
-- 详情至少包括：Required Slot、Person、Role / Title、Certificate Type、Expiry Date、Display Status、Source Reference。
+四类别共用详情结构。Header 显示中文门店名、类别和类别状态。无记录时显示“当前分类暂无证件记录”，类别状态仍异常。有记录时显示 Type、Person、Person Email、Business Title、Expiry Date、距离到期天数与每张记录的状态；未知天数显示“—”，负数保留。未来字段通过明确契约扩展，不提前设计字段或工作流。
 
-不提供到期提醒或“即将到期”状态。
-
-### 8.4 Required Slot
-
-- 每个 Certificate Category 可包含一个或多个 Required Slot。
-- Slot 规则保留，并由集中业务逻辑维护。
-- Slot 仅按 Certificate Type 精确匹配，不使用 Person、Role / Title。
-- 一个证件记录只能匹配一个 Slot。
-- 不新增别名或模糊匹配。
-
-| Certificate Category | Required Slot | 可匹配 Certificate Type |
-|---|---|---|
-| 安全证书 | S | `主要负责人安全生产培训合格证书-S`、`店长安全证` |
-| 安全证书 | M | `安全生产管理人员安全生产培训合格证书-M`、`EHS RN安全证` |
-| 职业卫生证书 | H1 | `主要负责人职业卫生培训合格证书-H1`、`职业健康证` |
-| 职业卫生证书 | H2 | `职业卫生管理人员职业卫生培训合格证书-H2`、`职业健康证` |
-| 急救员 | First Aid | `急救员证`、`红十字急救员` |
-| 焊工证 | Welding | `熔化焊接与热切割作业`、`焊工证` |
-| 内驾证 | Trainer | `内训师` |
-| 内驾证 | Internal Driving | `内驾证` |
-
-所有 Required Slot 满足后，未用于 Slot 匹配的证件仍作为额外记录展示；任一 Required Slot 证件或额外证件过期，整个类别均为异常。
+本次用户确认的 V1 覆盖旧五类别、Required Slot、“无”展示及缺日期未确定规则；历史决策中与此冲突的 Certificates 定义不再适用于本轮 V1。
 
 ## 9. Risk & Compliance → Environment
 
@@ -324,7 +305,7 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 - TRTID 是重要门店标识，但不保证是所有数据源的唯一关联键。
 - 数据源可能使用 TRTID、Store Name CN 或 Store Name EN 关联门店。
 - 关联必须由数据层统一完成，页面和业务组件不得临时匹配。
-- Events、Actions 与 Environment V1 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
+- Events、Actions、Environment V1 与 Certificates V1 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
 
 ## 11. 本次不定义
 

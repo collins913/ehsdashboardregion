@@ -66,6 +66,7 @@ export const routes = {
     href: "/risk/certificates",
     icon: Award,
     section: navigationLabels.riskAndCompliance,
+    description: "查看各门店当前证件分类状态与证件明细",
   },
   riskEnvironment: {
     title: "环境",

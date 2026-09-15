@@ -136,36 +136,19 @@ export interface ActionRecord extends ActionRecordBase {
 }
 
 export type DefaultCertificateCategory =
-  | "安全证书"
-  | "职业卫生证书"
+  | "安全健康"
   | "急救员"
-  | "焊工证"
-  | "内驾证";
+  | "特种作业"
+  | "安全驾驶";
 
-export type CertificateCategory =
-  | DefaultCertificateCategory
-  | (string & Record<never, never>);
-
-export interface CertificateRecord {
-  storeReference: StoreReference;
-  certificateCategory: CertificateCategory;
-  certificateType: string;
-  person: string;
-  roleTitle: string;
-  expiryDate: IsoDate | null;
-  sourceReference?: SourceReference | null;
-  certificateNumber?: string;
-  issueDate?: IsoDate;
-}
-
-export interface CertificateSlot {
-  requiredSlot: string;
-  certificateTypes: readonly string[];
-}
-
-export interface CertificateRequirement {
-  certificateCategory: CertificateCategory;
-  slots: readonly CertificateSlot[];
+export interface RawCertificateRecord {
+  TRTID: string;
+  "English Store Name": string;
+  "Certificate Type": string;
+  "Expiry Date": string | null;
+  Person: string;
+  "Person Email": string;
+  "Business Title": string;
 }
 
 export type WasteContractCategory =

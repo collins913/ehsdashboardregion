@@ -16,6 +16,7 @@ import type {
 } from "@/data/contracts/take-charge";
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
 import type { EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { CertificatesQuery, CertificatesQueryResult } from "@/data/contracts/certificates";
 
 export interface KpiQueries {
   getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot>;
@@ -50,6 +51,10 @@ export interface GlobalFilterQueries {
   getFilterStores(): Promise<readonly KpiStore[]>;
 }
 
+export interface CertificatesQueries {
+  getCertificates(query: CertificatesQuery): Promise<CertificatesQueryResult>;
+}
+
 export interface EhsRepository
   extends KpiQueries,
     ActionsQueries,
@@ -57,4 +62,5 @@ export interface EhsRepository
     TakeChargeQueries,
     StoresQueries,
     EnvironmentQueries,
+    CertificatesQueries,
     GlobalFilterQueries {}

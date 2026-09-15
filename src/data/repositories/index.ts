@@ -3,6 +3,7 @@ export type {
   EhsRepository,
   EventsQueries,
   EnvironmentQueries,
+  CertificatesQueries,
   GlobalFilterQueries,
   KpiQueries,
   StoresQueries,

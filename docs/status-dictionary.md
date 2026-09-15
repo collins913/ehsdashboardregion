@@ -20,7 +20,7 @@ This document does NOT define:
 
 - KPI formulas;
 - thresholds;
-- Certificate Slot calculations;
+- Certificate validity calculations;
 - environmental compliance formulas;
 - page layout;
 - database fields;
@@ -127,10 +127,7 @@ UI semantic intent:
 
 # 4. ComplianceResult
 
-Used for compliance-oriented modules such as:
-
-- Certificates
-- Environment
+Used for compliance-oriented modules. Certificates V1 uses only NORMAL / ABNORMAL; legacy Environment compliance may also use UNDETERMINED.
 
 Allowed values:
 
@@ -426,55 +423,16 @@ The original Status value remains available for display.
 
 # 11. Certificate Status Semantics
 
-Certificate rule calculation is defined in:
+Certificates V1 单证和类别均仅使用 NORMAL / ABNORMAL，统一展示“正常 / 异常”。不显示“无 / 未确定 / 即将到期”。
 
-`metric-rules.md`
-
-Certificate business result uses:
-
-`ComplianceResult`
-
-Additional reason codes are used to explain why a category received its result.
-
-Allowed reason codes:
-
-| Reason Code | Meaning | Business Result |
+| 单证 Reason | 语义 | Status |
 |---|---|---|
-| `NO_RECORD` | 该类别完全没有证件记录 | `ABNORMAL` |
-| `MISSING_REQUIRED_SLOT` | 至少一个 Required Slot 未满足 | `ABNORMAL` |
-| `EXPIRED_CERTIFICATE` | 该类别存在至少一张过期证件 | `ABNORMAL` |
-| `MISSING_EXPIRY_DATE` | 缺少必要有效期信息，无法可靠判定 | `UNDETERMINED` |
-| `NORMAL` | Slot 完整且全部证件有效 | `NORMAL` |
+| NORMAL | 有效且到期日不早于 referenceDate | NORMAL |
+| EXPIRED | 已过期 | ABNORMAL |
+| MISSING_EXPIRY_DATE | 日期缺失 | ABNORMAL |
+| INVALID_EXPIRY_DATE | 日期无效 | ABNORMAL |
 
-Important distinction:
-
-`NO_RECORD`
-
-is an abnormal business result, but its UI may display a more specific reason such as:
-
-`无`
-
-rather than displaying only:
-
-`异常`
-
-Therefore:
-
-Business Result
-= `ABNORMAL`
-
-Reason
-= `NO_RECORD`
-
-Display
-= `无`
-
-This preserves both:
-
-- management conclusion;
-- reason clarity.
-
----
+类别零记录或任一记录异常则 ABNORMAL，否则 NORMAL。零记录详情展示明确空状态，但主表仍显示“异常”。Required Slot 不参与 V1。其他模块的 ComplianceResult 可继续使用 UNDETERMINED，不将其套用到 Certificates V1。
 
 # 12. Environmental Monitoring Availability
 
@@ -706,7 +664,7 @@ Event, Action and Take Charge mappings are independent.
 | Concept | Canonical Values | Purpose |
 |---|---|---|
 | Performance Result | ACHIEVED / NOT_ACHIEVED / UNDETERMINED | KPI / Goal result |
-| Compliance Result | NORMAL / ABNORMAL / UNDETERMINED | Certificate / Environment compliance |
+| Compliance Result | NORMAL / ABNORMAL / UNDETERMINED | Compliance; Certificates V1 uses only NORMAL / ABNORMAL |
 | Occurrence Result | OCCURRED / NOT_OCCURRED | ASTM Incident |
 | Record State | OPEN / CLOSED / EXCLUDED / UNKNOWN | Record lifecycle/filtering |
 | Availability State | NONE / AVAILABLE | Environmental Monitoring record availability |

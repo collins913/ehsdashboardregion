@@ -11,6 +11,7 @@ import type {
   Month,
   RawActionRecord,
   RawEnvironmentRecord,
+  RawCertificateRecord,
   StoreMasterData,
   TakeChargeRecord,
   TrainingRecord,
@@ -29,6 +30,7 @@ export interface MockDataset {
   actionRecords: readonly RawActionRecord[];
   eventRecords: readonly EventRecord[];
   environmentRecords: readonly RawEnvironmentRecord[];
+  certificateRecords: readonly RawCertificateRecord[];
   takeChargeRecords: readonly TakeChargeRecord[];
   takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[];
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[];
