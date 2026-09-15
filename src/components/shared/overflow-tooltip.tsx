@@ -14,14 +14,31 @@ type OverflowTooltipProps = {
   focusable?: boolean;
 };
 
-export function isTextOverflowing({
-  clientWidth,
-  scrollWidth,
-}: {
+type TextOverflowElement = {
   clientWidth: number;
   scrollWidth: number;
-}) {
-  return clientWidth > 0 && scrollWidth > clientWidth;
+  getBoundingClientRect?: () => Pick<DOMRect, "width">;
+  ownerDocument?: Pick<Document, "createRange" | "defaultView">;
+};
+
+export function isTextOverflowing(element: TextOverflowElement) {
+  if (element.clientWidth <= 0) return false;
+  if (element.scrollWidth > element.clientWidth) return true;
+  if (!element.ownerDocument || !element.getBoundingClientRect) return false;
+
+  // Integer scroll/client widths can tie even when CSS ellipsis clips fractional text width.
+  const range = element.ownerDocument.createRange();
+  range.selectNodeContents(element as unknown as Node);
+  const intrinsicWidth = range.getBoundingClientRect().width;
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element as Element);
+  const horizontalInset = style
+    ? [style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth]
+        .reduce((sum, value) => sum + (Number.parseFloat(value) || 0), 0)
+    : 0;
+  const availableWidth = element.getBoundingClientRect().width - horizontalInset;
+  // Scale-relative IEEE-754 noise allowance, not a CSS-pixel overflow tolerance.
+  const epsilon = Number.EPSILON * Math.max(1, intrinsicWidth, availableWidth) * 8;
+  return availableWidth > 0 && intrinsicWidth - availableWidth > epsilon;
 }
 
 type OverflowObserver = {
@@ -35,19 +52,18 @@ export function startTextOverflowMeasurement({
   requestFrame,
   cancelFrame,
   createObserver,
+  subscribeResize,
 }: {
-  element: Pick<HTMLElement, "clientWidth" | "scrollWidth">;
+  element: TextOverflowElement;
   onChange: (isOverflowing: boolean) => void;
   requestFrame: (callback: FrameRequestCallback) => number;
   cancelFrame: (frameId: number) => void;
   createObserver: (callback: ResizeObserverCallback) => OverflowObserver;
+  subscribeResize?: (measure: () => void) => () => void;
 }) {
   let previousResult: boolean | undefined;
   const measure = () => {
-    const nextResult = isTextOverflowing({
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-    });
+    const nextResult = isTextOverflowing(element);
 
     if (nextResult !== previousResult) {
       previousResult = nextResult;
@@ -56,20 +72,15 @@ export function startTextOverflowMeasurement({
   };
 
   measure();
-  let postLayoutFrameId: number | null = null;
-  const frameId = requestFrame(() => {
-    measure();
-    postLayoutFrameId = requestFrame(measure);
-  });
+  const frameId = requestFrame(measure);
   const observer = createObserver(measure);
   observer.observe(element as Element);
+  const unsubscribeResize = subscribeResize?.(measure);
 
   return () => {
     cancelFrame(frameId);
-    if (postLayoutFrameId !== null) {
-      cancelFrame(postLayoutFrameId);
-    }
     observer.disconnect();
+    unsubscribeResize?.();
   };
 }
 
@@ -93,6 +104,10 @@ export function OverflowTooltip({
       requestFrame: requestAnimationFrame,
       cancelFrame: cancelAnimationFrame,
       createObserver: (callback) => new ResizeObserver(callback),
+      subscribeResize: (measure) => {
+        window.addEventListener("resize", measure);
+        return () => window.removeEventListener("resize", measure);
+      },
     });
   }, [text, textElement]);
 

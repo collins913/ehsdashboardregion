@@ -1,6 +1,6 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-14
+- 更新日期：2026-09-15
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
@@ -22,6 +22,8 @@
 - Performance → Goals / Take Charge
 - Stores V1
 - Store Resolver historical rename compatibility
+- Architecture Hardening
+- Performance V1（实现、自动质量门与人工验收完成）
 
 ## Architecture Hardening
 
@@ -37,13 +39,12 @@
 
 ## 后续开发顺序
 
-1. Performance V1
-2. ASTM KPI Drilldown
-3. Risk & Compliance → Environment
-4. Risk & Compliance → Certificates
-5. Overview
+1. ASTM KPI Drilldown
+2. Risk & Compliance → Environment
+3. Risk & Compliance → Certificates
+4. Overview
 
-依赖原则：Architecture Hardening 完成后先进行 Performance V1；Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository。
+依赖原则：Architecture Hardening 与 Performance V1 已完成；Overview 在底层业务模块稳定后实现；ASTM KPI Drilldown 复用现有 normalized Event Repository。
 
 ## Performance & Scale Validation
 
@@ -53,7 +54,7 @@
 
 ### Performance V1
 
-Architecture Hardening 完成后引入独立 Performance Mock Profile，约 500 Stores，用于验证真实 400+ 门店规模下的：
+已完成独立 Performance Mock Profile：500 Stores、8,000 Actions、6,000 Events、8,000 Take Charge records，用于验证 400+ 门店规模下的：
 
 - Global Store Filter
 - Region / Area / Store 联动
@@ -75,11 +76,13 @@ Repository
 └─ Production Repository
 ```
 
-`standard` 与 `performance` 是 Mock 数据 Profile；`production` 是独立 Repository。UI、Feature 和 Rules 不感知数据 Profile，Profile 仅在 server-only Dataset 边界切换。Performance V1 已进入实现，待人工验收后更新完成状态。
+`standard` 与 `performance` 是 Mock 数据 Profile；`production` 是独立 Repository。UI、Feature 和 Rules 不感知数据 Profile，Profile 仅在 server-only Dataset 边界切换。数据集 deterministic，独立规模测试不默认进入日常单元测试，也不代表 Production 容量承诺。
+
+Performance V1 已完成 KPI summary / 按需 domain drilldown 优化、异步表格 resolved presentation、持久 Header / GlobalFilters 与 shared Tooltip 稳定化；自动质量门及人工视觉验收通过。
 
 ### Performance V2
 
-在 Actions、Events、Goals 等主要数据结构进一步稳定后，扩展为约 500 Stores 及数千至数万条 Actions、Events、Training、Drill、Inspection、Goals records，用于验证：
+在更多业务数据结构稳定后，扩展现有规模与领域覆盖，加入更多 Training、Drill、Inspection 等 records，用于验证：
 
 - Repository 性能
 - Rule Engine 性能

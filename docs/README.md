@@ -44,7 +44,7 @@ Client Feature → Server Action → Repository / Adapter → Source
 
 - Client 不创建 Repository 或读取 Mock；业务规则不放在 UI。
 - Production Adapter 未来替换 Repository implementation，上层 contract 保持稳定。
-- Standard Mock 与 Production 使用相同的 normalized contract 边界。
+- Standard / Performance 共用一个 Mock Repository；未来 Production 使用相同的 normalized contract 边界。
 
 完整说明见 [`data-architecture.md`](data-architecture.md)。
 

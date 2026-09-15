@@ -25,13 +25,13 @@
 | Component | Responsibility |
 | --- | --- |
 | AppSidebar | Renders centralized navigation and active state |
-| DashboardShell | Composes SidebarProvider, AppSidebar, page inset and persistent Global Filter Provider |
+| DashboardShell | Composes SidebarProvider, AppSidebar, page inset, persistent Global Filter Provider and PageHeader / GlobalFilters; header text reuses centralized navigation metadata, with UI Lab opting out |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
 | PageHeader | Sidebar trigger, breadcrumb, title, description and optional actions |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
-| GlobalFilters | Renders the full-width compact filter bar with Region, Area, searchable canonical Store multi-select and natural-month Period controls |
+| GlobalFilters | One persistent shared compact filter bar; Select and Store Button share trigger presentation, while Store retains Popover + Command canonical multi-select |
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
@@ -41,6 +41,7 @@
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
+| DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content, semantic scope pending masks content and only unknown footer digits |
 | DataTable layout helpers | Shared fixed table layout, minimum width, horizontal overflow, sticky mechanics and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
 
 ## Shared utilities
@@ -54,7 +55,7 @@
 | Hook | Responsibility |
 | --- | --- |
 | useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
-| useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR state and prevents stale async responses from replacing the latest query |
+| useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result; prevents stale async responses from replacing the latest query |
 
 ## Feature-specific
 

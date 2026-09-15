@@ -44,6 +44,8 @@ Performance Dataset ──┘
 
 `EHS_MOCK_PROFILE` 未设置或为空时固定使用 Standard；`standard` 与 `performance` 之外的非空值立即失败。Profile 只决定 server-only raw dataset，不进入 Repository public contract、Server Action query、Feature 或 UI。Performance dataset 按 reference month 延迟生成并在 server process 内复用；Standard dataset 行为保持不变。Production 是未来独立 Repository implementation，不属于 Mock Profile。
 
+Performance Dataset 在相同 reference month 下保持 deterministic，用于独立规模测试与人工验收；日常单元测试默认使用 Standard。规模测试验证当前 Mock 链路，不代表 Production 容量或响应时间承诺。
+
 ## V1 领域边界
 
 - `Risk & Compliance`：Events、Actions、Certificates、Environment 的底层事实、记录与合规结果。

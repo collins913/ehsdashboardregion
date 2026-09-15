@@ -36,7 +36,7 @@
 
 ## Composition and accessibility
 
-- 页面使用 `DashboardShell`、`PageHeader` 和 `PageContainer`，不复制壳层布局。
+- `DashboardShell` 持续挂载 `PageHeader` / `GlobalFilters`；业务路由只组合内容与 `PageContainer`，不复制或重新挂载 Header。
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
 - 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。
 
@@ -45,6 +45,8 @@
 - Shared Table 提供 `primary`、`content`、`standard`、`compact` 四种列宽角色；Feature 必须按字段语义显式声明，不由 Shared 根据列名猜测。
 - `primary` 用于 Store 等主要识别字段，保留可读最小宽度并优先扩展；`content` 用于正文长文本，在最小、首选和最大阅读宽度之间伸缩；`standard` 用于姓名、区域、分类等中短文本；`compact` 用于 ID、日期、状态等结构化短字段。
 - 空间不足时使用 CSS truncate，并按真实 overflow 启用 Tooltip；共享最小表宽和横向滚动继续保证窄 viewport 的最低可读性。Sticky 只负责定位、背景和层级，不自行决定列宽。
+- 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
+- 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 
 ## Navigation
 
@@ -55,6 +57,7 @@
 - 全局筛选由共享组件统一渲染，状态由 Dashboard route layout 持有；页面不重复拼装筛选参数。
 - 全局筛选使用与 Dashboard Shell 连续的全宽紧凑 Filter Bar，不使用 Card、圆角外框或阴影。
 - 筛选触发器文本保持单行截断；只对确实可能溢出的门店名称复用 `OverflowTooltip`，且仅在 DOM 实际溢出时启用提示。
+- Region / Area / Period Select 与 Store Button 复用 GlobalFilters 内同一触发器 presentation；Store 继续使用 Popover + Command 搜索多选，不替换选择业务逻辑。
 - 门店搜索只过滤当前 Region / Area 范围内的 `displayName`；关键词属于选择器临时 UI 状态，不进入 Filter Context。
 
 ## UI Lab maintenance

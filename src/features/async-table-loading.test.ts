@@ -53,6 +53,20 @@ describe("async table loading architecture", () => {
     ["Actions", "./actions/actions-data-table.tsx"],
     ["Events", "./events/events-data-table.tsx"],
     ["Take Charge", "./goals/take-charge-data-table.tsx"],
+  ])("wires scope-aware pending mode and resolved sorting in %s", (_, path) => {
+    const tableSource = source(path);
+    expect(tableSource).toContain("pendingMode={pendingMode}");
+    expect(tableSource).toContain('pendingMode === "mask-content"');
+    expect(tableSource).toContain("resolvedSorting: sorting");
+    expect(tableSource).toContain("sorting: result?.resolvedSorting ?? sorting");
+    expect(tableSource).toContain("manualPagination: true");
+    expect(tableSource).toContain("manualSorting: true");
+  });
+
+  it.each([
+    ["Actions", "./actions/actions-data-table.tsx"],
+    ["Events", "./events/events-data-table.tsx"],
+    ["Take Charge", "./goals/take-charge-data-table.tsx"],
   ])("resets the %s page for a new query scope", (_, path) => {
     const tableSource = source(path);
 

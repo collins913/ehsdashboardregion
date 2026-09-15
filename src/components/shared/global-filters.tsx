@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -32,6 +32,9 @@ import { useGlobalFilters } from "@/features/global-filters/global-filter-provid
 import type { StoreId } from "@/types/ehs";
 
 const ALL_VALUE = "__ALL__";
+
+// Both Select and searchable Popover use the adopted filter trigger presentation.
+const filterTriggerClassName = "w-full min-w-0 h-8 gap-2 rounded-lg border-input bg-transparent px-2.5 py-1.5 text-sm font-normal text-foreground shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:hover:bg-input/50";
 
 const periodLabels = {
   THIS_YEAR: "本年",
@@ -160,7 +163,7 @@ export function GlobalFilters() {
                 value={singleScopeValue(state.region)}
                 onValueChange={(value) => setRegion(singleScope(value))}
               >
-                <SelectTrigger className="w-full" aria-label="区域">
+                <SelectTrigger className={filterTriggerClassName} aria-label="区域">
                   <SelectValue className="min-w-0 flex-1 truncate text-left" />
                 </SelectTrigger>
                 <SelectContent>
@@ -179,7 +182,7 @@ export function GlobalFilters() {
                 value={singleScopeValue(state.area)}
                 onValueChange={(value) => setArea(singleScope(value))}
               >
-                <SelectTrigger className="w-full" aria-label="小区">
+                <SelectTrigger className={filterTriggerClassName} aria-label="小区">
                   <SelectValue className="min-w-0 flex-1 truncate text-left" />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,7 +207,7 @@ export function GlobalFilters() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full min-w-0 justify-between font-normal"
+                    className={`${filterTriggerClassName} justify-between hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground disabled:pointer-events-auto`}
                     aria-label={storeLabel}
                     aria-expanded={storePopoverOpen}
                     role="combobox"
@@ -214,6 +217,7 @@ export function GlobalFilters() {
                       className="w-0 flex-1 text-left"
                       focusable={false}
                     />
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground opacity-50" aria-hidden="true" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -294,7 +298,7 @@ export function GlobalFilters() {
                   setPeriodMode(value as keyof typeof periodLabels)
                 }
               >
-                <SelectTrigger className="w-full" aria-label="周期">
+                <SelectTrigger className={filterTriggerClassName} aria-label="周期">
                   <SelectValue className="min-w-0 flex-1 truncate text-left" />
                 </SelectTrigger>
                 <SelectContent>

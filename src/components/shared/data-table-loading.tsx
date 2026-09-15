@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export type DataTableQueryStatus = "READY" | "LOADING" | "ERROR";
+export type DataTablePendingMode = "preserve-visible" | "mask-content";
 
 export function useResolvedDataTableSnapshot<TSnapshot>({
   snapshot,
@@ -35,11 +36,16 @@ export function useResolvedDataTableSnapshot<TSnapshot>({
   const isResolvedMetadataPending =
     isRetainingResolvedSnapshot &&
     resolvedRef.current?.metadataKey !== metadataKey;
+  const pendingMode: DataTablePendingMode =
+    isRetainingResolvedSnapshot && !isResolvedMetadataPending
+      ? "preserve-visible"
+      : "mask-content";
 
   return {
     snapshot: resolvedSnapshot,
     isRetainingResolvedSnapshot,
     isResolvedMetadataPending,
+    pendingMode,
   };
 }
 
@@ -69,21 +75,24 @@ export function useRetainedDataTableRows<TRow>({
 
 export function DataTableLoadingCellContent({
   loading,
+  pendingMode = "mask-content",
   children,
 }: {
   loading: boolean;
+  pendingMode?: DataTablePendingMode;
   children: ReactNode;
 }) {
+  const masked = loading && pendingMode === "mask-content";
   return (
     <div className="relative min-w-0">
       <div
-        aria-hidden={loading || undefined}
+        aria-hidden={masked || undefined}
         inert={loading ? true : undefined}
-        className={cn("min-w-0", loading && "invisible")}
+        className={cn("min-w-0", masked && "invisible")}
       >
         {children}
       </div>
-      {loading ? (
+      {masked ? (
         <div
           aria-hidden="true"
           data-table-loading-overlay

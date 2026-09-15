@@ -334,8 +334,9 @@ export function ActionsDataTable({
   const {
     snapshot: result,
     isResolvedMetadataPending,
+    pendingMode,
   } = useResolvedDataTableSnapshot({
-    snapshot: currentResult ?? queryState.resolved?.data ?? null,
+    snapshot: currentResult ? { ...currentResult, resolvedSorting: sorting } : null,
     status:
       queryState.status === "SUCCESS"
         ? "READY"
@@ -596,7 +597,7 @@ export function ActionsDataTable({
     },
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
-    state: { sorting, columnVisibility, pagination },
+    state: { sorting: result?.resolvedSorting ?? sorting, columnVisibility, pagination },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
@@ -729,7 +730,9 @@ export function ActionsDataTable({
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
                   tabIndex={isRetainingResolvedRows ? -1 : 0}
-                  aria-hidden={isRetainingResolvedRows || undefined}
+                  aria-hidden={
+                    (isRetainingResolvedRows && pendingMode === "mask-content") || undefined
+                  }
                   aria-label={`查看行动项 ${row.original.actionId}`}
                   className={cn(
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
@@ -759,6 +762,7 @@ export function ActionsDataTable({
                     >
                       <DataTableLoadingCellContent
                         loading={isRetainingResolvedRows}
+                        pendingMode={pendingMode}
                       >
                         <table.FlexRender cell={cell} />
                       </DataTableLoadingCellContent>

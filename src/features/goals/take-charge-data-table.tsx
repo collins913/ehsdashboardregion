@@ -403,8 +403,9 @@ export function TakeChargeDataTable({
   const {
     snapshot: result,
     isResolvedMetadataPending,
+    pendingMode,
   } = useResolvedDataTableSnapshot({
-    snapshot: currentResult ?? queryState.resolved?.data ?? null,
+    snapshot: currentResult ? { ...currentResult, resolvedSorting: sorting } : null,
     status:
       queryState.status === "SUCCESS"
         ? "READY"
@@ -552,7 +553,7 @@ export function TakeChargeDataTable({
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
     state: {
-      sorting,
+      sorting: result?.resolvedSorting ?? sorting,
       columnVisibility: effectiveColumnVisibility,
       pagination,
     },
@@ -706,7 +707,9 @@ export function TakeChargeDataTable({
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
                   tabIndex={isRetainingResolvedRows ? -1 : 0}
-                  aria-hidden={isRetainingResolvedRows || undefined}
+                  aria-hidden={
+                    (isRetainingResolvedRows && pendingMode === "mask-content") || undefined
+                  }
                   aria-label={`查看 Take Charge ${row.original.tchId}`}
                   className={cn(
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
@@ -735,6 +738,7 @@ export function TakeChargeDataTable({
                     >
                       <DataTableLoadingCellContent
                         loading={isRetainingResolvedRows}
+                        pendingMode={pendingMode}
                       >
                         <table.FlexRender cell={cell} />
                       </DataTableLoadingCellContent>

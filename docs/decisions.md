@@ -225,6 +225,8 @@ KPI Period 的起止时间必须包含 `Z` 或 UTC offset。Repository 集中校
 
 Global Filter Provider 挂载于 Dashboard route layout。业务子页面切换时共享并保留同一份 Filter State；页面不得各自维护或重新解释筛选参数。刷新后重置为当前安全默认状态，V1 不使用 localStorage、sessionStorage 或 URL 持久化筛选状态。
 
+DashboardShell 同时持有持续挂载的 PageHeader / GlobalFilters；业务路由只组合页面内容，不重复创建 Header。标题、说明与面包屑复用 `src/config/navigation.ts`，UI Lab 可显式退出正式 Header composition。
+
 ### D-035 全局主题与界面语言
 
 应用使用 `next-themes` 提供 Light、Dark、System 三种全局主题，组件只消费 shadcn semantic tokens，不复制 Dark Mode 组件或硬编码页面颜色。用户可见界面统一使用中文；内部业务枚举、类型、变量、文件名和路由保持英文。当前不引入 i18n 框架。
@@ -232,6 +234,8 @@ Global Filter Provider 挂载于 Dashboard route layout。业务子页面切换�
 ### D-036 Data Table 采用小型共享能力组合
 
 业务表格使用 shadcn Table 与 TanStack Table。排序表头、列显隐、分页辅助和可点击单元格等真实复用能力可拆为小型 shared component / hook；各业务表格继续维护自己的 columns、filters、drill-down 和业务行为。在多个业务页面出现一致需求前，不建立大型 `GenericDataTable`。
+
+异步查询分离 requested state 与最后成功的 resolved presentation，继续采用 latest-request-wins。相同语义范围内的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化必须遮蔽旧业务内容，只对未知 metadata 数字呈现 pending，保留表格几何、固定文字与分页结构。新结果与 corrected page index 一次替换，不改变 Repository-side 排序/分页契约。
 
 ### D-037 Actions 页面使用 Submitted Date 应用 Global Period（由 D-038 扩展）
 

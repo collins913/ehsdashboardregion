@@ -19,6 +19,19 @@ function renderLoadingContent(loading: boolean) {
 }
 
 describe("DataTableLoadingCellContent", () => {
+  it("keeps page/sort content visible and inert without a skeleton", () => {
+    const markup = renderToStaticMarkup(createElement(DataTableLoadingCellContent, {
+      loading: true,
+      pendingMode: "preserve-visible",
+      children: createElement("button", null, "上一页业务内容"),
+    }));
+    expect(markup).toContain("上一页业务内容");
+    expect(markup).toContain('inert=""');
+    expect(markup).not.toContain("invisible");
+    expect(markup).not.toContain("aria-hidden");
+    expect(markup).not.toContain("data-table-loading-overlay");
+    expect(markup).not.toContain("opacity");
+  });
   it("keeps resolved content mounted but hidden and inert during loading", () => {
     const markup = renderLoadingContent(true);
 

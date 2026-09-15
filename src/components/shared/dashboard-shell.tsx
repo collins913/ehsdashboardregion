@@ -1,4 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { PageHeader } from "@/components/shared/page-header";
+import { getDashboardRoute } from "@/config/navigation";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { KpiStore } from "@/data/contracts/kpi";
@@ -21,6 +26,7 @@ export function DashboardShell({
   nowIso,
   referenceMonth,
 }: DashboardShellProps) {
+  const route = getDashboardRoute(usePathname());
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -31,6 +37,15 @@ export function DashboardShell({
           nowIso={nowIso}
           referenceMonth={referenceMonth}
         >
+          {route && route.showDashboardHeader !== false ? (
+            <PageHeader
+              title={route.title}
+              description={route.description}
+              breadcrumbs={route.section
+                ? [{ label: route.section }, { label: route.title }]
+                : [{ label: route.title }]}
+            />
+          ) : null}
           {children}
         </GlobalFilterProvider>
       </SidebarInset>
