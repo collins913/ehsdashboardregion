@@ -5,6 +5,7 @@ import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
+import type { KpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
 import type { KpiRow } from "@/features/kpi/types";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
@@ -26,7 +27,13 @@ export async function loadKpiPageRows(
   return query({ referenceDateIso, query: context });
 }
 
-export function KpiPageContent({ queryRows }: { queryRows: KpiRowsQuery }) {
+export function KpiPageContent({
+  queryRows,
+  queryActions,
+}: {
+  queryRows: KpiRowsQuery;
+  queryActions: KpiActionDrilldownQuery;
+}) {
   const { filterContext, referenceDateIso } = useGlobalFilters();
   const queryKey = filterContext
     ? JSON.stringify([referenceDateIso, filterContext])
@@ -50,6 +57,9 @@ export function KpiPageContent({ queryRows }: { queryRows: KpiRowsQuery }) {
           ) : null}
           <KpiDataTable
             rows={state.status === "SUCCESS" ? state.data ?? [] : []}
+            context={filterContext!}
+            referenceDateIso={referenceDateIso}
+            queryActions={queryActions}
             queryStatus={
               state.status === "SUCCESS" ? "READY" : state.status
             }

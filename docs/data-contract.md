@@ -431,4 +431,4 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的结果及 Data Availability。Actions 的 `openActions` 来自统一 Actions Repository `OPEN_ONLY` 查询，按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Builder 不再解析原始 Action Status 或执行第二次 OPEN 过滤。Action detail Coverage 由同一查询返回，Closure Rate aggregate 仍使用独立的精确 Period scope。
+KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入 Action 明细。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。

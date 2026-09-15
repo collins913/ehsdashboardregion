@@ -215,7 +215,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-032 Action KPI 汇总与明细边界
 
-Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。`>= 90%` 为 `ACHIEVED`，`< 90%` 为 `NOT_ACHIEVED`。完整 Coverage 下确认没有需要整改的 Action 时，`value = null`、结果为 `ACHIEVED`；无法确认 Period aggregate 时为 `INCOMPLETE` / `UNDETERMINED`。明细仍无需与 Closure Rate aggregate 对账；KPI 下钻明细范围由 D-038 统一规定。
+Action Closure Rate 只读取与请求 `[startInclusive, endExclusive)` 完全匹配的源汇总值，不计算或平均。`>= 90%` 为 `ACHIEVED`，`< 90%` 为 `NOT_ACHIEVED`。完整 Coverage 下确认没有需要整改的 Action 时，`value = null`、结果为 `ACHIEVED`；无法确认 Period aggregate 时为 `INCOMPLETE` / `UNDETERMINED`。KPI 初始汇总不携带 Action 明细，明细按需查询且无需与 Closure Rate aggregate 对账；下钻范围由 D-038 统一规定。
 
 ### D-033 KPI 查询契约采用显式时区与实际门店覆盖
 
@@ -247,7 +247,11 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 
 ### D-040 Client 数据访问统一经过 Server Action
 
-正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Standard Mock 是当前明确选择的 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores 暂保留 Client pagination。
+正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Mock Repository 是当前 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores 暂保留 Client pagination。
+
+### D-041 Mock Profile 只切换 server-only Dataset
+
+`EHS_MOCK_PROFILE` 未设置、空值或 `standard` 时固定选择 Standard；`performance` 选择 deterministic Performance Dataset，其他非空值立即失败。两种 Profile 只在 Mock Source / Dataset 层不同，共用同一个 Mock Repository、Adapter、Store Resolution、availability、筛选、排序、分页及业务规则。Feature、UI、Server Action DTO 与 Repository public contract 不感知 Profile。Production 是未来独立 Repository implementation，不是第三个 Mock Profile。
 
 ## 9. 明确未决事项
 

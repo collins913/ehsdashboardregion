@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { mockStores } from "@/data/mock/stores";
-import { resolveStoreReference } from "./resolve-store-reference";
+import {
+  createStoreReferenceResolver,
+  resolveStoreReference,
+} from "./resolve-store-reference";
 
 describe("Store Reference Resolution", () => {
   it("uses a unique TRTID and validates a matching English name", () => {
@@ -62,5 +65,22 @@ describe("Store Reference Resolution", () => {
     expect(
       resolveStoreReference({ storeNameEn: "Missing Store" }, mockStores),
     ).toEqual({ kind: "UNRESOLVED" });
+  });
+
+  it("keeps prepared lookup resolution equivalent to the direct resolver", () => {
+    const resolvePrepared = createStoreReferenceResolver(mockStores);
+    const references = [
+      { trtid: mockStores[0].trtid },
+      { trtid: "MISSING", storeNameEn: mockStores[1].storeNameEn },
+      { storeNameCn: mockStores[2].storeNameCn },
+      { storeNameEn: "Missing Store" },
+      { trtid: mockStores[0].trtid, storeNameEn: mockStores[1].storeNameEn },
+    ] as const;
+
+    for (const reference of references) {
+      expect(resolvePrepared(reference)).toEqual(
+        resolveStoreReference(reference, mockStores),
+      );
+    }
   });
 });

@@ -21,5 +21,7 @@ describe("client data boundary", () => {
     expect(source).not.toMatch(/mock-ehs-repository/);
     expect(source).not.toMatch(/create-ehs-repository\.server/);
     expect(source).not.toMatch(/@\/data\/server\/ehs-query-actions/);
+    expect(source).not.toMatch(/EHS_MOCK_PROFILE/);
+    expect(source).not.toMatch(/@\/data\/mock\/performance/);
   });
 });

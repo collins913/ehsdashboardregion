@@ -10,7 +10,12 @@ import type {
   DataSet,
   KpiDataSnapshot,
   EhsFilterContext,
+  KpiActionClosureRateRecord,
+  KpiDrillRecord,
+  KpiInspectionRecord,
+  KpiTrainingRecord,
 } from "@/data/contracts/kpi";
+import type { NormalizedEventRecord } from "@/data/contracts/event-record";
 import type {
   ActionKpiValue,
   AstmKpiValue,
@@ -19,11 +24,23 @@ import type {
 } from "@/features/kpi/types";
 import type { StoreId } from "@/types/ehs";
 
-function recordsForStore<T extends { storeId: StoreId }>(
-  dataSet: DataSet<T>,
-  storeId: StoreId,
-): readonly T[] {
-  return dataSet.items.filter((item) => item.storeId === storeId);
+type StoreRecordIndex<T> = ReadonlyMap<StoreId, readonly T[]>;
+
+function groupByStoreId<T extends { storeId: StoreId }>(
+  items: readonly T[],
+): ReadonlyMap<StoreId, readonly T[]> {
+  const grouped = new Map<StoreId, T[]>();
+
+  for (const item of items) {
+    const records = grouped.get(item.storeId);
+    if (records) {
+      records.push(item);
+    } else {
+      grouped.set(item.storeId, [item]);
+    }
+  }
+
+  return grouped;
 }
 
 function scopedAvailability<T>(
@@ -43,9 +60,10 @@ function scopedAvailability<T>(
 
 function buildTraining(
   data: KpiDataSnapshot["training"],
+  recordsByStore: StoreRecordIndex<KpiTrainingRecord>,
   storeId: StoreId,
 ): PerformanceKpiValue {
-  const records = recordsForStore(data, storeId);
+  const records = recordsByStore.get(storeId) ?? [];
   const availability = scopedAvailability(data, records.length);
 
   if (availability === "UNAVAILABLE" || availability === "INCOMPLETE") {
@@ -65,9 +83,10 @@ function buildTraining(
 function buildDrill(
   context: EhsFilterContext,
   data: KpiDataSnapshot["drills"],
+  recordsByStore: StoreRecordIndex<KpiDrillRecord>,
   storeId: StoreId,
 ): PerformanceKpiValue {
-  const records = recordsForStore(data, storeId);
+  const records = recordsByStore.get(storeId) ?? [];
   const availability = scopedAvailability(data, records.length);
 
   if (availability === "UNAVAILABLE" || availability === "INCOMPLETE") {
@@ -89,9 +108,10 @@ function buildDrill(
 function buildInspections(
   context: EhsFilterContext,
   data: KpiDataSnapshot["inspections"],
+  recordsByStore: StoreRecordIndex<KpiInspectionRecord>,
   storeId: StoreId,
 ): PerformanceKpiValue {
-  const records = recordsForStore(data, storeId);
+  const records = recordsByStore.get(storeId) ?? [];
   const availability = scopedAvailability(data, records.length);
 
   if (availability === "UNAVAILABLE" || availability === "INCOMPLETE") {
@@ -110,36 +130,12 @@ function buildInspections(
   };
 }
 
-function dataSetForStore<T extends { storeId: StoreId }>(
-  data: DataSet<T>,
-  storeId: StoreId,
-): DataSet<T> {
-  const items = recordsForStore(data, storeId);
-
-  if (data.availability === "UNAVAILABLE") {
-    return { availability: "UNAVAILABLE", items: [] };
-  }
-
-  if (data.availability === "INCOMPLETE") {
-    return { availability: "INCOMPLETE", items };
-  }
-
-  if (items.length === 0) {
-    return { availability: "CONFIRMED_EMPTY", items: [] };
-  }
-
-  return {
-    availability: "AVAILABLE",
-    items: items as readonly [T, ...T[]],
-  };
-}
-
 function buildActions(
   rates: KpiDataSnapshot["actionClosureRates"],
-  actionRecords: KpiDataSnapshot["actions"],
+  ratesByStore: StoreRecordIndex<KpiActionClosureRateRecord>,
   storeId: StoreId,
 ): ActionKpiValue {
-  const storeRates = recordsForStore(rates, storeId);
+  const storeRates = ratesByStore.get(storeId) ?? [];
   const availability =
     storeRates.length > 1
       ? "INCOMPLETE"
@@ -167,15 +163,15 @@ function buildActions(
     availability: finalAvailability,
     value,
     result,
-    openActions: dataSetForStore(actionRecords, storeId),
   };
 }
 
 function buildAstmEvents(
   data: KpiDataSnapshot["events"],
+  recordsByStore: StoreRecordIndex<NormalizedEventRecord>,
   storeId: StoreId,
 ): AstmKpiValue {
-  const records = recordsForStore(data, storeId);
+  const records = recordsByStore.get(storeId) ?? [];
   const availability = scopedAvailability(data, records.length);
 
   if (availability === "UNAVAILABLE" || availability === "INCOMPLETE") {
@@ -196,16 +192,27 @@ export function buildKpiRows(
   context: EhsFilterContext,
   snapshot: KpiDataSnapshot,
 ): readonly KpiRow[] {
+  const trainingByStore = groupByStoreId(snapshot.training.items);
+  const drillsByStore = groupByStoreId(snapshot.drills.items);
+  const inspectionsByStore = groupByStoreId(snapshot.inspections.items);
+  const actionRatesByStore = groupByStoreId(snapshot.actionClosureRates.items);
+  const eventsByStore = groupByStoreId(snapshot.events.items);
+
   return snapshot.stores.map((store) => ({
     store,
-    training: buildTraining(snapshot.training, store.storeId),
-    drill: buildDrill(context, snapshot.drills, store.storeId),
+    training: buildTraining(snapshot.training, trainingByStore, store.storeId),
+    drill: buildDrill(context, snapshot.drills, drillsByStore, store.storeId),
     actions: buildActions(
       snapshot.actionClosureRates,
-      snapshot.actions,
+      actionRatesByStore,
       store.storeId,
     ),
-    inspections: buildInspections(context, snapshot.inspections, store.storeId),
-    astmEvents: buildAstmEvents(snapshot.events, store.storeId),
+    inspections: buildInspections(
+      context,
+      snapshot.inspections,
+      inspectionsByStore,
+      store.storeId,
+    ),
+    astmEvents: buildAstmEvents(snapshot.events, eventsByStore, store.storeId),
   }));
 }

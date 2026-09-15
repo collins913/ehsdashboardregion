@@ -1,4 +1,5 @@
-import type { DataAvailability, DataSet } from "@/data/contracts/kpi";
+import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
+import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
   KpiRow,
@@ -29,9 +30,9 @@ function performance(
   return { availability, result };
 }
 
-function openActions(index: number): DataSet<NormalizedActionRecord> {
+function openActions(index: number): readonly NormalizedActionRecord[] {
   if (index % 4 === 1) {
-    return { availability: "CONFIRMED_EMPTY", items: [] };
+    return [];
   }
 
   const sourceStatus = {
@@ -53,7 +54,43 @@ function openActions(index: number): DataSet<NormalizedActionRecord> {
     recordState: "OPEN",
   };
 
-  return { availability: "AVAILABLE", items: [action] };
+  return [action];
+}
+
+const demoOpenActions = storeNames.flatMap((_, index) => openActions(index));
+
+export const demoKpiContext: EhsFilterContext = {
+  region: { kind: "ALL" },
+  area: { kind: "ALL" },
+  store: { kind: "ALL" },
+  period: {
+    startInclusive: "2026-07-01T00:00:00+08:00",
+    endExclusive: "2026-10-01T00:00:00+08:00",
+    includedMonths: ["2026-07", "2026-08", "2026-09"],
+  },
+};
+
+export async function queryDemoKpiActions({
+  query,
+}: {
+  referenceDateIso: string;
+  query: ActionsQuery;
+}): Promise<ActionsQueryResult> {
+  const selectedStoreIds =
+    query.context.store.kind === "INCLUDE"
+      ? new Set(query.context.store.values)
+      : null;
+  const items = selectedStoreIds
+    ? demoOpenActions.filter(({ storeId }) => selectedStoreIds.has(storeId))
+    : demoOpenActions;
+
+  return {
+    availability: items.length === 0 ? "CONFIRMED_EMPTY" : "AVAILABLE",
+    items,
+    totalCount: items.length,
+    pageIndex: query.pageIndex,
+    pageSize: query.pageSize,
+  };
 }
 
 function actions(index: number): ActionKpiValue {
@@ -62,7 +99,6 @@ function actions(index: number): ActionKpiValue {
       availability: "UNAVAILABLE",
       value: null,
       result: "UNDETERMINED",
-      openActions: { availability: "UNAVAILABLE", items: [] },
     };
   }
 
@@ -71,7 +107,6 @@ function actions(index: number): ActionKpiValue {
       availability: "INCOMPLETE",
       value: null,
       result: "UNDETERMINED",
-      openActions: { availability: "INCOMPLETE", items: [] },
     };
   }
 
@@ -95,7 +130,6 @@ function actions(index: number): ActionKpiValue {
     availability: example.value === null ? "CONFIRMED_EMPTY" : "AVAILABLE",
     value: example.value,
     result: example.result,
-    openActions: openActions(index),
   };
 }
 

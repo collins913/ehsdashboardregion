@@ -2,8 +2,6 @@ import type {
   DataAvailability,
   KpiStore,
 } from "@/data/contracts/kpi";
-import type { NormalizedActionRecord } from "@/data/contracts/actions";
-import type { DataSet } from "@/data/contracts/kpi";
 import type {
   OccurrenceResult,
   PerformanceResult,
@@ -18,7 +16,6 @@ export interface ActionKpiValue {
   availability: DataAvailability;
   value: number | null;
   result: PerformanceResult;
-  openActions: DataSet<NormalizedActionRecord>;
 }
 
 export interface AstmKpiValue {

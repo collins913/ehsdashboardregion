@@ -20,7 +20,12 @@ import {
 import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import {
+  DataTableLoadingCellContent,
+  useRetainedDataTableRows,
+} from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import {
   availabilityLabels,
   DataAvailabilityDisplay,
@@ -57,7 +62,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { DataAvailability } from "@/data/contracts/kpi";
+import type {
+  DataAvailability,
+  EhsFilterContext,
+} from "@/data/contracts/kpi";
 import type {
   ActionKpiValue,
   AstmKpiValue,
@@ -66,12 +74,17 @@ import type {
 } from "@/features/kpi/types";
 import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
+  buildKpiActionDrilldownQuery,
+  type KpiActionDrilldownQuery,
+} from "@/features/kpi/kpi-action-drilldown";
+import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
   clampTablePageIndex,
   paginationForPageSize,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
+import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
 import type {
   OccurrenceResult,
@@ -202,12 +215,34 @@ function ActionsSheet({
   row,
   open,
   onOpenChange,
+  context,
+  referenceDateIso,
+  queryActions,
 }: {
   row: KpiRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  context: EhsFilterContext;
+  referenceDateIso: string;
+  queryActions: KpiActionDrilldownQuery;
 }) {
-  const actions = row?.actions.openActions;
+  const queryInput =
+    open && row
+      ? {
+          referenceDateIso,
+          query: buildKpiActionDrilldownQuery(context, row.store.storeId),
+        }
+      : null;
+  const queryKey = queryInput === null ? null : JSON.stringify(queryInput);
+  const load = useCallback(
+    () => queryActions(queryInput!),
+    [queryActions, queryKey],
+  );
+  const queryState = useLatestAsyncQuery(
+    queryKey,
+    queryInput === null ? null : load,
+  );
+  const actions = queryState.status === "SUCCESS" ? queryState.data : null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -219,7 +254,11 @@ function ActionsSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pb-4">
-          {!actions || actions.availability === "UNAVAILABLE" ? (
+          {queryState.status === "LOADING" ? (
+            <AsyncQueryFeedback status="LOADING" />
+          ) : queryState.status === "ERROR" ? (
+            <AsyncQueryFeedback status="ERROR" />
+          ) : !actions || actions.availability === "UNAVAILABLE" ? (
             <p className="text-sm text-muted-foreground">行动项明细不可用。</p>
           ) : actions.availability === "INCOMPLETE" ? (
             <div className="space-y-3">
@@ -269,6 +308,9 @@ function ActionsSheet({
 
 type KpiDataTableProps = {
   rows: readonly KpiRow[];
+  context: EhsFilterContext;
+  referenceDateIso: string;
+  queryActions: KpiActionDrilldownQuery;
   queryStatus?: "READY" | "LOADING" | "ERROR";
 };
 
@@ -283,6 +325,9 @@ const unmeasuredTablePagination: PaginationState = {
 
 export function KpiDataTable({
   rows,
+  context,
+  referenceDateIso,
+  queryActions,
   queryStatus = "READY",
 }: KpiDataTableProps) {
   const [abnormalOnly, setAbnormalOnly] = useState(false);
@@ -519,6 +564,13 @@ export function KpiDataTable({
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const {
+    rows: renderedRows,
+    isRetainingResolvedRows,
+  } = useRetainedDataTableRows({
+    rows: displayedRows,
+    status: queryStatus,
+  });
   const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
     id: column.id,
     className: cn(
@@ -584,17 +636,22 @@ export function KpiDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
-            ) : isQueryPlaceholder ? (
+            ) : queryStatus === "ERROR" ||
+              (isQueryLoading && !isRetainingResolvedRows) ? (
               <DataTablePlaceholderRows
                 columns={placeholderColumns}
                 rowCount={pagination.pageSize}
                 hidden={queryStatus === "ERROR"}
               />
-            ) : displayedRows.length > 0 ? (
-              displayedRows.map((row, rowIndex) => (
+            ) : renderedRows.length > 0 ? (
+              renderedRows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
+                  aria-hidden={isRetainingResolvedRows || undefined}
+                  className={cn(
+                    isRetainingResolvedRows && "hover:bg-transparent",
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -605,7 +662,11 @@ export function KpiDataTable({
                           stickyStoreCellClassName,
                       )}
                     >
-                      <table.FlexRender cell={cell} />
+                      <DataTableLoadingCellContent
+                        loading={isRetainingResolvedRows}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </DataTableLoadingCellContent>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -662,6 +723,9 @@ export function KpiDataTable({
         row={selectedRow}
         open={isActionsSheetOpen}
         onOpenChange={setActionsSheetOpen}
+        context={context}
+        referenceDateIso={referenceDateIso}
+        queryActions={queryActions}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { periodForMode, periodFromMonthRange } from "@/data/contracts/kpi-period
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { mockPeople } from "@/data/mock/people";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { buildKpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 
 function contextFor(
@@ -254,13 +255,15 @@ describe("current-year KPI mock factory", () => {
         store: { kind: "INCLUDE", values: ["TEST-001"] },
       };
       const snapshot = await repository.getKpiData(context);
-      const row = buildKpiRows(context, snapshot)[0];
+      const actions = await repository.getActions({
+        ...buildKpiActionDrilldownQuery(context, "TEST-001"),
+        pageSize: 100,
+      });
 
       expect(snapshot.actionClosureRates.availability).toBe("AVAILABLE");
-      expect(snapshot.actions.availability).toBe("AVAILABLE");
-      expect(row.actions.openActions.availability).toBe("AVAILABLE");
-      expect(row.actions.openActions.items.map(({ actionId }) => actionId)).toEqual(
-        expectedActionIds,
+      expect(actions.availability).toBe("AVAILABLE");
+      expect(actions.items.map(({ actionId }) => actionId).sort()).toEqual(
+        [...expectedActionIds].sort(),
       );
     },
   );
@@ -272,12 +275,12 @@ describe("current-year KPI mock factory", () => {
       ...contextFor(referenceDate, "THIS_MONTH"),
       store: { kind: "INCLUDE", values: ["TEST-002"] },
     };
-    const snapshot = await repository.getKpiData(context);
-    const row = buildKpiRows(context, snapshot)[0];
+    const actions = await repository.getActions({
+      ...buildKpiActionDrilldownQuery(context, "TEST-002"),
+      pageSize: 100,
+    });
 
-    expect(snapshot.actions.availability).toBe("CONFIRMED_EMPTY");
-    expect(snapshot.actions.items).toEqual([]);
-    expect(row.actions.openActions).toEqual({
+    expect(actions).toMatchObject({
       availability: "CONFIRMED_EMPTY",
       items: [],
     });

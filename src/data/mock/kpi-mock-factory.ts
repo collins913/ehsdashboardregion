@@ -19,8 +19,9 @@ import {
   mockTakeChargeFieldDefinitions,
 } from "@/data/mock/take-charge";
 import type { Month } from "@/types/ehs";
+import type { MockDataset } from "@/data/mock/mock-dataset";
 
-function aggregateScopes(
+export function createMockAggregateScopes(
   months: readonly [Month, ...Month[]],
 ): readonly KpiPeriod[] {
   const scopes: KpiPeriod[] = [];
@@ -43,9 +44,10 @@ function aggregateScopes(
 export function createKpiMockData(referenceDate: Date) {
   const supportedPeriod = periodForMode("THIS_YEAR", referenceDate);
   const supportedMonths = supportedPeriod.includedMonths;
-  const actionAggregateScopes = aggregateScopes(supportedMonths);
+  const actionAggregateScopes = createMockAggregateScopes(supportedMonths);
 
   return {
+    stores: mockStores,
     supportedPeriod,
     supportedMonths,
     coverage: createMockKpiCoverage(
@@ -68,5 +70,5 @@ export function createKpiMockData(referenceDate: Date) {
         Number(supportedMonths[0].slice(0, 4)),
       ),
     takeChargeFieldDefinitions: mockTakeChargeFieldDefinitions,
-  } as const;
+  } as const satisfies MockDataset;
 }

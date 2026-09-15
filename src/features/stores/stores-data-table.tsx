@@ -24,6 +24,12 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import {
+  DataTableLoadingCellContent,
+  DataTablePendingValue,
+  useResolvedDataTableSnapshot,
+  useRetainedDataTableRows,
+} from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames,
@@ -183,9 +189,11 @@ function StoreDetailSheet({
 
 export function StoresDataTable({
   rows,
+  queryKey = "stores",
   queryStatus = "READY",
 }: {
   rows: readonly NormalizedStoreRecord[];
+  queryKey?: string;
   queryStatus?: "READY" | "LOADING" | "ERROR";
 }) {
   const [selectedRecord, setSelectedRecord] =
@@ -197,8 +205,15 @@ export function StoresDataTable({
   const [paginationState, setPaginationState] =
     useState<StoresPaginationState>({ status: "UNMEASURED" });
   const isQueryLoading = queryStatus === "LOADING";
-  const isQueryPlaceholder = queryStatus !== "READY";
-  const tableRows = isQueryPlaceholder ? [] : rows;
+  const {
+    snapshot: resolvedRows,
+    isResolvedMetadataPending,
+  } = useResolvedDataTableSnapshot({
+    snapshot: rows,
+    status: queryStatus,
+    metadataKey: queryKey,
+  });
+  const tableRows = resolvedRows ?? [];
   useLayoutEffect(() => {
     if (isQueryLoading) {
       setSelectedRecord(null);
@@ -422,6 +437,18 @@ export function StoresDataTable({
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const {
+    rows: renderedRows,
+    isRetainingResolvedRows,
+  } = useRetainedDataTableRows({
+    rows: displayedRows,
+    status:
+      queryStatus === "READY"
+        ? "READY"
+        : queryStatus === "ERROR"
+          ? "ERROR"
+          : "LOADING",
+  });
   const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
     id: column.id,
     className: cn(
@@ -491,23 +518,38 @@ export function StoresDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
-            ) : isQueryPlaceholder ? (
+            ) : queryStatus === "ERROR" ||
+              (isQueryLoading && !isRetainingResolvedRows) ? (
               <DataTablePlaceholderRows
                 columns={placeholderColumns}
                 rowCount={pagination.pageSize}
                 hidden={queryStatus === "ERROR"}
               />
-            ) : displayedRows.length > 0 ? (
-              displayedRows.map((row, rowIndex) => (
+            ) : renderedRows.length > 0 ? (
+              renderedRows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isRetainingResolvedRows ? -1 : 0}
+                  aria-hidden={isRetainingResolvedRows || undefined}
                   aria-label={`查看门店 ${row.original.storeNameCn}`}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  onClick={() => openDetail(row.original)}
-                  onKeyDown={(event) => handleRowKeyDown(event, row.original)}
+                  className={cn(
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    isRetainingResolvedRows
+                      ? "cursor-default hover:bg-transparent"
+                      : "cursor-pointer",
+                  )}
+                  onClick={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : () => openDetail(row.original)
+                  }
+                  onKeyDown={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : (event) => handleRowKeyDown(event, row.original)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -518,7 +560,11 @@ export function StoresDataTable({
                           stickyStoreCellClassName,
                       )}
                     >
-                      <table.FlexRender cell={cell} />
+                      <DataTableLoadingCellContent
+                        loading={isRetainingResolvedRows}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </DataTableLoadingCellContent>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -545,11 +591,24 @@ export function StoresDataTable({
           isPaginationReady ? "" : " invisible"
         }`}
       >
-        <p className="text-sm text-muted-foreground">共 {tableRows.length} 家门店</p>
+        <p className="text-sm text-muted-foreground">
+          共{" "}
+          <DataTablePendingValue pending={isResolvedMetadataPending}>
+            {tableRows.length}
+          </DataTablePendingValue>{" "}
+          家门店
+        </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            第 {table.state.pagination.pageIndex + 1} /{" "}
-            {Math.max(table.getPageCount(), 1)} 页
+            第{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {table.state.pagination.pageIndex + 1}
+            </DataTablePendingValue>{" "}
+            /{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {Math.max(table.getPageCount(), 1)}
+            </DataTablePendingValue>{" "}
+            页
           </span>
           <Button
             variant="outline"

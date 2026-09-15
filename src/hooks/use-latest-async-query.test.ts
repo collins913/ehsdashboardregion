@@ -32,4 +32,19 @@ describe("latest async query guard", () => {
     expect(hookSource).toContain("}, [hasLoad, queryKey]);");
     expect(hookSource).not.toContain("}, [load, queryKey]);");
   });
+
+  it("retains the last successful result while a new key is loading", () => {
+    const hookSource = readFileSync(
+      new URL("./use-latest-async-query.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(hookSource).toContain(
+      'state: { status: "LOADING", resolved: current.resolved }',
+    );
+    expect(hookSource).toContain(
+      'return queryKey === null\n      ? { status: "IDLE", resolved: null }\n      : { status: "LOADING", resolved: stored.resolved };',
+    );
+    expect(hookSource).toContain("const resolved = { key: queryKey, data }");
+  });
 });

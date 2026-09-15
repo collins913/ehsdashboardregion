@@ -32,7 +32,17 @@ Client Feature
 → Client Feature
 ```
 
-Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领域组织的 normalized async query；raw source access 留在 Adapter / Repository implementation 内部。当前 server-only factory 明确选择 Standard Mock，未来 Production Adapter 在同一边界替换，不改变 Feature query contract。
+Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领域组织的 normalized async query；raw source access 留在 Adapter / Repository implementation 内部。当前 server-only factory 在 Mock Source / Dataset 层选择 Standard 或 Performance profile，未来 Production Adapter 在同一边界替换，不改变 Feature query contract。
+
+Mock Profile 数据流为：
+
+```text
+Standard Dataset ─────┐
+                     ├→ same Mock Repository → normalized contracts → Feature / UI
+Performance Dataset ──┘
+```
+
+`EHS_MOCK_PROFILE` 未设置或为空时固定使用 Standard；`standard` 与 `performance` 之外的非空值立即失败。Profile 只决定 server-only raw dataset，不进入 Repository public contract、Server Action query、Feature 或 UI。Performance dataset 按 reference month 延迟生成并在 server process 内复用；Standard dataset 行为保持不变。Production 是未来独立 Repository implementation，不属于 Mock Profile。
 
 ## V1 领域边界
 
@@ -71,7 +81,7 @@ EhsFilterContext
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
 - Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
-- KPI Action 明细复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 过滤。Store Resolution、Status 解析、RecordState 和 OPEN 过滤只在 Repository 链中执行一次；Builder 只按门店分配结果。
+- KPI 初始汇总查询不携带 Action 明细。用户打开 Action 下钻后，再复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 获取目标门店明细。Store Resolution、Status 解析、RecordState 和 OPEN 过滤仍只由 Repository 执行。
 - KPI feature 读取 Dashboard 共享 Filter Context，经 Server Action 调用 Repository 与 Builder；Client 不读取 mock、不创建 Repository、不执行业务计算。
 - Dashboard 每次运行只生成一个 `referenceDate`，Global Filters 和 mock Repository 共同使用该值；`createKpiMockData(referenceDate)` 以 `Asia/Shanghai` 当前月为界，同时生成当年 1 月至当前月的 KPI fixture 与 coverage。
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
@@ -163,7 +173,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 ## 当前测试数据实现
 
 - 领域类型：`src/types/ehs.ts`
-- Mock 数据：`src/data/mock/`
+- Mock 数据与 Standard / Performance Dataset Profile：`src/data/mock/`
 - 数据访问接口与 mock 实现：`src/data/repositories/`
 - 集中状态及证件规则：`src/lib/rules/`
 - KPI 中立查询/数据契约：`src/data/contracts/kpi.ts`

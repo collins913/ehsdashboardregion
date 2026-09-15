@@ -1,10 +1,13 @@
 import {
   createKpiMockData,
-  mockStores,
   type KpiMockCoverage,
 } from "@/data/mock";
+import type { MockDataset } from "@/data/mock/mock-dataset";
 import { parseActionStatus } from "@/data/parse-action-status";
-import { resolveStoreReference } from "@/data/resolve-store-reference";
+import {
+  createStoreReferenceResolver,
+  type StoreReferenceResolver,
+} from "@/data/resolve-store-reference";
 import type { EhsRepository } from "@/data/repositories/ehs-repository";
 import {
   isInstantInKpiPeriod,
@@ -72,21 +75,6 @@ import {
 import { classifyTakeChargeRecordState } from "@/lib/rules/take-charge-rules";
 import { buildTakeChargeMonthlyAggregates } from "@/data/take-charge-monthly-aggregate";
 
-function matchesStoreReference(
-  store: StoreMasterData,
-  reference: StoreReference,
-): boolean {
-  if ("trtid" in reference) {
-    return store.trtid === reference.trtid;
-  }
-
-  if ("storeNameCn" in reference) {
-    return store.storeNameCn === reference.storeNameCn;
-  }
-
-  return store.storeNameEn === reference.storeNameEn;
-}
-
 function scopeIncludes<T>(scope: FilterScope<T>, value: T): boolean {
   return scope.kind === "ALL" || scope.values.includes(value);
 }
@@ -115,8 +103,11 @@ function toNormalizedStoreRecord(
   };
 }
 
-function scopedStoreMaster(context: EhsFilterContext) {
-  return mockStores.filter(
+function scopedStoreMaster(
+  context: EhsFilterContext,
+  stores: readonly StoreMasterData[],
+) {
+  return stores.filter(
     (store) =>
       scopeIncludes(context.region, store.region) &&
       scopeIncludes(context.area, store.area) &&
@@ -124,8 +115,11 @@ function scopedStoreMaster(context: EhsFilterContext) {
   );
 }
 
-function requestedStores(context: EhsFilterContext): readonly KpiStore[] {
-  return scopedStoreMaster(context).map(toKpiStore);
+function requestedStores(
+  context: EhsFilterContext,
+  stores: readonly StoreMasterData[],
+): readonly KpiStore[] {
+  return scopedStoreMaster(context, stores).map(toKpiStore);
 }
 
 function isWithinDeclaredCoverage(
@@ -183,20 +177,20 @@ function incompleteDataSet<T>(items: readonly T[] = []): DataSet<T> {
   return { availability: "INCOMPLETE", items };
 }
 
-function resolveStoreId(reference: StoreReference): StoreId | null {
-  const candidates = mockStores.filter((store) =>
-    matchesStoreReference(store, reference),
-  );
+function resolveStoreId(
+  reference: StoreReference,
+  resolveReference: StoreReferenceResolver,
+): StoreId | null {
+  const resolution = resolveReference(reference);
 
-  return candidates.length === 1 ? candidates[0].trtid : null;
+  return resolution.kind === "RESOLVED" ? resolution.store.trtid : null;
 }
 
 function normalizeRecords<T extends { storeReference: StoreReference }, U>(
   records: readonly T[],
   selectedStoreIds: ReadonlySet<StoreId>,
   mapRecord: (record: T, storeId: StoreId) => U,
-  resolveReference: (reference: StoreReference) => StoreId | null =
-    resolveStoreId,
+  resolveReference: (reference: StoreReference) => StoreId | null,
 ): { items: readonly U[]; resolutionComplete: boolean } {
   const items: U[] = [];
   let resolutionComplete = true;
@@ -258,6 +252,7 @@ function isActionAggregateScopeCovered(
 }
 
 type MockEhsRepositoryOptions = {
+  dataset?: MockDataset;
   actionRecords?: readonly RawActionRecord[];
   eventRecords?: readonly EventRecord[];
   takeChargeRecords?: readonly TakeChargeRecord[];
@@ -366,21 +361,32 @@ function eventSortValue(
   }
 }
 
-export function createMockEhsRepository(
-  referenceDate: Date,
-  options: MockEhsRepositoryOptions = {},
-): EhsRepository {
-  const mockData = createKpiMockData(referenceDate);
-  const rawActionRecords = options.actionRecords ?? mockData.actionRecords;
-  const eventRecords = options.eventRecords ?? mockData.eventRecords;
-  const takeChargeRecords =
-    options.takeChargeRecords ?? mockData.takeChargeRecords;
-  const takeChargeFieldDefinitions = validTakeChargeFieldDefinitions(
-    options.takeChargeFieldDefinitions ?? mockData.takeChargeFieldDefinitions,
-  );
-  const takeChargeAnnualMetricContributions =
-    options.takeChargeAnnualMetricContributions ??
-    mockData.takeChargeAnnualMetricContributions;
+type PreparedMockDataset = {
+  resolveStoreReference: StoreReferenceResolver;
+  parsedActionRecords: readonly ActionRecord[];
+  eventRecords: readonly EventRecord[];
+  normalizedTakeChargeRecords: readonly NormalizedTakeChargeRecord[];
+  takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[];
+  takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[];
+  takeChargeResolutionComplete: boolean;
+  takeChargeDateCoverageComplete: boolean;
+  takeChargeStatusCoverageComplete: boolean;
+  takeChargeMonthlyAggregates: ReturnType<
+    typeof buildTakeChargeMonthlyAggregates
+  >;
+};
+
+const preparedDatasetCache = new WeakMap<MockDataset, PreparedMockDataset>();
+
+function prepareMockDataset(
+  stores: readonly StoreMasterData[],
+  rawActionRecords: readonly RawActionRecord[],
+  eventRecords: readonly EventRecord[],
+  takeChargeRecords: readonly TakeChargeRecord[],
+  takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[],
+  takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[],
+): PreparedMockDataset {
+  const resolveStoreReference = createStoreReferenceResolver(stores);
   const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
     (record) => ({
       ...record,
@@ -393,7 +399,7 @@ export function createMockEhsRepository(
   let takeChargeStatusCoverageComplete = true;
 
   for (const record of takeChargeRecords) {
-    const resolution = resolveStoreReference(record.storeReference, mockStores);
+    const resolution = resolveStoreReference(record.storeReference);
     const normalizedSubmittedAt = interpretShanghaiSourceDateTime(
       record.submittedAt,
     );
@@ -437,15 +443,81 @@ export function createMockEhsRepository(
     });
   }
 
-  const takeChargeMonthlyAggregates = buildTakeChargeMonthlyAggregates(
+  return {
+    resolveStoreReference,
+    parsedActionRecords,
+    eventRecords,
     normalizedTakeChargeRecords,
+    takeChargeFieldDefinitions,
+    takeChargeAnnualMetricContributions,
+    takeChargeResolutionComplete,
+    takeChargeDateCoverageComplete,
+    takeChargeStatusCoverageComplete,
+    takeChargeMonthlyAggregates: buildTakeChargeMonthlyAggregates(
+      normalizedTakeChargeRecords,
+    ),
+  };
+}
+
+export function createMockEhsRepository(
+  referenceDate: Date,
+  options: MockEhsRepositoryOptions = {},
+): EhsRepository {
+  const mockData = options.dataset ?? createKpiMockData(referenceDate);
+  const stores = mockData.stores;
+  const rawActionRecords = options.actionRecords ?? mockData.actionRecords;
+  const rawEventRecords = options.eventRecords ?? mockData.eventRecords;
+  const takeChargeRecords =
+    options.takeChargeRecords ?? mockData.takeChargeRecords;
+  const rawTakeChargeFieldDefinitions = validTakeChargeFieldDefinitions(
+    options.takeChargeFieldDefinitions ?? mockData.takeChargeFieldDefinitions,
   );
+  const rawTakeChargeAnnualMetricContributions =
+    options.takeChargeAnnualMetricContributions ??
+    mockData.takeChargeAnnualMetricContributions;
+  const hasOverrides =
+    options.actionRecords !== undefined ||
+    options.eventRecords !== undefined ||
+    options.takeChargeRecords !== undefined ||
+    options.takeChargeFieldDefinitions !== undefined ||
+    options.takeChargeAnnualMetricContributions !== undefined;
+  const cachedPrepared =
+    options.dataset !== undefined && !hasOverrides
+      ? preparedDatasetCache.get(options.dataset)
+      : undefined;
+  const prepared =
+    cachedPrepared ??
+    prepareMockDataset(
+      stores,
+      rawActionRecords,
+      rawEventRecords,
+      takeChargeRecords,
+      rawTakeChargeFieldDefinitions,
+      rawTakeChargeAnnualMetricContributions,
+    );
+
+  if (options.dataset !== undefined && !hasOverrides && cachedPrepared === undefined) {
+    preparedDatasetCache.set(options.dataset, prepared);
+  }
+
+  const {
+    resolveStoreReference,
+    parsedActionRecords,
+    normalizedTakeChargeRecords,
+    takeChargeResolutionComplete,
+    takeChargeDateCoverageComplete,
+    takeChargeStatusCoverageComplete,
+    takeChargeMonthlyAggregates,
+    eventRecords,
+    takeChargeFieldDefinitions,
+    takeChargeAnnualMetricContributions,
+  } = prepared;
 
   async function getKpiData(
     context: EhsFilterContext,
   ): Promise<KpiDataSnapshot> {
-    const stores = requestedStores(context);
-    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const requestedStoreList = requestedStores(context, stores);
+    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
     const includedMonths = new Set(context.period.includedMonths);
     const parsedPeriod = parseKpiPeriod(context.period);
@@ -462,6 +534,7 @@ export function createMockEhsRepository(
         isRequired: record.isRequired,
         isFullyCompleted: record.isFullyCompleted,
       }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
     );
     const drills = normalizeRecords(
       mockData.drillRecords.filter((record) =>
@@ -473,6 +546,7 @@ export function createMockEhsRepository(
         month: record.month,
         isCompleted: record.isCompleted,
       }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
     );
     const inspections = normalizeRecords(
       mockData.inspectionRecords.filter((record) =>
@@ -485,6 +559,7 @@ export function createMockEhsRepository(
         isRequired: record.isRequired,
         isCompleted: record.isCompleted,
       }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
     );
 
     const aggregateScopeCovered = isActionAggregateScopeCovered(
@@ -498,10 +573,11 @@ export function createMockEhsRepository(
         storeId,
         value: record.value,
       }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
     );
 
     return {
-      stores,
+      stores: requestedStoreList,
       training: withCoverage(
         training.items,
         isSourceCovered(
@@ -546,7 +622,6 @@ export function createMockEhsRepository(
         ) && aggregateScopeCovered,
         actionClosureRates.resolutionComplete,
       ),
-      actions: actionDataSet(context, "OPEN_ONLY"),
       events: eventDataSet(context, "ALL"),
     };
   }
@@ -555,8 +630,8 @@ export function createMockEhsRepository(
     context: EhsFilterContext,
     viewMode: ActionsQuery["viewMode"],
   ): DataSet<NormalizedActionRecord> {
-    const stores = requestedStores(context);
-    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const requestedStoreList = requestedStores(context, stores);
+    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
     const parsedPeriod = parseKpiPeriod(context.period);
     const normalizedActions: NormalizedActionRecord[] = [];
@@ -594,10 +669,7 @@ export function createMockEhsRepository(
           continue;
         }
 
-        const resolution = resolveStoreReference(
-          record.storeReference,
-          mockStores,
-        );
+        const resolution = resolveStoreReference(record.storeReference);
 
         if (resolution.kind !== "RESOLVED") {
           resolutionComplete = false;
@@ -691,8 +763,8 @@ export function createMockEhsRepository(
     context: EhsFilterContext,
     viewMode: EventsQuery["viewMode"],
   ): DataSet<NormalizedEventRecord> {
-    const stores = requestedStores(context);
-    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const requestedStoreList = requestedStores(context, stores);
+    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
     const parsedPeriod = parseKpiPeriod(context.period);
     const normalizedEvents: NormalizedEventRecord[] = [];
@@ -719,7 +791,7 @@ export function createMockEhsRepository(
           continue;
         }
 
-        const resolution = resolveStoreReference(record.storeReference, mockStores);
+        const resolution = resolveStoreReference(record.storeReference);
 
         if (resolution.kind !== "RESOLVED") {
           resolutionComplete = false;
@@ -819,8 +891,8 @@ export function createMockEhsRepository(
   async function getTakeChargeGoals({
     context,
   }: TakeChargeGoalsQuery): Promise<TakeChargeGoalsSummary> {
-    const stores = requestedStores(context);
-    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const requestedStoreList = requestedStores(context, stores);
+    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
     const includedMonths = new Set(context.period.includedMonths);
     const parsedPeriod = parseKpiPeriod(context.period);
@@ -929,8 +1001,8 @@ export function createMockEhsRepository(
     pageIndex: requestedPageIndex,
     pageSize: requestedPageSize,
   }: TakeChargeRecordsQuery): Promise<TakeChargeRecordsResult> {
-    const stores = requestedStores(context);
-    const selectedStoreIdList = stores.map(({ storeId }) => storeId);
+    const requestedStoreList = requestedStores(context, stores);
+    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
     const selectedStoreIds = new Set(selectedStoreIdList);
     const parsedPeriod = parseKpiPeriod(context.period);
     const pageSize = Math.max(1, Math.trunc(requestedPageSize));
@@ -1012,7 +1084,7 @@ export function createMockEhsRepository(
 
   async function getStores({ context }: StoresQuery): Promise<StoresQueryResult> {
     return completeDataSet(
-      scopedStoreMaster(context).map(toNormalizedStoreRecord),
+      scopedStoreMaster(context, stores).map(toNormalizedStoreRecord),
     );
   }
 
@@ -1023,6 +1095,6 @@ export function createMockEhsRepository(
     getTakeChargeGoals,
     getTakeChargeRecords,
     getStores,
-    getFilterStores: async () => mockStores.map(toKpiStore),
+    getFilterStores: async () => stores.map(toKpiStore),
   };
 }

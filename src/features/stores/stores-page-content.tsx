@@ -38,7 +38,8 @@ export function StoresPageContent({
     [filterContext, queryStores, referenceDateIso],
   );
   const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
-  const result = state.status === "SUCCESS" ? state.data : null;
+  const result =
+    state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
 
   return (
     <PageContainer>
@@ -53,6 +54,7 @@ export function StoresPageContent({
           ) : null}
           <StoresDataTable
             rows={result?.items ?? []}
+            queryKey={queryKey ?? ""}
             queryStatus={
               state.status === "SUCCESS" ? "READY" : state.status
             }

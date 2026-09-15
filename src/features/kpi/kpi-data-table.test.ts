@@ -7,7 +7,20 @@ import {
   KPI_COLUMN_SIZE_ROLES,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
+import { buildKpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { ActionKpiValue, KpiRow } from "@/features/kpi/types";
+
+const context: EhsFilterContext = {
+  region: { kind: "INCLUDE", values: ["REGION-1"] },
+  area: { kind: "INCLUDE", values: ["AREA-1"] },
+  store: { kind: "ALL" },
+  period: {
+    startInclusive: "2026-07-01T00:00:00+08:00",
+    endExclusive: "2026-10-01T00:00:00+08:00",
+    includedMonths: ["2026-07", "2026-08", "2026-09"],
+  },
+};
 
 function rowWithActions(actions: ActionKpiValue): KpiRow {
   return {
@@ -41,7 +54,6 @@ describe("KPI Actions cell", () => {
       availability: "CONFIRMED_EMPTY",
       value: null,
       result: "ACHIEVED",
-      openActions: { availability: "CONFIRMED_EMPTY", items: [] },
     });
 
     expect(markup).toContain('aria-label="查看未关闭行动项，关闭率 无"');
@@ -57,7 +69,6 @@ describe("KPI Actions cell", () => {
         availability,
         value: null,
         result: "UNDETERMINED",
-        openActions: { availability, items: [] },
       });
 
       expect(markup).toContain(
@@ -66,6 +77,20 @@ describe("KPI Actions cell", () => {
       expect(markup).not.toContain("关闭率 无");
     },
   );
+});
+
+describe("KPI Actions drill-down query", () => {
+  it("reuses the current global scope and replaces only the Store selection", () => {
+    expect(buildKpiActionDrilldownQuery(context, "STORE-1")).toEqual({
+      context: {
+        ...context,
+        store: { kind: "INCLUDE", values: ["STORE-1"] },
+      },
+      viewMode: "OPEN_ONLY",
+      pageIndex: 0,
+      pageSize: Number.MAX_SAFE_INTEGER,
+    });
+  });
 });
 
 describe("KPI adaptive table hydration", () => {
@@ -91,9 +116,17 @@ describe("KPI adaptive table hydration", () => {
               availability: "AVAILABLE",
               value: 92,
               result: "ACHIEVED",
-              openActions: { availability: "CONFIRMED_EMPTY", items: [] },
             }),
           ],
+          context,
+          referenceDateIso: "2026-09-11T00:00:00+08:00",
+          queryActions: async ({ query }) => ({
+            availability: "CONFIRMED_EMPTY",
+            items: [],
+            totalCount: 0,
+            pageIndex: query.pageIndex,
+            pageSize: query.pageSize,
+          }),
         }),
       ),
     );

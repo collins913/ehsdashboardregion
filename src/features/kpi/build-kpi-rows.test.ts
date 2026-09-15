@@ -12,11 +12,9 @@ import type {
   KpiStore,
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
-import type { NormalizedActionRecord } from "@/data/contracts/action-record";
 import type { NormalizedEventRecord } from "@/data/contracts/event-record";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
-import type { ParsedActionStatus, StoreMasterData } from "@/types/ehs";
-import type { RecordState } from "@/lib/rules/result-types";
+import type { StoreMasterData } from "@/types/ehs";
 
 const q1Context: EhsFilterContext = {
   region: { kind: "ALL" },
@@ -72,31 +70,8 @@ function snapshot(
     drills: confirmedEmpty(),
     inspections: confirmedEmpty(),
     actionClosureRates: confirmedEmpty(),
-    actions: confirmedEmpty(),
     events: confirmedEmpty(),
     ...overrides,
-  };
-}
-
-function action(
-  storeId: string,
-  actionId: string,
-  sourceStatus: ParsedActionStatus,
-  recordState: RecordState = "OPEN",
-): NormalizedActionRecord {
-  return {
-    storeId,
-    storeDisplayName: storeId,
-    actionId,
-    problem: actionId,
-    action: actionId,
-    submittedBy: "Submitter",
-    owner: "Owner",
-    submittedDate: "2026-01-01T09:00:00+08:00",
-    dueDate: "2026-01-31T18:00:00+08:00",
-    closedDate: null,
-    sourceStatus,
-    recordState,
   };
 }
 
@@ -457,62 +432,22 @@ describe("KPI assembly", () => {
     expect(actions.result).toBe("UNDETERMINED");
   });
 
-  it("preserves the repository-normalized OPEN Action query for the selected store", () => {
-    const data = available(
-      action("STORE-1", "ASSIGNED", { kind: "KNOWN", value: "Assigned" }),
-      action("STORE-1", "IN-PROGRESS", {
-        kind: "KNOWN",
-        value: "In Progress",
-      }),
-      action("STORE-1", "IN-REVIEW", {
-        kind: "KNOWN",
-        value: "In Review",
-      }),
-      action("STORE-1", "SIGN-OFF", {
-        kind: "KNOWN",
-        value: "Sign Off",
-      }),
-      action("STORE-2", "OTHER-STORE", {
-        kind: "KNOWN",
-        value: "Assigned",
-      }),
-    );
-    const openActions = buildKpiRows(
-      q1Context,
-      snapshot({ actions: data }),
-    )[0].actions.openActions;
-
-    expect(openActions.items.map(({ actionId }) => actionId)).toEqual([
-      "ASSIGNED",
-      "IN-PROGRESS",
-      "IN-REVIEW",
-      "SIGN-OFF",
-    ]);
-  });
-
-  it("keeps the source Action aggregate independent of detail statuses", () => {
+  it("keeps the source Action aggregate in the summary without detail records", () => {
     const actionClosureRates = available<KpiActionClosureRateRecord>({
       storeId: "STORE-1",
       value: 92,
     });
-    const openDetails = available(
-      action("STORE-1", "OPEN", { kind: "KNOWN", value: "Assigned" }),
-    );
-    const noOpenDetails = confirmedEmpty<NormalizedActionRecord>();
-
-    const withOpenDetails = buildKpiRows(
+    const actions = buildKpiRows(
       q1Context,
-      snapshot({ actionClosureRates, actions: openDetails }),
-    )[0].actions;
-    const withoutOpenDetails = buildKpiRows(
-      q1Context,
-      snapshot({ actionClosureRates, actions: noOpenDetails }),
+      snapshot({ actionClosureRates }),
     )[0].actions;
 
-    expect(withOpenDetails).toMatchObject({ value: 92, result: "ACHIEVED" });
-    expect(withoutOpenDetails).toMatchObject({ value: 92, result: "ACHIEVED" });
-    expect(withOpenDetails.openActions.items).toHaveLength(1);
-    expect(withoutOpenDetails.openActions.items).toHaveLength(0);
+    expect(actions).toEqual({
+      availability: "AVAILABLE",
+      value: 92,
+      result: "ACHIEVED",
+    });
+    expect("openActions" in actions).toBe(false);
   });
 
   it("does not mutate its inputs", () => {

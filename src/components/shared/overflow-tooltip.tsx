@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -14,32 +14,91 @@ type OverflowTooltipProps = {
   focusable?: boolean;
 };
 
+export function isTextOverflowing({
+  clientWidth,
+  scrollWidth,
+}: {
+  clientWidth: number;
+  scrollWidth: number;
+}) {
+  return clientWidth > 0 && scrollWidth > clientWidth;
+}
+
+type OverflowObserver = {
+  observe: (element: Element) => void;
+  disconnect: () => void;
+};
+
+export function startTextOverflowMeasurement({
+  element,
+  onChange,
+  requestFrame,
+  cancelFrame,
+  createObserver,
+}: {
+  element: Pick<HTMLElement, "clientWidth" | "scrollWidth">;
+  onChange: (isOverflowing: boolean) => void;
+  requestFrame: (callback: FrameRequestCallback) => number;
+  cancelFrame: (frameId: number) => void;
+  createObserver: (callback: ResizeObserverCallback) => OverflowObserver;
+}) {
+  let previousResult: boolean | undefined;
+  const measure = () => {
+    const nextResult = isTextOverflowing({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    });
+
+    if (nextResult !== previousResult) {
+      previousResult = nextResult;
+      onChange(nextResult);
+    }
+  };
+
+  measure();
+  let postLayoutFrameId: number | null = null;
+  const frameId = requestFrame(() => {
+    measure();
+    postLayoutFrameId = requestFrame(measure);
+  });
+  const observer = createObserver(measure);
+  observer.observe(element as Element);
+
+  return () => {
+    cancelFrame(frameId);
+    if (postLayoutFrameId !== null) {
+      cancelFrame(postLayoutFrameId);
+    }
+    observer.disconnect();
+  };
+}
+
 export function OverflowTooltip({
   text,
   className,
   focusable = true,
 }: OverflowTooltipProps) {
-  const textRef = useRef<HTMLSpanElement>(null);
+  const [textElement, setTextElement] = useState<HTMLSpanElement | null>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
 
   useEffect(() => {
-    const element = textRef.current;
-    if (!element) return;
+    if (!textElement) return;
 
-    const updateOverflow = () => {
-      setIsOverflowing(element.scrollWidth > element.clientWidth);
-    };
-
-    updateOverflow();
-    const resizeObserver = new ResizeObserver(updateOverflow);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, [isOverflowing, text]);
+    return startTextOverflowMeasurement({
+      element: textElement,
+      onChange: (nextResult) =>
+        setIsOverflowing((current) =>
+          current === nextResult ? current : nextResult,
+        ),
+      requestFrame: requestAnimationFrame,
+      cancelFrame: cancelAnimationFrame,
+      createObserver: (callback) => new ResizeObserver(callback),
+    });
+  }, [text, textElement]);
 
   const label = (
     <span
-      ref={textRef}
+      ref={setTextElement}
       className={cn("block min-w-0 truncate", className)}
       tabIndex={focusable && isOverflowing ? 0 : undefined}
     >

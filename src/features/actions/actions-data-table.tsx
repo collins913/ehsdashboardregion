@@ -30,6 +30,12 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import {
+  DataTableLoadingCellContent,
+  DataTablePendingValue,
+  useResolvedDataTableSnapshot,
+  useRetainedDataTableRows,
+} from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Button } from "@/components/ui/button";
@@ -322,14 +328,28 @@ export function ActionsDataTable({
     queryKey,
     queryInput === null ? null : load,
   );
-  const result: ActionsQueryResult | null =
+  const currentResult: ActionsQueryResult | null =
     queryState.status === "SUCCESS" ? queryState.data : null;
+  const metadataKey = JSON.stringify([referenceDateIso, context, viewMode]);
+  const {
+    snapshot: result,
+    isResolvedMetadataPending,
+  } = useResolvedDataTableSnapshot({
+    snapshot: currentResult ?? queryState.resolved?.data ?? null,
+    status:
+      queryState.status === "SUCCESS"
+        ? "READY"
+        : queryState.status === "ERROR"
+          ? "ERROR"
+          : "LOADING",
+    metadataKey,
+  });
   const rows = result?.items ?? [];
   const totalCount = result?.totalCount ?? 0;
   const availability: DataAvailability =
     queryState.status === "ERROR"
       ? "UNAVAILABLE"
-      : result?.availability ?? "AVAILABLE";
+      : currentResult?.availability ?? "AVAILABLE";
   const isQueryLoading = queryState.status === "LOADING";
   const queryScopeKey = JSON.stringify([referenceDateIso, context]);
   const handleAdaptivePageSizeChange = useCallback(
@@ -405,19 +425,19 @@ export function ActionsDataTable({
 
   useLayoutEffect(() => {
     if (
-      result !== null &&
+      currentResult !== null &&
       paginationState.status === "READY" &&
-      result.pageIndex !== paginationState.pagination.pageIndex
+      currentResult.pageIndex !== paginationState.pagination.pageIndex
     ) {
       setPaginationState({
         status: "READY",
         pagination: {
           ...paginationState.pagination,
-          pageIndex: result.pageIndex,
+          pageIndex: currentResult.pageIndex,
         },
       });
     }
-  }, [paginationState, result]);
+  }, [currentResult, paginationState]);
 
   const openDetail = useCallback((record: NormalizedActionRecord) => {
     setSelectedRecord(record);
@@ -580,6 +600,18 @@ export function ActionsDataTable({
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;
+  const {
+    rows: renderedRows,
+    isRetainingResolvedRows,
+  } = useRetainedDataTableRows({
+    rows: displayedRows,
+    status:
+      queryState.status === "SUCCESS"
+        ? "READY"
+        : queryState.status === "ERROR"
+          ? "ERROR"
+          : "LOADING",
+  });
   const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
     id: column.id,
     className: cn(
@@ -587,6 +619,12 @@ export function ActionsDataTable({
       column.id === "store" && stickyStoreCellClassName,
     ),
   }));
+  const resolvedPageIndex = result?.pageIndex ?? pagination.pageIndex;
+  const resolvedPageSize = result?.pageSize ?? pagination.pageSize;
+  const resolvedPageCount = Math.max(
+    Math.ceil(totalCount / resolvedPageSize),
+    1,
+  );
 
   const handleRowKeyDown = (
     event: KeyboardEvent<HTMLTableRowElement>,
@@ -676,24 +714,39 @@ export function ActionsDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
-            ) : queryState.status === "LOADING" ||
-              queryState.status === "ERROR" ? (
+            ) : queryState.status === "ERROR" ||
+              (queryState.status === "LOADING" &&
+                !isRetainingResolvedRows) ? (
               <DataTablePlaceholderRows
                 columns={placeholderColumns}
                 rowCount={pagination.pageSize}
                 hidden={queryState.status === "ERROR"}
               />
-            ) : displayedRows.length > 0 ? (
-              displayedRows.map((row, rowIndex) => (
+            ) : renderedRows.length > 0 ? (
+              renderedRows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isRetainingResolvedRows ? -1 : 0}
+                  aria-hidden={isRetainingResolvedRows || undefined}
                   aria-label={`查看行动项 ${row.original.actionId}`}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  onClick={() => openDetail(row.original)}
-                  onKeyDown={(event) => handleRowKeyDown(event, row.original)}
+                  className={cn(
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    isRetainingResolvedRows
+                      ? "cursor-default hover:bg-transparent"
+                      : "cursor-pointer",
+                  )}
+                  onClick={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : () => openDetail(row.original)
+                  }
+                  onKeyDown={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : (event) => handleRowKeyDown(event, row.original)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -704,7 +757,11 @@ export function ActionsDataTable({
                           stickyStoreCellClassName,
                       )}
                     >
-                      <table.FlexRender cell={cell} />
+                      <DataTableLoadingCellContent
+                        loading={isRetainingResolvedRows}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </DataTableLoadingCellContent>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -734,12 +791,23 @@ export function ActionsDataTable({
         }`}
       >
         <p className="text-sm text-muted-foreground">
-          共 {totalCount} 条行动项
+          共{" "}
+          <DataTablePendingValue pending={isResolvedMetadataPending}>
+            {totalCount}
+          </DataTablePendingValue>{" "}
+          条行动项
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            第 {table.state.pagination.pageIndex + 1} /{" "}
-            {Math.max(table.getPageCount(), 1)} 页
+            第{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {resolvedPageIndex + 1}
+            </DataTablePendingValue>{" "}
+            /{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {resolvedPageCount}
+            </DataTablePendingValue>{" "}
+            页
           </span>
           <Button
             variant="outline"

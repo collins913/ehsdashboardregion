@@ -56,7 +56,7 @@ Client Feature → Server Action → Repository / Adapter → Source
 | `src/features` | 业务页面 UI、view model 和 feature-local 行为。 |
 | `src/data/contracts` | 中立的 normalized / query contracts。 |
 | `src/data/repositories` | 数据访问、范围过滤与 availability 边界。 |
-| `src/data/mock` | 默认 Standard Mock 数据与 factory。 |
+| `src/data/mock` | Standard / Performance Mock Dataset 与 server-only profile source。 |
 | `src/lib/rules` | 纯业务规则和规范化结果类型。 |
 | `src/components/ui` | shadcn primitives。 |
 | `src/components/shared` | 已确认可跨项目复用的 UI 与 pattern。 |

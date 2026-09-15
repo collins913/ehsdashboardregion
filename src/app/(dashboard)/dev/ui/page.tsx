@@ -44,7 +44,11 @@ import {
   globalFilterUiState,
   globalFilterUiStores,
 } from "./_fixtures/global-filter-ui-fixture";
-import { demoKpiRows } from "./_fixtures/kpi-ui-fixture";
+import {
+  demoKpiContext,
+  demoKpiRows,
+  queryDemoKpiActions,
+} from "./_fixtures/kpi-ui-fixture";
 
 const tokenSamples = [
   { name: "background", className: "bg-background" },
@@ -383,6 +387,9 @@ export default function UiLabPage() {
               </Button>
               <KpiDataTable
                 rows={demoKpiRows}
+                context={demoKpiContext}
+                referenceDateIso="2026-09-11T00:00:00+08:00"
+                queryActions={queryDemoKpiActions}
                 queryStatus={showTableLoading ? "LOADING" : "READY"}
               />
             </div>

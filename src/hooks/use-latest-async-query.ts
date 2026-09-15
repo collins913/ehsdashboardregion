@@ -2,11 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 
+export type ResolvedAsyncQuery<T> = {
+  key: string;
+  data: T;
+};
+
 export type AsyncQueryState<T> =
-  | { status: "IDLE" }
-  | { status: "LOADING" }
-  | { status: "SUCCESS"; data: T }
-  | { status: "ERROR" };
+  | { status: "IDLE"; resolved: null }
+  | { status: "LOADING"; resolved: ResolvedAsyncQuery<T> | null }
+  | { status: "SUCCESS"; data: T; resolved: ResolvedAsyncQuery<T> }
+  | { status: "ERROR"; resolved: ResolvedAsyncQuery<T> | null };
+
+type StoredAsyncQueryState<T> = {
+  key: string | null;
+  state: AsyncQueryState<T>;
+  resolved: ResolvedAsyncQuery<T> | null;
+};
 
 export function createLatestRequestGuard() {
   let latestRequestId = 0;
@@ -38,12 +49,13 @@ export function useLatestAsyncQuery<T>(
   const loadRef = useRef(load);
   loadRef.current = load;
   const hasLoad = load !== null;
-  const [stored, setStored] = useState<{
-    key: string | null;
-    state: AsyncQueryState<T>;
-  }>(() => ({
+  const [stored, setStored] = useState<StoredAsyncQueryState<T>>(() => ({
     key: queryKey,
-    state: queryKey === null ? { status: "IDLE" } : { status: "LOADING" },
+    state:
+      queryKey === null
+        ? { status: "IDLE", resolved: null }
+        : { status: "LOADING", resolved: null },
+    resolved: null,
   }));
 
   useEffect(() => {
@@ -51,23 +63,40 @@ export function useLatestAsyncQuery<T>(
     const execute = loadRef.current;
     if (queryKey === null || !hasLoad || execute === null) {
       guard.invalidate();
-      setStored({ key: null, state: { status: "IDLE" } });
+      setStored({
+        key: null,
+        state: { status: "IDLE", resolved: null },
+        resolved: null,
+      });
       return;
     }
 
     const requestId = guard.begin();
     let active = true;
-    setStored({ key: queryKey, state: { status: "LOADING" } });
+    setStored((current) => ({
+      key: queryKey,
+      state: { status: "LOADING", resolved: current.resolved },
+      resolved: current.resolved,
+    }));
 
     void execute().then(
       (data) => {
         if (active && guard.isLatest(requestId)) {
-          setStored({ key: queryKey, state: { status: "SUCCESS", data } });
+          const resolved = { key: queryKey, data };
+          setStored({
+            key: queryKey,
+            state: { status: "SUCCESS", data, resolved },
+            resolved,
+          });
         }
       },
       () => {
         if (active && guard.isLatest(requestId)) {
-          setStored({ key: queryKey, state: { status: "ERROR" } });
+          setStored((current) => ({
+            key: queryKey,
+            state: { status: "ERROR", resolved: current.resolved },
+            resolved: current.resolved,
+          }));
         }
       },
     );
@@ -78,7 +107,9 @@ export function useLatestAsyncQuery<T>(
   }, [hasLoad, queryKey]);
 
   if (stored.key !== queryKey) {
-    return queryKey === null ? { status: "IDLE" } : { status: "LOADING" };
+    return queryKey === null
+      ? { status: "IDLE", resolved: null }
+      : { status: "LOADING", resolved: stored.resolved };
   }
 
   return stored.state;

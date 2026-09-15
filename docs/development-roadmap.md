@@ -75,7 +75,7 @@ Repository
 └─ Production Repository
 ```
 
-`standard` 与 `performance` 是 Mock 数据 Profile；`production` 是独立 Repository。UI、Feature 和 Rules 不感知数据 Profile，Profile 仅在数据层 / Repository 创建边界切换。本阶段只记录方向，不实施。
+`standard` 与 `performance` 是 Mock 数据 Profile；`production` 是独立 Repository。UI、Feature 和 Rules 不感知数据 Profile，Profile 仅在 server-only Dataset 边界切换。Performance V1 已进入实现，待人工验收后更新完成状态。
 
 ### Performance V2
 

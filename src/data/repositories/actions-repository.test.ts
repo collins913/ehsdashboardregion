@@ -4,6 +4,7 @@ import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import { mockStores } from "@/data/mock/stores";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { buildKpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
 import type { Month, RawActionRecord } from "@/types/ehs";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
@@ -120,21 +121,15 @@ describe("scoped Actions repository query", () => {
     expect(result).toMatchObject({ availability: "INCOMPLETE", items: [] });
   });
 
-  it("keeps unsupported Period availability identical for both Action consumers", async () => {
+  it("keeps unsupported Period unavailable to the shared Action detail query", async () => {
     const repository = createMockEhsRepository(referenceDate);
     const filters = context("2026-10", "2026-10");
 
-    const snapshot = await repository.getKpiData(filters);
     const actions = await repository.getActions({
-      context: filters,
-      viewMode: "OPEN_ONLY",
-      pageIndex: 0,
+      ...buildKpiActionDrilldownQuery(filters, mockStores[0].trtid),
       pageSize: 100,
     });
-    expect(actions.availability).toBe(snapshot.actions.availability);
-    expect(actions.items.map(({ actionId }) => actionId).sort()).toEqual(
-      snapshot.actions.items.map(({ actionId }) => actionId).sort(),
-    );
+    expect(actions).toMatchObject({ availability: "INCOMPLETE", items: [] });
   });
 
   it("returns only centralized OPEN states for Current Open", async () => {
@@ -153,15 +148,18 @@ describe("scoped Actions repository query", () => {
       store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
     };
 
-    const snapshot = await repository.getKpiData(filters);
-    const actions = await repository.getActions({
+    const actionsPage = await repository.getActions({
       context: filters,
       viewMode: "OPEN_ONLY",
       pageIndex: 0,
       pageSize: 100,
     });
-    expect(actions.items.map(({ actionId }) => actionId).sort()).toEqual(
-      snapshot.actions.items.map(({ actionId }) => actionId).sort(),
+    const drilldown = await repository.getActions({
+      ...buildKpiActionDrilldownQuery(context(), mockStores[0].trtid),
+      pageSize: 100,
+    });
+    expect(drilldown.items.map(({ actionId }) => actionId).sort()).toEqual(
+      actionsPage.items.map(({ actionId }) => actionId).sort(),
     );
   });
 
@@ -181,7 +179,10 @@ describe("scoped Actions repository query", () => {
       ...context("2026-09", "2026-09"),
       store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
     };
-    const kpiOpen = (await repository.getKpiData(filters)).actions;
+    const kpiOpen = await repository.getActions({
+      ...buildKpiActionDrilldownQuery(filters, mockStores[0].trtid),
+      pageSize: 100,
+    });
     const currentOpen = await repository.getActions({
       context: filters,
       viewMode: "OPEN_ONLY",

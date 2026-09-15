@@ -23,6 +23,12 @@ import {
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import {
+  DataTableLoadingCellContent,
+  DataTablePendingValue,
+  useResolvedDataTableSnapshot,
+  useRetainedDataTableRows,
+} from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames,
@@ -391,10 +397,24 @@ export function TakeChargeDataTable({
   const queryKey = queryInput === null ? null : JSON.stringify(queryInput);
   const load = useCallback(() => queryRecords(queryInput!), [queryKey, queryRecords]);
   const queryState = useLatestAsyncQuery(queryKey, queryInput === null ? null : load);
-  const result: TakeChargeRecordsResult | null =
+  const currentResult: TakeChargeRecordsResult | null =
     queryState.status === "SUCCESS" ? queryState.data : null;
+  const metadataKey = JSON.stringify([referenceDateIso, context, viewMode]);
+  const {
+    snapshot: result,
+    isResolvedMetadataPending,
+  } = useResolvedDataTableSnapshot({
+    snapshot: currentResult ?? queryState.resolved?.data ?? null,
+    status:
+      queryState.status === "SUCCESS"
+        ? "READY"
+        : queryState.status === "ERROR"
+          ? "ERROR"
+          : "LOADING",
+    metadataKey,
+  });
   const availability =
-    queryState.status === "ERROR" ? "UNAVAILABLE" : result?.availability;
+    queryState.status === "ERROR" ? "UNAVAILABLE" : currentResult?.availability;
   const [knownFieldDefinitions, setKnownFieldDefinitions] = useState<
     readonly TakeChargeFieldDefinition[]
   >([]);
@@ -403,10 +423,10 @@ export function TakeChargeDataTable({
   const queryScopeKey = JSON.stringify([referenceDateIso, context]);
 
   useEffect(() => {
-    if (result !== null) {
-      setKnownFieldDefinitions(result.fieldDefinitions);
+    if (currentResult !== null) {
+      setKnownFieldDefinitions(currentResult.fieldDefinitions);
     }
-  }, [result]);
+  }, [currentResult]);
   const defaultColumnVisibility = useMemo<ColumnVisibilityState>(
     () =>
       Object.fromEntries(
@@ -481,19 +501,19 @@ export function TakeChargeDataTable({
 
   useLayoutEffect(() => {
     if (
-      result !== null &&
+      currentResult !== null &&
       paginationState.status === "READY" &&
-      result.pageIndex !== paginationState.pagination.pageIndex
+      currentResult.pageIndex !== paginationState.pagination.pageIndex
     ) {
       setPaginationState({
         status: "READY",
         pagination: {
           ...paginationState.pagination,
-          pageIndex: result.pageIndex,
+          pageIndex: currentResult.pageIndex,
         },
       });
     }
-  }, [paginationState, result]);
+  }, [currentResult, paginationState]);
 
   const columns = useMemo(() => createColumns(fieldDefinitions), [fieldDefinitions]);
   const labels = useMemo(
@@ -538,6 +558,19 @@ export function TakeChargeDataTable({
     },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
+  const displayedRows = table.getRowModel().rows;
+  const {
+    rows: renderedRows,
+    isRetainingResolvedRows,
+  } = useRetainedDataTableRows({
+    rows: displayedRows,
+    status:
+      queryState.status === "SUCCESS"
+        ? "READY"
+        : queryState.status === "ERROR"
+          ? "ERROR"
+          : "LOADING",
+  });
   const placeholderColumns = table.getVisibleLeafColumns().map((column) => ({
     id: column.id,
     className: cn(
@@ -545,6 +578,12 @@ export function TakeChargeDataTable({
       column.id === "store" && stickyStoreCellClassName,
     ),
   }));
+  const resolvedPageIndex = result?.pageIndex ?? pagination.pageIndex;
+  const resolvedPageSize = result?.pageSize ?? pagination.pageSize;
+  const resolvedPageCount = Math.max(
+    Math.ceil(totalCount / resolvedPageSize),
+    1,
+  );
 
   const openDetail = (record: NormalizedTakeChargeRecord) => {
     setSelectedRecord(record);
@@ -652,24 +691,39 @@ export function TakeChargeDataTable({
                   <div className="h-8" />
                 </TableCell>
               </TableRow>
-            ) : queryState.status === "LOADING" ||
-              queryState.status === "ERROR" ? (
+            ) : queryState.status === "ERROR" ||
+              (queryState.status === "LOADING" &&
+                !isRetainingResolvedRows) ? (
               <DataTablePlaceholderRows
                 columns={placeholderColumns}
                 rowCount={pagination.pageSize}
                 hidden={queryState.status === "ERROR"}
               />
-            ) : table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row, rowIndex) => (
+            ) : renderedRows.length > 0 ? (
+              renderedRows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isRetainingResolvedRows ? -1 : 0}
+                  aria-hidden={isRetainingResolvedRows || undefined}
                   aria-label={`查看 Take Charge ${row.original.tchId}`}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  onClick={() => openDetail(row.original)}
-                  onKeyDown={(event) => handleRowKeyDown(event, row.original)}
+                  className={cn(
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                    isRetainingResolvedRows
+                      ? "cursor-default hover:bg-transparent"
+                      : "cursor-pointer",
+                  )}
+                  onClick={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : () => openDetail(row.original)
+                  }
+                  onKeyDown={
+                    isRetainingResolvedRows
+                      ? undefined
+                      : (event) => handleRowKeyDown(event, row.original)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
@@ -679,7 +733,11 @@ export function TakeChargeDataTable({
                         cell.column.id === "store" && stickyStoreCellClassName,
                       )}
                     >
-                      <table.FlexRender cell={cell} />
+                      <DataTableLoadingCellContent
+                        loading={isRetainingResolvedRows}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </DataTableLoadingCellContent>
                     </TableCell>
                   ))}
                 </TableRow>
@@ -707,10 +765,24 @@ export function TakeChargeDataTable({
           !isPaginationReady && "invisible",
         )}
       >
-        <p className="text-sm text-muted-foreground">共 {totalCount} 条记录</p>
+        <p className="text-sm text-muted-foreground">
+          共{" "}
+          <DataTablePendingValue pending={isResolvedMetadataPending}>
+            {totalCount}
+          </DataTablePendingValue>{" "}
+          条记录
+        </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            第 {pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)} 页
+            第{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {resolvedPageIndex + 1}
+            </DataTablePendingValue>{" "}
+            /{" "}
+            <DataTablePendingValue pending={isResolvedMetadataPending}>
+              {resolvedPageCount}
+            </DataTablePendingValue>{" "}
+            页
           </span>
           <Button
             variant="outline"
