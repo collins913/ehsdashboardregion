@@ -8,15 +8,66 @@ export type StoreId = string;
 
 export type EnvironmentSourceValue = "有" | "无" | "不适用";
 
+export interface RawEnvironmentImpactAssessment {
+  环境影响评价: string | null;
+  总量要求: {
+    "气-颗粒物": number | null;
+    "气-VOCs": number | null;
+    "水-氨氮": number | null;
+    "水-总氮": number | null;
+    "水-总磷": number | null;
+    "水-CODcr": number | null;
+  };
+}
+
+export interface RawEnvironmentDischargePermit {
+  排污许可: string | null;
+  执行报告: string | null;
+  编号: string | null;
+  有效期起: IsoDate | null;
+  有效期止: IsoDate | null;
+  总量要求: {
+    产能: string | number | null;
+    涂料批复用量: string | number | null;
+  };
+  备注: string | null;
+}
+
+export interface RawEnvironmentDrainagePermit {
+  洗车: string | null;
+  排水许可: string | null;
+  有效期起: IsoDate | null;
+  有效期止: IsoDate | null;
+  备注: string | null;
+}
+
+export interface RawEnvironmentEmergencyPlan {
+  突发环境事件应急预案备案情况: string | null;
+  备案编号: string | null;
+  有效期起: IsoDate | null;
+  有效期止: IsoDate | null;
+  备注: string | null;
+}
+
+export interface RawEnvironmentWasteContract {
+  供应商名称: string;
+  种类: string;
+  有效期起: IsoDate | null;
+  有效期止: IsoDate | null;
+}
+
 export interface RawEnvironmentRecord {
   TRTID: string;
   "English Store Name": string;
-  环境影响评价: EnvironmentSourceValue;
-  排污许可: EnvironmentSourceValue;
-  排水许可: EnvironmentSourceValue;
-  环境预案: EnvironmentSourceValue;
+  环境影响评价: RawEnvironmentImpactAssessment;
+  排污许可: RawEnvironmentDischargePermit;
+  排水许可: RawEnvironmentDrainagePermit;
+  环境预案: RawEnvironmentEmergencyPlan;
   监测: EnvironmentSourceValue;
-  废弃物合同: EnvironmentSourceValue;
+  废弃物合同: {
+    危险废物处置合同: readonly RawEnvironmentWasteContract[];
+    一般工业固体废物处置合同: readonly RawEnvironmentWasteContract[];
+  };
 }
 
 export type StoreReference =

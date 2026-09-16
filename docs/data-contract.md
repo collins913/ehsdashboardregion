@@ -322,15 +322,22 @@ Detail Header：中文门店、类别、类别状态。按当前 records 的实�
 
 ## 9. Risk & Compliance → Environment
 
-### 9.0 Environment V1 当前状态契约
+### 9.0 Environment Detail 契约
 
-Raw Source 保留八个源字段：`TRTID`、`English Store Name`、`环境影响评价`、`排污许可`、`排水许可`、`环境预案`、`监测`、`废弃物合同`。六个环境字段均且仅允许“有 / 无 / 不适用”。Raw 不保存中文门店名，不包含日期、证号、有效期、机构、备注或业务结果。
+Raw Source 顶层保留：`TRTID`、`English Store Name`、`环境影响评价`、`排污许可`、`排水许可`、`环境预案`、`监测`、`废弃物合同`。Raw 不保存中文门店名或业务结果；自由文本字段不限制为状态枚举。
 
-Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`，以及对应六个当前源值（包含废弃物合同）；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
+- 环境影响评价：评价自由文本；总量要求含气-颗粒物、气-VOCs、水-氨氮、水-总氮、水-总磷、水-CODcr，均为 nullable 数值，单位吨/年。
+- 排污许可：许可自由文本、执行报告、编号、有效期起止、产能、涂料批复用量、备注。产能与涂料批复用量保留 source-like typed value，不预设单位。
+- 排水许可：洗车、许可自由文本、有效期起止、备注。
+- 环境预案：备案情况、备案编号、有效期起止、备注；不含其它未定义字段。
+- 监测：暂时保留当前“有 / 无 / 不适用”源值，其余字段 TBD。
+- 废弃物合同：危险废物、一般工业固体废物两个数组；每条记录含供应商名称、种类、有效期起止。数组保持全部源记录及顺序，不去重、不限数量。
+
+Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`、`facilityInformation`、`environmentalLicenses`（环境影响评价 / 排污许可 / 排水许可）、`emergencyPlan`、`monitoring`、`wasteContracts`。设施信息当前为 TBD 空结构；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
 
 Environment query 接收 typed Store scope，仅使用 Region / Area / canonical Store，不要求 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
 
-Detail 只提供门店中文名、当前点击项目名称、当前状态；其他详情字段 TBD。V1 不输出 Environment Business Result，也不套用既有合规规则。
+主表仅提供门店与五个详情入口。一个 Detail Sheet 按明确 typed contract 展示设施信息、环保证照、应急预案、监测或废弃物合同；日期仅展示，不计算过期。Environment 不输出 Business Result，也不套用既有合规规则。
 
 以下 9.1–9.5 保留既有合规输入需求，**不属于当前状态 V1 的源字段或实现范围**；后续扩展必须另行确认。
 
@@ -406,8 +413,8 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 | Goal Result | 直接值及按已确认阈值得出的达成结果 |
 | Certificate Display Status | 由展示层根据规范化结果与原因映射 |
 | Certificate Business Result | V1 仅 `NORMAL`、`ABNORMAL`；单证附标准 Reason Code |
-| Environment V1 value | 六个项目的原始“有 / 无 / 不适用”，不作业务归类 |
-| Environment Business Result | 当前状态 V1 不提供；既有合规需求独立于 V1 源值 |
+| Environment normalized detail | 显式 typed 的源信息；自由文本、日期和合同记录不作业务归类 |
+| Environment Business Result | 当前不提供；既有合规需求独立于本次 Detail Expansion |
 
 字段命名、枚举编码和错误返回结构：TBD。
 

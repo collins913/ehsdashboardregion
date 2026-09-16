@@ -152,10 +152,10 @@ Raw Event
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
 - 当前未结束月份的业务完整性仍由既有 DataAvailability 机制表达；Global Filters 不增加 KPI 判定规则。
 
-## Environment V1 current-state query
+## Environment detail query
 
 ```text
-Environment Raw Source (TRTID / English Store Name + six current values)
+Environment Raw Source (TRTID / English Store Name + typed detail fields)
 → existing Mock Dataset / Source boundary
 → existing Store Resolution / same EHS Repository
 → normalized Environment result
@@ -163,9 +163,9 @@ Environment Raw Source (TRTID / English Store Name + six current values)
 → Environment Feature / Table / shared Detail Sheet
 ```
 
-六个源值只表达“有 / 无 / 不适用”，不进入 Rule Engine。Region / Area / canonical Store 有效，Period 忽略。中文名称来自 Store Master，Raw 不携带中文名；Detail 只展示门店、项目、当前值，其余字段 TBD。
+Environment 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。设施信息和 Monitoring 新字段保持 TBD。
 
-Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，不创建独立 Repository runtime 或 Table / Detail framework。Standard Mock 使用既有 Store Master 生成少量 deterministic 当前状态记录；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
+Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，并复用一个 Detail Sheet；不创建独立 Repository runtime、Rule Engine、Table 或 Detail framework。废弃物合同数组保留所有源记录及顺序，不去重、不截断。Standard Mock 使用既有 Store Master 生成少量 deterministic detail records；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
 
 ## Certificates V1 current-state query
 
@@ -207,7 +207,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - Events 规范化查询契约：`src/data/contracts/events.ts`
 - Take Charge / Goals 规范化查询契约：`src/data/contracts/take-charge.ts`
 - Stores 规范化查询契约：`src/data/contracts/stores.ts`
-- Environment 当前状态规范化查询契约：`src/data/contracts/environment.ts`
+- Environment typed detail 查询契约：`src/data/contracts/environment.ts`
 - Certificates 单证与门店类别汇总契约：`src/data/contracts/certificates.ts`
 - KPI View Model 与组装：`src/features/kpi/`
 - 当前自然年 1 月至 `referenceDate` 当前月的 KPI Mock factory（不生成未来月份）：`src/data/mock/kpi-mock-factory.ts`

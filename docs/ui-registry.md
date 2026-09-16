@@ -15,6 +15,7 @@
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
 | Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment and Certificates |
+| Accordion | `src/components/ui/accordion.tsx` | Environment environmental-license detail sections |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |

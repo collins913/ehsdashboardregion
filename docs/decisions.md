@@ -54,7 +54,7 @@ Overview 只汇总前述模块的统一结果，不产生另一套业务事实�
 
 ### D-006 业务规则不得散落在页面组件
 
-Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判定由集中业务逻辑维护。Environment 当前状态 V1 仅展示中性源值，不产生合规判定。页面组件只消费结果。
+Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判定由集中业务逻辑维护。Environment 仅展示 normalized typed data，不产生合规判定或根据文本、缺失值、日期推断状态。页面组件只消费结果。
 
 ### D-007 数据源直接值不得由 Dashboard 重算
 
@@ -157,9 +157,9 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 
 ## 8. Environment
 
-Environment 当前状态 V1 的六字段为环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同，仅允许“有 / 无 / 不适用”。Region / Area / Store 生效，Period ignored；无正常 / 异常计算，不将“无”视为异常。
+Environment 主表保持门店维度，仅提供设施信息、环保证照、应急预案、监测、废弃物合同五个详情入口。详情使用显式 typed contract；自由文本和日期仅展示，废弃物合同保留全部记录。Region / Area / Store 生效，Period 与 referenceDate ignored；无正常 / 异常计算，不根据缺失、文本或日期推断结果。Monitoring 暂时保留“有 / 无 / 不适用”源值。
 
-以下 D-023–D-027 保留历史环境合规需求，**不属于 Environment 当前状态 V1**；后续真实输入与适用关系需另行确认，不可作为 Overview 当前环境健康度的依据。
+以下 D-023–D-027 保留历史环境合规需求，**不属于当前 Environment Detail Expansion**；后续真实输入与适用关系需另行确认，不可作为 Overview 当前环境健康度的依据。
 
 ### D-023 危废与一般固废合同共同满足才正常
 
@@ -196,7 +196,7 @@ Environment 当前状态 V1 的六字段为环境影响评价、排污许可、�
 
 - `Expiry Date < Reference Date`：过期。
 - `Expiry Date >= Reference Date`：有效，到期日当天仍有效。
-- 历史环境合规需求中，缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`；不适用于 Environment 当前状态 V1。
+- 历史环境合规需求中，缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`；不适用于当前 Environment Detail Expansion。
 - Certificates V1 缺失 / 无效日期为 `ABNORMAL`，具体以 D-021 为准，不沿用历史缺日期规则。
 - 共享 Dashboard referenceDate 与 Global Period 独立；规则接受注入值，不另读系统或浏览器当前时间。
 - 生产环境如何确定 Reference Date：TBD。

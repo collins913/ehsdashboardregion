@@ -17,18 +17,21 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { NormalizedEnvironmentRecord } from "@/data/contracts/environment";
-import type { EnvironmentSourceValue } from "@/types/ehs";
 import {
   type AdaptivePagination, type AdaptiveTablePageSize, clampTablePageIndex,
   paginationForPageSize, useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
-import { buildEnvironmentDetail, ENVIRONMENT_ITEMS, type EnvironmentDetail, type EnvironmentItemKey } from "./environment-view-model";
+import { EnvironmentDetailSheet } from "./environment-detail-sheet";
+import {
+  buildEnvironmentDetail,
+  ENVIRONMENT_DETAILS,
+  type EnvironmentDetail,
+  type EnvironmentDetailKind,
+} from "./environment-view-model";
 
 const environmentTableFeatures = defineTableFeatures({
   columnVisibilityFeature, rowPaginationFeature, rowSortingFeature,
@@ -36,23 +39,10 @@ const environmentTableFeatures = defineTableFeatures({
   sortFns: { text: sortFn_text },
 });
 const columnHelper = createColumnHelper<typeof environmentTableFeatures, NormalizedEnvironmentRecord>();
-const columnLabels = Object.fromEntries([ ["store", "门店"], ...ENVIRONMENT_ITEMS.map(({ key, label }) => [key, label]) ]);
-
-export function EnvironmentValue({ value }: { value: EnvironmentSourceValue }) {
-  return <Badge variant="outline">{value}</Badge>;
-}
-
-export function EnvironmentDetailContent({ detail }: { detail: EnvironmentDetail }) {
-  const fields = [["门店", detail.storeDisplayName], ["环境项目", detail.itemName], ["当前状态", detail.value]];
-  return (
-    <div className="px-4 pb-4">
-      <dl className="grid gap-4 sm:grid-cols-2">
-        {fields.map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 break-words">{value}</dd></div>)}
-      </dl>
-      <p className="mt-4 text-sm text-muted-foreground">详情字段待定义</p>
-    </div>
-  );
-}
+const columnLabels = Object.fromEntries([
+  ["store", "门店"],
+  ...ENVIRONMENT_DETAILS.map(({ kind, label }) => [kind, label]),
+]);
 
 export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
   rows: readonly NormalizedEnvironmentRecord[];
@@ -94,20 +84,22 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
       return current.pageIndex === pageIndex ? current : { ...current, pageIndex };
     });
   }, [tableRows.length]);
-  const openDetail = useCallback((record: NormalizedEnvironmentRecord, key: EnvironmentItemKey) => setDetail(buildEnvironmentDetail(record, key)), []);
+  const openDetail = useCallback((record: NormalizedEnvironmentRecord, kind: EnvironmentDetailKind) => {
+    setDetail(buildEnvironmentDetail(record, kind));
+  }, []);
   const columns = useMemo(() => columnHelper.columns([
     columnHelper.accessor("storeDisplayName", {
       id: "store", header: ({ column }) => <DataTableColumnHeader column={column} title="门店" />,
       cell: ({ getValue }) => <OverflowTooltip text={getValue()} className={cn(dataTableColumnContentClassNames.primary, "font-medium")} />,
       enableHiding: false, sortFn: "text",
     }),
-    ...ENVIRONMENT_ITEMS.map(({ key, label }) => columnHelper.accessor(key, {
-      id: key, header: ({ column }) => <DataTableColumnHeader column={column} title={label} />,
-      cell: ({ row, getValue }) => (
-        <TableCellTrigger aria-label={`查看${row.original.storeDisplayName}的${label}详情`} onClick={() => openDetail(row.original, key)}>
-          <EnvironmentValue value={getValue()} />
+    ...ENVIRONMENT_DETAILS.map(({ kind, label }) => columnHelper.display({
+      id: kind, header: ({ column }) => <DataTableColumnHeader column={column} title={label} />,
+      cell: ({ row }) => (
+        <TableCellTrigger aria-label={`查看${row.original.storeDisplayName}的${label}详情`} onClick={() => openDetail(row.original, kind)}>
+          查看
         </TableCellTrigger>
-      ), sortFn: "text",
+      ),
     })),
   ]), [openDetail]);
   const table = useTable({ features: environmentTableFeatures, columns, data: tableRows, getRowId: (record) => record.storeId,
@@ -151,12 +143,7 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
           <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={loading || !table.getCanNextPage()}>下一页</Button>
         </div>
       </div>
-      <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null); }}>
-        <SheetContent className="overflow-y-auto sm:max-w-xl!">
-          <SheetHeader><SheetTitle>环境详情</SheetTitle><SheetDescription>{detail?.itemName ?? ""}</SheetDescription></SheetHeader>
-          {detail ? <EnvironmentDetailContent detail={detail} /> : null}
-        </SheetContent>
-      </Sheet>
+      <EnvironmentDetailSheet detail={detail} onOpenChange={(open) => { if (!open) setDetail(null); }} />
     </div>
   );
 }

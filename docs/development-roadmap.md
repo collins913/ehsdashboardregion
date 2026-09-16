@@ -1,13 +1,13 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-15
+- 更新日期：2026-09-16
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
 
 项目已完成基础架构及七个正式业务模块，当前进入 Overview readiness / Overview V1。Overview 仍为占位页，业务展示范围与汇总规则待确认，不标记完成。
 
-Environment V1 当前状态表已完成实现、自动质量门与人工验收：六个“有 / 无 / 不适用”源值（含废弃物合同），忽略 Period，复用 Store Resolution 与 shared Table / Detail Sheet。真实详情字段及后续合规扩展保持 TBD，不纳入本阶段。
+Environment Detail Expansion：completed。主表保持门店维度并提供五个详情入口；typed 环保证照、应急预案与废弃物合同明细已完成，设施信息及 Monitoring 新字段保持 TBD。
 
 Certificates V1：completed，Architecture / Docs audit、完整质量门与人工验收通过；四类别仅展示正常 / 异常，Period ignored，Detail 按 Type 纵向分组并保留全部记录。未来字段与完整性要求另行确认。
 
@@ -29,6 +29,7 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Architecture Hardening
 - Performance V1（实现、自动质量门与人工验收完成）
 - Risk & Compliance → Environment V1
+- Environment Detail Expansion
 - Risk & Compliance → Certificates V1
 
 ## Architecture Hardening

@@ -51,7 +51,7 @@ Global Filters 属于全局应用框架，包含：
 
 - Stores 页面使用 Region、Area、Store。
 - Period 对 Store Master Data 没有业务意义，不参与门店主数据筛选、判断或计算。
-- Environment V1 使用当前状态，仅跟随 Region、Area、Store，忽略 Period。
+- Environment 仅跟随 Region、Area、Store，忽略 Period 与 referenceDate。
 - Certificates V1 仅跟随 Region、Area、Store，忽略 Period；有效期使用独立 referenceDate。
 - Certificates、Environment、Stores 的查询就绪与查询身份仅依赖有效门店范围；Period 改变或自定义 Period 暂未完整时，不重新查询、不 loading、不清空页面。
 
@@ -256,23 +256,25 @@ Region / Area / Store 生效；Period ignored，变化不查询、不 loading，
 
 ## 9. Risk & Compliance → Environment
 
-### 9.1 Environment V1 当前状态表
+### 9.1 Environment 门店表
 
-固定默认七列：门店、环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同。门店只显示 Store Master 的中文名称。
+固定默认六列：门店、设施信息、环保证照、应急预案、监测、废弃物合同。门店只显示 Store Master 的中文名称；其余五列仅提供统一“查看”入口，不在主表展示状态、日期、编号或数量。
 
-六个环境字段只允许源值“有 / 无 / 不适用”，中性展示，不产生正常、异常、评分或生命周期归类；“无”不得自动视为异常。页面不展示未定义的 availability 业务标签。支持完整 scoped 集合排序、列显示控制与 adaptive pagination，不增加类别筛选。
+Environment 当前仍不产生正常、异常、评分或其它 Business Result。页面只展示 normalized source data，不根据自由文本、缺失值或日期推断业务结论。支持 scoped 集合排序、列显示控制与 adaptive pagination。
 
 ### 9.2 数据与筛选边界
 
-Raw Source 仅含 TRTID、English Store Name 与六个环境字段，不保存中文门店名。完全复用已有 TRTID 优先、英文名辅助的 Store Resolution，保留 fallback、conflict 与历史名称语义；UI 只消费 canonical Store。
+Raw Source 使用 TRTID、English Store Name 与显式 typed Environment detail fields，不保存中文门店名。完全复用已有 TRTID 优先、英文名辅助的 Store Resolution，保留 fallback、conflict 与历史名称语义；UI 只消费 canonical Store。
 
-Region / Area / Store 有效，Period 当前不适用。没有时间维度，不新增日期、证号、有效期、机构或备注。
+Region / Area / Store 有效，Period 与 referenceDate 当前均不参与查询身份。日期仅按 date-only 源值展示，不计算有效性。
 
-### 9.3 Detail V1
+### 9.3 Detail Expansion
 
-六个状态单元格均可点击，使用同一详情结构：门店中文名称、环境项目名称、当前状态，并明确显示“详情字段待定义”。其余详情字段为 TBD，不生成假字段。
+五个入口共用一个 Detail Sheet。设施信息当前仅显示“详情字段待定义”。环保证照包含环境影响评价、排污许可、排水许可三个可展开 section；六项环境影响评价总量要求以吨/年原样展示，不计算合计，排污许可的产能与涂料批复用量不补造单位。应急预案仅展示备案情况、备案编号、有效期起止和备注。监测保留当前已有值，并标记其余字段待定义。
 
-既有 `metric-rules.md` 中的环境合规需求不属于本次当前状态 V1；不得将其套用到这六个源值。后续合规功能及真实详情输入另行确认。
+废弃物合同按危险废物处置合同、一般工业固体废物处置合同两个分类纵向展示，每份记录包含供应商名称、种类、有效期起止。任一分类允许零到任意数量记录；全部保留，不去重、不限数量、不自动选择最新记录。无记录仅显示空状态，不产生异常结论。
+
+既有 `metric-rules.md` 中的环境合规需求不属于本次 Detail Expansion；不得将其套用于当前 typed detail data。后续合规功能及真实详情输入另行确认。
 
 ## 10. Stores → Store Detail
 

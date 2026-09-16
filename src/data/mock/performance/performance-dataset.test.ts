@@ -16,14 +16,6 @@ import {
 import { resolveStoreReference } from "@/data/resolve-store-reference";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
-const environmentFields = [
-  "环境影响评价",
-  "排污许可",
-  "排水许可",
-  "环境预案",
-  "监测",
-  "废弃物合同",
-] as const;
 const environmentValues = new Set(["有", "无", "不适用"]);
 
 function spotIds(dataset: ReturnType<typeof createPerformanceMockDataset>) {
@@ -115,9 +107,15 @@ describe("performance mock dataset", () => {
     ).toBe(PERFORMANCE_STORE_COUNT);
     expect(
       dataset.environmentRecords.every((record) =>
-        environmentFields.every((key) =>
-          environmentValues.has(record[key]),
-        ),
+        environmentValues.has(record.监测),
+      ),
+    ).toBe(true);
+    expect(
+      dataset.environmentRecords.every(
+        (record) =>
+          typeof record.环境影响评价.环境影响评价 === "string" &&
+          Array.isArray(record.废弃物合同.危险废物处置合同) &&
+          Array.isArray(record.废弃物合同.一般工业固体废物处置合同),
       ),
     ).toBe(true);
   });

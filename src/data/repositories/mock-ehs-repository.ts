@@ -1095,20 +1095,74 @@ export function createMockEhsRepository(
       // Canonical identity comes from the same Store projection used by Global Filters.
       const store = toKpiStore(resolution.store);
       if (!selectedIds.has(store.storeId)) continue;
-      const sourceValues = [raw.环境影响评价, raw.排污许可, raw.排水许可, raw.环境预案, raw.监测, raw.废弃物合同];
-      if (records.has(store.storeId) || sourceValues.some((value) => !["有", "无", "不适用"].includes(value))) {
+      if (
+        records.has(store.storeId) ||
+        !["有", "无", "不适用"].includes(raw.监测)
+      ) {
         complete = false;
         continue;
       }
       records.set(store.storeId, {
         storeId: store.storeId,
         storeDisplayName: store.displayName,
-        environmentalImpactAssessment: raw.环境影响评价,
-        dischargePermit: raw.排污许可,
-        drainagePermit: raw.排水许可,
-        emergencyPlan: raw.环境预案,
-        monitoring: raw.监测,
-        wasteContract: raw.废弃物合同,
+        facilityInformation: null,
+        environmentalLicenses: {
+          environmentalImpactAssessment: {
+            assessmentText: raw.环境影响评价.环境影响评价,
+            totalRequirements: {
+              airParticulate: raw.环境影响评价.总量要求["气-颗粒物"],
+              airVocs: raw.环境影响评价.总量要求["气-VOCs"],
+              waterAmmoniaNitrogen: raw.环境影响评价.总量要求["水-氨氮"],
+              waterTotalNitrogen: raw.环境影响评价.总量要求["水-总氮"],
+              waterTotalPhosphorus: raw.环境影响评价.总量要求["水-总磷"],
+              waterCodCr: raw.环境影响评价.总量要求["水-CODcr"],
+            },
+          },
+          dischargePermit: {
+            permitText: raw.排污许可.排污许可,
+            executionReport: raw.排污许可.执行报告,
+            permitNumber: raw.排污许可.编号,
+            validFrom: raw.排污许可.有效期起,
+            validTo: raw.排污许可.有效期止,
+            totalRequirements: {
+              productionCapacity: raw.排污许可.总量要求.产能,
+              approvedCoatingUsage: raw.排污许可.总量要求.涂料批复用量,
+            },
+            remarks: raw.排污许可.备注,
+          },
+          drainagePermit: {
+            carWash: raw.排水许可.洗车,
+            drainagePermitText: raw.排水许可.排水许可,
+            validFrom: raw.排水许可.有效期起,
+            validTo: raw.排水许可.有效期止,
+            remarks: raw.排水许可.备注,
+          },
+        },
+        emergencyPlan: {
+          filingStatus: raw.环境预案.突发环境事件应急预案备案情况,
+          filingNumber: raw.环境预案.备案编号,
+          validFrom: raw.环境预案.有效期起,
+          validTo: raw.环境预案.有效期止,
+          remarks: raw.环境预案.备注,
+        },
+        monitoring: { monitoringText: raw.监测 },
+        wasteContracts: {
+          hazardousWaste: raw.废弃物合同.危险废物处置合同.map(
+            (contract) => ({
+              supplierName: contract.供应商名称,
+              wasteType: contract.种类,
+              validFrom: contract.有效期起,
+              validTo: contract.有效期止,
+            }),
+          ),
+          generalIndustrialSolidWaste:
+            raw.废弃物合同.一般工业固体废物处置合同.map((contract) => ({
+              supplierName: contract.供应商名称,
+              wasteType: contract.种类,
+              validFrom: contract.有效期起,
+              validTo: contract.有效期止,
+            })),
+        },
       });
     }
     const items = [...records.values()];
