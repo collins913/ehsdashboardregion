@@ -1,4 +1,5 @@
-import type { TakeChargeAnnualMetricContribution, TakeChargeFieldDefinition } from "@/data/contracts/take-charge";
+import type { TakeChargeFieldDefinition } from "@/data/contracts/take-charge";
+import type { MockTakeChargeAnnualAggregateFixture } from "@/data/mock/take-charge";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import type { KpiMockCoverage } from "@/data/mock/kpi-coverage";
 import type { MockProfile } from "@/data/mock/mock-profile";
@@ -32,7 +33,7 @@ export interface MockDataset {
   environmentRecords: readonly RawEnvironmentRecord[];
   certificateRecords: readonly RawCertificateRecord[];
   takeChargeRecords: readonly TakeChargeRecord[];
-  takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[];
+  takeChargeAnnualAggregateFixtures: readonly MockTakeChargeAnnualAggregateFixture[];
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[];
 }
 

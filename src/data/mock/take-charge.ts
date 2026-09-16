@@ -1,10 +1,73 @@
-import type {
-  TakeChargeAnnualMetricContribution,
-  TakeChargeFieldDefinition,
-} from "@/data/contracts/take-charge";
+import type { TakeChargeFieldDefinition } from "@/data/contracts/take-charge";
 import { mockStores } from "@/data/mock/stores";
 import { mockPersonAt } from "@/data/mock/people";
-import type { Month, TakeChargeRecord } from "@/types/ehs";
+import type { Month, StoreId, TakeChargeRecord } from "@/types/ehs";
+
+// Mock-only source fixture. Its inputs must not become a production aggregate contract.
+export interface MockTakeChargeAnnualAggregateFixture {
+  storeId: StoreId;
+  year: number;
+  submissionsNumerator: number;
+  submissionsDenominator: number;
+  participationNumerator: number;
+  participationDenominator: number;
+}
+
+export interface MockTakeChargeAnnualAggregate {
+  averageSubmissionsYtd: number;
+  participationRateYtd: number;
+}
+
+export function createMockTakeChargeAnnualAggregateReader(
+  fixtures: readonly MockTakeChargeAnnualAggregateFixture[],
+) {
+  return (
+    year: number,
+    selectedStoreIds: readonly StoreId[],
+  ): MockTakeChargeAnnualAggregate | null => {
+    const selectedStoreIdSet = new Set(selectedStoreIds);
+    const selected = fixtures.filter(
+      (fixture) =>
+        fixture.year === year && selectedStoreIdSet.has(fixture.storeId),
+    );
+    const covered =
+      selectedStoreIds.length > 0 &&
+      selectedStoreIds.every((storeId) =>
+        selected.some((fixture) => fixture.storeId === storeId),
+      );
+    const submissionsNumerator = selected.reduce(
+      (sum, fixture) => sum + fixture.submissionsNumerator,
+      0,
+    );
+    const submissionsDenominator = selected.reduce(
+      (sum, fixture) => sum + fixture.submissionsDenominator,
+      0,
+    );
+    const participationNumerator = selected.reduce(
+      (sum, fixture) => sum + fixture.participationNumerator,
+      0,
+    );
+    const participationDenominator = selected.reduce(
+      (sum, fixture) => sum + fixture.participationDenominator,
+      0,
+    );
+
+    if (
+      !covered ||
+      submissionsDenominator <= 0 ||
+      participationDenominator <= 0
+    ) {
+      return null;
+    }
+
+    return {
+      averageSubmissionsYtd:
+        submissionsNumerator / submissionsDenominator,
+      participationRateYtd:
+        (participationNumerator / participationDenominator) * 100,
+    };
+  };
+}
 
 const TAKE_CHARGE_STATUSES = [
   "ClosedWithAction",
@@ -96,9 +159,9 @@ export function createMockTakeChargeRecords(
   );
 }
 
-export function createMockTakeChargeAnnualMetricContributions(
+export function createMockTakeChargeAnnualAggregateFixtures(
   year: number,
-): readonly TakeChargeAnnualMetricContribution[] {
+): readonly MockTakeChargeAnnualAggregateFixture[] {
   return mockStores.map((store, index) => ({
     storeId: store.trtid,
     year,

@@ -131,7 +131,7 @@ describe("performance mock dataset", () => {
     expect(dataset.actionClosureRates).toHaveLength(
       dataset.stores.length * dataset.coverage.actionAggregateScopes.length,
     );
-    expect(dataset.takeChargeAnnualMetricContributions).toHaveLength(
+    expect(dataset.takeChargeAnnualAggregateFixtures).toHaveLength(
       PERFORMANCE_STORE_COUNT,
     );
   });

@@ -16,7 +16,7 @@ import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
 import { mockStores } from "@/data/mock/stores";
 import { createMockTrainingRecords } from "@/data/mock/training";
 import {
-  createMockTakeChargeAnnualMetricContributions,
+  createMockTakeChargeAnnualAggregateFixtures,
   createMockTakeChargeRecords,
   mockTakeChargeFieldDefinitions,
 } from "@/data/mock/take-charge";
@@ -69,8 +69,8 @@ export function createKpiMockData(referenceDate: Date) {
     environmentRecords: createEnvironmentMockRecords(mockStores),
     certificateRecords: createMockCertificateRecords(mockStores, referenceDate),
     takeChargeRecords: createMockTakeChargeRecords(supportedMonths),
-    takeChargeAnnualMetricContributions:
-      createMockTakeChargeAnnualMetricContributions(
+    takeChargeAnnualAggregateFixtures:
+      createMockTakeChargeAnnualAggregateFixtures(
         Number(supportedMonths[0].slice(0, 4)),
       ),
     takeChargeFieldDefinitions: mockTakeChargeFieldDefinitions,

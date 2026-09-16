@@ -1,4 +1,4 @@
-import type { TakeChargeAnnualMetricContribution } from "@/data/contracts/take-charge";
+import type { MockTakeChargeAnnualAggregateFixture } from "@/data/mock/take-charge";
 import { periodForMode } from "@/data/contracts/kpi-period";
 import { createMockAggregateScopes } from "@/data/mock/kpi-mock-factory";
 import type { MockDataset } from "@/data/mock/mock-dataset";
@@ -280,10 +280,10 @@ function performanceActionClosureRates(
   );
 }
 
-function performanceAnnualContributions(
+function performanceAnnualAggregateFixtures(
   stores: readonly StoreMasterData[],
   year: number,
-): readonly TakeChargeAnnualMetricContribution[] {
+): readonly MockTakeChargeAnnualAggregateFixture[] {
   return stores.map((store, index) => ({
     storeId: store.trtid,
     year,
@@ -321,7 +321,7 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
     environmentRecords: createEnvironmentMockRecords(stores),
     certificateRecords: createMockCertificateRecords(stores, referenceDate),
     takeChargeRecords: performanceTakeCharge(stores, supportedMonths),
-    takeChargeAnnualMetricContributions: performanceAnnualContributions(
+    takeChargeAnnualAggregateFixtures: performanceAnnualAggregateFixtures(
       stores,
       Number(supportedMonths[0].slice(0, 4)),
     ),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
-import type { TakeChargeAnnualMetricContribution } from "@/data/contracts/take-charge";
+import type { MockTakeChargeAnnualAggregateFixture } from "@/data/mock/take-charge";
 import { mockStores } from "@/data/mock/stores";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import type { Month, TakeChargeRecord } from "@/types/ehs";
@@ -117,8 +117,8 @@ describe("Take Charge Goals repository", () => {
     expect(month.period).not.toEqual(quarter.period);
   });
 
-  it("aggregates annual source numerators and denominators for multi-store scope", async () => {
-    const contributions: TakeChargeAnnualMetricContribution[] = [
+  it("consumes the scoped Mock source aggregate without averaging Store results", async () => {
+    const fixtures: MockTakeChargeAnnualAggregateFixture[] = [
       {
         storeId: mockStores[0].trtid,
         year: 2026,
@@ -137,7 +137,7 @@ describe("Take Charge Goals repository", () => {
       },
     ];
     const repository = createMockEhsRepository(referenceDate, {
-      takeChargeAnnualMetricContributions: contributions,
+      takeChargeAnnualAggregateFixtures: fixtures,
     });
     const filters = {
       ...context(),

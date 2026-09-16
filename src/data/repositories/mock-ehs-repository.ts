@@ -48,13 +48,16 @@ import type {
 } from "@/data/contracts/events";
 import type {
   NormalizedTakeChargeRecord,
-  TakeChargeAnnualMetricContribution,
   TakeChargeFieldDefinition,
   TakeChargeGoalsQuery,
   TakeChargeGoalsSummary,
   TakeChargeRecordsQuery,
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
+import {
+  createMockTakeChargeAnnualAggregateReader,
+  type MockTakeChargeAnnualAggregateFixture,
+} from "@/data/mock/take-charge";
 import type {
   NormalizedStoreRecord,
   StoresQuery,
@@ -267,7 +270,7 @@ type MockEhsRepositoryOptions = {
   eventRecords?: readonly EventRecord[];
   takeChargeRecords?: readonly TakeChargeRecord[];
   takeChargeFieldDefinitions?: readonly TakeChargeFieldDefinition[];
-  takeChargeAnnualMetricContributions?: readonly TakeChargeAnnualMetricContribution[];
+  takeChargeAnnualAggregateFixtures?: readonly MockTakeChargeAnnualAggregateFixture[];
 };
 
 const TAKE_CHARGE_CORE_FIELD_KEYS = new Set([
@@ -377,7 +380,9 @@ type PreparedMockDataset = {
   eventRecords: readonly EventRecord[];
   normalizedTakeChargeRecords: readonly NormalizedTakeChargeRecord[];
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[];
-  takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[];
+  readTakeChargeAnnualAggregate: ReturnType<
+    typeof createMockTakeChargeAnnualAggregateReader
+  >;
   takeChargeResolutionComplete: boolean;
   takeChargeDateCoverageComplete: boolean;
   takeChargeStatusCoverageComplete: boolean;
@@ -394,7 +399,7 @@ function prepareMockDataset(
   eventRecords: readonly EventRecord[],
   takeChargeRecords: readonly TakeChargeRecord[],
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[],
-  takeChargeAnnualMetricContributions: readonly TakeChargeAnnualMetricContribution[],
+  takeChargeAnnualAggregateFixtures: readonly MockTakeChargeAnnualAggregateFixture[],
 ): PreparedMockDataset {
   const resolveStoreReference = createStoreReferenceResolver(stores);
   const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
@@ -459,7 +464,10 @@ function prepareMockDataset(
     eventRecords,
     normalizedTakeChargeRecords,
     takeChargeFieldDefinitions,
-    takeChargeAnnualMetricContributions,
+    readTakeChargeAnnualAggregate:
+      createMockTakeChargeAnnualAggregateReader(
+        takeChargeAnnualAggregateFixtures,
+      ),
     takeChargeResolutionComplete,
     takeChargeDateCoverageComplete,
     takeChargeStatusCoverageComplete,
@@ -482,15 +490,15 @@ export function createMockEhsRepository(
   const rawTakeChargeFieldDefinitions = validTakeChargeFieldDefinitions(
     options.takeChargeFieldDefinitions ?? mockData.takeChargeFieldDefinitions,
   );
-  const rawTakeChargeAnnualMetricContributions =
-    options.takeChargeAnnualMetricContributions ??
-    mockData.takeChargeAnnualMetricContributions;
+  const rawTakeChargeAnnualAggregateFixtures =
+    options.takeChargeAnnualAggregateFixtures ??
+    mockData.takeChargeAnnualAggregateFixtures;
   const hasOverrides =
     options.actionRecords !== undefined ||
     options.eventRecords !== undefined ||
     options.takeChargeRecords !== undefined ||
     options.takeChargeFieldDefinitions !== undefined ||
-    options.takeChargeAnnualMetricContributions !== undefined;
+    options.takeChargeAnnualAggregateFixtures !== undefined;
   const cachedPrepared =
     options.dataset !== undefined && !hasOverrides
       ? preparedDatasetCache.get(options.dataset)
@@ -503,7 +511,7 @@ export function createMockEhsRepository(
       rawEventRecords,
       takeChargeRecords,
       rawTakeChargeFieldDefinitions,
-      rawTakeChargeAnnualMetricContributions,
+      rawTakeChargeAnnualAggregateFixtures,
     );
 
   if (options.dataset !== undefined && !hasOverrides && cachedPrepared === undefined) {
@@ -520,7 +528,7 @@ export function createMockEhsRepository(
     takeChargeMonthlyAggregates,
     eventRecords,
     takeChargeFieldDefinitions,
-    takeChargeAnnualMetricContributions,
+    readTakeChargeAnnualAggregate,
   } = prepared;
 
   async function getKpiData(
@@ -940,39 +948,14 @@ export function createMockEhsRepository(
         ? calculateTakeChargeCloseRate(closedCount, submissionTotal)
         : null;
     const currentYear = Number(mockData.supportedMonths[0].slice(0, 4));
-    const annualContributions = takeChargeAnnualMetricContributions.filter(
-      (record) =>
-        record.year === currentYear && selectedStoreIds.has(record.storeId),
-    );
-    const annualCovered =
-      selectedStoreIdList.length > 0 &&
-      selectedStoreIdList.every((storeId) =>
-        annualContributions.some((record) => record.storeId === storeId),
-      );
-    const submissionsNumerator = annualContributions.reduce(
-      (sum, record) => sum + record.submissionsNumerator,
-      0,
-    );
-    const submissionsDenominator = annualContributions.reduce(
-      (sum, record) => sum + record.submissionsDenominator,
-      0,
-    );
-    const participationNumerator = annualContributions.reduce(
-      (sum, record) => sum + record.participationNumerator,
-      0,
-    );
-    const participationDenominator = annualContributions.reduce(
-      (sum, record) => sum + record.participationDenominator,
-      0,
+    const annualAggregate = readTakeChargeAnnualAggregate(
+      currentYear,
+      selectedStoreIdList,
     );
     const averageSubmissionsYtd =
-      annualCovered && submissionsDenominator > 0
-        ? submissionsNumerator / submissionsDenominator
-        : null;
+      annualAggregate?.averageSubmissionsYtd ?? null;
     const participationRateYtd =
-      annualCovered && participationDenominator > 0
-        ? (participationNumerator / participationDenominator) * 100
-        : null;
+      annualAggregate?.participationRateYtd ?? null;
 
     return {
       period: {
@@ -988,7 +971,7 @@ export function createMockEhsRepository(
         },
       },
       annual: {
-        availability: annualCovered ? "AVAILABLE" : "INCOMPLETE",
+        availability: annualAggregate === null ? "INCOMPLETE" : "AVAILABLE",
         currentYear,
         averageSubmissionsYtd: {
           value: averageSubmissionsYtd,

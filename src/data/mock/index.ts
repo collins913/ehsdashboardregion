@@ -1,7 +1,6 @@
 export * from "@/data/mock/actions";
 export * from "@/data/mock/certificates";
 export * from "@/data/mock/drills";
-export * from "@/data/mock/environment";
 export * from "@/data/mock/events";
 export * from "@/data/mock/inspections";
 export * from "@/data/mock/kpi-coverage";

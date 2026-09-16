@@ -94,12 +94,3 @@ export interface TakeChargeMonthlyAggregate {
   totalCount: number;
   closedCount: number;
 }
-
-export interface TakeChargeAnnualMetricContribution {
-  storeId: StoreId;
-  year: number;
-  submissionsNumerator: number;
-  submissionsDenominator: number;
-  participationNumerator: number;
-  participationDenominator: number;
-}
