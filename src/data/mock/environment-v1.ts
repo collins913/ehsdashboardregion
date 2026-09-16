@@ -3,8 +3,11 @@ import type { EnvironmentSourceValue, RawEnvironmentRecord, StoreMasterData } fr
 const values: readonly EnvironmentSourceValue[] = ["有", "无", "不适用"];
 
 // Small current-state source fixture; references come from the existing Store Master.
-export function createEnvironmentMockRecords(stores: readonly StoreMasterData[]): readonly RawEnvironmentRecord[] {
-  return stores.slice(0, 12).map((store, index) => ({
+export function createEnvironmentMockRecords(
+  stores: readonly StoreMasterData[],
+  storeLimit = 12,
+): readonly RawEnvironmentRecord[] {
+  return stores.slice(0, storeLimit).map((store, index) => ({
     TRTID: store.trtid,
     "English Store Name": store.storeNameEn,
     环境影响评价: values[index % 3],

@@ -318,7 +318,7 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
     ),
     actionRecords: performanceActions(stores, supportedMonths),
     eventRecords: performanceEvents(stores, supportedMonths),
-    environmentRecords: createEnvironmentMockRecords(stores),
+    environmentRecords: createEnvironmentMockRecords(stores, stores.length),
     certificateRecords: createMockCertificateRecords(stores, referenceDate),
     takeChargeRecords: performanceTakeCharge(stores, supportedMonths),
     takeChargeAnnualAggregateFixtures: performanceAnnualAggregateFixtures(

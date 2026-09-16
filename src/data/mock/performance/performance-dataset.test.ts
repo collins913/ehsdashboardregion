@@ -16,6 +16,15 @@ import {
 import { resolveStoreReference } from "@/data/resolve-store-reference";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
+const environmentFields = [
+  "环境影响评价",
+  "排污许可",
+  "排水许可",
+  "环境预案",
+  "监测",
+  "废弃物合同",
+] as const;
+const environmentValues = new Set(["有", "无", "不适用"]);
 
 function spotIds(dataset: ReturnType<typeof createPerformanceMockDataset>) {
   const middleAction = Math.floor(dataset.actionRecords.length / 2);
@@ -52,6 +61,7 @@ describe("performance mock dataset", () => {
     expect(dataset.takeChargeRecords).toHaveLength(
       PERFORMANCE_TAKE_CHARGE_COUNT,
     );
+    expect(dataset.environmentRecords).toHaveLength(PERFORMANCE_STORE_COUNT);
   });
 
   it("is deterministic and cached by reference month", () => {
@@ -59,6 +69,7 @@ describe("performance mock dataset", () => {
     const second = createPerformanceMockDataset(referenceDate);
 
     expect(spotIds(first)).toEqual(spotIds(second));
+    expect(first.environmentRecords).toEqual(second.environmentRecords);
     expect(getPerformanceMockDataset(referenceDate)).toBe(
       getPerformanceMockDataset(referenceDate),
     );
@@ -97,6 +108,16 @@ describe("performance mock dataset", () => {
         (record) =>
           resolveStoreReference(record.storeReference, dataset.stores).kind ===
           "RESOLVED",
+      ),
+    ).toBe(true);
+    expect(
+      new Set(dataset.environmentRecords.map((record) => record.TRTID)).size,
+    ).toBe(PERFORMANCE_STORE_COUNT);
+    expect(
+      dataset.environmentRecords.every((record) =>
+        environmentFields.every((key) =>
+          environmentValues.has(record[key]),
+        ),
       ),
     ).toBe(true);
   });

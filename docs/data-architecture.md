@@ -165,7 +165,7 @@ Environment Raw Source (TRTID / English Store Name + six current values)
 
 六个源值只表达“有 / 无 / 不适用”，不进入 Rule Engine。Region / Area / canonical Store 有效，Period 忽略。中文名称来自 Store Master，Raw 不携带中文名；Detail 只展示门店、项目、当前值，其余字段 TBD。
 
-Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，不创建独立 Repository runtime 或 Table / Detail framework。Mock 使用既有 Store Master 生成少量 deterministic 当前状态记录；不扩展 Performance V1 规模目标，未覆盖门店明确返回不完整数据。
+Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，不创建独立 Repository runtime 或 Table / Detail framework。Standard Mock 使用既有 Store Master 生成少量 deterministic 当前状态记录；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
 
 ## Certificates V1 current-state query
 

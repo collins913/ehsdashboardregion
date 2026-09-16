@@ -67,6 +67,7 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Repository query
 - Store Resolver
 - KPI 约 500 Store rows
+- Environment 500 Store coverage
 - 页面响应性和交互性能
 
 Standard Mock 仍保持默认；单元测试不默认加载 Performance Mock。

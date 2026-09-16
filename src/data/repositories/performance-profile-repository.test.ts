@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodForMode } from "@/data/contracts/kpi-period";
-import { getPerformanceMockDataset, PERFORMANCE_EVENT_TYPES } from "@/data/mock/performance";
+import {
+  getPerformanceMockDataset,
+  PERFORMANCE_EVENT_TYPES,
+  PERFORMANCE_STORE_COUNT,
+} from "@/data/mock/performance";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 
@@ -29,6 +33,43 @@ describe("performance profile Repository behavior", () => {
     expect(filters).toHaveLength(500);
     expect(year.items).toHaveLength(500);
     expect(month.items).toEqual(year.items);
+  });
+
+  it("covers all Performance Stores in Environment scoped queries", async () => {
+    const firstStore = dataset.stores[0];
+    const all = await repository.getEnvironment({ context: context() });
+    const region = await repository.getEnvironment({
+      context: {
+        ...context(),
+        region: { kind: "INCLUDE", values: [firstStore.region] },
+      },
+    });
+    const area = await repository.getEnvironment({
+      context: {
+        ...context(),
+        area: { kind: "INCLUDE", values: [firstStore.area] },
+      },
+    });
+    const store = await repository.getEnvironment({
+      context: {
+        ...context(),
+        store: { kind: "INCLUDE", values: [firstStore.trtid] },
+      },
+    });
+
+    expect(all.availability).toBe("AVAILABLE");
+    expect(all.items).toHaveLength(PERFORMANCE_STORE_COUNT);
+    expect(region.items).toHaveLength(
+      dataset.stores.filter(({ region }) => region === firstStore.region).length,
+    );
+    expect(area.items).toHaveLength(
+      dataset.stores.filter(({ area }) => area === firstStore.area).length,
+    );
+    expect(store.items.map(({ storeId }) => storeId)).toEqual([
+      firstStore.trtid,
+    ]);
+    expect([region, area, store].every(({ availability }) => availability === "AVAILABLE"))
+      .toBe(true);
   });
 
   it("filters, sorts and paginates Actions after the complete scope", async () => {
