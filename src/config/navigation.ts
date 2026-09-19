@@ -76,6 +76,12 @@ export const routes = {
     description: "查看当前筛选范围内各门店的环境项目现状",
   },
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据" },
+  devOverview: {
+    title: "Overview Demo",
+    href: "/dev/overview",
+    icon: LayoutDashboard,
+    description: "EHS Management Performance & Insights",
+  },
   devUi: { title: "UI Lab", href: "/dev/ui", icon: LayoutDashboard, showDashboardHeader: false },
 } satisfies Record<string, NavigationItem>;
 
