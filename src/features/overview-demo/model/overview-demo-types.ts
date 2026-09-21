@@ -94,6 +94,8 @@ export type OverviewDemoBenchmark = {
   parentLabel: string
   parentAverage: number | null
   rank: number | null
+  rankLabel: string
+  isTied: boolean
   total: number
 }
 
@@ -107,16 +109,18 @@ export type OverviewDemoScopeComparison = {
   delta: number | null
   completeness: number
   storeCount: number
-  topHint: string
-  topIssue?: string
+  mainChange: string
+  currentConcern: string
+  rankLabel?: string
+  isTied?: boolean
 }
 
 export type OverviewDemoAttentionPoint = OverviewDemoScopeComparison & {
-  xPercent: number
-  yPercent: number
   quadrantLabel: string
   labelVisible: boolean
 }
+
+export type OverviewDemoChartDomain = readonly [number, number]
 
 export type OverviewDemoDimensionMetricView = {
   id: OverviewDemoItemId
@@ -163,6 +167,14 @@ export type OverviewDemoIssueView = {
   persistentIssueCount: number
   persistenceRate: number | null
   recoveredCount: number
+  lifecycle: {
+    current: number
+    new: number
+    persistent: number
+    previous: number
+    recovered: number
+    delta: number
+  }
   affectedAreaCount: number
   totalAreaCount: number
   topAreaShare: number
@@ -171,6 +183,12 @@ export type OverviewDemoIssueView = {
   areaDistribution: OverviewDemoIssueAreaDistribution[]
   affectedStores: OverviewDemoStoreIdentity[]
   conclusion: string
+}
+
+export type OverviewDemoScopeChangeSummary = {
+  mainChange: string
+  currentConcern: string
+  changeKind: "IMPROVEMENT" | "DECLINE" | "STABLE" | "UNAVAILABLE"
 }
 
 export type OverviewDemoPriorityInvestigation = {
@@ -191,27 +209,74 @@ export type OverviewDemoDriverView = {
   transition: OverviewDemoTransition
 }
 
+export type OverviewDemoDiagnosticIssue = {
+  issueKey: OverviewDemoItemId
+  label: string
+  newCount: number
+  persistentCount: number
+  recoveredCount: number
+  isDeclineDriver: boolean
+  isSuggestedFirst: boolean
+  affectedStores: number
+  routeTarget: string
+}
+
+export type OverviewDemoDiagnosticDimension = {
+  dimensionKey: OverviewDemoDimensionId
+  dimensionLabel: string
+  score: number | null
+  delta: number | null
+  isPriority: boolean
+  issues: OverviewDemoDiagnosticIssue[]
+}
+
+export type OverviewDemoScopeChangeItem = {
+  scopeId: string
+  scopeName: string
+  currentScore: number | null
+  delta: number
+  primaryChangeLabel: string
+  currentConcern: string
+  completeness: number
+}
+
+export type OverviewDemoManagementFact = {
+  key: "OPEN_ACTIONS" | "OPEN_EVENTS" | "SUBMISSION_TOTAL"
+  label: string
+  value: number
+}
+
+export type OverviewDemoBusinessCta = {
+  label: "KPI" | "行动项" | "事件" | "证件" | "环境"
+  routeTarget: string
+  isPrimary: boolean
+}
+
 export type OverviewDemoScopeDetail = {
   id: string
   label: string
   level: OverviewDemoScopeLevel
-  conclusion: string
+  summary: string
   score: number | null
   previousScore: number | null
   delta: number | null
   completeness: number
   benchmark: OverviewDemoBenchmark
   history: OverviewDemoHistoryPoint[]
-  priorityInvestigations: OverviewDemoPriorityInvestigation[]
-  dimensions: OverviewDemoDimensionView[]
-  declineDrivers: OverviewDemoDriverView[]
-  improvementDrivers: OverviewDemoDriverView[]
+  trendLabel: "持续改善" | "持续下降" | "近期回升" | "基本稳定"
+  diagnostics: OverviewDemoDiagnosticDimension[]
   changeSummary: {
     newIssues: OverviewDemoDriverView[]
     persistentIssues: OverviewDemoDriverView[]
     recovered: OverviewDemoDriverView[]
   }
-  facts: string[]
+  scopeChanges: {
+    label: "小区变化" | "门店变化"
+    declining: OverviewDemoScopeChangeItem[]
+    improving: OverviewDemoScopeChangeItem[]
+  } | null
+  managementFacts: OverviewDemoManagementFact[]
+  businessCtas: OverviewDemoBusinessCta[]
   issues: OverviewDemoIssueView[]
 }
 
@@ -219,6 +284,19 @@ export type OverviewDemoManagementSignal = {
   label: string
   value: string
   detail: string
+}
+
+export type OverviewDemoHeroScopeChange = { name: string; delta: number } | null
+export type OverviewDemoHero = {
+  overallScore: number | null
+  monthlyDelta: number | null
+  monthlyScoreHistory: OverviewDemoHistoryPoint[]
+  topImprovingArea: OverviewDemoHeroScopeChange
+  topImprovingStore: OverviewDemoHeroScopeChange
+  topDecliningArea: OverviewDemoHeroScopeChange
+  topDecliningStore: OverviewDemoHeroScopeChange
+  primaryScoreLoss: { label: string; affectedStores: number } | null
+  systemicIssue: { label: string; affectedAreas: number; totalAreas: number; affectedStores: number } | null
 }
 
 export type OverviewDemoExecutiveInsight = {
@@ -253,14 +331,15 @@ export type OverviewDemoViewModel = {
   periodNotice: string
   scoreRuleVersion: string
   executive: OverviewDemoExecutiveInsight
+  hero: OverviewDemoHero
   overallHistory: OverviewDemoHistoryPoint[]
   priorityInvestigations: OverviewDemoPriorityInvestigation[]
   attribution: OverviewDemoAttribution
   attentionMatrix: {
     averageScore: number | null
-    deltaRange: number
+    xDomain: OverviewDemoChartDomain
+    yDomain: OverviewDemoChartDomain
     points: OverviewDemoAttentionPoint[]
-    priorityScopes: OverviewDemoScopeComparison[]
   }
   comparisons: OverviewDemoScopeComparison[]
   dimensions: OverviewDemoDimensionView[]

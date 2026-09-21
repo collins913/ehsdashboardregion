@@ -1,7 +1,7 @@
 import type { KpiStore } from "@/data/contracts/kpi"
 import type { GlobalFilterState } from "@/features/global-filters/global-filter-state"
 import { getOverviewDemoFixture } from "./data/overview-demo-fixture-repository"
-import { buildOverviewDemoAttribution } from "./model/overview-demo-attribution"
+import { buildOverviewDemoAttribution, buildOverviewDemoScopeChangeSummary } from "./model/overview-demo-attribution"
 import {
   averageOverviewDemoScore,
   buildOverviewDemoBenchmark,
@@ -11,13 +11,21 @@ import { buildOverviewDemoExecutiveInsight } from "./model/overview-demo-insight
 import { buildOverviewDemoIssueIntelligence } from "./model/overview-demo-issues"
 import { buildOverviewDemoPriorityInvestigations } from "./model/overview-demo-priority"
 import { overviewDemoScoredItems, scoreDimensions, scoreStores } from "./model/overview-demo-score"
-import { scoreDelta } from "./model/overview-demo-trend"
+import { classifyOverviewDemoTrend, scoreDelta } from "./model/overview-demo-trend"
 import type {
   OverviewDemoAttribution,
+  OverviewDemoBusinessCta,
+  OverviewDemoChartDomain,
+  OverviewDemoDiagnosticDimension,
   OverviewDemoDimensionView,
   OverviewDemoDriverView,
   OverviewDemoHistoryPoint,
+  OverviewDemoHero,
+  OverviewDemoIssueView,
+  OverviewDemoManagementFact,
   OverviewDemoOperationalFacts,
+  OverviewDemoPriorityInvestigation,
+  OverviewDemoScopeChangeItem,
   OverviewDemoScopeComparison,
   OverviewDemoScopeDetail,
   OverviewDemoScopeLevel,
@@ -27,6 +35,31 @@ import type {
 } from "./model/overview-demo-types"
 
 const overviewDemoFixture = getOverviewDemoFixture()
+
+export function buildOverviewDemoAttentionDomains(
+  comparisons: readonly Pick<OverviewDemoScopeComparison, "score" | "delta">[],
+): { xDomain: OverviewDemoChartDomain; yDomain: OverviewDemoChartDomain } {
+  const scores = comparisons.map((item) => item.score).filter((value): value is number => value !== null)
+  const deltas = comparisons.map((item) => item.delta).filter((value): value is number => value !== null)
+  if (scores.length === 0) return { xDomain: [0, 100], yDomain: [-2, 2] }
+
+  const minScore = Math.min(...scores)
+  const maxScore = Math.max(...scores)
+  const xPadding = 8
+  const xDomain: OverviewDemoChartDomain = [
+    Math.max(0, Math.floor(minScore - xPadding)),
+    Math.min(100, Math.ceil(maxScore + xPadding)),
+  ]
+
+  if (deltas.length === 0) return { xDomain, yDomain: [-2, 2] }
+  const minDelta = Math.min(...deltas)
+  const maxDelta = Math.max(...deltas)
+  const yPadding = Math.max(2, Math.ceil((maxDelta - minDelta) * 0.1))
+  return {
+    xDomain,
+    yDomain: [Math.floor(Math.min(0, minDelta - yPadding)), Math.ceil(Math.max(0, maxDelta + yPadding))],
+  }
+}
 
 function includes<T>(scope: { kind: "ALL" } | { kind: "INCLUDE"; values: readonly T[] }, value: T) {
   return scope.kind === "ALL" || scope.values.includes(value)
@@ -96,6 +129,90 @@ function factSentences(stores: readonly OverviewDemoStoreSnapshot[]): string[] {
   ]
 }
 
+function managementFacts(stores: readonly OverviewDemoStoreSnapshot[]): OverviewDemoManagementFact[] {
+  const facts = factsFor(stores)
+  return [
+    { key: "OPEN_ACTIONS", label: "Open Actions", value: facts.openActions },
+    { key: "OPEN_EVENTS", label: "Open Events", value: facts.openEvents },
+    { key: "SUBMISSION_TOTAL", label: "Submission Total", value: facts.submissionTotal },
+  ]
+}
+
+function businessCtas(primaryRouteTarget: string | null): OverviewDemoBusinessCta[] {
+  const items: Omit<OverviewDemoBusinessCta, "isPrimary">[] = [
+    { label: "KPI", routeTarget: "/performance/kpi" },
+    { label: "行动项", routeTarget: "/risk/actions" },
+    { label: "事件", routeTarget: "/risk/events" },
+    { label: "证件", routeTarget: "/risk/certificates" },
+    { label: "环境", routeTarget: "/risk/environment" },
+  ]
+  return items.map((item) => ({ ...item, isPrimary: item.routeTarget === primaryRouteTarget }))
+}
+
+function diagnosticDimensions(
+  dimensions: readonly OverviewDemoDimensionView[],
+  issues: readonly OverviewDemoIssueView[],
+  priorityInvestigations: readonly OverviewDemoPriorityInvestigation[],
+  attribution: OverviewDemoAttribution,
+): OverviewDemoDiagnosticDimension[] {
+  const issueByKey = new Map(issues.map((issue) => [issue.id, issue]))
+  const declineKeys = new Set(attribution.declineDrivers.map((item) => item.metricKey))
+  const priorityIndex = new Map(priorityInvestigations.map((item, index) => [item.issueKey, index]))
+
+  return dimensions
+    .map((dimension, dimensionIndex) => {
+      const dimensionIssues = priorityInvestigations
+        .filter((item) => item.dimension === dimension.id)
+        .map((item) => {
+          const issue = issueByKey.get(item.issueKey)!
+          return {
+            issueKey: item.issueKey,
+            label: item.label,
+            newCount: issue.newIssueCount,
+            persistentCount: issue.persistentIssueCount,
+            recoveredCount: issue.recoveredCount,
+            isDeclineDriver: declineKeys.has(item.issueKey),
+            isSuggestedFirst: priorityIndex.get(item.issueKey) === 0,
+            affectedStores: item.affectedStores,
+            routeTarget: item.routeTarget,
+          }
+        })
+      return {
+        dimensionKey: dimension.id,
+        dimensionLabel: dimension.label,
+        score: dimension.score,
+        delta: dimension.delta,
+        isPriority: dimensionIssues.length > 0,
+        issues: dimensionIssues,
+        order: dimensionIssues.length > 0 ? Math.min(...dimensionIssues.map((item) => priorityIndex.get(item.issueKey) ?? 999)) : 999 + dimensionIndex,
+      }
+    })
+    .sort((left, right) => left.order - right.order)
+    .map(({ order: _order, ...dimension }) => dimension)
+}
+
+export function buildOverviewDemoScopeChanges(
+  comparisons: readonly OverviewDemoScopeComparison[],
+  label: "小区变化" | "门店变化",
+) {
+  const toItem = (item: OverviewDemoScopeComparison & { delta: number }): OverviewDemoScopeChangeItem => ({
+    scopeId: item.id,
+    scopeName: item.label,
+    currentScore: item.score,
+    delta: item.delta,
+    primaryChangeLabel: item.mainChange,
+    currentConcern: item.currentConcern,
+    completeness: item.completeness,
+  })
+  const comparable = comparisons.filter((item): item is OverviewDemoScopeComparison & { delta: number } => item.delta !== null)
+  const stable = (left: OverviewDemoScopeComparison, right: OverviewDemoScopeComparison) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+  return {
+    label,
+    declining: [...comparable].filter((item) => item.delta < 0).sort((left, right) => left.delta - right.delta || stable(left, right)).slice(0, 5).map(toItem),
+    improving: [...comparable].filter((item) => item.delta > 0).sort((left, right) => right.delta - left.delta || stable(left, right)).slice(0, 5).map(toItem),
+  }
+}
+
 function dimensionViews(
   current: readonly OverviewDemoStoreSnapshot[],
   previous: readonly OverviewDemoStoreSnapshot[],
@@ -145,9 +262,9 @@ function dimensionViews(
       failCount: failedStores,
       newIssueCount: items.reduce((total, item) => total + item.newIssueCount, 0),
       recoveredCount: items.reduce((total, item) => total + item.recoveredCount, 0),
-      primaryDrag: newDriver?.label ?? persistentDriver?.label ?? "无明确拖累项",
-      primaryImprovement: recoveredDriver?.label ?? "无明确改善项",
-      explanation: `${dimension.label} 当前 ${dimension.score ?? "—"} 分，较上期${delta === null ? "不可比" : delta > 0 ? `提升 ${delta} 分` : delta < 0 ? `下降 ${Math.abs(delta)} 分` : "持平"}；${failedStores} 家门店存在失败项。`,
+      primaryDrag: newDriver?.label ?? persistentDriver?.label ?? "未识别到主要短板",
+      primaryImprovement: recoveredDriver?.label ?? "未识别到主要改善",
+      explanation: `${dimension.label} 当前得分 ${dimension.score ?? "—"}，${delta === null ? "与上期不可比较" : delta > 0 ? `较上期提升 ${delta} 分` : delta < 0 ? `较上期下降 ${Math.abs(delta)} 分` : "较上期持平"}；${failedStores} 家门店存在当前问题。`,
       items,
       isTbd: false,
     }
@@ -169,7 +286,7 @@ function dimensionViews(
       recoveredCount: null,
       primaryDrag: "TBD",
       primaryImprovement: "TBD",
-      explanation: "评分模型与趋势口径待定义；未来接入后展示监测结果、异常分布与变化归因。",
+      explanation: "评分与趋势口径待定义。",
       items: [],
       isTbd: true,
     },
@@ -205,15 +322,6 @@ function scopeLabel(level: OverviewDemoScopeLevel, stores: readonly KpiStore[], 
   return state.region.kind === "INCLUDE" ? state.region.values[0] : "全部区域"
 }
 
-function topHint(attribution: OverviewDemoAttribution): string {
-  const decline = attribution.newIssues[0]
-  if (decline) return `新增拖累：${decline.label}`
-  const recovered = attribution.recovered[0]
-  if (recovered) return `主要改善：${recovered.label}`
-  const persistent = attribution.persistentIssues[0]
-  return persistent ? `持续问题：${persistent.label}` : "无主要变化"
-}
-
 function driverViews(items: OverviewDemoAttribution["newIssues"]): OverviewDemoDriverView[] {
   return items.slice(0, 4).map((item) => ({
     label: item.label,
@@ -223,9 +331,35 @@ function driverViews(items: OverviewDemoAttribution["newIssues"]): OverviewDemoD
   }))
 }
 
-function topIssueLabel(attribution: OverviewDemoAttribution): string {
-  const issue = attribution.persistentIssues[0] ?? attribution.newIssues[0]
-  return issue?.label ?? "无当前重点问题"
+function scopeComparison(
+  group: ScopeGroup,
+  currentAll: readonly OverviewDemoStoreSnapshot[],
+  previousAll: readonly OverviewDemoStoreSnapshot[],
+): OverviewDemoScopeComparison {
+  const groupCurrent = pickSnapshots(currentAll, group.stores)
+  const groupPrevious = pickSnapshots(previousAll, group.stores)
+  const groupAttribution = buildOverviewDemoAttribution({
+    current: groupCurrent,
+    previous: groupPrevious,
+    identities: storeIdentities(group.stores),
+  })
+  const score = scoreStores(groupCurrent)
+  const previousScore = scoreStores(groupPrevious).score
+  const delta = scoreDelta(score.score, previousScore)
+  const changeSummary = buildOverviewDemoScopeChangeSummary(delta, groupAttribution)
+  return {
+    id: group.id,
+    rank: null,
+    label: group.label,
+    level: group.level,
+    score: score.score,
+    previousScore,
+    delta,
+    completeness: score.completeness,
+    storeCount: group.stores.length,
+    mainChange: changeSummary.mainChange,
+    currentConcern: changeSummary.currentConcern,
+  }
 }
 
 function historyFor(
@@ -236,6 +370,34 @@ function historyFor(
     periodLabel: period.periodLabel,
     score: scoreStores(pickSnapshots(materializeSnapshots(period.stores, allStores), stores)).score,
   }))
+}
+
+function monthlyHistoryFor(
+  stores: readonly KpiStore[],
+  allStores: readonly KpiStore[],
+): OverviewDemoHistoryPoint[] {
+  return overviewDemoFixture.monthlyHistoryPeriods.map((period) => ({
+    periodLabel: period.periodLabel,
+    score: scoreStores(pickSnapshots(materializeSnapshots(period.stores, allStores), stores)).score,
+  }))
+}
+
+function topChange(comparisons: readonly OverviewDemoScopeComparison[], direction: "IMPROVING" | "DECLINING") {
+  const changes = buildOverviewDemoScopeChanges(comparisons, "小区变化")
+  const item = direction === "IMPROVING" ? changes.improving[0] : changes.declining[0]
+  return item ? { name: item.scopeName, delta: item.delta } : null
+}
+
+export function buildOverviewDemoPrimaryScoreLoss(current: readonly OverviewDemoStoreSnapshot[]): OverviewDemoHero["primaryScoreLoss"] {
+  const losses = overviewDemoScoredItems.map((item) => ({
+    label: item.issueLabel,
+    affectedStores: current.filter((store) => store.outcomes[item.id] === "FAIL").length,
+  }))
+  const highest = losses.reduce<(typeof losses)[number] | null>(
+    (best, item) => !best || item.affectedStores > best.affectedStores ? item : best,
+    null,
+  )
+  return highest && highest.affectedStores > 0 ? highest : null
 }
 
 function periodModeLabel(state: GlobalFilterState): string {
@@ -262,32 +424,15 @@ export function buildOverviewDemoViewModel(
   const previousOverall = scoreStores(previous)
   const groups = groupIdentities(level, selected, peers)
 
-  const rawComparisons = groups.map((group) => {
-    const groupCurrent = pickSnapshots(currentAll, group.stores)
-    const groupPrevious = pickSnapshots(previousAll, group.stores)
-    const groupAttribution = buildOverviewDemoAttribution({
-      current: groupCurrent,
-      previous: groupPrevious,
-      identities: storeIdentities(group.stores),
-    })
-    const score = scoreStores(groupCurrent)
-    return {
-      id: group.id,
-      rank: null,
-      label: group.label,
-      level: group.level,
-      score: score.score,
-      previousScore: scoreStores(groupPrevious).score,
-      delta: scoreDelta(score.score, scoreStores(groupPrevious).score),
-      completeness: score.completeness,
-      storeCount: group.stores.length,
-      topHint: topHint(groupAttribution),
-      topIssue: topIssueLabel(groupAttribution),
-    } satisfies OverviewDemoScopeComparison
-  })
+  const rawComparisons = groups.map((group) => scopeComparison(group, currentAll, previousAll))
   const rankedComparisons = rankOverviewDemoScopes(rawComparisons)
   const parentLabel = level === "REGION" ? scopeLabel(level, selected, state) : selected[0]?.area ?? "当前小区"
-  const scopeDetails: OverviewDemoScopeDetail[] = groups.map((group) => {
+  const buildScopeDetail = (
+    group: ScopeGroup,
+    peerComparisons: readonly OverviewDemoScopeComparison[],
+    benchmarkLabel: string,
+    scopeChanges: OverviewDemoScopeDetail["scopeChanges"],
+  ): OverviewDemoScopeDetail => {
     const groupCurrent = pickSnapshots(currentAll, group.stores)
     const groupPrevious = pickSnapshots(previousAll, group.stores)
     const groupIdentitiesForModel = storeIdentities(group.stores)
@@ -297,7 +442,7 @@ export function buildOverviewDemoViewModel(
       identities: groupIdentitiesForModel,
     })
     const score = scoreStores(groupCurrent)
-    const comparison = rankedComparisons.find((item) => item.id === group.id)
+    const comparison = peerComparisons.find((item) => item.id === group.id)
     const issues = buildOverviewDemoIssueIntelligence({
       current: groupCurrent,
       previous: groupPrevious,
@@ -308,35 +453,59 @@ export function buildOverviewDemoViewModel(
       issues,
       attribution: groupAttribution,
     })
+    const dimensions = dimensionViews(groupCurrent, groupPrevious, groupAttribution)
+    const diagnostics = diagnosticDimensions(dimensions, issues, priorityInvestigations, groupAttribution)
+    const priorityDimension = diagnostics.find((dimension) => dimension.isPriority)
+    const history = historyFor(group.stores, canonicalStores)
     return {
       id: group.id,
       label: group.label,
       level: group.level,
-      conclusion: `${group.label} 当前 ${score.score ?? "—"} 分，${comparison?.topHint ?? "无主要变化"}。`,
+      summary: priorityDimension
+        ? `当前仍有 ${priorityDimension.issues.length} 类 ${priorityDimension.dimensionLabel} 问题需要关注。`
+        : "当前未识别到重点问题。",
       score: score.score,
       previousScore: scoreStores(groupPrevious).score,
       delta: comparison?.delta ?? null,
       completeness: score.completeness,
-      benchmark: buildOverviewDemoBenchmark({ id: group.id, parentLabel, comparisons: rankedComparisons }),
-      history: historyFor(group.stores, canonicalStores),
-      priorityInvestigations,
-      dimensions: dimensionViews(groupCurrent, groupPrevious, groupAttribution),
-      declineDrivers: driverViews(groupAttribution.declineDrivers),
-      improvementDrivers: driverViews(groupAttribution.improvementDrivers),
+      benchmark: buildOverviewDemoBenchmark({ id: group.id, parentLabel: benchmarkLabel, comparisons: peerComparisons }),
+      history,
+      trendLabel: classifyOverviewDemoTrend(history),
+      diagnostics,
       changeSummary: {
         newIssues: driverViews(groupAttribution.newIssues),
         persistentIssues: driverViews(groupAttribution.persistentIssues),
         recovered: driverViews(groupAttribution.recovered),
       },
-      facts: factSentences(groupCurrent),
+      scopeChanges,
+      managementFacts: managementFacts(groupCurrent),
+      businessCtas: businessCtas(priorityInvestigations[0]?.routeTarget ?? null),
       issues,
     }
-  })
+  }
+
+  const scopeDetails: OverviewDemoScopeDetail[] = []
+  const nestedStoreDetails: OverviewDemoScopeDetail[] = []
+  for (const group of groups) {
+    if (group.level === "AREA") {
+      const childGroups: ScopeGroup[] = group.stores.map((store) => ({ id: store.storeId, label: store.displayName, level: "STORE", stores: [store] }))
+      const childComparisons = rankOverviewDemoScopes(childGroups.map((child) => scopeComparison(child, currentAll, previousAll)))
+      const changes = buildOverviewDemoScopeChanges(childComparisons, "门店变化")
+      scopeDetails.push(buildScopeDetail(group, rankedComparisons, parentLabel, changes))
+      const visibleChildIds = new Set([...changes.declining, ...changes.improving].map((item) => item.scopeId))
+      for (const child of childGroups.filter((item) => visibleChildIds.has(item.id))) {
+        nestedStoreDetails.push(buildScopeDetail(child, childComparisons, group.label, null))
+      }
+    } else {
+      scopeDetails.push(buildScopeDetail(group, rankedComparisons, parentLabel, null))
+    }
+  }
+  scopeDetails.push(...nestedStoreDetails.filter((detail, index, list) => list.findIndex((item) => item.id === detail.id) === index))
 
   const issues = buildOverviewDemoIssueIntelligence({ current, previous, identities, attribution })
   const priorityInvestigations = buildOverviewDemoPriorityInvestigations({ issues, attribution })
   const averageScore = averageOverviewDemoScore(rankedComparisons)
-  const deltaRange = Math.max(1, ...rankedComparisons.map((item) => Math.abs(item.delta ?? 0)))
+  const { xDomain, yDomain } = buildOverviewDemoAttentionDomains(rankedComparisons)
   const lowestIds = [...rankedComparisons]
     .sort((left, right) => (left.score ?? 101) - (right.score ?? 101) || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
     .slice(0, level === "REGION" ? 3 : 2)
@@ -358,34 +527,55 @@ export function buildOverviewDemoViewModel(
     const isUp = (item.delta ?? 0) >= 0
     return {
       ...item,
-      xPercent: Math.max(4, Math.min(96, item.score ?? 0)),
-      yPercent: Math.max(7, Math.min(93, 50 - ((item.delta ?? 0) / deltaRange) * 40)),
       quadrantLabel: isHigh
         ? isUp
-          ? "领先改善"
-          : "领先承压"
+          ? "高分、改善"
+          : "高分、下降"
         : isUp
-          ? "落后改善"
-          : "落后承压",
+          ? "低分、改善"
+          : "低分、下降",
       labelVisible: level === "REGION" || priorityIds.includes(item.id),
     }
   })
-
-  const priorityScopes = priorityIds
-    .map((id) => rankedComparisons.find((item) => item.id === id))
-    .filter((item): item is OverviewDemoScopeComparison => Boolean(item))
 
   const comparisonRows =
     rankedComparisons.length <= 10
       ? rankedComparisons
       : [...rankedComparisons.slice(0, 5), ...rankedComparisons.slice(-5)]
 
+  const areaGroups = new Map<string, KpiStore[]>()
+  for (const store of selected) areaGroups.set(store.area, [...(areaGroups.get(store.area) ?? []), store])
+  const lastMonth = overviewDemoFixture.monthlyHistoryPeriods.at(-2)
+  const lastMonthAll = lastMonth ? materializeSnapshots(lastMonth.stores, canonicalStores) : currentAll
+  const areaComparisons = [...areaGroups].map(([area, stores]) => scopeComparison({ id: area, label: area, level: "AREA", stores }, currentAll, lastMonthAll))
+  const storeComparisons = selected.map((store) => scopeComparison({ id: store.storeId, label: store.displayName, level: "STORE", stores: [store] }, currentAll, lastMonthAll))
+  const monthlyScoreHistory = monthlyHistoryFor(selected, canonicalStores)
+  const systemicIssue = [...issues].sort(
+    (left, right) => right.affectedAreaCount - left.affectedAreaCount || right.currentCount - left.currentCount,
+  )[0]
+  const hero: OverviewDemoHero = {
+    overallScore: overall.score,
+    monthlyDelta: scoreDelta(monthlyScoreHistory.at(-1)?.score ?? null, monthlyScoreHistory.at(-2)?.score ?? null),
+    monthlyScoreHistory,
+    topImprovingArea: topChange(areaComparisons, "IMPROVING"),
+    topImprovingStore: topChange(storeComparisons, "IMPROVING"),
+    topDecliningArea: topChange(areaComparisons, "DECLINING"),
+    topDecliningStore: topChange(storeComparisons, "DECLINING"),
+    primaryScoreLoss: buildOverviewDemoPrimaryScoreLoss(current),
+    systemicIssue: systemicIssue ? {
+      label: systemicIssue.label,
+      affectedAreas: systemicIssue.affectedAreaCount,
+      totalAreas: systemicIssue.totalAreaCount,
+      affectedStores: systemicIssue.currentCount,
+    } : null,
+  }
+
   return {
     scopeLabel: scopeLabel(level, selected, state),
     scopeLevel: level,
     currentPeriodLabel: overviewDemoFixture.currentPeriodLabel,
     previousPeriodLabel: overviewDemoFixture.previousPeriodLabel,
-    periodNotice: `全局周期“${periodModeLabel(state)}”未映射到 Demo 历史；本页固定分析 ${overviewDemoFixture.currentPeriodLabel}，对比 ${overviewDemoFixture.previousPeriodLabel}，历史截至 ${overviewDemoFixture.currentPeriodLabel}。`,
+    periodNotice: `全局周期“${periodModeLabel(state)}”尚未映射到 Demo 历史。本页固定分析 ${overviewDemoFixture.currentPeriodLabel}，对比 ${overviewDemoFixture.previousPeriodLabel}，历史截至 ${overviewDemoFixture.currentPeriodLabel}。`,
     scoreRuleVersion: overviewDemoFixture.scoreRuleVersion,
     executive: buildOverviewDemoExecutiveInsight({
       overall,
@@ -396,10 +586,11 @@ export function buildOverviewDemoViewModel(
       attribution,
       storeCount: selected.length,
     }),
+    hero,
     overallHistory: historyFor(selected, canonicalStores),
     priorityInvestigations,
     attribution,
-    attentionMatrix: { averageScore, deltaRange, points, priorityScopes },
+    attentionMatrix: { averageScore, xDomain, yDomain, points },
     comparisons: comparisonRows,
     dimensions: dimensionViews(current, previous, attribution),
     issues: issues.slice(0, 8),

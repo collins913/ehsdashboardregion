@@ -30,12 +30,12 @@ export function buildOverviewDemoPriorityInvestigations(input: {
         order === 0
           ? "持续存在且属于本期下降驱动"
           : order === 1
-            ? "本期新增且属于下降驱动"
+            ? "本期新增且属于本期下降驱动"
             : order === 2
               ? "跨周期持续存在"
               : order === 3
                 ? "本期新增"
-                : "当前失败项"
+                : "当前问题"
 
       return {
         order,

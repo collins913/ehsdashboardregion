@@ -16,7 +16,21 @@ export function rankOverviewDemoScopes(
     if (right.score === null) return -1
     return right.score - left.score || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
   })
-  return sorted.map((item, index) => ({ ...item, rank: item.score === null ? null : index + 1 }))
+  let previousScore: number | null | undefined
+  let previousRank = 0
+  return sorted.map((item, index) => {
+    if (item.score === null) return { ...item, rank: null, rankLabel: "—", isTied: false }
+    const rank = previousScore === item.score ? previousRank : index + 1
+    const tied = sorted.some((peer) => peer.id !== item.id && peer.score === item.score)
+    previousScore = item.score
+    previousRank = rank
+    return {
+      ...item,
+      rank,
+      isTied: tied,
+      rankLabel: `${tied ? "并列" : ""}第 ${rank} / ${sorted.length}`,
+    }
+  })
 }
 
 export function buildOverviewDemoBenchmark(input: {
@@ -30,6 +44,8 @@ export function buildOverviewDemoBenchmark(input: {
     parentLabel: input.parentLabel,
     parentAverage: averageOverviewDemoScore(ranked),
     rank: target?.rank ?? null,
+    rankLabel: target?.rankLabel ?? "—",
+    isTied: target?.isTied ?? false,
     total: ranked.length,
   }
 }

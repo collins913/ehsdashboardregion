@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOverviewDemoSparkline, scoreDelta, trendExtremes } from "./overview-demo-trend";
+import { buildOverviewDemoSparkline, classifyOverviewDemoTrend, scoreDelta, trendExtremes } from "./overview-demo-trend";
 import type { OverviewDemoScopeComparison } from "./overview-demo-types";
 
 describe("Overview Demo trend", () => {
@@ -20,13 +20,21 @@ describe("Overview Demo trend", () => {
 
   it("identifies positive and negative trend extremes", () => {
     const comparisons: OverviewDemoScopeComparison[] = [
-      { id: "up", rank: 1, label: "改善", level: "AREA", score: 88, previousScore: 70, delta: 18, completeness: 100, storeCount: 2, topHint: "改善" },
-      { id: "down", rank: 2, label: "下降", level: "AREA", score: 60, previousScore: 80, delta: -20, completeness: 100, storeCount: 2, topHint: "下降" },
-      { id: "flat", rank: 3, label: "稳定", level: "AREA", score: 75, previousScore: 75, delta: 0, completeness: 100, storeCount: 2, topHint: "稳定" },
+      { id: "up", rank: 1, label: "改善", level: "AREA", score: 88, previousScore: 70, delta: 18, completeness: 100, storeCount: 2, mainChange: "Improved", currentConcern: "None" },
+      { id: "down", rank: 2, label: "下降", level: "AREA", score: 60, previousScore: 80, delta: -20, completeness: 100, storeCount: 2, mainChange: "Declined", currentConcern: "Issue" },
+      { id: "flat", rank: 3, label: "稳定", level: "AREA", score: 75, previousScore: 75, delta: 0, completeness: 100, storeCount: 2, mainChange: "Stable", currentConcern: "None" },
     ];
     expect(trendExtremes(comparisons)).toMatchObject({
       largestImprovement: { id: "up" },
       largestDecline: { id: "down" },
     });
+  });
+
+  it("classifies short trend labels deterministically", () => {
+    const history = (scores: number[]) => scores.map((score, index) => ({ periodLabel: `Q${index + 1}`, score }));
+    expect(classifyOverviewDemoTrend(history([60, 65, 70, 75]))).toBe("持续改善");
+    expect(classifyOverviewDemoTrend(history([75, 70, 65, 60]))).toBe("持续下降");
+    expect(classifyOverviewDemoTrend(history([70, 66, 66, 72]))).toBe("近期回升");
+    expect(classifyOverviewDemoTrend(history([70, 73, 71, 71]))).toBe("基本稳定");
   });
 });

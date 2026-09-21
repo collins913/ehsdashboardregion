@@ -32,24 +32,25 @@ export function OverviewDemoContent({ viewModel }: { viewModel: OverviewDemoView
     <>
       <PageContainer className="space-y-5 py-5 lg:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary"><FlaskConical />Experimental</Badge><span className="text-sm text-muted-foreground">{viewModel.scopeLabel}</span><span className="text-xs text-muted-foreground" title={viewModel.periodNotice}>Demo period: {viewModel.currentPeriodLabel} · Global period not mapped</span></div>
-          <p className="text-xs text-muted-foreground">vs {viewModel.previousPeriodLabel} · {viewModel.scoreRuleVersion}</p>
+          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary"><FlaskConical />实验版</Badge><span className="text-sm text-muted-foreground">{viewModel.scopeLabel}</span><span className="text-xs text-muted-foreground" title={viewModel.periodNotice}>Demo 周期：{viewModel.currentPeriodLabel} · 全局周期尚未映射</span></div>
+          <p className="text-xs text-muted-foreground">对比 {viewModel.previousPeriodLabel} · {viewModel.scoreRuleVersion}</p>
         </div>
 
-        <ManagementSummary insight={viewModel.executive} history={viewModel.overallHistory} />
+        <ManagementSummary hero={viewModel.hero} />
 
         <AttentionMatrix matrix={viewModel.attentionMatrix} onSelect={openScope} />
-        <ScopeComparison title={viewModel.scopeLevel === "REGION" ? "Area performance" : "Store performance"} comparisons={viewModel.comparisons} onSelect={openScope} />
+        <ScopeComparison title={viewModel.scopeLevel === "REGION" ? "小区表现" : "门店表现"} comparisons={viewModel.comparisons} onSelect={openScope} />
 
         <WhatChanged attribution={viewModel.attribution} issues={viewModel.issues} />
         <DimensionAnalysis dimensions={viewModel.dimensions} />
         <IssueProfile issues={viewModel.issues} onSelect={openIssue} />
 
         <section className="border-y py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Management facts</p><p className="mt-1 text-xs text-muted-foreground">事实不进入 Demo 综合评分。</p></div><div className="grid flex-1 gap-2 sm:grid-cols-3">{viewModel.facts.map((fact, index) => { const Icon = index === 0 ? ListChecks : index === 1 ? Store : Database; const href = index === 0 ? "/risk/actions" : index === 1 ? "/risk/events" : "/performance/kpi"; return <Link key={fact} href={href} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50"><Icon className="size-4 text-primary" /><p className="text-sm font-medium">{fact}</p></Link> })}</div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">管理事实</p><p className="mt-1 text-xs text-muted-foreground">运营事实不计入 Demo 得分。</p></div><div className="grid flex-1 gap-2 sm:grid-cols-3">{viewModel.facts.map((fact, index) => { const Icon = index === 0 ? ListChecks : index === 1 ? Store : Database; const href = index === 0 ? "/risk/actions" : index === 1 ? "/risk/events" : "/performance/kpi"; return <Link key={fact} href={href} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50"><Icon className="size-4 text-primary" /><p className="text-sm font-medium">{fact}</p></Link> })}</div></div>
         </section>
+        <footer className="border-t pt-3 text-[11px] text-muted-foreground" data-testid="overview-data-footer">数据完整度 {viewModel.executive.completeness}% · 覆盖 {viewModel.executive.storeCount} 家门店 · Demo 周期 {viewModel.currentPeriodLabel} · {viewModel.scoreRuleVersion}</footer>
       </PageContainer>
-      <ScopeDetailSheet detail={sheetDetail} onClose={() => setSheetDetail(null)} />
+      <ScopeDetailSheet detail={sheetDetail} onClose={() => setSheetDetail(null)} onSelectScope={openScope} />
     </>
   )
 }

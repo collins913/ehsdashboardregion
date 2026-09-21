@@ -77,10 +77,10 @@ export const routes = {
   },
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据" },
   devOverview: {
-    title: "Overview Demo",
+    title: "总览 Demo",
     href: "/dev/overview",
     icon: LayoutDashboard,
-    description: "EHS Management Performance & Insights",
+    description: "EHS 管理表现与洞察",
   },
   devUi: { title: "UI Lab", href: "/dev/ui", icon: LayoutDashboard, showDashboardHeader: false },
 } satisfies Record<string, NavigationItem>;

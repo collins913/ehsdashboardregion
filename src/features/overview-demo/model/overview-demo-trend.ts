@@ -8,6 +8,18 @@ export function scoreDelta(
   return current === null || previous === null ? null : current - previous;
 }
 
+export function classifyOverviewDemoTrend(
+  history: readonly OverviewDemoHistoryPoint[],
+): "持续改善" | "持续下降" | "近期回升" | "基本稳定" {
+  const scores = history.flatMap((point) => (point.score === null ? [] : [point.score]))
+  if (scores.length < 2) return "基本稳定"
+  const changes = scores.slice(1).map((score, index) => score - scores[index])
+  if (changes.every((change) => change > 0)) return "持续改善"
+  if (changes.every((change) => change < 0)) return "持续下降"
+  if (changes.at(-1)! > 0 && changes.slice(0, -1).some((change) => change <= 0)) return "近期回升"
+  return "基本稳定"
+}
+
 export function rankScopeComparisons(
   comparisons: readonly OverviewDemoScopeComparison[],
 ): readonly OverviewDemoScopeComparison[] {

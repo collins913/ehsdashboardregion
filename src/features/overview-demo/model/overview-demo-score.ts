@@ -13,7 +13,7 @@ export const overviewDemoScoredItems = [
   { id: "inspections", label: "Inspections", dimension: "PERFORMANCE", issueLabel: "Inspection 未达成", route: "/performance/kpi" },
   { id: "events", label: "Events", dimension: "PERFORMANCE", issueLabel: "Event 结果异常", route: "/risk/events" },
   { id: "closeRate", label: "Close Rate", dimension: "TAKE_CHARGE", issueLabel: "TCH Close Rate 未达成", route: "/performance/goals" },
-  { id: "averageSubmissionsYtd", label: "Average Submissions YTD", dimension: "TAKE_CHARGE", issueLabel: "TCH 平均提交未达成", route: "/performance/goals" },
+  { id: "averageSubmissionsYtd", label: "Average Submissions YTD", dimension: "TAKE_CHARGE", issueLabel: "TCH Average Submissions 未达成", route: "/performance/goals" },
   { id: "participationRateYtd", label: "Participation Rate YTD", dimension: "TAKE_CHARGE", issueLabel: "TCH Participation 未达成", route: "/performance/goals" },
   { id: "certificateSafetyHealth", label: "安全健康", dimension: "CERTIFICATES", issueLabel: "安全健康证件异常", route: "/risk/certificates" },
   { id: "certificateFirstAid", label: "急救员", dimension: "CERTIFICATES", issueLabel: "急救员证件异常", route: "/risk/certificates" },

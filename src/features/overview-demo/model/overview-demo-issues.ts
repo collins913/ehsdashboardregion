@@ -10,6 +10,8 @@ function roundPercent(value: number): number {
   return Math.round(value * 100)
 }
 
+export const overviewDemoLifecycleCategories = ["新增", "持续", "已恢复"] as const
+
 export function calculateOverviewDemoPersistenceRate(
   persistentIssueCount: number,
   currentCount: number,
@@ -65,6 +67,14 @@ export function buildOverviewDemoIssueIntelligence(input: {
         persistentIssueCount,
         persistenceRate: calculateOverviewDemoPersistenceRate(persistentIssueCount, affectedStores.length),
         recoveredCount,
+        lifecycle: {
+          current: newIssueCount + persistentIssueCount,
+          new: newIssueCount,
+          persistent: persistentIssueCount,
+          previous: persistentIssueCount + recoveredCount,
+          recovered: recoveredCount,
+          delta: newIssueCount - recoveredCount,
+        },
         affectedAreaCount: areaDistribution.length,
         totalAreaCount,
         topAreaShare: shareAt(1),
@@ -73,8 +83,8 @@ export function buildOverviewDemoIssueIntelligence(input: {
         areaDistribution,
         affectedStores,
         conclusion: leadingArea
-          ? `${leadingArea.area} 占当前问题门店 ${leadingArea.share}%；本期新增 ${newIssueCount}，持续 ${persistentIssueCount}。`
-          : `当前无失败门店；本期恢复 ${recoveredCount}。`,
+          ? `${leadingArea.area} 占当前受影响门店的 ${leadingArea.share}%；其中 ${newIssueCount} 家为新增，${persistentIssueCount} 家为持续。`
+          : `当前无受影响门店；本期已恢复 ${recoveredCount} 家。`,
       }
     })
     .filter((issue) => issue.currentCount > 0 || issue.previousCount > 0)

@@ -4,6 +4,7 @@ import type {
   OverviewDemoStoreSnapshot,
 } from "@/features/overview-demo/model/overview-demo-types"
 import { createOverviewDemoOutcomes, overviewDemoCurrentStores } from "./overview-demo-data"
+import { overviewDemoScoredItems } from "@/features/overview-demo/model/overview-demo-score"
 
 function historyStore(storeId: string, failed: readonly OverviewDemoScoredItemId[]): OverviewDemoStoreSnapshot {
   return {
@@ -63,4 +64,38 @@ export const overviewDemoHistoryPeriods = [
   { periodLabel: "Q4 2025", stores: overviewDemoQ4_2025Stores },
   { periodLabel: "Q1 2026", stores: overviewDemoPreviousStores },
   { periodLabel: "Q2 2026", stores: overviewDemoCurrentStores },
+] as const satisfies readonly OverviewDemoPeriodSnapshot[]
+
+// Experimental monthly fixture: deterministic transitions between existing story anchors.
+// The last month is the current result; these are not production snapshots.
+function monthlyStores(
+  from: readonly OverviewDemoStoreSnapshot[],
+  to: readonly OverviewDemoStoreSnapshot[],
+  step: number,
+  steps: number,
+): OverviewDemoStoreSnapshot[] {
+  return from.map((store, storeIndex) => ({
+    ...store,
+    outcomes: Object.fromEntries(overviewDemoScoredItems.map((item, itemIndex) => [
+      item.id,
+      (storeIndex * 7 + itemIndex * 3) % steps < step
+        ? to[storeIndex].outcomes[item.id]
+        : store.outcomes[item.id],
+    ])) as OverviewDemoStoreSnapshot["outcomes"],
+  }))
+}
+
+export const overviewDemoMonthlyHistoryPeriods = [
+  { periodLabel: "2025-07", stores: overviewDemoQ3_2025Stores },
+  { periodLabel: "2025-08", stores: monthlyStores(overviewDemoQ3_2025Stores, overviewDemoQ4_2025Stores, 1, 3) },
+  { periodLabel: "2025-09", stores: monthlyStores(overviewDemoQ3_2025Stores, overviewDemoQ4_2025Stores, 2, 3) },
+  { periodLabel: "2025-10", stores: overviewDemoQ4_2025Stores },
+  { periodLabel: "2025-11", stores: monthlyStores(overviewDemoQ4_2025Stores, overviewDemoPreviousStores, 1, 3) },
+  { periodLabel: "2025-12", stores: monthlyStores(overviewDemoQ4_2025Stores, overviewDemoPreviousStores, 2, 3) },
+  { periodLabel: "2026-01", stores: overviewDemoPreviousStores },
+  { periodLabel: "2026-02", stores: monthlyStores(overviewDemoPreviousStores, overviewDemoCurrentStores, 1, 5) },
+  { periodLabel: "2026-03", stores: monthlyStores(overviewDemoPreviousStores, overviewDemoCurrentStores, 2, 5) },
+  { periodLabel: "2026-04", stores: monthlyStores(overviewDemoPreviousStores, overviewDemoCurrentStores, 3, 5) },
+  { periodLabel: "2026-05", stores: monthlyStores(overviewDemoPreviousStores, overviewDemoCurrentStores, 4, 5) },
+  { periodLabel: "2026-06", stores: overviewDemoCurrentStores },
 ] as const satisfies readonly OverviewDemoPeriodSnapshot[]

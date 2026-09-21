@@ -7,6 +7,7 @@ import {
 } from "../../../data/mock/overview-demo/overview-demo-data"
 import {
   overviewDemoHistoryPeriods,
+  overviewDemoMonthlyHistoryPeriods,
   overviewDemoPreviousStores,
 } from "../../../data/mock/overview-demo/overview-demo-history"
 
@@ -18,6 +19,7 @@ export function getOverviewDemoFixture() {
     previousPeriodLabel: overviewDemoPreviousPeriodLabel,
     previousStores: overviewDemoPreviousStores,
     historyPeriods: overviewDemoHistoryPeriods,
+    monthlyHistoryPeriods: overviewDemoMonthlyHistoryPeriods,
     scoreRuleVersion: overviewDemoScoreRuleVersion,
   } as const
 }

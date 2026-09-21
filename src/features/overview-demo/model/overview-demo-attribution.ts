@@ -5,8 +5,40 @@ import type {
   OverviewDemoOutcome,
   OverviewDemoStoreIdentity,
   OverviewDemoStoreSnapshot,
+  OverviewDemoScopeChangeSummary,
   OverviewDemoTransition,
 } from "./overview-demo-types"
+
+function metricLabel(metricKey: OverviewDemoAttributionItem["metricKey"]): string {
+  return overviewDemoScoredItems.find((item) => item.id === metricKey)?.label ?? metricKey
+}
+
+export function buildOverviewDemoScopeChangeSummary(
+  delta: number | null,
+  attribution: OverviewDemoAttribution,
+): OverviewDemoScopeChangeSummary {
+  const concern = attribution.persistentIssues[0] ?? attribution.newIssues[0]
+  const currentConcern = concern ? `当前关注问题：${concern.label}` : "无当前关注问题"
+
+  if (delta === null) return { mainChange: "变化不可用", currentConcern, changeKind: "UNAVAILABLE" }
+  if (delta > 0) {
+    const driver = attribution.improvementDrivers[0]
+    return {
+      mainChange: driver ? `主要改善：${metricLabel(driver.metricKey)} 已恢复` : "主要改善：未识别到恢复项",
+      currentConcern,
+      changeKind: "IMPROVEMENT",
+    }
+  }
+  if (delta < 0) {
+    const driver = attribution.declineDrivers[0]
+    return {
+      mainChange: driver ? `主要下降：${driver.label}` : "主要下降：未识别到新增问题",
+      currentConcern,
+      changeKind: "DECLINE",
+    }
+  }
+  return { mainChange: "持平", currentConcern, changeKind: "STABLE" }
+}
 
 export function classifyOverviewDemoTransition(
   previous: OverviewDemoOutcome,
