@@ -24,6 +24,7 @@ import { DataTableColumnHeader } from "@/components/shared/data-table-column-hea
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import {
   DataTableLoadingCellContent,
+  DataTablePendingFeedback,
   DataTablePendingValue,
   useResolvedDataTableSnapshot,
   useRetainedDataTableRows,
@@ -796,6 +797,7 @@ export function EventsDataTable({
           条事件
         </p>
         <div className="flex items-center gap-2">
+          <DataTablePendingFeedback isPending={isQueryLoading && pendingMode === "preserve-visible"} />
           <span className="text-sm text-muted-foreground">
             第{" "}
             <DataTablePendingValue pending={isResolvedMetadataPending}>

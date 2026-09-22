@@ -45,8 +45,10 @@ describe("async table loading architecture", () => {
   it("keeps KPI client-side pagination independent from repository snapshots", () => {
     const tableSource = source("./kpi/kpi-data-table.tsx");
 
-    expect(tableSource).not.toContain("useResolvedDataTableSnapshot");
-    expect(tableSource).not.toContain("DataTablePendingValue");
+    expect(tableSource).toContain("useResolvedDataTableSnapshot");
+    expect(tableSource).toContain("DataTablePendingValue");
+    expect(tableSource).toContain("createPaginatedRowModel()");
+    expect(tableSource).not.toContain("manualPagination: true");
   });
 
   it.each([

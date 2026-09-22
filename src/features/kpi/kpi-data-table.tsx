@@ -22,6 +22,8 @@ import { DataTableColumnHeader } from "@/components/shared/data-table-column-hea
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import {
   DataTableLoadingCellContent,
+  DataTablePendingValue,
+  useResolvedDataTableSnapshot,
   useRetainedDataTableRows,
 } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
@@ -339,15 +341,19 @@ export function KpiDataTable({
   const [paginationState, setPaginationState] =
     useState<KpiPaginationState>({ status: "UNMEASURED" });
   const isQueryLoading = queryStatus === "LOADING";
-  const isQueryPlaceholder = queryStatus !== "READY";
+  const semanticKey = JSON.stringify([context, referenceDateIso]);
+  const { snapshot, isResolvedMetadataPending } = useResolvedDataTableSnapshot({
+    snapshot: queryStatus === "READY" ? rows : null,
+    status: queryStatus,
+    metadataKey: semanticKey,
+  });
+  const resolvedRows = snapshot ?? [];
   const data = useMemo(
     () =>
-      isQueryPlaceholder
-        ? []
-        : abnormalOnly
-          ? rows.filter(rowHasNegativeResult)
-          : rows,
-    [abnormalOnly, isQueryPlaceholder, rows],
+      abnormalOnly
+        ? resolvedRows.filter(rowHasNegativeResult)
+        : resolvedRows,
+    [abnormalOnly, resolvedRows],
   );
   useLayoutEffect(() => {
     if (isQueryLoading) {
@@ -694,11 +700,11 @@ export function KpiDataTable({
         }`}
       >
         <p className="text-sm text-muted-foreground">
-          共 {data.length} 家门店
+          共 <DataTablePendingValue pending={isResolvedMetadataPending}>{data.length}</DataTablePendingValue> 家门店
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            第 {table.state.pagination.pageIndex + 1} / {Math.max(table.getPageCount(), 1)} 页
+            第 <DataTablePendingValue pending={isResolvedMetadataPending}>{table.state.pagination.pageIndex + 1}</DataTablePendingValue> / <DataTablePendingValue pending={isResolvedMetadataPending}>{Math.max(table.getPageCount(), 1)}</DataTablePendingValue> 页
           </span>
           <Button
             variant="outline"

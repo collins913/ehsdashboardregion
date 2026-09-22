@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { Loader2Icon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +35,9 @@ export function useResolvedDataTableSnapshot<TSnapshot>({
   const isRetainingResolvedSnapshot =
     status === "LOADING" && resolvedRef.current !== null;
   const isResolvedMetadataPending =
-    isRetainingResolvedSnapshot &&
-    resolvedRef.current?.metadataKey !== metadataKey;
+    status !== "READY" &&
+    (resolvedRef.current === null ||
+      resolvedRef.current.metadataKey !== metadataKey);
   const pendingMode: DataTablePendingMode =
     isRetainingResolvedSnapshot && !isResolvedMetadataPending
       ? "preserve-visible"
@@ -128,6 +130,27 @@ export function DataTablePendingValue({
         >
           <span className="h-3 w-full min-w-3 rounded-md bg-muted" />
         </span>
+      ) : null}
+    </span>
+  );
+}
+
+export function DataTablePendingFeedback({
+  isPending,
+}: {
+  isPending: boolean;
+}) {
+  return (
+    <span
+      role={isPending ? "status" : undefined}
+      aria-live="polite"
+      className="inline-flex h-4 w-16 shrink-0 items-center gap-1 text-xs text-muted-foreground"
+    >
+      {isPending ? (
+        <>
+          <Loader2Icon aria-hidden="true" className="size-3 animate-spin" />
+          加载中…
+        </>
       ) : null}
     </span>
   );

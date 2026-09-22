@@ -57,6 +57,8 @@ describe("resolved table presentation lifecycle", () => {
   });
 
   it("does not preserve visible content before any result has resolved", () => {
-    expect(render(null, "LOADING", "region A").pendingMode).toBe("mask-content");
+    const pending = render(null, "LOADING", "region A");
+    expect(pending.pendingMode).toBe("mask-content");
+    expect(pending.isResolvedMetadataPending).toBe(true);
   });
 });

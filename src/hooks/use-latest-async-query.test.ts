@@ -43,7 +43,7 @@ describe("latest async query guard", () => {
       'state: { status: "LOADING", resolved: current.resolved }',
     );
     expect(hookSource).toContain(
-      'return queryKey === null\n      ? { status: "IDLE", resolved: null }\n      : { status: "LOADING", resolved: stored.resolved };',
+      'return queryKey === null\n      ? { status: "IDLE", resolved: null, reload }\n      : { status: "LOADING", resolved: stored.resolved, reload };',
     );
     expect(hookSource).toContain("const resolved = { key: queryKey, data }");
   });

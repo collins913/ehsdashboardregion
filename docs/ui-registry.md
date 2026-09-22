@@ -48,7 +48,7 @@
 | DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists; Features provide columns, rows and column size roles |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
-| DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content, semantic scope pending masks content and only unknown footer digits |
+| DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content with fixed-width footer feedback, semantic scope pending masks content and only unknown footer digits |
 | DataTable layout helpers | Shared fixed table layout, minimum width, horizontal overflow, sticky mechanics and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
 
 ## Shared utilities
@@ -62,7 +62,7 @@
 | Hook | Responsibility |
 | --- | --- |
 | useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
-| useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result; prevents stale async responses from replacing the latest query |
+| useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result and guarded imperative reload; prevents stale async responses from replacing the latest query |
 
 ## Feature-specific
 
