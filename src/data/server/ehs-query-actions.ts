@@ -13,6 +13,7 @@ import type {
 } from "@/data/contracts/take-charge";
 import { createEhsRepository } from "@/data/repositories/create-ehs-repository.server";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { authorizeBusinessScope } from "@/lib/access/access-service.server";
 import type { KpiRow } from "@/features/kpi/types";
 
 type QueryEnvelope<T> = {
@@ -28,49 +29,50 @@ export async function queryKpiRows({
   referenceDateIso,
   query: context,
 }: QueryEnvelope<EhsFilterContext>): Promise<readonly KpiRow[]> {
-  const snapshot = await repositoryFor(referenceDateIso).getKpiData(context);
-  return buildKpiRows(context, snapshot);
+  const authorized = { ...context, ...await authorizeBusinessScope(context) };
+  const snapshot = await repositoryFor(referenceDateIso).getKpiData(authorized);
+  return buildKpiRows(authorized, snapshot);
 }
 
 export async function queryActions({
   referenceDateIso,
   query,
 }: QueryEnvelope<ActionsQuery>): Promise<ActionsQueryResult> {
-  return repositoryFor(referenceDateIso).getActions(query);
+  return repositoryFor(referenceDateIso).getActions({ ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } });
 }
 
 export async function queryEvents({
   referenceDateIso,
   query,
 }: QueryEnvelope<EventsQuery>): Promise<EventsQueryResult> {
-  return repositoryFor(referenceDateIso).getEvents(query);
+  return repositoryFor(referenceDateIso).getEvents({ ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } });
 }
 
 export async function queryTakeChargeGoals({
   referenceDateIso,
   query: context,
 }: QueryEnvelope<EhsFilterContext>): Promise<TakeChargeGoalsSummary> {
-  return repositoryFor(referenceDateIso).getTakeChargeGoals({ context });
+  return repositoryFor(referenceDateIso).getTakeChargeGoals({ context: { ...context, ...await authorizeBusinessScope(context) } });
 }
 
 export async function queryTakeChargeRecords({
   referenceDateIso,
   query,
 }: QueryEnvelope<TakeChargeRecordsQuery>): Promise<TakeChargeRecordsResult> {
-  return repositoryFor(referenceDateIso).getTakeChargeRecords(query);
+  return repositoryFor(referenceDateIso).getTakeChargeRecords({ ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } });
 }
 
 export async function queryStores({
   referenceDateIso,
   query: context,
 }: QueryEnvelope<EhsStoreScope>): Promise<StoresQueryResult> {
-  return repositoryFor(referenceDateIso).getStores({ context });
+  return repositoryFor(referenceDateIso).getStores({ context: await authorizeBusinessScope(context) });
 }
 
 export async function queryEnvironment({ referenceDateIso, query: context }: QueryEnvelope<EhsStoreScope>): Promise<EnvironmentQueryResult> {
-  return repositoryFor(referenceDateIso).getEnvironment({ context });
+  return repositoryFor(referenceDateIso).getEnvironment({ context: await authorizeBusinessScope(context) });
 }
 
 export async function queryCertificates({ referenceDateIso, query: context }: QueryEnvelope<EhsStoreScope>): Promise<CertificatesQueryResult> {
-  return repositoryFor(referenceDateIso).getCertificates({ context });
+  return repositoryFor(referenceDateIso).getCertificates({ context: await authorizeBusinessScope(context) });
 }

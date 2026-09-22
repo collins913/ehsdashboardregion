@@ -37,3 +37,5 @@
 15. After completing a scoped task, update relevant project documentation if the implementation changes current project behavior or structure.
 
 16. Do not merge, delete branches, or rewrite Git history unless explicitly requested.
+
+17. Client code must not read protected business source files directly. Authorize and scope protected data on the server before returning it to UI.

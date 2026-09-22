@@ -14,12 +14,17 @@
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
 | Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
-| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment and Certificates |
+| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment, Certificates and Access Audit |
 | Accordion | `src/components/ui/accordion.tsx` | Environment environmental-license detail sections |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
 | Card | `src/components/ui/card.tsx` | Goals summary metrics |
+| Dialog | `src/components/ui/dialog.tsx` | Access Manual Grant create / edit |
+| AlertDialog | `src/components/ui/alert-dialog.tsx` | Access Manual Grant delete confirmation |
+| Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
+| Input | `src/components/ui/input.tsx` | Access email and grant form fields |
+| Sonner | `src/components/ui/sonner.tsx` | Access mutation feedback |
 
 ## Shared
 
@@ -40,6 +45,7 @@
 | AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
+| DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists; Features provide columns, rows and column size roles |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
 | DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content, semantic scope pending masks content and only unknown footer digits |

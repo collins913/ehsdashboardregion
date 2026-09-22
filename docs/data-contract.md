@@ -112,10 +112,24 @@ Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 
 | Store Name CN | 门店中文名称 | 可能参与 Store Resolution |
 | Store Name EN | 门店英文名称 | 可能参与 Store Resolution |
 | TRTID | 内部门店标识 | 不称为 Store ID；跨源唯一性不保证 |
+| Region Owner / Email | 区域负责人姓名和邮箱 | 两者分别允许 null |
+| Area Owner / Email | 小区负责人姓名和邮箱 | 两者分别允许 null |
 | Manager | 门店经理 | 人员标识方式 TBD |
+| Manager Email | 门店经理邮箱 | 允许 null |
 | EHS Ambassador | 门店 EHS Ambassador；用户可见标签为“EHS&S 代表” | 人员标识方式 TBD |
+| EHS Ambassador Email | EHS&S 代表邮箱 | 允许 null |
 
 Stores Repository 按 Global Region / Area / canonical Store scope 返回上述字段，并忽略 Period。列表默认列与 Detail 字段范围见 `business-requirements.md`。允许未来增加其它主数据字段；新增字段是否进入列表或详情仍为 TBD。
+
+## 3A. Access Management 逻辑契约
+
+`src/data/contracts/access/` 定义 Identity、Base Grant、Manual Grant、Effective Access、统一 Mutation Result 与 Audit Event。Email 在 Access Domain 中统一 trim + lowercase。Base Grant 从 Store 主数据实时派生，不写入 Manual Grant Repository；相同邮箱、来源类型和范围只产生一条规范化授权。Manual Grant 包含目标邮箱、权限类型、范围、授权人和时间、可选备注；更新记录保留更新人和时间。授权存在即生效，删除即失效，没有截止时间或过期状态。
+
+GLOBAL_USER 和 GLOBAL_ADMIN 均有全局数据范围，只有 GLOBAL_ADMIN 可管理权限。REGION 继承下级 Area / Store；AREA 继承下级 Store；STORE 仅授权当前门店。服务端保留自动授权来源元数据、Effective Access、Account Summary 和可访问筛选选项；Client 不计算继承或合并。UI 在 /access 仅维护 Manual Grants，并在操作日志 Tab 追踪变更；Period 不进入 Access 查询身份。
+
+Manual Grant Repository 的写入契约需与 append-only Audit Event 原子保存；当前 Mock 用 server-memory 模拟，Production 持久化实现待定。变更失败返回明确代码和安全文案。生产身份提供者、数据库结构与 API 物理格式未在本阶段冻结。
+
+Create / Update / Delete Server Action 对运行时输入逐项解析：Email、Access Type、Scope ID、Note 与 mutation ID。全局类型要求 `scopeId: null`，Region / Area / Store 要求非空范围 ID；Access Service 再按组织目录核验范围，并阻止修改或删除最后一名有效 GLOBAL_ADMIN。无效输入返回 `INVALID_INPUT`，最后管理员保护返回 `LAST_GLOBAL_ADMIN`。
 
 ## 4. Performance → KPI 输入
 

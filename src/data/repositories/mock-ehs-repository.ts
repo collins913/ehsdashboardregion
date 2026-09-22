@@ -1,3 +1,4 @@
+import { toKpiStore } from "@/data/normalize-store-master";
 import {
   createKpiMockData,
   type KpiMockCoverage,
@@ -90,15 +91,6 @@ function scopeIncludes<T>(scope: FilterScope<T>, value: T): boolean {
   return scope.kind === "ALL" || scope.values.includes(value);
 }
 
-function toKpiStore(store: StoreMasterData): KpiStore {
-  return {
-    storeId: store.trtid,
-    displayName: store.storeNameCn,
-    region: store.region,
-    area: store.area,
-  };
-}
-
 function toNormalizedStoreRecord(
   store: StoreMasterData,
 ): NormalizedStoreRecord {
@@ -110,7 +102,13 @@ function toNormalizedStoreRecord(
     region: store.region,
     area: store.area,
     manager: store.manager,
+    regionOwner: store.regionOwner ?? null,
+    regionOwnerEmail: store.regionOwnerEmail ?? null,
+    areaOwner: store.areaOwner ?? null,
+    areaOwnerEmail: store.areaOwnerEmail ?? null,
+    managerEmail: store.managerEmail ?? null,
     ehsAmbassador: store.ehsAmbassador,
+    ehsAmbassadorEmail: store.ehsAmbassadorEmail ?? null,
   };
 }
 

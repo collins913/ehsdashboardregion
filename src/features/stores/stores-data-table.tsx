@@ -132,8 +132,8 @@ export function isStoreRowActivationKey(key: string) {
   return key === "Enter" || key === " ";
 }
 
-function displayValue(value: string) {
-  return value.trim().length > 0 ? value : "—";
+function displayValue(value: string | null | undefined) {
+  return value?.trim() ? value : "—";
 }
 
 export function StoreDetailContent({
@@ -147,8 +147,12 @@ export function StoreDetailContent({
     ["TRTID", record.trtid],
     ["区域", record.region],
     ["小区", record.area],
-    ["门店经理", record.manager],
-    ["EHS&S 代表", record.ehsAmbassador],
+  ] as const;
+  const contacts = [
+    ["区域负责人", record.regionOwner, record.regionOwnerEmail],
+    ["小区负责人", record.areaOwner, record.areaOwnerEmail],
+    ["门店经理", record.manager, record.managerEmail],
+    ["EHS&S 代表", record.ehsAmbassador, record.ehsAmbassadorEmail],
   ] as const;
 
   return (
@@ -158,6 +162,13 @@ export function StoreDetailContent({
           <div key={label}>
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="mt-1 break-words">{displayValue(value)}</dd>
+          </div>
+        ))}
+        {contacts.map(([label, name, email]) => (
+          <div key={label}>
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="mt-1 break-words">{displayValue(name)}</dd>
+            <dd className="break-all text-sm text-muted-foreground">{displayValue(email)}</dd>
           </div>
         ))}
       </dl>

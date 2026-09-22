@@ -192,8 +192,14 @@ describe("KPI assembly", () => {
       storeNameCn: "未声明覆盖门店",
       storeNameEn: "Uncovered Store",
       trtid: "TEST-013",
+      regionOwner: null,
+      regionOwnerEmail: null,
+      areaOwner: null,
+      areaOwnerEmail: null,
       manager: "测试经理",
+      managerEmail: null,
       ehsAmbassador: "测试专员",
+      ehsAmbassadorEmail: null,
     };
     const mutableStores = mockStores as StoreMasterData[];
     mutableStores.push(uncoveredStore);

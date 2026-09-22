@@ -24,6 +24,7 @@ Overview
 Performance → KPI / Goals
 Risk & Compliance → Events / Actions / Certificates / Environment
 Stores
+Access Management（仅全局管理员）
 ```
 
 单项 KPI 与 Goal 属于页面内容，不作为侧边栏目的地。
@@ -68,7 +69,7 @@ Dashboard 不根据明细猜测分子、分母或人员基数。
 
 ### D-008 未确认的业务含义必须保留为 TBD
 
-不得自行补全公式、阈值、状态、筛选关系、数据库字段、权限、日期边界或异常处理。
+不得自行补全公式、阈值、状态、筛选关系、数据库字段、未定义的权限、日期边界或异常处理。Access Management V1 的已确认规则见 D-042。
 
 ## 4. 门店主数据与关联
 
@@ -78,7 +79,7 @@ Store Detail 不承载 Performance 或 Risk & Compliance 内容，也不进行 K
 
 ### D-010 Stores 列表与详情字段边界
 
-Stores 列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表；Store Name EN 仅在 Store Detail 展示。底层 `ehsAmbassador` 字段名保持稳定。未来允许扩展字段，但新增字段是否进入列表或详情必须另行确认。
+Stores 列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表；Store Detail 另展示 Store Name EN 及四类管理联系人的姓名和邮箱。底层 `ehsAmbassador` 字段名保持稳定。未来允许扩展字段，但新增字段是否进入列表或详情必须另行确认。
 
 ### D-011 TRTID 不是所有数据源的强制唯一关联键
 
@@ -267,7 +268,17 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
 - 尚未确认的其它生产数据源 Store Resolution 策略；当前 Environment / Certificates 复用 D-011，Take Charge 使用 TRTID
-- 数据库、API、权限、刷新、持久化及视觉状态规范
+- 数据库、API 物理结构、Production Identity Provider、刷新、持久化及视觉状态规范
+
+### D-042 Access Management V1 权限真源
+
+Base Grants 从组织联系人邮箱派生，不由管理员 CRUD；Manual Grants 在 Demo 中由独立 Mock Repository 保存，存在即生效、删除即失效，没有截止时间与过期状态。服务端合并授权、应用 Region / Area / Store 继承，并在业务数据返回前完成授权。GLOBAL_USER 有全局数据访问；GLOBAL_ADMIN 另可进入 /access 的手动权限管理与操作日志两个 Tab。UI 只维护 Manual Grants，日志承担历史追踪；React 不计算权限。写入输入由 Server Action 做运行时解析，Access Service 拒绝导致有效 GLOBAL_ADMIN 为零的修改或删除。Production 必须将该检查与持久化写入纳入同一原子事务。
+
+### D-043 Protected source 与未来部署边界
+
+Dashboard 应用层 Effective Access 是业务数据范围权限的权威模型。普通用户未来无需直接读取受保护 SharePoint JSON；SharePoint source library ACL 只保护源文件，不是应用业务 scope 真源，也不与应用权限人工同步。Client 不直接访问受保护源文件。若未来采用静态 ASPX / JS / CSS 前端，仍须独立 Backend/API 承载身份、授权、受保护数据读取、Manual Grant mutation 与审计。具体 Azure / Backend 技术选型留给 Production Data Integration Pilot。本阶段未实现 SharePoint、生产身份或生产 Repository。
+
+Production Integration TBD：Entra tenantId + objectId、Production Identity Provider、Azure Function / App Service 等受保护 API、SharePoint secure data access、Grant / Audit 持久化存储、first-admin bootstrap、authorization-aware cache isolation，以及 ASPX / SPFx 部署安全验证。Demo 的 `EHS_MOCK_USER_EMAIL` 仅供开发和模拟身份使用。
 
 ## 10. 项目技术决策（既有）
 

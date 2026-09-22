@@ -1,11 +1,11 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-16
+- 更新日期：2026-09-22
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
 
-项目已完成基础架构及七个正式业务模块，当前进入 Overview readiness / Overview V1。Overview 仍为占位页，业务展示范围与汇总规则待确认，不标记完成。
+项目已完成基础架构及七个正式业务模块；Overview Demo 已有独立原型。Access Management V1 Demo：completed；Production Integration 为后续独立阶段。
 
 Environment Detail Expansion：completed。主表保持门店维度并提供五个详情入口；typed 环保证照、应急预案与废弃物合同明细已完成，设施信息及 Monitoring 新字段保持 TBD。
 
@@ -105,12 +105,14 @@ Performance V1 已完成 KPI summary / 按需 domain drilldown 优化、异步�
 → Production Adapter
 → 真实数据 Contract Validation
 → Performance / Scale Validation
-→ Authentication / Authorization
+→ Production authentication / authorization integration
 → UAT
 → Production
 ```
 
-权限管理不提前实现。未来约束链路为：
+Access V1 Demo：completed。已建立 Mock identity、Base Grants、Manual Grants、Effective Access、Global User、Global Admin、server authorization 与 audit semantics；`/access` 提供“手动权限管理”和“操作日志”两个 Tab，自动权限由组织数据派生，Manual Grant 无截止时间和过期状态，服务端保护最后一名全局管理员。
+
+Production Integration TBD：Entra identity、稳定 tenantId + objectId、Production Identity Provider、Azure Function / App Service 等受保护 API、SharePoint protected JSON API / secure data access、Manual Grant 与 Audit 持久化（数据库或 SharePoint List）、production first-admin bootstrap、authorization-aware cache isolation、ASPX / SPFx 部署安全验证。不得把 Demo Mock identity 或进程内授权与审计数据视为生产能力。若采用静态 ASPX 托管，独立 server authorization runtime 仍为必要条件。当前约束链路为：
 
 ```text
 User Identity
@@ -120,7 +122,7 @@ User Identity
 → UI
 ```
 
-具体 RBAC、角色和权限规则保持 TBD。
+全局用户与全局管理员及 Region / Area / Store 范围已定义；Production 身份与数据源接入仍待定。
 
 ## Roadmap 原则
 

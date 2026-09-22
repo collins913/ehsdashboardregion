@@ -8,8 +8,14 @@ export interface NormalizedStoreRecord {
   trtid: string;
   region: string;
   area: string;
-  manager: string;
-  ehsAmbassador: string;
+  regionOwner: string | null;
+  regionOwnerEmail: string | null;
+  areaOwner: string | null;
+  areaOwnerEmail: string | null;
+  manager: string | null;
+  managerEmail: string | null;
+  ehsAmbassador: string | null;
+  ehsAmbassadorEmail: string | null;
 }
 
 export interface StoresQuery {

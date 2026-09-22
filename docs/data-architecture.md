@@ -34,6 +34,12 @@ Client Feature
 
 Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领域组织的 normalized async query；raw source access 留在 Adapter / Repository implementation 内部。当前 server-only factory 在 Mock Source / Dataset 层选择 Standard 或 Performance profile，未来 Production Adapter 在同一边界替换，不改变 Feature query contract。
 
+受保护业务数据必须经过服务端身份解析、Effective Access、请求范围授权，再由 Repository 查询并返回授权后的 DTO。Client 不直接读取 protected production source / JSON，也不持有其 URL 或凭据；不能先返回全量数据再由 React 过滤。授权同样覆盖 `totalCount`、summary 与筛选选项。当前 Next.js Server Action 使用集中 `authorizeBusinessScope` adapter；未来 Production Repository 仍位于该 server boundary 之后。SharePoint Document Library JSON 只是可能的数据源实现，不是 Client API。
+
+Access Service 从 Store / Organization source 派生 Base Grants、读取独立 Manual Grant Repository 并解析 Effective Access；Manual Grant 存在即生效，删除即失效。`EHS_MOCK_USER_EMAIL` 仅在 server-only Mock identity resolver 使用，未配置时落到预置全局管理员；Production Identity Provider 后续替换它。Manual Grant 与审计由同一 Repository mutation 维护；Production 实现应原子写入两者。/access 的两个 Tab 只管理手动权限与呈现审计；UI 只展示 DTO、收集输入并触发 Server Action，Region / Area / Store 查询忽略 Period。
+
+Access 写入遵循 Server Action → runtime parse / validate → Access Service → Repository。Service 校验目录范围与最后一名有效 GLOBAL_ADMIN；Client 只显示结果。当前 Mock Repository 为进程内状态；Production 须在持久化事务中原子执行最后管理员检查、Grant mutation 与 Audit 写入，以防并发操作绕过保护。
+
 Mock Profile 数据流为：
 
 ```text
@@ -193,7 +199,8 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 数据库、表名、物理字段、主外键、索引与唯一约束
 - API 路由、请求、响应与错误结构
 - 数据源系统、刷新频率与持久化方式
-- 权限模型
+- Production Entra identity（tenantId + objectId）、first-admin bootstrap、Access / Audit 持久化与独立受保护 Backend/API 选型
+- SharePoint protected JSON API / secure data access、authorization-aware cache isolation 与 ASPX / SPFx 部署安全验证
 - 生产环境 `referenceDate` 来源与 clock injection 策略；业务时区已冻结为 `Asia/Shanghai`
 
 ## 当前测试数据实现

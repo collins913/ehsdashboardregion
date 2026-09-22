@@ -296,7 +296,7 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 
 上述功能优先放在表格标题行或表头区域。只有后续复杂度确有需要时才增加独立工具栏。
 
-点击门店后，仅展示中文门店名、英文门店名、TRTID、Region、Area、Manager、EHS&S 代表。底层稳定字段名可继续使用 `ehsAmbassador`。
+点击门店后，展示中文门店名、英文门店名、TRTID、Region、Area，以及区域负责人、小区负责人、门店经理、EHS&S 代表四类联系人的姓名和邮箱。底层稳定字段名可继续使用 `ehsAmbassador`。
 
 ### 10.4 空值
 
@@ -313,9 +313,21 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 ## 11. 本次不定义
 
 - Overview 健康度、评分、排序和汇总规则
-- 权限模型
+- Access Management V1 见下节；生产身份与持久化实现待后续阶段。
 - 数据库表、物理字段名、字段类型、约束与索引
 - API 路由、请求和响应格式
 - 数据刷新频率与持久化方式
 - 生产环境 Reference Date 的来源；业务时区与 Period 边界已由 Global Filters 规则冻结
 - 未明确的状态字典与视觉颜色
+
+## 12. Access Management V1
+
+Store Detail 展示区域负责人、小区负责人、门店经理、EHS&S 代表的姓名和邮箱；缺失显示 `—`，不在 Store 页面计算权限。
+
+组织联系人邮箱分别自动产生 Region、Area、Store、Store Base Grant；空邮箱不产生授权。管理员只能维护独立的 Manual Grant：全局用户、全局管理员、区域、小区、门店。全局用户可查看全部业务数据；全局管理员另可进入权限管理、维护手动授权及查看日志。
+
+`/access` 仅全局管理员可访问，使用 Dashboard 唯一一套 GlobalFilters；Region / Area / Store 参与手动授权查询，Period ignored。页面提供“手动权限管理”和“操作日志”两个 Tab。管理页只展示管理员创建的 Manual Grants，按邮箱、权限类型和组织范围筛选，支持新增、编辑、删除；权限范围显示名称。新增时先选权限类型，再按区域、小区、门店逐级选范围；编辑时目标邮箱不可更改。Manual Grant 存在即生效，删除即失效，没有截止时间和过期状态。自动权限继续由组织联系人邮箱生成 Base Grants，权限控制仍由服务端计算 Effective Access。日志默认时间倒序，邮箱同时匹配操作人与授权对象，Sheet 展示变更前后与备注，承担历史追踪职责；时间使用业务日期时间格式。
+
+修改或删除手动授权不得使有效全局管理员数量降为零；Access Service 在服务端拒绝该操作，页面展示安全错误文案。
+
+侧栏底部显示当前邮箱和服务端生成的简短权限摘要。已识别但无有效数据权限的账号进入 `/no-access`，不存在的页面仍为 404。侧栏和筛选选项只显示可访问范围；服务端在所有受保护业务查询返回前再次授权并裁剪数据、汇总与数量。

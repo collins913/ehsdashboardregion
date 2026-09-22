@@ -87,8 +87,14 @@ export interface StoreMasterData {
   storeNameCn: string;
   storeNameEn: string;
   trtid: string;
-  manager: string;
-  ehsAmbassador: string;
+  regionOwner: string | null;
+  regionOwnerEmail: string | null;
+  areaOwner: string | null;
+  areaOwnerEmail: string | null;
+  manager: string | null;
+  managerEmail: string | null;
+  ehsAmbassador: string | null;
+  ehsAmbassadorEmail: string | null;
 }
 
 export interface TrainingRecord {

@@ -128,8 +128,14 @@ function performanceStores(): readonly StoreMasterData[] {
       storeNameCn: `${nameStem}${placeStem}${sequence}号引力场中心`,
       storeNameEn: `${englishStem} ${englishPlace} Gravity Field Center ${sequence}`,
       trtid: `PERF-${String(index + 1).padStart(4, "0")}`,
+      regionOwner: `区域负责人${Math.floor((index % organizationScopes.length) / 2)}`,
+      regionOwnerEmail: `region.${Math.floor((index % organizationScopes.length) / 2)}@example.test`,
+      areaOwner: `小区负责人${index % organizationScopes.length}`,
+      areaOwnerEmail: `area.${index % organizationScopes.length}@example.test`,
       manager: mockPersonAt(index),
+      managerEmail: `manager.${index + 1}@example.test`,
       ehsAmbassador: mockPersonAt(index + 5),
+      ehsAmbassadorEmail: `ehss.${index + 1}@example.test`,
     };
   });
 }

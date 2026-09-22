@@ -33,8 +33,14 @@ describe("scoped Stores repository query", () => {
       trtid: mockStores[0].trtid,
       region: mockStores[0].region,
       area: mockStores[0].area,
+      regionOwner: mockStores[0].regionOwner,
+      regionOwnerEmail: mockStores[0].regionOwnerEmail,
+      areaOwner: mockStores[0].areaOwner,
+      areaOwnerEmail: mockStores[0].areaOwnerEmail,
       manager: mockStores[0].manager,
+      managerEmail: mockStores[0].managerEmail,
       ehsAmbassador: mockStores[0].ehsAmbassador,
+      ehsAmbassadorEmail: mockStores[0].ehsAmbassadorEmail,
     });
   });
 

@@ -19,8 +19,14 @@ const record: NormalizedStoreRecord = {
   trtid: "TEST-001",
   region: "测试区域",
   area: "测试小区",
+  regionOwner: "测试区域负责人",
+  regionOwnerEmail: "region@example.test",
+  areaOwner: "测试小区负责人",
+  areaOwnerEmail: "area@example.test",
   manager: "测试经理",
+  managerEmail: "manager@example.test",
   ehsAmbassador: "测试代表",
+  ehsAmbassadorEmail: "ehss@example.test",
 };
 
 describe("Stores Data Table contract", () => {
@@ -78,7 +84,7 @@ describe("Stores Data Table contract", () => {
 });
 
 describe("Store detail", () => {
-  it("renders all seven confirmed fields with the Chinese EHS&S label", () => {
+  it("renders all four contacts and their emails", () => {
     const markup = renderToStaticMarkup(
       createElement(StoreDetailContent, { record }),
     );
@@ -89,17 +95,25 @@ describe("Store detail", () => {
     expect(markup).toContain("测试区域");
     expect(markup).toContain("测试小区");
     expect(markup).toContain("测试经理");
+    expect(markup).toContain("测试区域负责人");
+    expect(markup).toContain("region@example.test");
+    expect(markup).toContain("测试小区负责人");
+    expect(markup).toContain("area@example.test");
+    expect(markup).toContain("manager@example.test");
     expect(markup).toContain("测试代表");
+    expect(markup).toContain("ehss@example.test");
     expect(markup).toContain("EHS&amp;S 代表");
   });
 
   it("uses the project empty-value display without changing the contract", () => {
     const markup = renderToStaticMarkup(
       createElement(StoreDetailContent, {
-        record: { ...record, manager: "" },
+        record: { ...record, regionOwner: null, areaOwnerEmail: null, manager: null, managerEmail: null, ehsAmbassador: null, ehsAmbassadorEmail: null },
       }),
     );
 
     expect(markup).toContain("—");
+    expect(markup).not.toContain("null");
+    expect(markup).not.toContain("undefined");
   });
 });

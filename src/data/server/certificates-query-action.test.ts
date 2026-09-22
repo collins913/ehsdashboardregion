@@ -5,6 +5,7 @@ const { getCertificates, factory } = vi.hoisted(() => {
   return { getCertificates, factory: vi.fn(() => ({ getCertificates })) };
 });
 vi.mock("@/data/repositories/create-ehs-repository.server", () => ({ createEhsRepository: factory }));
+vi.mock("@/lib/access/access-service.server", () => ({ authorizeBusinessScope: async (query: unknown) => query }));
 import { queryCertificates } from "./ehs-query-actions";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
 

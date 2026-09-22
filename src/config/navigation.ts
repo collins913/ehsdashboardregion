@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Leaf,
   ListChecks,
+  Shield,
   Store,
   Target,
 } from "lucide-react";
@@ -76,6 +77,7 @@ export const routes = {
     description: "查看当前筛选范围内各门店的环境项目现状",
   },
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据" },
+  accessManagement: { title: "权限管理", href: "/access", icon: Shield, description: "管理手动权限与查看操作日志" },
   devOverview: {
     title: "总览 Demo",
     href: "/dev/overview",

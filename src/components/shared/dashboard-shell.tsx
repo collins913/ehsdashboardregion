@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/shared/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { KpiStore } from "@/data/contracts/kpi";
 import type { Month } from "@/types/ehs";
+import type { AccountSummary } from "@/data/contracts/access";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import type { GlobalFilterState } from "@/features/global-filters/global-filter-state";
 
@@ -17,6 +18,7 @@ type DashboardShellProps = {
   initialFilterState: GlobalFilterState;
   nowIso: string;
   referenceMonth: Month;
+  account?: AccountSummary;
 };
 
 export function DashboardShell({
@@ -25,11 +27,12 @@ export function DashboardShell({
   initialFilterState,
   nowIso,
   referenceMonth,
+  account,
 }: DashboardShellProps) {
   const route = getDashboardRoute(usePathname());
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar account={account} />
       <SidebarInset className="min-w-0">
         <GlobalFilterProvider
           stores={stores}

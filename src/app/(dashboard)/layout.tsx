@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
-import { createEhsRepository } from "@/data/repositories/create-ehs-repository.server";
 import { createInitialGlobalFilterState } from "@/features/global-filters/global-filter-state";
 import { shanghaiYearMonth } from "@/data/contracts/kpi-period";
 import type { Month } from "@/types/ehs";
+import { redirect } from "next/navigation";
+import { getAccountSummary, getAuthorizedFilterStores } from "@/lib/access/access-service.server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +12,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const referenceDate = new Date();
   const { year, month } = shanghaiYearMonth(referenceDate);
   const referenceMonth = `${year}-${String(month).padStart(2, "0")}` as Month;
-  const repository = createEhsRepository(referenceDate);
+  const account = await getAccountSummary();
+  if (account.scopes.length === 0) redirect("/no-access");
 
   return (
     <DashboardShell
-      stores={await repository.getFilterStores()}
+      stores={await getAuthorizedFilterStores()}
+      account={account}
       initialFilterState={createInitialGlobalFilterState()}
       nowIso={referenceDate.toISOString()}
       referenceMonth={referenceMonth}

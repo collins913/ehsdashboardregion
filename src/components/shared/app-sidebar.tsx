@@ -4,9 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House } from "lucide-react";
 import { applicationName, navigationGroups, routes } from "@/config/navigation";
+import type { AccountSummary } from "@/data/contracts/access";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -18,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar() {
+export function AppSidebar({ account }: { account?: AccountSummary }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
@@ -69,6 +73,27 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      {account?.canManageAccess ? (
+        <SidebarGroup>
+          <SidebarGroupContent><SidebarMenu><SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith(routes.accessManagement.href)} tooltip={routes.accessManagement.title}>
+              <Link href={routes.accessManagement.href} onClick={() => setOpenMobile(false)}><routes.accessManagement.icon aria-hidden="true" /><span>{routes.accessManagement.title}</span></Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem></SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
+      ) : null}
+      {account ? <SidebarFooter className="border-t p-2">
+        <Popover><PopoverTrigger asChild>
+          <Button variant="ghost" className="h-auto w-full flex-col items-start gap-0 overflow-hidden px-2 py-2 text-left group-data-[collapsible=icon]:hidden">
+            <span className="w-full truncate text-xs">{account.email}</span>
+            <span className="w-full truncate text-xs text-muted-foreground">{account.summary}</span>
+          </Button>
+        </PopoverTrigger><PopoverContent side="right" align="end" className="space-y-3 text-sm">
+          <div><div className="text-xs text-muted-foreground">账号</div><div className="break-all">{account.email}</div></div>
+          <div><div className="text-xs text-muted-foreground">权限</div>{account.scopes.length ? account.scopes.map((scope) => <div key={scope}>{scope}</div>) : <div>暂无访问权限</div>}</div>
+          {account.canManageAccess ? <Link className="text-primary underline" href={routes.accessManagement.href}>权限管理</Link> : null}
+        </PopoverContent></Popover>
+      </SidebarFooter> : null}
       <SidebarRail />
     </Sidebar>
   );

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const sourceRoots = ["src/features", "src/app"] as const;
+const sourceRoots = ["src/features", "src/components", "src/app"] as const;
 const forbiddenClientImports = [
   /create(?:Mock)?EhsRepository/,
   /@\/data\/mock/,
@@ -11,6 +11,11 @@ const forbiddenClientImports = [
   /@\/data\/server\/ehs-query-actions/,
   /EHS_MOCK_PROFILE/,
   /@\/data\/mock\/performance/,
+  /@\/data\/repositories\//,
+  /@\/lib\/access\/access-service\.server/,
+  /EHS_MOCK_USER_EMAIL/,
+  /\bfetch\s*\(/,
+  /@\/data\/production\//,
 ] as const;
 
 function sourceFiles(directory: string): string[] {
@@ -28,6 +33,7 @@ function sourceFiles(directory: string): string[] {
 function isClientBoundaryFile(file: string, source: string): boolean {
   return (
     file.startsWith("src/features/") ||
+    file.startsWith("src/components/") ||
     (file.startsWith("src/app/") && /^\s*["']use client["'];/m.test(source))
   );
 }
@@ -62,5 +68,8 @@ describe("client data boundary", () => {
       ),
     ).toBe(true);
     expect(boundaryViolations('import { raw } from "@/data/mock/future";')).not.toEqual([]);
+    expect(boundaryViolations('import { service } from "@/lib/access/access-service.server";')).not.toEqual([]);
+    expect(boundaryViolations('fetch("/sharepoint/actions.json")')).not.toEqual([]);
+    expect(boundaryViolations('process.env.EHS_MOCK_USER_EMAIL')).not.toEqual([]);
   });
 });
