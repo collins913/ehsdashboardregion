@@ -203,7 +203,9 @@ export type OverviewDemoPriorityInvestigation = {
 }
 
 export type OverviewDemoDriverView = {
-  label: string
+  categoryKey: OverviewDemoItemId
+  categoryLabel: string
+  status: "异常" | "未达成" | "正常" | "达成"
   affectedCount: number
   affectedAreas: number
   transition: OverviewDemoTransition
@@ -211,7 +213,10 @@ export type OverviewDemoDriverView = {
 
 export type OverviewDemoDiagnosticIssue = {
   issueKey: OverviewDemoItemId
-  label: string
+  categoryKey: OverviewDemoItemId
+  categoryLabel: string
+  status: "异常" | "未达成"
+  scoreImpact: number | null
   newCount: number
   persistentCount: number
   recoveredCount: number
@@ -235,8 +240,6 @@ export type OverviewDemoScopeChangeItem = {
   scopeName: string
   currentScore: number | null
   delta: number
-  primaryChangeLabel: string
-  currentConcern: string
   completeness: number
 }
 
@@ -246,23 +249,17 @@ export type OverviewDemoManagementFact = {
   value: number
 }
 
-export type OverviewDemoBusinessCta = {
-  label: "KPI" | "行动项" | "事件" | "证件" | "环境"
-  routeTarget: string
-  isPrimary: boolean
-}
-
 export type OverviewDemoScopeDetail = {
   id: string
   label: string
   level: OverviewDemoScopeLevel
-  summary: string
   score: number | null
   previousScore: number | null
   delta: number | null
+  monthlyDelta: number | null
   completeness: number
   benchmark: OverviewDemoBenchmark
-  history: OverviewDemoHistoryPoint[]
+  monthlyHistory: OverviewDemoHistoryPoint[]
   trendLabel: "持续改善" | "持续下降" | "近期回升" | "基本稳定"
   diagnostics: OverviewDemoDiagnosticDimension[]
   changeSummary: {
@@ -276,7 +273,6 @@ export type OverviewDemoScopeDetail = {
     improving: OverviewDemoScopeChangeItem[]
   } | null
   managementFacts: OverviewDemoManagementFact[]
-  businessCtas: OverviewDemoBusinessCta[]
   issues: OverviewDemoIssueView[]
 }
 
@@ -287,6 +283,24 @@ export type OverviewDemoManagementSignal = {
 }
 
 export type OverviewDemoHeroScopeChange = { name: string; delta: number } | null
+export type OverviewDemoScoreChange = {
+  key: OverviewDemoItemId
+  label: string
+  deltaPoints: number
+  direction: "up" | "down"
+}
+export type OverviewDemoMovementScope = {
+  id: string
+  name: string
+  currentScore: number | null
+  delta: number
+  scoreChanges: OverviewDemoScoreChange[]
+  scoreChangesUnavailable: boolean
+}
+export type OverviewDemoMovementDetail = {
+  area: OverviewDemoMovementScope | null
+  store: OverviewDemoMovementScope | null
+}
 export type OverviewDemoHero = {
   overallScore: number | null
   monthlyDelta: number | null
@@ -332,7 +346,7 @@ export type OverviewDemoViewModel = {
   scoreRuleVersion: string
   executive: OverviewDemoExecutiveInsight
   hero: OverviewDemoHero
-  overallHistory: OverviewDemoHistoryPoint[]
+  movements: { improving: OverviewDemoMovementDetail; declining: OverviewDemoMovementDetail }
   priorityInvestigations: OverviewDemoPriorityInvestigation[]
   attribution: OverviewDemoAttribution
   attentionMatrix: {

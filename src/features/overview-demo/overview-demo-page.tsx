@@ -36,7 +36,7 @@ export function OverviewDemoContent({ viewModel }: { viewModel: OverviewDemoView
           <p className="text-xs text-muted-foreground">对比 {viewModel.previousPeriodLabel} · {viewModel.scoreRuleVersion}</p>
         </div>
 
-        <ManagementSummary hero={viewModel.hero} />
+        <ManagementSummary hero={viewModel.hero} movements={viewModel.movements} issues={viewModel.issues} onSelectIssue={openIssue} />
 
         <AttentionMatrix matrix={viewModel.attentionMatrix} onSelect={openScope} />
         <ScopeComparison title={viewModel.scopeLevel === "REGION" ? "小区表现" : "门店表现"} comparisons={viewModel.comparisons} onSelect={openScope} />
@@ -50,7 +50,7 @@ export function OverviewDemoContent({ viewModel }: { viewModel: OverviewDemoView
         </section>
         <footer className="border-t pt-3 text-[11px] text-muted-foreground" data-testid="overview-data-footer">数据完整度 {viewModel.executive.completeness}% · 覆盖 {viewModel.executive.storeCount} 家门店 · Demo 周期 {viewModel.currentPeriodLabel} · {viewModel.scoreRuleVersion}</footer>
       </PageContainer>
-      <ScopeDetailSheet detail={sheetDetail} onClose={() => setSheetDetail(null)} onSelectScope={openScope} />
+      <ScopeDetailSheet detail={sheetDetail} onClose={() => setSheetDetail(null)} />
     </>
   )
 }

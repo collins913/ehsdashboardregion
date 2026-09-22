@@ -66,12 +66,7 @@ export function AttentionDirectionLabels() {
   </g>
 }
 
-export function OverviewDemoTrendChart({ history, compact = false, detailCompact = false }: { history: readonly OverviewDemoHistoryPoint[]; compact?: boolean; detailCompact?: boolean }) {
-  const condensed = compact || detailCompact
-  return <div className={compact ? "h-10 w-40" : detailCompact ? "h-20 w-full" : "h-36 w-full"}><ResponsiveContainer width="100%" height="100%"><LineChart data={[...history]} margin={condensed ? { top: 6, right: 8, bottom: 4, left: 8 } : { top: 10, right: 12, bottom: 8, left: 0 }}><CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="3 3" opacity={compact ? 0 : 0.7} /><XAxis dataKey="periodLabel" hide={compact} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><YAxis domain={[0, 100]} hide tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={28} /><Tooltip formatter={(value) => [`${value ?? "—"}`, "得分"]} /><Line type="monotone" dataKey="score" stroke={primary} strokeWidth={compact ? 2.5 : 3} dot={compact ? false : { r: 3, fill: "var(--background)", strokeWidth: 2 }} connectNulls /></LineChart></ResponsiveContainer></div>
-}
-
-export function OverviewDemoMonthlyTrendChart({ history }: { history: readonly OverviewDemoHistoryPoint[] }) {
+export function OverviewDemoMonthlyTrendChart({ history, showSparseTicks = false }: { history: readonly OverviewDemoHistoryPoint[]; showSparseTicks?: boolean }) {
   const [active, setActive] = useState<OverviewDemoHistoryPoint | null>(null)
   const displayed = active ?? history.at(-1)
   return <div data-testid="monthly-score-trend" className="mt-3">
@@ -79,8 +74,8 @@ export function OverviewDemoMonthlyTrendChart({ history }: { history: readonly O
       <span>过去 12 个月趋势</span>
       <span aria-live="polite" className="tabular-nums">{displayed?.periodLabel ?? "—"} · {displayed?.score ?? "—"} 分</span>
     </div>
-    <div className="mt-1 h-20 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={[...history]} margin={{ top: 6, right: 4, bottom: 2, left: 4 }} onMouseMove={(state) => { const index = Number(state.activeIndex); setActive(Number.isInteger(index) ? history[index] ?? null : null) }} onMouseLeave={() => setActive(null)}>
-      <XAxis dataKey="periodLabel" hide /><YAxis domain={[0, 100]} hide />
+    <div className={showSparseTicks ? "mt-1 h-24 w-full" : "mt-1 h-20 w-full"}><ResponsiveContainer width="100%" height="100%"><LineChart data={[...history]} margin={{ top: 6, right: 4, bottom: 2, left: 4 }} onMouseMove={(state) => { const index = Number(state.activeIndex); setActive(Number.isInteger(index) ? history[index] ?? null : null) }} onMouseLeave={() => setActive(null)}>
+      <XAxis dataKey="periodLabel" hide={!showSparseTicks} interval={2} tick={{ fontSize: 9 }} tickFormatter={(value: string) => value.slice(5)} axisLine={false} tickLine={false} /><YAxis domain={[0, 100]} hide />
       <Line type="monotone" dataKey="score" stroke={primary} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} connectNulls />
     </LineChart></ResponsiveContainer></div>
   </div>

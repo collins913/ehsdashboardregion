@@ -20,6 +20,10 @@
 
 未来 Store snapshot 应保留 `month`、`storeId`、`scoredItems`、`dimensionResults`、`overallScore`、`completeness`、`scoreRuleVersion`；Area / Region 可基于 Store snapshot 聚合。
 
+## 当前 Detail 展示
+
+Demo Detail 与业务详情使用相同 Sheet 宽度，Scope 趋势使用过去 12 个月。诊断分别展示分类、状态和按当前 Demo 评分计算的得分变化；Movement 与 Scope Detail 内不嵌套跳转至其它详情或业务页面。
+
 ## 待正式确认
 
 Dimension 权重；Store / Area / Region aggregation；门店是否等权；Environment scoring；Missing 对正式排名的影响；高风险事件是否 override；正式历史 snapshot contract。

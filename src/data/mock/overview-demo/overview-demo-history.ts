@@ -59,13 +59,6 @@ export const overviewDemoPreviousStores = [
   historyStore("TEST-012", []),
 ] as const satisfies readonly OverviewDemoStoreSnapshot[]
 
-export const overviewDemoHistoryPeriods = [
-  { periodLabel: "Q3 2025", stores: overviewDemoQ3_2025Stores },
-  { periodLabel: "Q4 2025", stores: overviewDemoQ4_2025Stores },
-  { periodLabel: "Q1 2026", stores: overviewDemoPreviousStores },
-  { periodLabel: "Q2 2026", stores: overviewDemoCurrentStores },
-] as const satisfies readonly OverviewDemoPeriodSnapshot[]
-
 // Experimental monthly fixture: deterministic transitions between existing story anchors.
 // The last month is the current result; these are not production snapshots.
 function monthlyStores(

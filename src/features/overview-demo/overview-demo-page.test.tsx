@@ -52,9 +52,8 @@ describe("Overview Demo UI", () => {
   });
 
   it("uses structured monthly Hero data and keeps the readout outside the line plot", () => {
-    const heroMarkup = renderToStaticMarkup(createElement(ManagementSummary, { hero: viewModel.hero }));
+    const heroMarkup = renderToStaticMarkup(createElement(ManagementSummary, { hero: viewModel.hero, movements: viewModel.movements, issues: viewModel.issues, onSelectIssue: () => {} }));
     expect(heroMarkup).toContain("过去 12 个月趋势");
-    expect(heroMarkup).toContain("本月变化");
     expect(heroMarkup).toContain("改善最多");
     expect(heroMarkup).toContain("退步最多");
     expect(heroMarkup).toContain("主要失分");
@@ -160,22 +159,22 @@ describe("Overview Demo UI", () => {
   it("merges priority and dimension sections into one structured diagnosis", () => {
     const detail = viewModel.scopeDetails.find((item) => item.level === "AREA")!;
     const detailMarkup = renderToStaticMarkup(createElement(Sheet, { open: true }, createElement(ScopeSheet, { detail })));
-    expect(detailMarkup).toContain("四期趋势");
+    expect(detailMarkup).toContain("过去 12 个月趋势");
     expect(detailMarkup).toContain("重点诊断");
     expect(detailMarkup).not.toContain("优先核查");
     expect(detailMarkup).not.toContain("维度诊断");
     expect(detailMarkup).toContain("本期变化");
-    expect(detailMarkup).toContain("综合表现");
+    expect(detailMarkup).toContain("综合得分");
     expect(detailMarkup).toContain("Environment");
     expect(detailMarkup).toContain("评分方式待定义");
     expect(detailMarkup).toContain('data-testid="management-facts"');
-    expect(detailMarkup).toContain('data-testid="business-ctas"');
-    expect(detail.summary).not.toContain(detail.label);
+    expect(detailMarkup).not.toContain('data-testid="business-ctas"');
+    expect(detailMarkup).not.toContain("当前仍有");
+    expect(detail.monthlyHistory).toHaveLength(12);
     expect(detail.diagnostics.some((dimension) => dimension.issues.some((issue) => issue.newCount > 0 || issue.persistentCount > 0))).toBe(true);
     expect(detail.diagnostics.some((dimension) => dimension.issues.some((issue) => issue.isDeclineDriver))).toBe(true);
     expect(detail.diagnostics.some((dimension) => dimension.issues.some((issue) => issue.affectedStores > 0))).toBe(true);
-    const primaryCta = detail.businessCtas.find((cta) => cta.isPrimary)!;
-    expect(detailMarkup).toContain(`href="${primaryCta.routeTarget}"`);
+    expect(detail.diagnostics.some((dimension) => dimension.issues.some((issue) => issue.categoryLabel && issue.status && issue.scoreImpact !== null))).toBe(true);
   });
 
   it("sorts and limits structured scope changes deterministically", () => {
@@ -227,7 +226,7 @@ describe("Overview Demo UI", () => {
   it("preserves existing score, rank, lifecycle and Environment semantics", () => {
     expect(viewModel.scopeDetails[0].benchmark.rank).not.toBeNull();
     expect(viewModel.scopeDetails[0].benchmark.parentAverage).not.toBeNull();
-    expect(viewModel.scopeDetails[0].history).toHaveLength(4);
+    expect(viewModel.scopeDetails[0].monthlyHistory).toHaveLength(12);
     expect(viewModel.scopeDetails[0].score).toBe(viewModel.comparisons.find((item) => item.id === viewModel.scopeDetails[0].id)?.score);
     expect(viewModel.scopeDetails[0].diagnostics.find((item) => item.dimensionKey === "ENVIRONMENT")?.score).toBeNull();
     for (const issue of viewModel.scopeDetails[0].issues) expect(issue.lifecycle.current).toBe(issue.lifecycle.new + issue.lifecycle.persistent);
