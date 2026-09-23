@@ -22,6 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { FilterButtonGroup } from "@/components/shared/filter-button-group";
 import {
   DataTableLoadingCellContent,
   DataTablePendingFeedback,
@@ -137,7 +138,7 @@ export const DEFAULT_VISIBLE_EVENT_COLUMN_IDS = [
   "status",
 ] as const;
 
-export const DEFAULT_EVENTS_VIEW_MODE: EventsViewMode = "OPEN_ONLY";
+export const DEFAULT_EVENTS_VIEW_MODE: EventsViewMode = "ALL";
 
 export function getEventRowId(record: NormalizedEventRecord): string {
   return record.eventId;
@@ -619,26 +620,19 @@ export function EventsDataTable({
         inert={isQueryLoading ? true : undefined}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "OPEN_ONLY"}
-            onClick={() => {
+          <FilterButtonGroup
+            ariaLabel="事件范围筛选"
+            value={viewMode}
+            options={[
+              { value: "ALL", label: "全部" },
+              { value: "OPEN_ONLY", label: "未关闭" },
+            ]}
+            disabled={isQueryLoading}
+            onValueChange={(nextViewMode) => {
               table.firstPage();
-              onViewModeChange("OPEN_ONLY");
+              onViewModeChange(nextViewMode);
             }}
-          >
-            当前未关闭
-          </Button>
-          <Button
-            variant={viewMode === "ALL" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "ALL"}
-            onClick={() => {
-              table.firstPage();
-              onViewModeChange("ALL");
-            }}
-          >
-            全部事件
-          </Button>
+          />
           <span className="text-sm text-muted-foreground">
             时间范围：事件时间
           </span>

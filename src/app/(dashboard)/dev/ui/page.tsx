@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import { FilterButtonGroup } from "@/components/shared/filter-button-group";
 import {
   dataTableClassName,
   dataTableColumnContentClassNames,
@@ -14,6 +16,7 @@ import { GlobalFilters } from "@/components/shared/global-filters";
 import { MonthPicker } from "@/components/shared/month-picker";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { PageContainer } from "@/components/shared/page-container";
+import { PageHeader } from "@/components/shared/page-header";
 import {
   StatusDisplay,
   type BusinessStatus,
@@ -21,6 +24,7 @@ import {
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -74,6 +78,14 @@ const businessStatuses: readonly BusinessStatus[] = [
   "NORMAL",
   "ABNORMAL",
 ];
+
+const badgeVariants = [
+  "default",
+  "secondary",
+  "destructive",
+  "outline",
+  "ghost",
+] as const;
 
 function LabArea({
   title,
@@ -203,6 +215,8 @@ function ColumnSizingRolePreview() {
 export default function UiLabPage() {
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
+  const [filterPreviewLeft, setFilterPreviewLeft] = useState("ALL");
+  const [filterPreviewRight, setFilterPreviewRight] = useState("ABNORMAL_ONLY");
 
   return (
     <>
@@ -254,13 +268,88 @@ export default function UiLabPage() {
         </LabArea>
 
         <LabArea
+          title="PageHeader"
+          description="正式共享标题组件；说明文字通过标题的悬停或键盘焦点查看。"
+        >
+          <GlobalFilterProvider
+            stores={globalFilterUiStores}
+            initialState={globalFilterUiState}
+            nowIso="2026-09-11T00:00:00.000Z"
+            referenceMonth="2026-09"
+          >
+            <div className="space-y-4">
+              <PageHeader
+                title="页面标题示例"
+                description="说明内容仅在悬停标题或键盘聚焦标题时显示。"
+                breadcrumbs={[{ label: "带说明" }]}
+              />
+              <PageHeader
+                title="无说明页面"
+                breadcrumbs={[{ label: "无说明" }]}
+              />
+            </div>
+          </GlobalFilterProvider>
+        </LabArea>
+
+        <LabArea
           title="Semantic UI"
           description="状态与数据可用性只有一套共享 presentation。"
         >
+          <DemoSurface
+            title="Badge"
+            description="直接展示项目共享 Badge primitive 的 variants 与图标排布。"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {badgeVariants.map((variant) => (
+                <Badge key={variant} variant={variant}>
+                  {variant}
+                </Badge>
+              ))}
+              <Badge variant="outline">
+                <CheckCircle2 aria-hidden="true" />
+                图标示例
+              </Badge>
+            </div>
+          </DemoSurface>
+          <DemoSurface
+            title="FilterButtonGroup"
+            description="共享互斥筛选；当前选择、键盘焦点与 pending disabled 均由正式组件呈现。"
+          >
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+              <FilterButtonGroup
+                ariaLabel="筛选组件预览，左侧选中"
+                value={filterPreviewLeft}
+                options={[
+                  { value: "ALL", label: "全部" },
+                  { value: "ABNORMAL_ONLY", label: "异常" },
+                ]}
+                onValueChange={setFilterPreviewLeft}
+              />
+              <FilterButtonGroup
+                ariaLabel="筛选组件预览，右侧选中"
+                value={filterPreviewRight}
+                options={[
+                  { value: "ALL", label: "全部" },
+                  { value: "ABNORMAL_ONLY", label: "异常" },
+                ]}
+                onValueChange={setFilterPreviewRight}
+              />
+              <FilterButtonGroup
+                ariaLabel="筛选组件预览，禁用状态"
+                value="ALL"
+                options={[
+                  { value: "ALL", label: "全部" },
+                  { value: "OPEN_ONLY", label: "未关闭" },
+                ]}
+                disabled
+                onValueChange={() => {}}
+              />
+            </div>
+          </DemoSurface>
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <DemoSurface
               title="StatusDisplay"
-              description="覆盖当前全部业务状态、文案与 emphasis。"
+              description="覆盖全部业务状态；Badge 外形继承共享 primitive。"
             >
               <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
                 {businessStatuses.map((status) => (

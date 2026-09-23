@@ -5,10 +5,12 @@
 | Component | File | Current use |
 | --- | --- | --- |
 | Button | `src/components/ui/button.tsx` | Actions, triggers, UI Lab |
+| Button Group | `src/components/ui/button-group.tsx` | Shared FilterButtonGroup |
 | Breadcrumb | `src/components/ui/breadcrumb.tsx` | PageHeader, UI Lab |
 | Sidebar | `src/components/ui/sidebar.tsx` | Application navigation shell |
 | Separator | `src/components/ui/separator.tsx` | PageHeader, Sidebar dependency, UI Lab |
 | Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels and shared OverflowTooltip |
+| Hover Card | `src/components/ui/hover-card.tsx` | PageHeader route description on title hover or focus |
 | Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | UI Lab reference |
 | Table | `src/components/ui/table.tsx` | KPI, Actions, Events, Take Charge, Stores, Environment and Certificates Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
@@ -34,13 +36,14 @@
 | DashboardShell | Composes SidebarProvider, AppSidebar, page inset, persistent Global Filter Provider and PageHeader / GlobalFilters; header text reuses centralized navigation metadata, with UI Lab opting out |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
-| PageHeader | Sidebar trigger, breadcrumb, title, description and optional actions |
+| PageHeader | Sidebar trigger, breadcrumb, title, optional actions and a focusable HoverCard description when route metadata provides one |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
 | GlobalFilters | One persistent shared compact filter bar; Select and Store Button share trigger presentation, while Store retains Popover + Command canonical multi-select |
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
+| FilterButtonGroup | Shared mutually exclusive business filter control built on shadcn ButtonGroup and Button; Features supply values and labels |
 | DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
 | AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |

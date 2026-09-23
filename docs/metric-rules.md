@@ -494,8 +494,9 @@ numerator or denominator.
 All Action detail views apply the shared Global Period to source / contract
 `Submitted Date` (`submittedDate`; user-facing “Submitted Time” / “提交时间”)
 using Asia/Shanghai `[startInclusive, endExclusive)`. The default `OPEN_ONLY`
-view additionally requires centralized `RecordState = OPEN`; `ALL` keeps OPEN,
-CLOSED, EXCLUDED and UNKNOWN records. Performance → KPI Action drill-down and
+filter additionally requires centralized `RecordState = OPEN`; the Actions UI
+initially selects `ALL`, which keeps OPEN, CLOSED, EXCLUDED and UNKNOWN records.
+Performance → KPI Action drill-down and
 Risk & Compliance → Actions `OPEN_ONLY` reuse this normalized query and return
 the same OPEN Action IDs for the same Store scope and Period. Detail records
 never determine or reconcile the source-provided Action Closure Rate aggregate.

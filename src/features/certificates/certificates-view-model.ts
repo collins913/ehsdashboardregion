@@ -9,12 +9,23 @@ export const CERTIFICATES_ITEMS = [
   { key: "safeDriving", label: "安全驾驶" },
 ] as const;
 export type CertificatesItemKey = typeof CERTIFICATES_ITEMS[number]["key"];
+export type CertificatesViewMode = "ALL" | "ABNORMAL_ONLY";
+export const DEFAULT_CERTIFICATES_VIEW_MODE: CertificatesViewMode = "ALL";
 export type CertificatesTableRow = CertificatesStoreRow & {
   safetyHealth: CertificateCategorySummary["status"];
   firstAid: CertificateCategorySummary["status"];
   specialOperations: CertificateCategorySummary["status"];
   safeDriving: CertificateCategorySummary["status"];
 };
+export function filterCertificatesTableRows(
+  rows: readonly CertificatesTableRow[],
+  viewMode: CertificatesViewMode,
+): readonly CertificatesTableRow[] {
+  return viewMode === "ALL"
+    ? rows
+    : rows.filter((row) => row.categories.some((category) => category.status === "ABNORMAL"));
+}
+
 export function toCertificatesTableRows(rows: readonly CertificatesStoreRow[]): CertificatesTableRow[] {
   return rows.map((row) => {
     const statusFor = (category: CertificateCategorySummary["certificateCategory"]) => {

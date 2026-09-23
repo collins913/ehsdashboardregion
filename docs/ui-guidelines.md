@@ -38,7 +38,14 @@
 
 - `DashboardShell` 持续挂载 `PageHeader` / `GlobalFilters`；业务路由只组合内容与 `PageContainer`，不复制或重新挂载 Header。
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
+- PageHeader 仅常驻显示页面标题；导航元数据中的非空说明通过标题的悬停或键盘焦点触发共享 shadcn HoverCard，不在标题旁增加提示图标；无说明时不渲染浮层。
 - 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。
+- 表单 mutation feedback：字段校验显示在字段附近；pending 显示在触发操作的控件内；成功与服务端 / mutation 失败使用 Sonner。
+
+## Shared selection controls
+
+- 二元或少量互斥业务筛选复用 shared `FilterButtonGroup` 与 shadcn `ButtonGroup`；Feature 只提供业务 value、label 和变更处理，不复制 segmented control 样式。
+- 筛选选项默认将 `ALL` 放在左侧并作为初始值；明确业务需求另有规定时例外。
 
 ## Data tables
 

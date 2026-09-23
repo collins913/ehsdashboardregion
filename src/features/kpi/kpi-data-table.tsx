@@ -17,9 +17,9 @@ import {
   tableFeatures as defineTableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { ListFilter } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { FilterButtonGroup } from "@/components/shared/filter-button-group";
 import {
   DataTableLoadingCellContent,
   DataTablePendingValue,
@@ -591,17 +591,19 @@ export function KpiDataTable({
         className="flex flex-wrap items-center justify-between gap-2"
         inert={isQueryLoading ? true : undefined}
       >
-        <Button
-          variant={abnormalOnly ? "secondary" : "outline"}
-          aria-pressed={abnormalOnly}
-          onClick={() => {
+        <FilterButtonGroup
+          ariaLabel="KPI 结果筛选"
+          value={abnormalOnly ? "ABNORMAL_ONLY" : "ALL"}
+          options={[
+            { value: "ALL", label: "全部" },
+            { value: "ABNORMAL_ONLY", label: "异常" },
+          ]}
+          disabled={isQueryLoading}
+          onValueChange={(value) => {
             table.firstPage();
-            setAbnormalOnly((current) => !current);
+            setAbnormalOnly(value === "ABNORMAL_ONLY");
           }}
-        >
-          <ListFilter aria-hidden="true" />
-          仅看异常
-        </Button>
+        />
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 

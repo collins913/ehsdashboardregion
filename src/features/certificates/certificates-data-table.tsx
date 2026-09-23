@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { FilterButtonGroup } from "@/components/shared/filter-button-group";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
@@ -29,7 +30,7 @@ import {
   paginationForPageSize, useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
-import { buildCertificatesDetail, CERTIFICATES_ITEMS, type CertificatesDetail, type CertificatesItemKey } from "./certificates-view-model";
+import { buildCertificatesDetail, CERTIFICATES_ITEMS, DEFAULT_CERTIFICATES_VIEW_MODE, filterCertificatesTableRows, type CertificatesDetail, type CertificatesItemKey, type CertificatesViewMode } from "./certificates-view-model";
 
 const certificatesTableFeatures = defineTableFeatures({
   columnVisibilityFeature, rowPaginationFeature, rowSortingFeature,
@@ -82,10 +83,14 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
   const [detail, setDetail] = useState<CertificatesDetail | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
+  const [viewMode, setViewMode] = useState<CertificatesViewMode>(DEFAULT_CERTIFICATES_VIEW_MODE);
   const [adaptivePagination, setAdaptivePagination] = useState<AdaptivePagination | null>(null);
   const loading = queryStatus === "LOADING";
   const { snapshot, isResolvedMetadataPending, pendingMode } = useResolvedDataTableSnapshot({ snapshot: rows, status: queryStatus, metadataKey: queryKey });
-  const tableRows = snapshot ?? [];
+  const tableRows = useMemo(
+    () => filterCertificatesTableRows(snapshot ?? [], viewMode),
+    [snapshot, viewMode],
+  );
   const pagination = useMemo<PaginationState>(() => adaptivePagination
     ? { pageIndex: clampTablePageIndex(adaptivePagination.pageIndex, tableRows.length, adaptivePagination.pageSize), pageSize: adaptivePagination.pageSize }
     : { pageIndex: 0, pageSize: 1 }, [adaptivePagination, tableRows.length]);
@@ -140,7 +145,24 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   return (
     <div className="space-y-3">
-      <div className="flex justify-end" inert={loading ? true : undefined}><DataTableColumnVisibility table={table} labels={columnLabels} /></div>
+      <div className="flex items-center justify-between gap-3" inert={loading ? true : undefined}>
+        <FilterButtonGroup
+          ariaLabel="证件结果筛选"
+          value={viewMode}
+          options={[
+            { value: "ALL", label: "全部" },
+            { value: "ABNORMAL_ONLY", label: "异常" },
+          ]}
+          disabled={loading}
+          onValueChange={(nextViewMode) => {
+            setViewMode(nextViewMode);
+            setAdaptivePagination((current) =>
+              current ? { ...current, pageIndex: 0 } : current,
+            );
+          }}
+        />
+        <DataTableColumnVisibility table={table} labels={columnLabels} />
+      </div>
       <div ref={tableFrameRef} className={dataTableFrameClassName} aria-busy={loading} inert={loading ? true : undefined}>
         <Table className={dataTableClassName}>
           <TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header) => (

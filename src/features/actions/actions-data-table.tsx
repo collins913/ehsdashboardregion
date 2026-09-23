@@ -30,6 +30,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { FilterButtonGroup } from "@/components/shared/filter-button-group";
 import {
   DataTableLoadingCellContent,
   DataTablePendingFeedback,
@@ -138,7 +139,7 @@ export const DEFAULT_VISIBLE_ACTION_COLUMN_IDS = [
   "status",
 ] as const;
 
-export const DEFAULT_ACTIONS_VIEW_MODE: ActionsViewMode = "OPEN_ONLY";
+export const DEFAULT_ACTIONS_VIEW_MODE: ActionsViewMode = "ALL";
 
 export function getActionRowId(record: NormalizedActionRecord): string {
   return record.actionId;
@@ -648,26 +649,19 @@ export function ActionsDataTable({
         inert={isQueryLoading ? true : undefined}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "OPEN_ONLY"}
-            onClick={() => {
+          <FilterButtonGroup
+            ariaLabel="行动项范围筛选"
+            value={viewMode}
+            options={[
+              { value: "ALL", label: "全部" },
+              { value: "OPEN_ONLY", label: "未关闭" },
+            ]}
+            disabled={isQueryLoading}
+            onValueChange={(nextViewMode) => {
               table.firstPage();
-              onViewModeChange("OPEN_ONLY");
+              onViewModeChange(nextViewMode);
             }}
-          >
-            当前未关闭
-          </Button>
-          <Button
-            variant={viewMode === "ALL" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "ALL"}
-            onClick={() => {
-              table.firstPage();
-              onViewModeChange("ALL");
-            }}
-          >
-            全部行动项
-          </Button>
+          />
           <span className="text-sm text-muted-foreground">
             时间范围：提交时间
           </span>

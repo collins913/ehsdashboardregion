@@ -114,6 +114,7 @@ Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时
 - Action 数据源 Coverage 完整且确认当前范围没有需要整改的 Action 时，aggregate 可为 `null`，结果为达成并显示“无”；不得伪造成 `100%`。
 - Action 数据源不可用、Coverage 不完整或当前 Period 完整性无法确认时，结果为未确定且显示 Data Availability，不显示“无”。
 - KPI 状态中文标签和 semantic intent 以 `status-dictionary.md` 为准；共享展示由 `StatusDisplay` 统一实现，页面不得重复映射。
+- KPI 表格提供“全部 / 异常”互斥筛选，初始为“全部”；异常筛选继续使用现有负向 KPI 结果规则。
 
 具体判定见 `metric-rules.md`。
 
@@ -157,7 +158,7 @@ Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明
 页面支持：
 
 - Event Type 筛选；选项来自当前 scoped normalized Event 数据，不在 UI 固定 taxonomy。
-- Current Open / All 切换；默认 Current Open。
+- “全部 / 未关闭”切换；默认“全部”。
 - Current Open 仅显示 `RecordState = OPEN`；All 保留当前范围全部记录，当前已确认源状态为 `Open` 与 `Closed`，未知未来值保留原文并归类 `UNKNOWN`，不进入 Current Open。
 - 点击记录打开 Event Detail。
 
@@ -181,8 +182,7 @@ Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event I
 
 ### 7.2 页面行为
 
-- 默认选择 Open，仅显示未关闭 Actions。
-- 提供 Open / All 切换。
+- 默认选择“全部”，提供“全部 / 未关闭”切换。
 - Open 与 All 均使用提交时间应用 Global Period 的 `[startInclusive, endExclusive)`。
 - Open 包含 `Assigned`、`In Progress`、`In Review`、`Sign Off`。
 - `Closed` 为已关闭。
@@ -221,7 +221,7 @@ Closed Date 为空时显示 `—`。页面和详情不展示 TRTID 或 Store Eng
 
 ### 8.1 Certificates V1
 
-一行一个 canonical Store，默认五列：门店、安全健康、急救员、特种作业、安全驾驶。门店仅显示 Store Master 中文名称。类别格子只展示“正常 / 异常”，支持排序、列显示控制与 adaptive pagination。
+一行一个 canonical Store，默认五列：门店、安全健康、急救员、特种作业、安全驾驶。门店仅显示 Store Master 中文名称。类别格子只展示“正常 / 异常”，支持排序、列显示控制与 adaptive pagination。页面提供“全部 / 异常”筛选，默认“全部”；“异常”包含至少一个正式类别 Business Result 为 `ABNORMAL` 的门店，并在完整当前门店范围结果上先筛选、再排序和分页。
 
 ### 8.2 Type 与 Category
 
