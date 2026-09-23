@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { accessTypeLabels, display, scopeLabel } from "@/features/access-management/access-presentation";
 import { AccessAuditTab } from "@/features/access-management/access-audit-page";
-import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { DataTable, type DataTableColumn, type DataTableInteractionState } from "@/components/shared/data-table";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
 type FormInput = Omit<GrantInput, "accessType"> & { accessType: AccessType | "" };
@@ -82,16 +82,25 @@ export function AccessManagementPage() {
   const [tab, setTab] = useState("manual");
   const [email, setEmail] = useState("");
   const [accessType, setAccessType] = useState("ALL");
+  const [auditEmail, setAuditEmail] = useState("");
+  const [visitedAudit, setVisitedAudit] = useState(false);
+  const [manualTableState, setManualTableState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
+  const [auditTableState, setAuditTableState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
   const [catalog, setCatalog] = useState<AccessCatalog>({ regions: [], areas: [], stores: [] });
   const [editing, setEditing] = useState<ManualGrant | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<ManualGrant | null>(null);
   const [catalogError, setCatalogError] = useState("");
   useEffect(() => { void loadAccessCatalog().then(setCatalog).catch(() => setCatalogError("权限范围加载失败。")); }, []);
-  const queryKey = storeScope ? JSON.stringify([storeScope, email, accessType]) : null;
+  const manualActive = tab === "manual";
+  const manualSemanticKey = JSON.stringify([storeScope, email, accessType]);
+  useEffect(() => {
+    setManualTableState((current) => ({ ...current, pagination: current.pagination ? { ...current.pagination, pageIndex: 0 } : null }));
+  }, [manualSemanticKey]);
+  const queryKey = manualActive && storeScope ? manualSemanticKey : null;
   const query = useLatestAsyncQuery(
     queryKey,
-    storeScope ? () => loadManualGrants({ email, scope: storeScope, accessType }) : null,
+    manualActive && storeScope ? () => loadManualGrants({ email, scope: storeScope, accessType }) : null,
   );
   const manuals = query.status === "SUCCESS" ? query.data : query.resolved?.data ?? [];
   const refresh = query.reload;
@@ -102,8 +111,8 @@ export function AccessManagementPage() {
     { id: "note", title: "备注", value: (grant) => display(grant.note), sizeRole: "content" },
     { id: "actions", title: "操作", value: () => "", sortable: false, sizeRole: "compact", render: (grant) => <div className="whitespace-nowrap"><Button size="sm" variant="ghost" onClick={() => { setEditing(grant); setDialogOpen(true); }}>编辑</Button><Button size="sm" variant="ghost" onClick={() => setDeleting(grant)}>删除</Button></div> },
   ], []);
-  return <><PageContainer className="space-y-5"><Tabs value={tab} onValueChange={setTab}><TabsList><TabsTrigger value="manual">手动权限管理</TabsTrigger><TabsTrigger value="audit">操作日志</TabsTrigger></TabsList>
-    <TabsContent value="manual" className="space-y-4"><div className="flex flex-wrap items-end gap-3"><label className="space-y-1 text-sm">邮箱搜索<Input className="w-64" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="输入邮箱" /></label><label className="space-y-1 text-sm">权限类型<Select value={accessType} onValueChange={setAccessType}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">全部</SelectItem>{types.map((type) => <SelectItem key={type} value={type}>{accessTypeLabels[type]}</SelectItem>)}</SelectContent></Select></label><Button onClick={() => { setEditing(null); setDialogOpen(true); }}>新增权限</Button></div>{catalogError ? <p role="alert" className="text-sm text-destructive">{catalogError}</p> : null}{query.status === "ERROR" ? <p role="alert" className="text-sm text-destructive">查询失败，请重试。</p> : null}<DataTable rows={manuals} columns={columns} emptyMessage="没有匹配的手动权限。" status={query.status === "SUCCESS" ? "READY" : query.status === "ERROR" ? "ERROR" : "LOADING"} semanticKey={queryKey ?? ""} /></TabsContent>
-    <TabsContent value="audit"><AccessAuditTab /></TabsContent>
+  return <><PageContainer className="space-y-5"><Tabs value={tab} onValueChange={(value) => { setTab(value); if (value === "audit") setVisitedAudit(true); }}><TabsList><TabsTrigger value="manual">手动权限管理</TabsTrigger><TabsTrigger value="audit">操作日志</TabsTrigger></TabsList>
+    <TabsContent forceMount value="manual" className="space-y-4 data-[state=inactive]:hidden"><div className="flex flex-wrap items-end gap-3"><label className="space-y-1 text-sm">邮箱搜索<Input className="w-64" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="输入邮箱" /></label><label className="space-y-1 text-sm">权限类型<Select value={accessType} onValueChange={setAccessType}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">全部</SelectItem>{types.map((type) => <SelectItem key={type} value={type}>{accessTypeLabels[type]}</SelectItem>)}</SelectContent></Select></label><Button onClick={() => { setEditing(null); setDialogOpen(true); }}>新增权限</Button></div>{catalogError ? <p role="alert" className="text-sm text-destructive">{catalogError}</p> : null}{query.status === "ERROR" ? <p role="alert" className="text-sm text-destructive">查询失败，请重试。</p> : null}<DataTable active={manualActive} interactionState={manualTableState} onInteractionStateChange={setManualTableState} rows={manuals} columns={columns} emptyMessage="没有匹配的手动权限。" status={query.status === "SUCCESS" ? "READY" : query.status === "ERROR" ? "ERROR" : "LOADING"} semanticKey={manualSemanticKey} /></TabsContent>
+    <TabsContent forceMount={visitedAudit} value="audit" className="data-[state=inactive]:hidden">{visitedAudit ? <AccessAuditTab active={tab === "audit"} email={auditEmail} onEmailChange={(value) => { setAuditEmail(value); setAuditTableState((current) => ({ ...current, pagination: current.pagination ? { ...current.pagination, pageIndex: 0 } : null })); }} tableState={auditTableState} onTableStateChange={setAuditTableState} /> : null}</TabsContent>
   </Tabs></PageContainer><GrantDialog open={dialogOpen} onOpenChange={setDialogOpen} editing={editing} catalog={catalog} onSaved={refresh} /><DeleteGrantDialog grant={deleting} onOpenChange={(open) => { if (!open) setDeleting(null); }} onDeleted={refresh} /></>;
 }

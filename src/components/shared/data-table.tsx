@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, createSortedRowModel, rowPaginationFeature, rowSortingFeature, sortFn_text, tableFeatures as defineTableFeatures, useTable, type PaginationState, type SortingState } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { dataTableClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
@@ -14,19 +14,26 @@ import { cn } from "@/lib/utils";
 const features = defineTableFeatures({ columnVisibilityFeature, rowPaginationFeature, rowSortingFeature, paginatedRowModel: createPaginatedRowModel(), sortedRowModel: createSortedRowModel(), sortFns: { text: sortFn_text } });
 
 export type DataTableColumn<T> = { id: string; title: string; value: (row: T) => string; render?: (row: T) => ReactNode; sortable?: boolean; sizeRole: DataTableColumnSizeRole };
+export type DataTableInteractionState = { sorting: SortingState; pagination: AdaptivePagination | null };
 
-export function DataTable<T extends { id: string }>({ rows, columns, emptyMessage, status = "READY", semanticKey = "" }: { rows: readonly T[]; columns: readonly DataTableColumn<T>[]; emptyMessage: string; status?: "READY" | "LOADING" | "ERROR"; semanticKey?: string }) {
+export function DataTable<T extends { id: string }>({ rows, columns, emptyMessage, status = "READY", semanticKey = "", active = true, interactionState, onInteractionStateChange }: { rows: readonly T[]; columns: readonly DataTableColumn<T>[]; emptyMessage: string; status?: "READY" | "LOADING" | "ERROR"; semanticKey?: string; active?: boolean; interactionState?: DataTableInteractionState; onInteractionStateChange?: Dispatch<SetStateAction<DataTableInteractionState>> }) {
   const { snapshot, pendingMode, isResolvedMetadataPending } = useResolvedDataTableSnapshot({ snapshot: status === "READY" ? rows : null, status, metadataKey: semanticKey });
   const displayedRows = snapshot ?? [];
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [adaptivePagination, setAdaptivePagination] = useState<AdaptivePagination | null>(null);
+  const [internalInteractionState, setInternalInteractionState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
+  const currentInteractionState = interactionState ?? internalInteractionState;
+  const setInteractionState = onInteractionStateChange ?? setInternalInteractionState;
+  const sorting = currentInteractionState.sorting;
+  const adaptivePagination = currentInteractionState.pagination;
+  const setAdaptivePagination = useCallback((updater: SetStateAction<AdaptivePagination | null>) => {
+    setInteractionState((current) => ({ ...current, pagination: typeof updater === "function" ? updater(current.pagination) : updater }));
+  }, [setInteractionState]);
   const previousSemanticKey = useRef(semanticKey);
   useLayoutEffect(() => {
     if (previousSemanticKey.current === semanticKey) return;
     previousSemanticKey.current = semanticKey;
-    setSorting([]);
+    if (!active) return;
     setAdaptivePagination((current) => current ? { ...current, pageIndex: 0 } : current);
-  }, [semanticKey]);
+  }, [active, semanticKey, setAdaptivePagination]);
   const pagination = useMemo<PaginationState>(() => adaptivePagination
     ? { pageIndex: clampTablePageIndex(adaptivePagination.pageIndex, displayedRows.length, adaptivePagination.pageSize), pageSize: adaptivePagination.pageSize }
     : { pageIndex: 0, pageSize: 1 }, [adaptivePagination, displayedRows.length]);
@@ -45,7 +52,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
     });
   }, [displayedRows.length]);
   const { tableFrameRef, tableBodyRef, rowMeasurementRef, paginationRef } = useAdaptiveTablePageSize({
-    ready: adaptivePagination !== null, currentPageSize: adaptivePagination?.pageSize ?? null, onPageSizeChange,
+    enabled: active, ready: adaptivePagination !== null, currentPageSize: adaptivePagination?.pageSize ?? null, onPageSizeChange,
   });
   useEffect(() => {
     setAdaptivePagination((current) => {
@@ -64,7 +71,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
       sortFn: "text",
     })));
   }, [columns]);
-  const table = useTable({ features, columns: definitions, data: displayedRows, getRowId: (row) => row.id, onSortingChange: (updater) => { setSorting(updater); setAdaptivePagination((current) => current ? { ...current, pageIndex: 0 } : current); }, onPaginationChange, state: { sorting, pagination } });
+  const table = useTable({ features, columns: definitions, data: displayedRows, getRowId: (row) => row.id, onSortingChange: (updater) => { setInteractionState((current) => ({ sorting: typeof updater === "function" ? updater(current.sorting) : updater, pagination: current.pagination ? { ...current.pagination, pageIndex: 0 } : null })); }, onPaginationChange, state: { sorting, pagination } });
   const renderedRows = table.getRowModel().rows;
   return <>
     <div ref={tableFrameRef} className={dataTableFrameClassName} aria-busy={status === "LOADING"} inert={status === "LOADING" ? true : undefined}><Table className={dataTableClassName}>

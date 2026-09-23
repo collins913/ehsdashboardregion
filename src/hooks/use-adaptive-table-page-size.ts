@@ -81,6 +81,7 @@ export function paginationForPageSize(
 }
 
 type UseAdaptiveTablePageSizeOptions = {
+  enabled?: boolean;
   ready: boolean;
   currentPageSize: AdaptiveTablePageSize | null;
   onPageSizeChange: (pageSize: AdaptiveTablePageSize) => void;
@@ -88,6 +89,7 @@ type UseAdaptiveTablePageSizeOptions = {
 };
 
 export function useAdaptiveTablePageSize({
+  enabled = true,
   ready,
   currentPageSize,
   onPageSizeChange,
@@ -106,6 +108,10 @@ export function useAdaptiveTablePageSize({
     const pagination = paginationRef.current;
 
     if (!tableFrame || !tableBody || !rowMeasurement || !pagination) {
+      return null;
+    }
+
+    if (tableFrame.getClientRects().length === 0) {
       return null;
     }
 
@@ -155,11 +161,11 @@ export function useAdaptiveTablePageSize({
   );
 
   useLayoutEffect(() => {
-    recompute(false);
-  });
+    if (enabled) recompute(false);
+  }, [enabled, recompute]);
 
   useLayoutEffect(() => {
-    if (!ready) {
+    if (!enabled || !ready) {
       return;
     }
 
@@ -179,7 +185,7 @@ export function useAdaptiveTablePageSize({
       resizeObserver?.disconnect();
       window.removeEventListener("resize", handleWindowResize);
     };
-  }, [ready, recompute]);
+  }, [enabled, ready, recompute]);
 
   return {
     tableFrameRef,
