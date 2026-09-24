@@ -13,7 +13,7 @@ import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTabl
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
   dataTableColumnContentClassNames, dataTableColumnSizeClassNames, dataTableClassName,
-  dataTableFrameClassName, stickyStoreCellClassName, stickyStoreHeaderClassName,
+  dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName,
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
@@ -126,7 +126,7 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
             ) : queryStatus === "ERROR" || (loading && !isRetainingResolvedRows) ? (
               <DataTablePlaceholderRows columns={placeholderColumns} rowCount={pagination.pageSize} hidden={queryStatus === "ERROR"} />
             ) : renderedRows.length ? renderedRows.map((row, index) => (
-              <TableRow key={row.id} ref={index === 0 ? rowMeasurementRef : undefined} aria-hidden={(isRetainingResolvedRows && pendingMode === "mask-content") || undefined} className={isRetainingResolvedRows ? "cursor-default hover:bg-transparent" : undefined}>
+              <TableRow key={row.id} ref={index === 0 ? rowMeasurementRef : undefined} aria-hidden={(isRetainingResolvedRows && pendingMode === "mask-content") || undefined} className={cn(!isRetainingResolvedRows && dataTableRowClassName, isRetainingResolvedRows && "cursor-default hover:bg-transparent")}>
                 {row.getVisibleCells().map((cell) => <TableCell key={cell.id} className={cn(sizeClassName(cell.column.id), cell.column.id === "store" && stickyStoreCellClassName)}>
                   <DataTableLoadingCellContent loading={isRetainingResolvedRows} pendingMode={pendingMode}><table.FlexRender cell={cell} /></DataTableLoadingCellContent>
                 </TableCell>)}

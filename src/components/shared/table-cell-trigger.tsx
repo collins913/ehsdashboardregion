@@ -17,7 +17,7 @@ export function TableCellTrigger({
       type={type}
       variant="ghost"
       className={cn(
-        "group/table-cell-trigger h-auto min-h-8 cursor-pointer px-1 py-0.5 hover:bg-transparent dark:hover:bg-transparent",
+        "group/table-cell-trigger h-auto min-h-5.5 cursor-pointer px-1 py-0 hover:bg-transparent dark:hover:bg-transparent",
         className,
       )}
       {...props}

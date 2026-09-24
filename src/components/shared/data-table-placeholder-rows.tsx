@@ -28,7 +28,7 @@ export function DataTablePlaceholderRows({
     >
       {columns.map((column) => (
         <TableCell key={column.id} className={column.className}>
-          <div className="flex h-5 items-center">
+          <div className="flex h-5.5 items-center">
             <Skeleton className="h-4 w-full max-w-32" />
           </div>
         </TableCell>

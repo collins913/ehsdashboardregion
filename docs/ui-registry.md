@@ -52,7 +52,7 @@
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
 | DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content with fixed-width footer feedback, semantic scope pending masks content and only unknown footer digits |
-| DataTable layout helpers | Shared fixed table layout, minimum width, horizontal overflow, sticky mechanics and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
+| DataTable layout helpers | Shared body row geometry, fixed table layout, minimum width, horizontal overflow, sticky hover/selected state and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
 
 ## Shared utilities
 

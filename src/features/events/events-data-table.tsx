@@ -36,6 +36,7 @@ import {
   dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
+  dataTableRowClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
   type DataTableColumnSizeRole,
@@ -724,6 +725,7 @@ export function EventsDataTable({
                   }
                   aria-label={`查看事件 ${row.original.eventId}`}
                   className={cn(
+                    !isRetainingResolvedRows && dataTableRowClassName,
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                     isRetainingResolvedRows
                       ? "cursor-default hover:bg-transparent"

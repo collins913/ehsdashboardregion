@@ -1,7 +1,11 @@
 export const dataTableFrameClassName =
   "overflow-hidden rounded-lg border";
 
-export const dataTableClassName = "min-w-224 table-fixed";
+export const dataTableClassName =
+  "min-w-224 table-fixed [&_tbody_td]:leading-5.5";
+
+export const dataTableRowClassName =
+  "hover:bg-transparent data-[state=selected]:bg-transparent [&:hover:not([data-state=selected])>td]:bg-[color-mix(in_srgb,var(--color-muted)_50%,var(--color-background))] [&[data-state=selected]>td]:bg-muted";
 
 export const dataTableColumnSizeClassNames = {
   primary: "w-[28%] min-w-48 max-w-96",

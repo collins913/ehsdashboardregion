@@ -55,10 +55,10 @@ describe("DataTablePlaceholderRows", () => {
     expect(componentSource).not.toContain("rowMeasurementRef");
   });
 
-  it("matches the normal text line box instead of adding a 32px inner row", () => {
+  it("matches the shared 22px body row line box", () => {
     const markup = renderPlaceholderRows(5);
 
-    expect(markup).toContain("flex h-5 items-center");
+    expect(markup).toContain("flex h-5.5 items-center");
     expect(markup).not.toContain("flex h-8 items-center");
   });
 });

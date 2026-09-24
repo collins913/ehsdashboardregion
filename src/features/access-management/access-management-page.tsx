@@ -6,6 +6,7 @@ import type { AccessCatalog, AccessType, GrantInput, ManualGrant } from "@/data/
 import { loadAccessCatalog, loadManualGrants, removeGrant, reviseGrant, submitGrant } from "@/data/server/access-actions";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { PageContainer } from "@/components/shared/page-container";
+import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,7 +150,7 @@ export function AccessManagementPage() {
     { id: "type", title: "权限类型", value: (grant) => accessTypeLabels[grant.accessType], sizeRole: "standard" },
     { id: "scope", title: "权限范围", value: scopeLabel, sizeRole: "standard" },
     { id: "note", title: "备注", value: (grant) => display(grant.note), sizeRole: "content" },
-    { id: "actions", title: "操作", value: () => "", sortable: false, sizeRole: "compact", render: (grant) => <div className="whitespace-nowrap"><Button size="sm" variant="ghost" onClick={() => { setEditing(grant); setDialogOpen(true); }}>编辑</Button><Button size="sm" variant="ghost" onClick={() => setDeleting(grant)}>删除</Button></div> },
+    { id: "actions", title: "操作", value: () => "", sortable: false, sizeRole: "compact", render: (grant) => <div className="whitespace-nowrap"><TableCellTrigger onClick={() => { setEditing(grant); setDialogOpen(true); }}>编辑</TableCellTrigger><TableCellTrigger onClick={() => setDeleting(grant)}>删除</TableCellTrigger></div> },
   ], []);
   return <><PageContainer className="space-y-5"><Tabs value={tab} onValueChange={(value) => { setTab(value); if (value === "audit") setVisitedAudit(true); }}><TabsList><TabsTrigger value="manual">手动权限管理</TabsTrigger><TabsTrigger value="audit">操作日志</TabsTrigger></TabsList>
     <TabsContent forceMount value="manual" className="space-y-4 data-[state=inactive]:hidden"><div className="flex flex-wrap items-end gap-3"><label className="space-y-1 text-sm">邮箱搜索<Input className="w-64" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="输入邮箱" /></label><label className="space-y-1 text-sm">权限类型<Select value={accessType} onValueChange={setAccessType}><SelectTrigger className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">全部</SelectItem>{types.map((type) => <SelectItem key={type} value={type}>{accessTypeLabels[type]}</SelectItem>)}</SelectContent></Select></label><Button onClick={() => { setEditing(null); setDialogOpen(true); }}>新增权限</Button></div>{catalogError ? <p role="alert" className="text-sm text-destructive">{catalogError}</p> : null}{query.status === "ERROR" ? <p role="alert" className="text-sm text-destructive">查询失败，请重试。</p> : null}<DataTable active={manualActive} interactionState={manualTableState} onInteractionStateChange={setManualTableState} rows={manuals} columns={columns} emptyMessage="没有匹配的手动权限。" status={query.status === "SUCCESS" ? "READY" : query.status === "ERROR" ? "ERROR" : "LOADING"} semanticKey={manualSemanticKey} /></TabsContent>

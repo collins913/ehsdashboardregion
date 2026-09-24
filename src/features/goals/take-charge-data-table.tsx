@@ -37,6 +37,7 @@ import {
   dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
+  dataTableRowClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
   type DataTableColumnSizeRole,
@@ -699,6 +700,7 @@ export function TakeChargeDataTable({
                   }
                   aria-label={`查看 Take Charge ${row.original.tchId}`}
                   className={cn(
+                    !isRetainingResolvedRows && dataTableRowClassName,
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                     isRetainingResolvedRows
                       ? "cursor-default hover:bg-transparent"

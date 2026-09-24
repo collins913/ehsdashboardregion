@@ -37,6 +37,7 @@ import {
   dataTableColumnSizeClassNames,
   dataTableClassName,
   dataTableFrameClassName,
+  dataTableRowClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
   type DataTableColumnSizeRole,
@@ -658,6 +659,7 @@ export function KpiDataTable({
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
                   aria-hidden={isRetainingResolvedRows || undefined}
                   className={cn(
+                    !isRetainingResolvedRows && dataTableRowClassName,
                     isRetainingResolvedRows && "hover:bg-transparent",
                   )}
                 >
