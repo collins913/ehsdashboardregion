@@ -3,6 +3,14 @@
 import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
 import type { EhsFilterContext, EhsStoreScope } from "@/data/contracts/kpi";
+import type {
+  KpiDetailQuery,
+  KpiDetailRecords,
+  KpiTrainingDetailRecord,
+  KpiDrillDetailRecord,
+  KpiInspectionDetailRecord,
+  KpiAstmDetailRecord,
+} from "@/data/contracts/kpi-details";
 import type { StoresQueryResult } from "@/data/contracts/stores";
 import type { EnvironmentQueryResult } from "@/data/contracts/environment";
 import type { CertificatesQueryResult } from "@/data/contracts/certificates";
@@ -32,6 +40,50 @@ export async function queryKpiRows({
   const authorized = { ...context, ...await authorizeBusinessScope(context) };
   const snapshot = await repositoryFor(referenceDateIso).getKpiData(authorized);
   return buildKpiRows(authorized, snapshot);
+}
+
+async function authorizeKpiDetailQuery(
+  query: KpiDetailQuery,
+): Promise<KpiDetailQuery> {
+  return {
+    ...query,
+    context: {
+      ...query.context,
+      ...await authorizeBusinessScope(query.context),
+    },
+  };
+}
+
+export async function queryKpiTrainingDetails({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<KpiDetailQuery>): Promise<KpiDetailRecords<KpiTrainingDetailRecord>> {
+  const authorized = await authorizeKpiDetailQuery(query);
+  return repositoryFor(referenceDateIso).getKpiTrainingDetails(authorized);
+}
+
+export async function queryKpiDrillDetails({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<KpiDetailQuery>): Promise<KpiDetailRecords<KpiDrillDetailRecord>> {
+  const authorized = await authorizeKpiDetailQuery(query);
+  return repositoryFor(referenceDateIso).getKpiDrillDetails(authorized);
+}
+
+export async function queryKpiInspectionDetails({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<KpiDetailQuery>): Promise<KpiDetailRecords<KpiInspectionDetailRecord>> {
+  const authorized = await authorizeKpiDetailQuery(query);
+  return repositoryFor(referenceDateIso).getKpiInspectionDetails(authorized);
+}
+
+export async function queryKpiAstmDetails({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<KpiDetailQuery>): Promise<KpiDetailRecords<KpiAstmDetailRecord>> {
+  const authorized = await authorizeKpiDetailQuery(query);
+  return repositoryFor(referenceDateIso).getKpiAstmDetails(authorized);
 }
 
 export async function queryActions({

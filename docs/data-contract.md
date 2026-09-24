@@ -140,13 +140,14 @@ Create / Update / Delete Server Action 对运行时输入逐项解析：Email、
 - Store Reference
 - Month
 - Training Name
+- Completion Rate：数据源直接提供，Dashboard 不按人数计算
+- Incomplete People：数据源直接提供，Dashboard 不从人员记录推导
 - 是否属于当月要求完成的培训，或由数据源保证仅返回要求集合
 - 全员完成结果或足以得出该结果的数据
 
 以下尚未确认：
 
 - 具体 Source Status 值：TBD
-- 未完成人员明细是否提供：TBD
 - Source Reference 是否提供：TBD
 - Requirement 集合的来源：TBD
 
@@ -157,12 +158,14 @@ Create / Update / Delete Server Action 对运行时输入逐项解析：Email、
 - Store Reference
 - Month
 - Drill Name
-- 完成结果
+- Source Status：开放文本，保留规范化后的源文案
+- 缺失或空状态必须保留为 unavailable，不得视为未完成
+
+只有规范化后的 Source Status 精确等于 `已完成` 才视为完成；其它非空 Source Status 对 KPI 评价视为未完成。该字段不是闭合枚举。
 
 以下尚未确认：
 
 - 演练记录的唯一标识：TBD
-- 完成状态字典：TBD
 - Source Reference 是否提供：TBD
 
 ### 4.3 Action Closure Rate
@@ -192,15 +195,20 @@ Repository 必须返回与完整请求 Period 对应的单一源汇总值，或�
 规则所需最小逻辑信息：
 
 - Store Reference
+- Month
+- Inspection Name
+- Due Date
+- Inspector
+- Source Status：开放文本，保留规范化后的源文案
 - 当前 Period 内要求完成的 Inspection
-- Inspection 的完成结果
+- 缺失或空状态必须保留为 unavailable，不得视为未完成
+
+只有规范化后的 Source Status 精确等于 `已完成` 才视为完成；其它非空 Source Status 对 KPI 评价视为未完成。该字段不是闭合枚举。
 
 以下尚未确认：
 
-- Inspection ID 或名称：TBD
 - Requirement 集合的来源：TBD
-- 完成状态字典：TBD
-- 日期与 Source Reference：TBD
+- Source Reference 是否提供：TBD
 
 ### 4.5 ASTM Incident 输入
 
@@ -432,4 +440,4 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入 Action 明细。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
+KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。

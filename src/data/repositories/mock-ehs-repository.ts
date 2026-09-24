@@ -6,6 +6,12 @@ import {
 import type { MockDataset } from "@/data/mock/mock-dataset";
 import type { EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult, NormalizedCertificateRecord } from "@/data/contracts/certificates";
+import type {
+  KpiDetailQuery,
+  KpiTrainingDetailRecord,
+  KpiDrillDetailRecord,
+  KpiInspectionDetailRecord,
+} from "@/data/contracts/kpi-details";
 import { CERTIFICATE_CATEGORIES, certificateCategoryForType } from "@/lib/rules/certificate-types";
 import { evaluateCertificateCategory, evaluateCertificateRecord } from "@/lib/rules/certificate-rules";
 import { formatBusinessDate } from "@/lib/format-business-date-time";
@@ -228,6 +234,20 @@ function withCoverage<T>(
   return scopeCovered && resolutionComplete
     ? completeDataSet(items)
     : incompleteDataSet(items);
+}
+
+function normalizedSourceStatus(value: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function preserveDataSetAvailability<T>(
+  source: DataSet<unknown>,
+  items: readonly T[],
+): DataSet<T> {
+  if (source.availability === "INCOMPLETE") return incompleteDataSet(items);
+  if (source.availability === "UNAVAILABLE") return { availability: "UNAVAILABLE", items: [] };
+  return completeDataSet(items);
 }
 
 function periodMatches(
@@ -560,20 +580,20 @@ export function createMockEhsRepository(
       (record, storeId): KpiDrillRecord => ({
         storeId,
         month: record.month,
-        isCompleted: record.isCompleted,
+        status: normalizedSourceStatus(record.status),
       }),
       (reference) => resolveStoreId(reference, resolveStoreReference),
     );
     const inspections = normalizeRecords(
       mockData.inspectionRecords.filter((record) =>
-        includedMonths.has(record.period),
+        includedMonths.has(record.month),
       ),
       selectedStoreIds,
       (record, storeId): KpiInspectionRecord => ({
         storeId,
-        period: record.period,
+        month: record.month,
         isRequired: record.isRequired,
-        isCompleted: record.isCompleted,
+        status: normalizedSourceStatus(record.status),
       }),
       (reference) => resolveStoreId(reference, resolveStoreReference),
     );
@@ -640,6 +660,152 @@ export function createMockEhsRepository(
       ),
       events: eventDataSet(context, "ALL"),
     };
+  }
+
+  function detailScope({ context, storeId }: KpiDetailQuery) {
+    const allowedStore = requestedStores(context, stores).some(
+      (store) => store.storeId === storeId,
+    );
+
+    if (!allowedStore) return null;
+
+    return {
+      includedMonths: new Set(context.period.includedMonths),
+      parsedPeriod: parseKpiPeriod(context.period),
+      selectedStoreIds: new Set([storeId]),
+      storeIds: [storeId] as const,
+    };
+  }
+
+  async function getKpiTrainingDetails(query: KpiDetailQuery) {
+    const scope = detailScope(query);
+    if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
+    const normalized = normalizeRecords(
+      mockData.trainingRecords.filter((record) =>
+        scope.includedMonths.has(record.month),
+      ),
+      scope.selectedStoreIds,
+      (record): KpiTrainingDetailRecord => ({
+        trainingName: record.trainingName,
+        month: record.month,
+        completionRate: record.completionRate,
+        incompletePeople: record.incompletePeople,
+      }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
+    );
+    const items = [...normalized.items].sort(
+      (left, right) =>
+        right.month.localeCompare(left.month) ||
+        left.trainingName.localeCompare(right.trainingName),
+    );
+
+    return withCoverage(
+      items,
+      isSourceCovered(
+        query.context,
+        scope.storeIds,
+        scope.parsedPeriod,
+        mockData.coverage,
+        "training",
+      ),
+      normalized.resolutionComplete,
+    );
+  }
+
+  async function getKpiDrillDetails(query: KpiDetailQuery) {
+    const scope = detailScope(query);
+    if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
+    const normalized = normalizeRecords(
+      mockData.drillRecords.filter((record) =>
+        scope.includedMonths.has(record.month),
+      ),
+      scope.selectedStoreIds,
+      (record): KpiDrillDetailRecord => ({
+        drillName: record.drillName,
+        month: record.month,
+        status: normalizedSourceStatus(record.status),
+      }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
+    );
+    const items = [...normalized.items].sort(
+      (left, right) =>
+        right.month.localeCompare(left.month) ||
+        left.drillName.localeCompare(right.drillName),
+    );
+
+    return withCoverage(
+      items,
+      isSourceCovered(
+        query.context,
+        scope.storeIds,
+        scope.parsedPeriod,
+        mockData.coverage,
+        "drills",
+      ) && items.every((record) => record.status !== null),
+      normalized.resolutionComplete,
+    );
+  }
+
+  async function getKpiInspectionDetails(query: KpiDetailQuery) {
+    const scope = detailScope(query);
+    if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
+    const normalized = normalizeRecords(
+      mockData.inspectionRecords.filter((record) =>
+        scope.includedMonths.has(record.month),
+      ),
+      scope.selectedStoreIds,
+      (record): KpiInspectionDetailRecord => ({
+        inspectionName: record.inspectionName,
+        dueDate: record.dueDate,
+        inspector: record.inspector,
+        status: normalizedSourceStatus(record.status),
+      }),
+      (reference) => resolveStoreId(reference, resolveStoreReference),
+    );
+    const validDate = (value: string | null) =>
+      value !== null && formatBusinessDate(value) !== "—" ? value : null;
+    const items = [...normalized.items].sort((left, right) => {
+      const leftDate = validDate(left.dueDate);
+      const rightDate = validDate(right.dueDate);
+      if (leftDate === null && rightDate !== null) return 1;
+      if (leftDate !== null && rightDate === null) return -1;
+      if (leftDate !== null && rightDate !== null) {
+        const comparison = rightDate.localeCompare(leftDate);
+        if (comparison !== 0) return comparison;
+      }
+      return left.inspectionName.localeCompare(right.inspectionName);
+    });
+
+    return withCoverage(
+      items,
+      isSourceCovered(
+        query.context,
+        scope.storeIds,
+        scope.parsedPeriod,
+        mockData.coverage,
+        "inspections",
+      ) && items.every((record) => record.status !== null),
+      normalized.resolutionComplete,
+    );
+  }
+
+  async function getKpiAstmDetails(query: KpiDetailQuery) {
+    const scope = detailScope(query);
+    if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
+    const source = eventDataSet(query.context, "ALL");
+    const items = source.items
+      .filter(
+        (record) =>
+          record.storeId === query.storeId &&
+          record.astmInjuryIllness === "Yes",
+      )
+      .sort(
+        (left, right) =>
+          right.eventDate.localeCompare(left.eventDate) ||
+          left.eventId.localeCompare(right.eventId),
+      );
+
+    return preserveDataSetAvailability(source, items);
   }
 
   function actionDataSet(
@@ -1207,6 +1373,10 @@ export function createMockEhsRepository(
 
   return {
     getKpiData,
+    getKpiTrainingDetails,
+    getKpiDrillDetails,
+    getKpiInspectionDetails,
+    getKpiAstmDetails,
     getActions,
     getEvents,
     getTakeChargeGoals,

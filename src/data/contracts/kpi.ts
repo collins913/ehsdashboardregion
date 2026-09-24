@@ -70,14 +70,14 @@ export interface KpiTrainingRecord {
 export interface KpiDrillRecord {
   storeId: StoreId;
   month: Month;
-  isCompleted: boolean;
+  status: string | null;
 }
 
 export interface KpiInspectionRecord {
   storeId: StoreId;
-  period: Month;
+  month: Month;
   isRequired: boolean;
-  isCompleted: boolean;
+  status: string | null;
 }
 
 export interface KpiActionClosureRateRecord {

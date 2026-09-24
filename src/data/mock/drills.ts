@@ -14,9 +14,10 @@ export function createMockDrillRecords(
             storeReference: { trtid: store.trtid },
             month,
             drillName: `月度应急演练 ${monthIndex + 1}`,
-            isCompleted: !(
+            status:
               storeIndex === 5 && monthIndex === months.length - 1
-            ),
+                ? "未完成"
+                : "已完成",
           } satisfies DrillRecord],
     ),
   );

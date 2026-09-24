@@ -101,6 +101,8 @@ export interface TrainingRecord {
   storeReference: StoreReference;
   month: Month;
   trainingName: string;
+  completionRate: number | null;
+  incompletePeople: readonly string[] | null;
   isRequired: boolean;
   isFullyCompleted: boolean;
   sourceReference?: SourceReference | null;
@@ -110,15 +112,18 @@ export interface DrillRecord {
   storeReference: StoreReference;
   month: Month;
   drillName: string;
-  isCompleted: boolean;
+  status: string | null;
   sourceReference?: SourceReference | null;
 }
 
 export interface InspectionRecord {
   storeReference: StoreReference;
-  period: Month;
+  month: Month;
+  inspectionName: string;
+  dueDate: IsoDate | null;
+  inspector: string | null;
   isRequired: boolean;
-  isCompleted: boolean;
+  status: string | null;
   sourceReference?: SourceReference | null;
 }
 

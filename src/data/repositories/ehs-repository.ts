@@ -17,9 +17,29 @@ import type {
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
 import type { EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult } from "@/data/contracts/certificates";
+import type {
+  KpiDetailQuery,
+  KpiDetailRecords,
+  KpiTrainingDetailRecord,
+  KpiDrillDetailRecord,
+  KpiInspectionDetailRecord,
+  KpiAstmDetailRecord,
+} from "@/data/contracts/kpi-details";
 
 export interface KpiQueries {
   getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot>;
+  getKpiTrainingDetails(
+    query: KpiDetailQuery,
+  ): Promise<KpiDetailRecords<KpiTrainingDetailRecord>>;
+  getKpiDrillDetails(
+    query: KpiDetailQuery,
+  ): Promise<KpiDetailRecords<KpiDrillDetailRecord>>;
+  getKpiInspectionDetails(
+    query: KpiDetailQuery,
+  ): Promise<KpiDetailRecords<KpiInspectionDetailRecord>>;
+  getKpiAstmDetails(
+    query: KpiDetailQuery,
+  ): Promise<KpiDetailRecords<KpiAstmDetailRecord>>;
 }
 
 export interface ActionsQueries {

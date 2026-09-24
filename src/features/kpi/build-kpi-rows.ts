@@ -4,6 +4,7 @@ import {
   evaluateDrillPerformance,
   evaluateInspectionPerformance,
   evaluateTrainingPerformance,
+  sourceStatusCompletion,
 } from "@/lib/rules/performance-rules";
 import type {
   DataAvailability,
@@ -96,12 +97,13 @@ function buildDrill(
   const monthInputs = context.period.includedMonths.map((month) => ({
     drillCompletion: records
       .filter((record) => record.month === month)
-      .map((record) => record.isCompleted),
+      .map((record) => sourceStatusCompletion(record.status)),
   }));
+  const result = evaluateDrillPerformance(monthInputs);
 
   return {
-    availability,
-    result: evaluateDrillPerformance(monthInputs),
+    availability: result === "UNDETERMINED" ? "INCOMPLETE" : availability,
+    result,
   };
 }
 
@@ -118,15 +120,17 @@ function buildInspections(
     return { availability, result: "UNDETERMINED" };
   }
 
+  const result = evaluateInspectionPerformance(
+    context.period.includedMonths.map((month) => ({
+      requiredInspectionCompletion: records
+        .filter((record) => record.month === month && record.isRequired)
+        .map((record) => sourceStatusCompletion(record.status)),
+    })),
+  );
+
   return {
-    availability,
-    result: evaluateInspectionPerformance(
-      context.period.includedMonths.map((month) => ({
-        requiredInspectionCompletion: records
-          .filter((record) => record.period === month && record.isRequired)
-          .map((record) => record.isCompleted),
-      })),
-    ),
+    availability: result === "UNDETERMINED" ? "INCOMPLETE" : availability,
+    result,
   };
 }
 

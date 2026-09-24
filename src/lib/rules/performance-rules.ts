@@ -1,6 +1,13 @@
 import type { PerformanceResult } from "./result-types";
 
 type CompletionState = boolean;
+type SourceCompletionState = boolean | null;
+
+export function sourceStatusCompletion(status: string | null): SourceCompletionState {
+  const normalizedStatus = status?.trim();
+  if (!normalizedStatus) return null;
+  return normalizedStatus === "已完成";
+}
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -19,7 +26,7 @@ export function evaluateTrainingPerformance(
 }
 
 export interface DrillMonthInput {
-  drillCompletion: readonly CompletionState[];
+  drillCompletion: readonly SourceCompletionState[];
 }
 
 export function evaluateDrillPerformance(
@@ -29,9 +36,14 @@ export function evaluateDrillPerformance(
     return "UNDETERMINED";
   }
 
+  if (includedMonths.some(({ drillCompletion }) => drillCompletion.includes(null))) {
+    return "UNDETERMINED";
+  }
+
   return includedMonths.every(
     ({ drillCompletion }) =>
-      drillCompletion.length > 0 && drillCompletion.every(Boolean),
+      drillCompletion.length > 0 &&
+      drillCompletion.every(Boolean),
   )
     ? "ACHIEVED"
     : "NOT_ACHIEVED";
@@ -65,7 +77,7 @@ export function evaluateActionClosureRate(
 }
 
 export interface InspectionMonthInput {
-  requiredInspectionCompletion: readonly CompletionState[];
+  requiredInspectionCompletion: readonly SourceCompletionState[];
 }
 
 export function evaluateInspectionPerformance(
@@ -74,6 +86,14 @@ export function evaluateInspectionPerformance(
   if (
     includedMonths === null ||
     includedMonths.length === 0
+  ) {
+    return "UNDETERMINED";
+  }
+
+  if (
+    includedMonths.some(({ requiredInspectionCompletion }) =>
+      requiredInspectionCompletion.includes(null),
+    )
   ) {
     return "UNDETERMINED";
   }

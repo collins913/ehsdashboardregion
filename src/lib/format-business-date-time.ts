@@ -1,5 +1,11 @@
 import { BUSINESS_TIME_ZONE } from "@/data/contracts/kpi-period";
 
+export function formatBusinessMonth(value: string | null): string {
+  if (value === null || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return "—";
+  const [year, month] = value.split("-");
+  return `${year} 年 ${Number(month)} 月`;
+}
+
 function businessDateTimeParts(value: string) {
   const date = new Date(value);
 

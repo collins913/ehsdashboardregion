@@ -118,6 +118,18 @@ Action Closure Rate 在完整 Coverage 下确认没有需要整改的 Action 时
 
 具体判定见 `metric-rules.md`。
 
+### 4.3 KPI 明细下钻
+
+Training、Drill、Inspections 与 ASTM 事件的结果单元格可打开门店明细 Sheet。标题为分类名称，副标题为 Store Master 中文门店名称；摘要显示当前 Global Period 与 KPI 表格中已计算的当前结果。
+
+- Training 明细显示培训名称、月份、数据源直接提供的完成率和未完成人员，按 Month 倒序。
+- Drill 明细显示演练名称、月份和 Source Status 原文，按 Month 倒序。
+- Inspection 明细显示检查名称、截止日期、检查人和 Source Status 原文；有效截止日期倒序，缺失或无效日期置后。
+- ASTM 明细使用当前 Event records 中 `ASTMInjuryIllness = "Yes"` 的记录，按事件时间倒序，并复用 Event Detail 内容。
+- Actions 沿用现有未关闭行动项详情。
+
+明细筛选、排序、Source Status 完成判定及 KPI 评价由 Repository / 集中业务逻辑执行。React 仅渲染查询结果，不重算 KPI、不解释状态、不对业务记录排序。
+
 ## 5. Performance → Goals
 
 Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年平均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。

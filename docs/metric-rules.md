@@ -225,11 +225,11 @@ Any included month fails
 - Drill Name is descriptive and does not participate in KPI evaluation.
 - Multiple completed Drills in one month still satisfy the same monthly requirement.
 - Incomplete or unavailable Drill source coverage returns `UNDETERMINED`; record absence under complete coverage returns `NOT_ACHIEVED`.
+- A record is completed only when its normalized open-text Source Status exactly equals `已完成`. Other non-empty source text is incomplete; missing or empty status follows the `INCOMPLETE` / `UNDETERMINED` data-availability path.
 
 ### Explicit TBD
 
-- partial-month inclusion follows the Period policy;
-- mapping of source Drill Status to “completed”.
+- partial-month inclusion follows the Period policy.
 
 ---
 
@@ -319,9 +319,10 @@ Incomplete or unavailable Inspection source coverage
 
 `PerformanceResult`
 
+Inspection completion uses the normalized open-text Source Status. Only an exact value of `已完成` is completed; any other non-empty value is incomplete. A missing or empty status follows the `INCOMPLETE` / `UNDETERMINED` data-availability path.
+
 ### Explicit TBD
 
-- mapping of source Inspection Status to “completed”;
 - source of the required Inspection set.
 
 ---

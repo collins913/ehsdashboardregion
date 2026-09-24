@@ -234,6 +234,9 @@ function performanceTraining(
       storeReference: { trtid: store.trtid },
       month,
       trainingName: `月度必修培训 ${monthIndex + 1}`,
+      completionRate: (storeIndex + monthIndex) % 11 === 0 ? 82 : 100,
+      incompletePeople:
+        (storeIndex + monthIndex) % 11 === 0 ? [mockPersonAt(storeIndex)] : [],
       isRequired: true,
       isFullyCompleted: (storeIndex + monthIndex) % 11 !== 0,
     })),
@@ -249,7 +252,7 @@ function performanceDrills(
       storeReference: { trtid: store.trtid },
       month,
       drillName: `月度应急演练 ${monthIndex + 1}`,
-      isCompleted: (storeIndex + monthIndex) % 13 !== 0,
+      status: (storeIndex + monthIndex) % 13 === 0 ? "未完成" : "已完成",
     })),
   );
 }
@@ -259,11 +262,14 @@ function performanceInspections(
   months: readonly [Month, ...Month[]],
 ): readonly InspectionRecord[] {
   return stores.flatMap((store, storeIndex) =>
-    months.map((period, monthIndex) => ({
+    months.map((month, monthIndex) => ({
       storeReference: { trtid: store.trtid },
-      period,
+      month,
+      inspectionName: `月度安全检查 ${monthIndex + 1}`,
+      dueDate: `${month}-20`,
+      inspector: mockPersonAt(storeIndex + monthIndex + 1),
       isRequired: true,
-      isCompleted: (storeIndex + monthIndex) % 17 !== 0,
+      status: (storeIndex + monthIndex) % 17 === 0 ? "未完成" : "已完成",
     })),
   );
 }

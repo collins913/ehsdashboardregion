@@ -292,7 +292,7 @@ describe("KPI assembly", () => {
     const drill: KpiDrillRecord = {
       storeId: "STORE-1",
       month: "2026-01",
-      isCompleted: true,
+      status: "已完成",
     };
     const row = buildKpiRows(
       q1Context,

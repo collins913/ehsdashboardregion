@@ -19,6 +19,12 @@ export function createMockTrainingRecords(
         storeReference: { trtid: store.trtid },
         month,
         trainingName: `月度必修培训 ${monthIndex + 1}`,
+        completionRate:
+          storeIndex % 4 === 1 && monthIndex === months.length - 1 ? 84 : 100,
+        incompletePeople:
+          storeIndex % 4 === 1 && monthIndex === months.length - 1
+            ? ["张晓雨", "陈嘉宁"]
+            : [],
         isRequired: true,
         isFullyCompleted: !(
           storeIndex % 4 === 1 && monthIndex === months.length - 1
