@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/shared/page-container";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import type { KpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
+import type { KpiDetailQueries } from "@/features/kpi/kpi-detail-sheet";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
 import type { KpiRow } from "@/features/kpi/types";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
@@ -30,9 +31,11 @@ export async function loadKpiPageRows(
 export function KpiPageContent({
   queryRows,
   queryActions,
+  queryKpiDetails,
 }: {
   queryRows: KpiRowsQuery;
   queryActions: KpiActionDrilldownQuery;
+  queryKpiDetails: KpiDetailQueries;
 }) {
   const { filterContext, referenceDateIso } = useGlobalFilters();
   const queryKey = filterContext
@@ -60,6 +63,7 @@ export function KpiPageContent({
             context={filterContext!}
             referenceDateIso={referenceDateIso}
             queryActions={queryActions}
+            queryKpiDetails={queryKpiDetails}
             queryStatus={
               state.status === "SUCCESS" ? "READY" : state.status
             }

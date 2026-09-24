@@ -170,18 +170,13 @@ export function TakeChargeDetailContent({
 }) {
   return (
     <div className="space-y-6 px-4 pb-4">
-      <section className="space-y-3">
-        <h3 className="font-medium">基本信息</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">门店</dt>
-            <dd className="mt-1">{record.storeDisplayName}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">TCH 编号</dt>
-            <dd className="mt-1">{record.tchId}</dd>
-          </div>
-          <div>
+      <dl className="space-y-4">
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">TCH 编号</dt>
+          <dd className="mt-1 break-words">{record.tchId}</dd>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">状态</dt>
             <dd className="mt-1">
               <StatusDisplay
@@ -190,31 +185,26 @@ export function TakeChargeDetailContent({
               />
             </dd>
           </div>
-        </dl>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">建议摘要</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {record.summary}
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="font-medium">人员与时间</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">提交人</dt>
-            <dd className="mt-1">{record.submittedBy}</dd>
+            <dd className="mt-1 break-words">{record.submittedBy}</dd>
           </div>
-          <div>
+          <div className="min-w-0">
             <dt className="text-xs text-muted-foreground">提交时间</dt>
-            <dd className="mt-1">
+            <dd className="mt-1 break-words">
               {formatBusinessDateTime(record.submittedAt)}
             </dd>
           </div>
-        </dl>
-      </section>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-xs text-muted-foreground">摘要</dt>
+          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+            {record.summary}
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -232,10 +222,8 @@ function TakeChargeDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Take Charge 详情</SheetTitle>
-          <SheetDescription>
-            {record ? `${record.storeDisplayName} · ${record.tchId}` : ""}
-          </SheetDescription>
+          <SheetTitle>Take Charge</SheetTitle>
+          <SheetDescription>{record?.storeDisplayName ?? ""}</SheetDescription>
         </SheetHeader>
         {record ? <TakeChargeDetailContent record={record} /> : null}
       </SheetContent>

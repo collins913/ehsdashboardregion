@@ -50,6 +50,7 @@ import {
   StatusDisplay,
 } from "@/components/shared/status-display";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -75,7 +76,12 @@ import type {
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
-import { ActionStatusDisplay } from "@/features/actions/action-status-display";
+import { ActionDetailContent } from "@/features/actions/action-detail-content";
+import {
+  KpiDetailSheet,
+  type KpiDetailQueries,
+  type KpiDetailSelection,
+} from "@/features/kpi/kpi-detail-sheet";
 import {
   buildKpiActionDrilldownQuery,
   type KpiActionDrilldownQuery,
@@ -89,6 +95,7 @@ import {
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
+import { formatBusinessMonth } from "@/lib/format-business-date-time";
 import type {
   OccurrenceResult,
   PerformanceResult,
@@ -137,20 +144,47 @@ function kpiColumnSizeClassName(columnId: string) {
   return role ? dataTableColumnSizeClassNames[role] : undefined;
 }
 
-function ResultCell({ value }: { value: PerformanceKpiValue }) {
-  if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <DataAvailabilityDisplay availability={value.availability} />;
-  }
-
-  return <StatusDisplay status={value.result} />;
+function ResultCell({
+  value,
+  label,
+  onOpen,
+}: {
+  value: PerformanceKpiValue;
+  label: string;
+  onOpen: () => void;
+}) {
+  return (
+    <TableCellTrigger onClick={onOpen} aria-label={label}>
+      {value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE" ? (
+        <DataAvailabilityDisplay availability={value.availability} />
+      ) : (
+        <StatusDisplay status={value.result} interactive />
+      )}
+    </TableCellTrigger>
+  );
 }
 
-function AstmResultCell({ value }: { value: AstmKpiValue }) {
-  if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <DataAvailabilityDisplay availability={value.availability} />;
+function AstmResultCell({
+  value,
+  label,
+  onOpen,
+}: {
+  value: AstmKpiValue;
+  label: string;
+  onOpen: () => void;
+}) {
+  if (value.result === null && value.availability !== "INCOMPLETE" && value.availability !== "UNAVAILABLE") {
+    return null;
   }
-
-  return value.result ? <StatusDisplay status={value.result} /> : null;
+  return (
+    <TableCellTrigger onClick={onOpen} aria-label={label}>
+      {value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE" ? (
+        <DataAvailabilityDisplay availability={value.availability} />
+      ) : value.result ? (
+        <StatusDisplay status={value.result} interactive />
+      ) : null}
+    </TableCellTrigger>
+  );
 }
 
 function statusSortValue(
@@ -214,6 +248,17 @@ export function ActionsCell({
   );
 }
 
+function kpiPeriodLabel(context: EhsFilterContext): string {
+  const months = context.period.includedMonths;
+  const first = months[0];
+  const last = months[months.length - 1];
+  const formattedFirst = formatBusinessMonth(first);
+  const formattedLast = formatBusinessMonth(last);
+  return first === last
+    ? formattedFirst
+    : `${formattedFirst}–${formattedLast}`;
+}
+
 function ActionsSheet({
   row,
   open,
@@ -251,12 +296,28 @@ function ActionsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>未关闭行动项</SheetTitle>
-          <SheetDescription>
-            {row ? `${row.store.displayName} · ${row.store.storeId}` : ""}
-          </SheetDescription>
+          <SheetTitle>行动项</SheetTitle>
+          <SheetDescription>{row?.store.displayName ?? ""}</SheetDescription>
         </SheetHeader>
-        <div className="px-4 pb-4">
+        <div className="space-y-6 pb-4">
+          {row ? (
+            <dl className="space-y-4 px-4">
+              <div>
+                <dt className="text-xs text-muted-foreground">统计周期</dt>
+                <dd className="mt-1">{kpiPeriodLabel(context)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">当前结果</dt>
+                <dd className="mt-1">
+                  {row.actions.availability === "INCOMPLETE" || row.actions.availability === "UNAVAILABLE" ? (
+                    <DataAvailabilityDisplay availability={row.actions.availability} />
+                  ) : (
+                    <StatusDisplay status={row.actions.result} />
+                  )}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
           {queryState.status === "LOADING" ? (
             <AsyncQueryFeedback status="LOADING" />
           ) : queryState.status === "ERROR" ? (
@@ -273,34 +334,13 @@ function ActionsSheet({
           ) : actions.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">没有未关闭行动项。</p>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>行动项</TableHead>
-                    <TableHead>负责人</TableHead>
-                    <TableHead>到期日</TableHead>
-                    <TableHead>状态</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {actions.items.map((action) => (
-                    <TableRow key={action.actionId}>
-                      <TableCell className="max-w-56 whitespace-normal">
-                        <span className="font-medium">{action.action}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {action.actionId}
-                        </span>
-                      </TableCell>
-                      <TableCell>{action.owner}</TableCell>
-                      <TableCell>{action.dueDate}</TableCell>
-                      <TableCell>
-                        <ActionStatusDisplay status={action.sourceStatus} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-6">
+              {actions.items.map((action, index) => (
+                <div key={action.actionId}>
+                  {index > 0 ? <Separator className="mb-6" /> : null}
+                  <ActionDetailContent record={action} />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -314,6 +354,7 @@ type KpiDataTableProps = {
   context: EhsFilterContext;
   referenceDateIso: string;
   queryActions: KpiActionDrilldownQuery;
+  queryKpiDetails: KpiDetailQueries;
   queryStatus?: "READY" | "LOADING" | "ERROR";
 };
 
@@ -331,11 +372,14 @@ export function KpiDataTable({
   context,
   referenceDateIso,
   queryActions,
+  queryKpiDetails,
   queryStatus = "READY",
 }: KpiDataTableProps) {
   const [abnormalOnly, setAbnormalOnly] = useState(false);
   const [selectedRow, setSelectedRow] = useState<KpiRow | null>(null);
   const [isActionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState<KpiDetailSelection | null>(null);
+  const [isDetailSheetOpen, setDetailSheetOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({});
@@ -362,6 +406,36 @@ export function KpiDataTable({
       setActionsSheetOpen(false);
     }
   }, [isQueryLoading]);
+  useLayoutEffect(() => {
+    if (
+      !isDetailSheetOpen ||
+      selectedDetail === null ||
+      selectedDetail.scopeKey === semanticKey
+    ) {
+      return;
+    }
+
+    if (queryStatus === "ERROR") {
+      setSelectedDetail(null);
+      setDetailSheetOpen(false);
+      return;
+    }
+    if (queryStatus !== "READY") return;
+
+    const updatedRow = rows.find(
+      (row) => row.store.storeId === selectedDetail.row.store.storeId,
+    );
+    if (!updatedRow) {
+      setSelectedDetail(null);
+      setDetailSheetOpen(false);
+      return;
+    }
+    setSelectedDetail({
+      ...selectedDetail,
+      row: updatedRow,
+      scopeKey: semanticKey,
+    });
+  }, [isDetailSheetOpen, queryStatus, rows, selectedDetail, semanticKey]);
   const isPaginationReady = paginationState.status === "READY";
   const pagination = useMemo<PaginationState>(() => {
     if (paginationState.status === "UNMEASURED") {
@@ -498,7 +572,16 @@ export function KpiDataTable({
             header: ({ column }) => (
               <DataTableColumnHeader column={column} title={columnLabels.training} />
             ),
-            cell: ({ row }) => <ResultCell value={row.original.training} />,
+            cell: ({ row }) => (
+              <ResultCell
+                value={row.original.training}
+                label={`查看培训明细，${row.original.store.displayName}`}
+                onOpen={() => {
+                  setSelectedDetail({ category: "training", row: row.original, scopeKey: semanticKey });
+                  setDetailSheetOpen(true);
+                }}
+              />
+            ),
             sortFn: "text",
           },
         ),
@@ -509,7 +592,16 @@ export function KpiDataTable({
             header: ({ column }) => (
               <DataTableColumnHeader column={column} title={columnLabels.drill} />
             ),
-            cell: ({ row }) => <ResultCell value={row.original.drill} />,
+            cell: ({ row }) => (
+              <ResultCell
+                value={row.original.drill}
+                label={`查看演练明细，${row.original.store.displayName}`}
+                onOpen={() => {
+                  setSelectedDetail({ category: "drill", row: row.original, scopeKey: semanticKey });
+                  setDetailSheetOpen(true);
+                }}
+              />
+            ),
             sortFn: "text",
           },
         ),
@@ -538,7 +630,16 @@ export function KpiDataTable({
             header: ({ column }) => (
               <DataTableColumnHeader column={column} title={columnLabels.inspections} />
             ),
-            cell: ({ row }) => <ResultCell value={row.original.inspections} />,
+            cell: ({ row }) => (
+              <ResultCell
+                value={row.original.inspections}
+                label={`查看检查明细，${row.original.store.displayName}`}
+                onOpen={() => {
+                  setSelectedDetail({ category: "inspections", row: row.original, scopeKey: semanticKey });
+                  setDetailSheetOpen(true);
+                }}
+              />
+            ),
             sortFn: "text",
           },
         ),
@@ -549,7 +650,16 @@ export function KpiDataTable({
             header: ({ column }) => (
               <DataTableColumnHeader column={column} title={columnLabels.astmEvents} />
             ),
-            cell: ({ row }) => <AstmResultCell value={row.original.astmEvents} />,
+            cell: ({ row }) => (
+              <AstmResultCell
+                value={row.original.astmEvents}
+                label={`查看 ASTM 事件明细，${row.original.store.displayName}`}
+                onOpen={() => {
+                  setSelectedDetail({ category: "astmEvents", row: row.original, scopeKey: semanticKey });
+                  setDetailSheetOpen(true);
+                }}
+              />
+            ),
             sortFn: "text",
           },
         ),
@@ -736,6 +846,19 @@ export function KpiDataTable({
         context={context}
         referenceDateIso={referenceDateIso}
         queryActions={queryActions}
+      />
+      <KpiDetailSheet
+        selection={selectedDetail}
+        open={isDetailSheetOpen}
+        onOpenChange={setDetailSheetOpen}
+        context={context}
+        referenceDateIso={referenceDateIso}
+        queries={queryKpiDetails}
+        summaryPending={
+          selectedDetail !== null &&
+          selectedDetail.scopeKey !== semanticKey &&
+          queryStatus === "LOADING"
+        }
       />
     </div>
   );

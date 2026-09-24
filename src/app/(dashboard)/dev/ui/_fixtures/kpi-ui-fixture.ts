@@ -1,5 +1,6 @@
 import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
 import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
+import type { KpiDetailQueries } from "@/features/kpi/kpi-detail-sheet";
 import type {
   ActionKpiValue,
   KpiRow,
@@ -92,6 +93,45 @@ export async function queryDemoKpiActions({
     pageSize: query.pageSize,
   };
 }
+
+export const queryDemoKpiDetails: KpiDetailQueries = {
+  training: async () => ({
+    availability: "AVAILABLE",
+    items: [
+      {
+        trainingName: "门店安全基础培训",
+        month: "2026-09",
+        completionRate: 92,
+        incompletePeople: ["张晓雨"],
+      },
+      {
+        trainingName: "应急处置培训",
+        month: "2026-08",
+        completionRate: 100,
+        incompletePeople: [],
+      },
+    ],
+  }),
+  drill: async () => ({
+    availability: "AVAILABLE",
+    items: [
+      { drillName: "消防疏散演练", month: "2026-09", status: "已完成" },
+      { drillName: "应急响应演练", month: "2026-08", status: "待确认" },
+    ],
+  }),
+  inspections: async () => ({
+    availability: "AVAILABLE",
+    items: [
+      {
+        inspectionName: "月度安全检查",
+        dueDate: "2026-09-20",
+        inspector: "陈晨",
+        status: "已完成",
+      },
+    ],
+  }),
+  astmEvents: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+};
 
 function actions(index: number): ActionKpiValue {
   if (index === 8) {

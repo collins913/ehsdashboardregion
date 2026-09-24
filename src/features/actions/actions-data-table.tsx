@@ -65,6 +65,7 @@ import type {
   NormalizedActionRecord,
 } from "@/data/contracts/actions";
 import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
+import { ActionDetailContent } from "@/features/actions/action-detail-content";
 import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
   type AdaptivePagination,
@@ -74,10 +75,7 @@ import {
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { cn } from "@/lib/utils";
-import {
-  formatBusinessDate,
-  formatBusinessDateTime,
-} from "@/lib/format-business-date-time";
+import { formatBusinessDate } from "@/lib/format-business-date-time";
 
 const actionsTableFeatures = defineTableFeatures({
   columnVisibilityFeature,
@@ -155,80 +153,6 @@ const unmeasuredTablePagination: PaginationState = {
   pageSize: 1,
 };
 
-export function ActionDetailContent({
-  record,
-}: {
-  record: NormalizedActionRecord;
-}) {
-  return (
-    <div className="space-y-6 px-4 pb-4">
-      <section className="space-y-3">
-        <h3 className="font-medium">基本信息</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">门店</dt>
-            <dd className="mt-1">{record.storeDisplayName}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">行动项编号</dt>
-            <dd className="mt-1">{record.actionId}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">状态</dt>
-            <dd className="mt-1">
-              <ActionStatusDisplay status={record.sourceStatus} />
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">问题</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {record.problem}
-        </p>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">行动项</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-          {record.action}
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="font-medium">人员与时间</h3>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-muted-foreground">负责人</dt>
-            <dd className="mt-1">{record.owner}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">提交人</dt>
-            <dd className="mt-1">{record.submittedBy}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">提交时间</dt>
-            <dd className="mt-1">
-              {formatBusinessDateTime(record.submittedDate)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">截止时间</dt>
-            <dd className="mt-1">{formatBusinessDateTime(record.dueDate)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">关闭时间</dt>
-            <dd className="mt-1">
-              {formatBusinessDateTime(record.closedDate)}
-            </dd>
-          </div>
-        </dl>
-      </section>
-    </div>
-  );
-}
-
 function ActionDetailSheet({
   record,
   open,
@@ -242,10 +166,8 @@ function ActionDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>行动项详情</SheetTitle>
-          <SheetDescription>
-            {record ? `${record.storeDisplayName} · ${record.actionId}` : ""}
-          </SheetDescription>
+          <SheetTitle>行动项</SheetTitle>
+          <SheetDescription>{record?.storeDisplayName ?? ""}</SheetDescription>
         </SheetHeader>
         {record ? <ActionDetailContent record={record} /> : null}
       </SheetContent>

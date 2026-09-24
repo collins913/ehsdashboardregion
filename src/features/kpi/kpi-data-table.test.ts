@@ -8,6 +8,7 @@ import {
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
 import { buildKpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
+import type { KpiDetailQueries } from "@/features/kpi/kpi-detail-sheet";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { ActionKpiValue, KpiRow } from "@/features/kpi/types";
 
@@ -47,6 +48,13 @@ function renderActions(actions: ActionKpiValue): string {
     ),
   );
 }
+
+const emptyKpiDetails: KpiDetailQueries = {
+  training: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+  drill: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+  inspections: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+  astmEvents: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+};
 
 describe("KPI Actions cell", () => {
   it("renders a confirmed no-actions result as a clickable secondary status value", () => {
@@ -127,6 +135,7 @@ describe("KPI adaptive table hydration", () => {
             pageIndex: query.pageIndex,
             pageSize: query.pageSize,
           }),
+          queryKpiDetails: emptyKpiDetails,
         }),
       ),
     );

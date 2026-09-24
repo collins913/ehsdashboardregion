@@ -52,6 +52,7 @@ import {
   demoKpiContext,
   demoKpiRows,
   queryDemoKpiActions,
+  queryDemoKpiDetails,
 } from "./_fixtures/kpi-ui-fixture";
 
 const tokenSamples = [
@@ -457,6 +458,7 @@ export default function UiLabPage() {
                 context={demoKpiContext}
                 referenceDateIso="2026-09-11T00:00:00+08:00"
                 queryActions={queryDemoKpiActions}
+                queryKpiDetails={queryDemoKpiDetails}
                 queryStatus={showTableLoading ? "LOADING" : "READY"}
               />
             </div>

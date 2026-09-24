@@ -9,10 +9,10 @@ import {
   DEFAULT_EVENTS_VIEW_MODE,
   DEFAULT_VISIBLE_EVENT_COLUMN_IDS,
   EVENT_COLUMN_SIZE_ROLES,
-  EventDetailContent,
   EventsDataTable,
   getEventRowId,
 } from "./events-data-table";
+import { EventDetailContent } from "./event-detail-content";
 
 const record: NormalizedEventRecord = {
   storeId: "TEST-001",
