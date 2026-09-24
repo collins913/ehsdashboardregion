@@ -2,11 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House } from "lucide-react";
+import {
+  CircleHelp,
+  EllipsisVertical,
+  House,
+  MessageSquare,
+  UserRound,
+} from "lucide-react";
+import { toast } from "sonner";
 import { applicationName, navigationGroups, routes } from "@/config/navigation";
 import type { AccountSummary } from "@/data/contracts/access";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -54,7 +66,6 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
                         asChild
                         isActive={isActive}
                         tooltip={item.title}
-                        className="data-active:bg-background data-active:shadow-xs"
                       >
                         <Link
                           href={item.href}
@@ -82,18 +93,57 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
           </SidebarMenuItem></SidebarMenu></SidebarGroupContent>
         </SidebarGroup>
       ) : null}
-      {account ? <SidebarFooter className="border-t p-2">
-        <Popover><PopoverTrigger asChild>
-          <Button variant="ghost" className="h-auto w-full flex-col items-start gap-0 overflow-hidden px-2 py-2 text-left group-data-[collapsible=icon]:hidden">
-            <span className="w-full truncate text-xs">{account.email}</span>
-            <span className="w-full truncate text-xs text-muted-foreground">{account.summary}</span>
-          </Button>
-        </PopoverTrigger><PopoverContent side="right" align="end" className="space-y-3 text-sm">
-          <div><div className="text-xs text-muted-foreground">账号</div><div className="break-all">{account.email}</div></div>
-          <div><div className="text-xs text-muted-foreground">权限</div>{account.scopes.length ? account.scopes.map((scope) => <div key={scope}>{scope}</div>) : <div>暂无访问权限</div>}</div>
-          {account.canManageAccess ? <Link className="text-primary underline" href={routes.accessManagement.href}>权限管理</Link> : null}
-        </PopoverContent></Popover>
-      </SidebarFooter> : null}
+      {account ? (
+        <SidebarFooter className="border-t p-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    aria-label={account.email}
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar>
+                      <AvatarFallback>
+                        <UserRound aria-hidden="true" className="size-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                      <span className="truncate text-sm font-medium">{account.email}</span>
+                      <span className="truncate text-xs text-muted-foreground">{account.summary}</span>
+                    </div>
+                    <EllipsisVertical
+                      aria-hidden="true"
+                      className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
+                    />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="end" sideOffset={4}>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      toast.info("帮助功能暂未开放");
+                      setOpenMobile(false);
+                    }}
+                  >
+                    <CircleHelp aria-hidden="true" />
+                    <span>帮助</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      toast.info("反馈建议功能暂未开放");
+                      setOpenMobile(false);
+                    }}
+                  >
+                    <MessageSquare aria-hidden="true" />
+                    <span>反馈建议</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      ) : null}
       <SidebarRail />
     </Sidebar>
   );

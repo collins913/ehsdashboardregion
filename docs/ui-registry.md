@@ -5,20 +5,20 @@
 | Component | File | Current use |
 | --- | --- | --- |
 | Button | `src/components/ui/button.tsx` | Actions, triggers, UI Lab |
-| Button Group | `src/components/ui/button-group.tsx` | Shared FilterButtonGroup |
+| Button Group | `src/components/ui/button-group.tsx` | Installed shadcn primitive; no current feature usage |
 | Breadcrumb | `src/components/ui/breadcrumb.tsx` | PageHeader, UI Lab |
 | Sidebar | `src/components/ui/sidebar.tsx` | Application navigation shell |
 | Separator | `src/components/ui/separator.tsx` | PageHeader, Sidebar dependency, UI Lab |
 | Tooltip | `src/components/ui/tooltip.tsx` | Collapsed Sidebar labels and shared OverflowTooltip |
 | Hover Card | `src/components/ui/hover-card.tsx` | PageHeader route description on title hover or focus |
-| Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | UI Lab reference |
+| Dropdown Menu | `src/components/ui/dropdown-menu.tsx` | AppSidebar account menu, UI Lab reference |
 | Table | `src/components/ui/table.tsx` | KPI, Actions, Events, Take Charge, Stores, Environment and Certificates Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
-| Avatar | `src/components/ui/avatar.tsx` | UI Lab reference |
+| Avatar | `src/components/ui/avatar.tsx` | AppSidebar account fallback, UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
 | Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment, Certificates and Access Audit |
 | Accordion | `src/components/ui/accordion.tsx` | Environment environmental-license detail sections |
-| Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls |
+| Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls; shared FilterSelect |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
 | Card | `src/components/ui/card.tsx` | Goals summary metrics |
@@ -32,7 +32,7 @@
 
 | Component | Responsibility |
 | --- | --- |
-| AppSidebar | Renders centralized navigation and active state |
+| AppSidebar | Renders centralized navigation, active state and the account footer using shadcn SidebarMenu, Avatar and Dropdown Menu primitives |
 | DashboardShell | Composes SidebarProvider, AppSidebar, page inset, persistent Global Filter Provider and PageHeader / GlobalFilters; header text reuses centralized navigation metadata, with UI Lab opting out |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
@@ -43,7 +43,7 @@
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
-| FilterButtonGroup | Shared mutually exclusive business filter control built on shadcn ButtonGroup and Button; Features supply values and labels |
+| FilterSelect | Shared low-cardinality mutually exclusive filter control built on shadcn Select; Features supply values and labels |
 | DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
 | AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
@@ -79,7 +79,7 @@
 | EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
 | EventsPageContent | Connects shared Global Filter Context and feature-local filters to the injected server query boundary |
 | GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; metric cards use consistent plain-text values |
-| TakeChargeDataTable | Repository-paginated Take Charge records with Current Open / All view mode, repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
+| TakeChargeDataTable | Repository-paginated Take Charge records with All / Open Only view mode (defaults to All), repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 | StoresDataTable | Store Master browser with sortable confirmed fields, column visibility, adaptive pagination, sticky Store column and Store Detail Sheet |
 | StoresPageContent | Connects shared canonical Store scope to the injected async Stores query; Period does not affect query readiness or identity |
 

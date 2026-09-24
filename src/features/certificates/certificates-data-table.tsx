@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
-import { FilterButtonGroup } from "@/components/shared/filter-button-group";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
@@ -146,7 +146,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3" inert={loading ? true : undefined}>
-        <FilterButtonGroup
+        <FilterSelect
           ariaLabel="证件结果筛选"
           value={viewMode}
           options={[
@@ -194,7 +194,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
         </div>
       </div>
       <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null); }}>
-        <SheetContent className="overflow-y-auto sm:max-w-xl!">
+        <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{detail?.storeDisplayName ?? "证件详情"}</SheetTitle>
             <SheetDescription className="flex items-center gap-2">

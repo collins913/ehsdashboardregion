@@ -147,7 +147,7 @@ Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area�
 - 目标值：`>= 50%`，展示 0 位小数。
 - 不受 Global Period 影响。
 
-Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“当前未关闭”只显示 `RecordState = OPEN`；“全部”包含 OPEN、CLOSED 与 UNKNOWN。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；TRTID 仅用于 Store Resolution，不向用户展示。
+Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“全部”包含 OPEN、CLOSED 与 UNKNOWN；选择“未关闭”只显示 `RecordState = OPEN`。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；TRTID 仅用于 Store Resolution，不向用户展示。
 
 ## 6. Risk & Compliance → Events
 

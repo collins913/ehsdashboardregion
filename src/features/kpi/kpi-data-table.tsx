@@ -19,7 +19,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
-import { FilterButtonGroup } from "@/components/shared/filter-button-group";
+import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
   DataTablePendingValue,
@@ -248,7 +248,7 @@ function ActionsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>未关闭行动项</SheetTitle>
           <SheetDescription>
@@ -591,7 +591,7 @@ export function KpiDataTable({
         className="flex flex-wrap items-center justify-between gap-2"
         inert={isQueryLoading ? true : undefined}
       >
-        <FilterButtonGroup
+        <FilterSelect
           ariaLabel="KPI 结果筛选"
           value={abnormalOnly ? "ABNORMAL_ONLY" : "ALL"}
           options={[

@@ -187,7 +187,7 @@ function StoreDetailSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>门店详情</SheetTitle>
           <SheetDescription>{record?.storeNameCn ?? ""}</SheetDescription>

@@ -22,7 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
-import { FilterButtonGroup } from "@/components/shared/filter-button-group";
+import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
   DataTablePendingFeedback,
@@ -223,7 +223,7 @@ function EventDetailSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>事件详情</SheetTitle>
           <SheetDescription>
@@ -620,7 +620,7 @@ export function EventsDataTable({
         inert={isQueryLoading ? true : undefined}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <FilterButtonGroup
+          <FilterSelect
             ariaLabel="事件范围筛选"
             value={viewMode}
             options={[

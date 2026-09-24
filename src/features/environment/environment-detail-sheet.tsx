@@ -38,7 +38,7 @@ export function EnvironmentDetailSheet({
 }) {
   return (
     <Sheet open={detail !== null} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{detail?.storeDisplayName ?? "环境详情"}</SheetTitle>
           <SheetDescription>{detail?.label ?? ""}</SheetDescription>

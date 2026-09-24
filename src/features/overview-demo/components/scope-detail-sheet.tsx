@@ -71,5 +71,5 @@ export function IssueSheet({ issue }: { issue: OverviewDemoIssueView }) {
 export function ScopeDetailSheet({ detail, onClose }: { detail: OverviewDemoSheetDetail | null; onClose: () => void }) {
   const contentRef = useRef<HTMLDivElement>(null)
   useEffect(() => { contentRef.current?.scrollTo({ top: 0 }) }, [detail?.kind, detail?.value.id])
-  return <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) onClose() }}><SheetContent ref={contentRef} className="overflow-y-auto sm:max-w-xl!">{detail?.kind === "scope" ? <ScopeSheet detail={detail.value} /> : detail?.kind === "issue" ? <IssueSheet issue={detail.value} /> : null}</SheetContent></Sheet>
+  return <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) onClose() }}><SheetContent ref={contentRef} className="overflow-y-auto">{detail?.kind === "scope" ? <ScopeSheet detail={detail.value} /> : detail?.kind === "issue" ? <IssueSheet issue={detail.value} /> : null}</SheetContent></Sheet>
 }

@@ -31,6 +31,7 @@ import {
   useRetainedDataTableRows,
 } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
+import { FilterSelect } from "@/components/shared/filter-select";
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
@@ -129,7 +130,7 @@ export const DEFAULT_VISIBLE_TAKE_CHARGE_COLUMN_IDS = [
   "summary",
   "status",
 ] as const;
-export const DEFAULT_TAKE_CHARGE_VIEW_MODE: TakeChargeViewMode = "OPEN_ONLY";
+export const DEFAULT_TAKE_CHARGE_VIEW_MODE: TakeChargeViewMode = "ALL";
 
 export function getTakeChargeRowId(
   record: NormalizedTakeChargeRecord,
@@ -228,7 +229,7 @@ function TakeChargeDetailSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Take Charge 详情</SheetTitle>
           <SheetDescription>
@@ -611,10 +612,14 @@ export function TakeChargeDataTable({
         inert={isQueryLoading ? true : undefined}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={viewMode === "OPEN_ONLY" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "OPEN_ONLY"}
-            onClick={() => {
+          <FilterSelect
+            ariaLabel="Take Charge 范围筛选"
+            value={viewMode}
+            options={[
+              { value: "ALL", label: "全部" },
+              { value: "OPEN_ONLY", label: "未关闭" },
+            ]}
+            onValueChange={(nextViewMode) => {
               setPaginationState((current) =>
                 current.status === "READY"
                   ? {
@@ -623,28 +628,9 @@ export function TakeChargeDataTable({
                     }
                   : current,
               );
-              setViewMode("OPEN_ONLY");
+              setViewMode(nextViewMode);
             }}
-          >
-            当前未关闭
-          </Button>
-          <Button
-            variant={viewMode === "ALL" ? "secondary" : "outline"}
-            aria-pressed={viewMode === "ALL"}
-            onClick={() => {
-              setPaginationState((current) =>
-                current.status === "READY"
-                  ? {
-                      status: "READY",
-                      pagination: resetTakeChargePageIndex(current.pagination),
-                    }
-                  : current,
-              );
-              setViewMode("ALL");
-            }}
-          >
-            全部
-          </Button>
+          />
           <span className="text-sm text-muted-foreground">
             时间范围：提交时间
           </span>

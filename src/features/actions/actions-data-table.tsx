@@ -30,7 +30,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
-import { FilterButtonGroup } from "@/components/shared/filter-button-group";
+import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
   DataTablePendingFeedback,
@@ -239,7 +239,7 @@ function ActionDetailSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>行动项详情</SheetTitle>
           <SheetDescription>
@@ -649,7 +649,7 @@ export function ActionsDataTable({
         inert={isQueryLoading ? true : undefined}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <FilterButtonGroup
+          <FilterSelect
             ariaLabel="行动项范围筛选"
             value={viewMode}
             options={[

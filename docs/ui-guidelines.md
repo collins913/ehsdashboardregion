@@ -44,7 +44,7 @@
 
 ## Shared selection controls
 
-- 二元或少量互斥业务筛选复用 shared `FilterButtonGroup` 与 shadcn `ButtonGroup`；Feature 只提供业务 value、label 和变更处理，不复制 segmented control 样式。
+- 少量互斥业务筛选复用 shared `FilterSelect` 与 shadcn `Select`；Feature 只提供业务 value、label 和变更处理，不复制 Select 结构或样式。
 - 筛选选项默认将 `ALL` 放在左侧并作为初始值；明确业务需求另有规定时例外。
 
 ## Data tables

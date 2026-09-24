@@ -5,6 +5,11 @@ import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { PageContainer } from "@/components/shared/page-container";
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -12,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Info } from "lucide-react";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { TakeChargeGoalsSummary } from "@/data/contracts/take-charge";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
@@ -49,16 +55,43 @@ function MetricValue({ children }: { children: React.ReactNode }) {
 function GoalMetricCard({
   title,
   description,
+  help,
   children,
 }: {
   title: string;
   description: string;
+  help?: { description: string; target: string };
   children: React.ReactNode;
 }) {
   return (
     <Card className="gap-4 py-5 shadow-none">
       <CardHeader className="px-5">
-        <CardTitle className="text-sm">{title}</CardTitle>
+        <CardTitle className="text-sm">
+          {help ? (
+            <HoverCard openDelay={250} closeDelay={150}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <span>{title}</span>
+                  <Info
+                    aria-hidden="true"
+                    className="size-3 text-muted-foreground"
+                  />
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" align="start">
+                <div className="space-y-1.5">
+                  <p>{help.description}</p>
+                  <p className="text-muted-foreground">{help.target}</p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          ) : (
+            title
+          )}
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="px-5">{children}</CardContent>
@@ -82,15 +115,29 @@ export function SummaryCards({
     summary.annual.availability === "UNAVAILABLE";
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      <GoalMetricCard title="提交总数" description={selectedPeriod}>
+    <div className="grid gap-3 sm:grid-cols-2 md:min-[1152px]:grid-cols-4">
+      <GoalMetricCard
+        title="提交总数"
+        description={selectedPeriod}
+        help={{
+          description: "当前筛选时间范围内的 Take Charge 提交总量。",
+          target: "当前不设达标阈值，仅用于展示提交活动量。",
+        }}
+      >
         {periodUnavailable ? (
           <DataAvailabilityDisplay availability={summary.period.availability} />
         ) : (
           <MetricValue>{summary.period.submissionTotal ?? 0}</MetricValue>
         )}
       </GoalMetricCard>
-      <GoalMetricCard title="关闭率" description={selectedPeriod}>
+      <GoalMetricCard
+        title="关闭率"
+        description={selectedPeriod}
+        help={{
+          description: "已进入终态的 Take Charge 数量占全部 Take Charge 的比例。",
+          target: "目标：≥ 90%",
+        }}
+      >
         {periodUnavailable ? (
           <DataAvailabilityDisplay availability={summary.period.availability} />
         ) : (
@@ -104,6 +151,10 @@ export function SummaryCards({
       <GoalMetricCard
         title="今年平均提交数"
         description={`${summary.annual.currentYear} 年`}
+        help={{
+          description: "本年度截至当前统计周期的平均 Take Charge 提交数量。",
+          target: "目标：≥ 4",
+        }}
       >
         {annualUnavailable ? (
           <DataAvailabilityDisplay availability={summary.annual.availability} />
@@ -116,6 +167,10 @@ export function SummaryCards({
       <GoalMetricCard
         title="今年参与率"
         description={`${summary.annual.currentYear} 年`}
+        help={{
+          description: "本年度截至当前统计周期的 Take Charge 参与率。",
+          target: "目标：≥ 50%",
+        }}
       >
         {annualUnavailable ? (
           <DataAvailabilityDisplay availability={summary.annual.availability} />
@@ -152,7 +207,7 @@ export function SummaryCardsPlaceholder({
       className={hidden ? "invisible" : undefined}
       aria-hidden="true"
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 md:min-[1152px]:grid-cols-4">
         {cards.map(([title, description]) => (
           <GoalMetricCard key={title} title={title} description={description}>
             <div className="flex h-8 items-center">

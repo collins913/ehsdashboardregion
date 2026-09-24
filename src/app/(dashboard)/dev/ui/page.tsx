@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
-import { FilterButtonGroup } from "@/components/shared/filter-button-group";
+import { FilterSelect } from "@/components/shared/filter-select";
 import {
   dataTableClassName,
   dataTableColumnContentClassNames,
@@ -215,8 +215,7 @@ function ColumnSizingRolePreview() {
 export default function UiLabPage() {
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
-  const [filterPreviewLeft, setFilterPreviewLeft] = useState("ALL");
-  const [filterPreviewRight, setFilterPreviewRight] = useState("ABNORMAL_ONLY");
+  const [filterPreview, setFilterPreview] = useState("ALL");
 
   return (
     <>
@@ -312,39 +311,18 @@ export default function UiLabPage() {
             </div>
           </DemoSurface>
           <DemoSurface
-            title="FilterButtonGroup"
-            description="共享互斥筛选；当前选择、键盘焦点与 pending disabled 均由正式组件呈现。"
+            title="FilterSelect"
+            description="共享少量互斥筛选；使用 shadcn Select 的触发器、选中标记与键盘交互。"
           >
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-              <FilterButtonGroup
-                ariaLabel="筛选组件预览，左侧选中"
-                value={filterPreviewLeft}
-                options={[
-                  { value: "ALL", label: "全部" },
-                  { value: "ABNORMAL_ONLY", label: "异常" },
-                ]}
-                onValueChange={setFilterPreviewLeft}
-              />
-              <FilterButtonGroup
-                ariaLabel="筛选组件预览，右侧选中"
-                value={filterPreviewRight}
-                options={[
-                  { value: "ALL", label: "全部" },
-                  { value: "ABNORMAL_ONLY", label: "异常" },
-                ]}
-                onValueChange={setFilterPreviewRight}
-              />
-              <FilterButtonGroup
-                ariaLabel="筛选组件预览，禁用状态"
-                value="ALL"
-                options={[
-                  { value: "ALL", label: "全部" },
-                  { value: "OPEN_ONLY", label: "未关闭" },
-                ]}
-                disabled
-                onValueChange={() => {}}
-              />
-            </div>
+            <FilterSelect
+              ariaLabel="筛选组件预览"
+              value={filterPreview}
+              options={[
+                { value: "ALL", label: "全部" },
+                { value: "OPEN_ONLY", label: "未关闭" },
+              ]}
+              onValueChange={setFilterPreview}
+            />
           </DemoSurface>
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <DemoSurface
