@@ -51,14 +51,23 @@ export function useLatestAsyncQuery<T>(
   const requestedKeyRef = useRef(queryKey);
   requestedKeyRef.current = queryKey;
   const hasLoad = load !== null;
+  const mountedRef = useRef(false);
   const [stored, setStored] = useState<StoredAsyncQueryState<T>>(() => ({
     key: queryKey,
     state:
-      queryKey === null
+      queryKey === null || !hasLoad
         ? { status: "IDLE", resolved: null }
         : { status: "LOADING", resolved: null },
     resolved: null,
   }));
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      guardRef.current?.invalidate();
+    };
+  }, []);
 
   useEffect(() => {
     const guard = guardRef.current!;
@@ -66,7 +75,7 @@ export function useLatestAsyncQuery<T>(
     if (queryKey === null || !hasLoad || execute === null) {
       guard.invalidate();
       setStored({
-        key: null,
+        key: queryKey,
         state: { status: "IDLE", resolved: null },
         resolved: null,
       });
@@ -81,27 +90,33 @@ export function useLatestAsyncQuery<T>(
       resolved: current.resolved,
     }));
 
-    void execute().then(
-      (data) => {
-        if (active && guard.isLatest(requestId)) {
-          const resolved = { key: queryKey, data };
-          setStored({
-            key: queryKey,
-            state: { status: "SUCCESS", data, resolved },
-            resolved,
-          });
-        }
-      },
-      () => {
-        if (active && guard.isLatest(requestId)) {
-          setStored((current) => ({
-            key: queryKey,
-            state: { status: "ERROR", resolved: current.resolved },
-            resolved: current.resolved,
-          }));
-        }
-      },
-    );
+    const settleError = () => {
+      if (active && guard.isLatest(requestId)) {
+        setStored((current) => ({
+          key: queryKey,
+          state: { status: "ERROR", resolved: current.resolved },
+          resolved: current.resolved,
+        }));
+      }
+    };
+
+    try {
+      void execute().then(
+        (data) => {
+          if (active && guard.isLatest(requestId)) {
+            const resolved = { key: queryKey, data };
+            setStored({
+              key: queryKey,
+              state: { status: "SUCCESS", data, resolved },
+              resolved,
+            });
+          }
+        },
+        settleError,
+      );
+    } catch {
+      settleError();
+    }
 
     return () => {
       active = false;
@@ -110,7 +125,7 @@ export function useLatestAsyncQuery<T>(
 
   const reload = useCallback(async () => {
     const execute = loadRef.current;
-    if (queryKey === null || execute === null) return;
+    if (!mountedRef.current || queryKey === null || execute === null) return;
     const guard = guardRef.current!;
     const requestId = guard.begin();
     setStored((current) => ({
@@ -120,12 +135,20 @@ export function useLatestAsyncQuery<T>(
     }));
     try {
       const data = await execute();
-      if (guard.isLatest(requestId) && requestedKeyRef.current === queryKey) {
+      if (
+        mountedRef.current &&
+        guard.isLatest(requestId) &&
+        requestedKeyRef.current === queryKey
+      ) {
         const resolved = { key: queryKey, data };
         setStored({ key: queryKey, state: { status: "SUCCESS", data, resolved }, resolved });
       }
     } catch (error) {
-      if (guard.isLatest(requestId) && requestedKeyRef.current === queryKey) {
+      if (
+        mountedRef.current &&
+        guard.isLatest(requestId) &&
+        requestedKeyRef.current === queryKey
+      ) {
         setStored((current) => ({
           key: queryKey,
           state: { status: "ERROR", resolved: current.resolved },
@@ -135,6 +158,10 @@ export function useLatestAsyncQuery<T>(
       throw error;
     }
   }, [queryKey]);
+
+  if (queryKey === null || !hasLoad) {
+    return { status: "IDLE", resolved: null, reload };
+  }
 
   if (stored.key !== queryKey) {
     return queryKey === null
