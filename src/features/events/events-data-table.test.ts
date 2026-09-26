@@ -28,8 +28,8 @@ const record: NormalizedEventRecord = {
 };
 
 describe("Events table defaults", () => {
-  it("defaults to Current Open with six visible columns", () => {
-    expect(DEFAULT_EVENTS_VIEW_MODE).toBe("OPEN_ONLY");
+  it("defaults to All with six visible columns", () => {
+    expect(DEFAULT_EVENTS_VIEW_MODE).toBe("ALL");
     expect(DEFAULT_VISIBLE_EVENT_COLUMN_IDS).toEqual([
       "store",
       "eventId",
@@ -91,7 +91,7 @@ describe("Event detail", () => {
       ),
     );
 
-    expect(markup).toContain("测试门店");
+    expect(markup).not.toContain("测试门店");
     expect(markup).toContain("EVENT-001");
     expect(markup).toContain("Agency Contact");
     expect(markup).toContain("完整事件描述");

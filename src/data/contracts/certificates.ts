@@ -30,3 +30,29 @@ export interface CertificatesQuery { context: EhsStoreScope }
 export type CertificatesQueryResult = DataSet<CertificatesStoreRow> & {
   unknownTypeRecords: readonly NormalizedCertificateRecord[];
 };
+
+export interface CertificateOverviewItem {
+  certificateCategory: DefaultCertificateCategory;
+  categoryLabel: string;
+  certificateType: string;
+  shortLabel: string;
+  fullLabel: string;
+  requiredCount: number | null;
+  actualCount: number;
+}
+
+export interface CertificateOverviewGroup {
+  certificateCategory: DefaultCertificateCategory;
+  label: string;
+  startIndex: number;
+  itemCount: number;
+}
+
+export interface CertificateOverviewResult {
+  items: readonly CertificateOverviewItem[];
+  groups: readonly CertificateOverviewGroup[];
+}
+
+export type CertificatesPageQueryResult = CertificatesQueryResult & {
+  overview: CertificateOverviewResult;
+};

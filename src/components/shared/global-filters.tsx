@@ -150,7 +150,7 @@ export function GlobalFilters() {
 
   return (
     <section aria-label="全局筛选">
-      <PageContainer className="py-3 lg:py-3">
+      <PageContainer className="pt-3 pb-0 lg:pt-3 lg:pb-0">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm font-medium">
             <SlidersHorizontal className="size-4" aria-hidden="true" />

@@ -31,8 +31,8 @@ const record: NormalizedTakeChargeRecord = {
 };
 
 describe("Take Charge Data Table contract", () => {
-  it("defaults to Current Open", () => {
-    expect(DEFAULT_TAKE_CHARGE_VIEW_MODE).toBe("OPEN_ONLY");
+  it("defaults to All", () => {
+    expect(DEFAULT_TAKE_CHARGE_VIEW_MODE).toBe("ALL");
   });
 
   it("resets repository pagination when view mode or sorting changes", () => {
@@ -122,7 +122,7 @@ describe("Take Charge Data Table contract", () => {
       ),
     );
 
-    expect(markup).toContain("测试门店");
+    expect(markup).not.toContain("测试门店");
     expect(markup).toContain("TCH-1842753");
     expect(markup).toContain("完整的 Take Charge 建议摘要");
     expect(markup).toContain("PendingReview");

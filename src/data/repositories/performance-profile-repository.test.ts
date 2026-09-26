@@ -8,6 +8,7 @@ import {
 } from "@/data/mock/performance";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 const dataset = getPerformanceMockDataset(referenceDate);
@@ -70,6 +71,37 @@ describe("performance profile Repository behavior", () => {
     ]);
     expect([region, area, store].every(({ availability }) => availability === "AVAILABLE"))
       .toBe(true);
+  });
+
+  it("returns Analytics data for the Performance Mock Profile", async () => {
+    const actions = await repository.getActionsAnalytics({ context: context() });
+    const events = await repository.getEventsAnalytics({ context: context() });
+    const environment = await repository.getEnvironmentAnalytics({
+      context: {
+        region: { kind: "ALL" },
+        area: { kind: "ALL" },
+        store: { kind: "ALL" },
+      },
+      period: context().period,
+    });
+    const certificates = await repository.getCertificates({
+      context: {
+        region: { kind: "ALL" },
+        area: { kind: "ALL" },
+        store: { kind: "ALL" },
+      },
+    });
+    const certificateOverview = buildCertificateOverview(certificates);
+
+    expect(actions.availability).toBe("AVAILABLE");
+    expect(actions.monthly.length).toBeGreaterThan(0);
+    expect(events.availability).toBe("AVAILABLE");
+    expect(events.totalCount).toBeGreaterThan(0);
+    expect(environment.availability).toBe("AVAILABLE");
+    expect(environment.expiringContractCount).not.toBeNull();
+    expect(certificates.availability).toBe("AVAILABLE");
+    expect(certificates.items.length).toBeGreaterThan(0);
+    expect(certificateOverview.items.length).toBeGreaterThan(0);
   });
 
   it("filters, sorts and paginates Actions after the complete scope", async () => {

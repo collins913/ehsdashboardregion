@@ -1,24 +1,12 @@
 "use client";
 
 import { useCallback } from "react";
+import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
+import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh-indicator";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { PageContainer } from "@/components/shared/page-container";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Info } from "lucide-react";
-import type { EhsFilterContext } from "@/data/contracts/kpi";
+import type { EhsFilterContext, KpiPeriod } from "@/data/contracts/kpi";
 import type { TakeChargeGoalsSummary } from "@/data/contracts/take-charge";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { TakeChargeDataTable } from "@/features/goals/take-charge-data-table";
@@ -39,74 +27,19 @@ export async function loadGoalsPageData(
     : query({ referenceDateIso, query: context });
 }
 
-function periodLabel(context: EhsFilterContext): string {
-  const months = context.period.includedMonths;
+function periodLabel(period: KpiPeriod): string {
+  const months = period.includedMonths;
   return months.length === 1
     ? months[0]
     : `${months[0]} 至 ${months[months.length - 1]}`;
 }
 
-function MetricValue({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-2xl font-semibold tabular-nums">{children}</span>
-  );
-}
-
-function GoalMetricCard({
-  title,
-  description,
-  help,
-  children,
-}: {
-  title: string;
-  description: string;
-  help?: { description: string; target: string };
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="gap-4 py-5 shadow-none">
-      <CardHeader className="px-5">
-        <CardTitle className="text-sm">
-          {help ? (
-            <HoverCard openDelay={250} closeDelay={150}>
-              <HoverCardTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <span>{title}</span>
-                  <Info
-                    aria-hidden="true"
-                    className="size-3 text-muted-foreground"
-                  />
-                </button>
-              </HoverCardTrigger>
-              <HoverCardContent side="bottom" align="start">
-                <div className="space-y-1.5">
-                  <p>{help.description}</p>
-                  <p className="text-muted-foreground">{help.target}</p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-          ) : (
-            title
-          )}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="px-5">{children}</CardContent>
-    </Card>
-  );
-}
-
 export function SummaryCards({
   summary,
-  context,
 }: {
   summary: TakeChargeGoalsSummary;
-  context: EhsFilterContext;
 }) {
-  const selectedPeriod = periodLabel(context);
+  const selectedPeriod = periodLabel(summary.period.period);
   const periodUnavailable =
     summary.period.availability === "INCOMPLETE" ||
     summary.period.availability === "UNAVAILABLE";
@@ -116,72 +49,64 @@ export function SummaryCards({
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 md:min-[1152px]:grid-cols-4">
-      <GoalMetricCard
+      <AnalyticsMetricCard
         title="提交总数"
-        description={selectedPeriod}
-        help={{
-          description: "当前筛选时间范围内的 Take Charge 提交总量。",
-          target: "当前不设达标阈值，仅用于展示提交活动量。",
-        }}
-      >
-        {periodUnavailable ? (
-          <DataAvailabilityDisplay availability={summary.period.availability} />
-        ) : (
-          <MetricValue>{summary.period.submissionTotal ?? 0}</MetricValue>
-        )}
-      </GoalMetricCard>
-      <GoalMetricCard
+        size="compact"
+        subtitle={selectedPeriod}
+        value={periodUnavailable ? null : summary.period.submissionTotal ?? 0}
+        valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
+        info={
+          <div className="space-y-1.5">
+            <p>当前筛选时间范围内的 Take Charge 提交总量。</p>
+            <p className="text-muted-foreground">当前不设达标阈值，仅用于展示提交活动量。</p>
+          </div>
+        }
+      />
+      <AnalyticsMetricCard
         title="关闭率"
-        description={selectedPeriod}
-        help={{
-          description: "已进入终态的 Take Charge 数量占全部 Take Charge 的比例。",
-          target: "目标：≥ 90%",
-        }}
-      >
-        {periodUnavailable ? (
-          <DataAvailabilityDisplay availability={summary.period.availability} />
-        ) : (
-          <MetricValue>
-            {summary.period.closeRate.value === null
-              ? "无"
-              : `${Math.round(summary.period.closeRate.value)}%`}
-          </MetricValue>
-        )}
-      </GoalMetricCard>
-      <GoalMetricCard
+        size="compact"
+        subtitle={selectedPeriod}
+        value={periodUnavailable ? null : summary.period.closeRate.value}
+        emptyLabel="无"
+        valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
+        formatter={(value) => `${Math.round(value)}%`}
+        info={
+          <div className="space-y-1.5">
+            <p>已进入终态的 Take Charge 数量占全部 Take Charge 的比例。</p>
+            <p className="text-muted-foreground">目标：≥ 90%</p>
+          </div>
+        }
+      />
+      <AnalyticsMetricCard
         title="今年平均提交数"
-        description={`${summary.annual.currentYear} 年`}
-        help={{
-          description: "本年度截至当前统计周期的平均 Take Charge 提交数量。",
-          target: "目标：≥ 4",
-        }}
-      >
-        {annualUnavailable ? (
-          <DataAvailabilityDisplay availability={summary.annual.availability} />
-        ) : (
-          <MetricValue>
-            {summary.annual.averageSubmissionsYtd.value?.toFixed(1) ?? "无"}
-          </MetricValue>
-        )}
-      </GoalMetricCard>
-      <GoalMetricCard
+        size="compact"
+        subtitle={`${summary.annual.currentYear} 年`}
+        value={annualUnavailable ? null : summary.annual.averageSubmissionsYtd.value}
+        emptyLabel="无"
+        valueFallback={annualUnavailable ? <DataAvailabilityDisplay availability={summary.annual.availability} /> : undefined}
+        formatter={(value) => value.toFixed(1)}
+        info={
+          <div className="space-y-1.5">
+            <p>本年度截至当前统计周期的平均 Take Charge 提交数量。</p>
+            <p className="text-muted-foreground">目标：≥ 4</p>
+          </div>
+        }
+      />
+      <AnalyticsMetricCard
         title="今年参与率"
-        description={`${summary.annual.currentYear} 年`}
-        help={{
-          description: "本年度截至当前统计周期的 Take Charge 参与率。",
-          target: "目标：≥ 50%",
-        }}
-      >
-        {annualUnavailable ? (
-          <DataAvailabilityDisplay availability={summary.annual.availability} />
-        ) : (
-          <MetricValue>
-            {summary.annual.participationRateYtd.value === null
-              ? "无"
-              : `${Math.round(summary.annual.participationRateYtd.value)}%`}
-          </MetricValue>
-        )}
-      </GoalMetricCard>
+        size="compact"
+        subtitle={`${summary.annual.currentYear} 年`}
+        value={annualUnavailable ? null : summary.annual.participationRateYtd.value}
+        emptyLabel="无"
+        valueFallback={annualUnavailable ? <DataAvailabilityDisplay availability={summary.annual.availability} /> : undefined}
+        formatter={(value) => `${Math.round(value)}%`}
+        info={
+          <div className="space-y-1.5">
+            <p>本年度截至当前统计周期的 Take Charge 参与率。</p>
+            <p className="text-muted-foreground">目标：≥ 50%</p>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -193,13 +118,13 @@ export function SummaryCardsPlaceholder({
   context: EhsFilterContext;
   hidden?: boolean;
 }) {
-  const selectedPeriod = periodLabel(context);
+  const selectedPeriod = periodLabel(context.period);
   const currentYear = context.period.includedMonths[0]?.slice(0, 4) ?? "—";
   const cards = [
-    ["提交总数", selectedPeriod],
-    ["关闭率", selectedPeriod],
-    ["今年平均提交数", `${currentYear} 年`],
-    ["今年参与率", `${currentYear} 年`],
+    { title: "提交总数", subtitle: selectedPeriod },
+    { title: "关闭率", subtitle: selectedPeriod },
+    { title: "今年平均提交数", subtitle: `${currentYear} 年` },
+    { title: "今年参与率", subtitle: `${currentYear} 年` },
   ] as const;
 
   return (
@@ -208,12 +133,15 @@ export function SummaryCardsPlaceholder({
       aria-hidden="true"
     >
       <div className="grid gap-3 sm:grid-cols-2 md:min-[1152px]:grid-cols-4">
-        {cards.map(([title, description]) => (
-          <GoalMetricCard key={title} title={title} description={description}>
-            <div className="flex h-8 items-center">
-              <Skeleton className="h-7 w-16" />
-            </div>
-          </GoalMetricCard>
+        {cards.map(({ title, subtitle }) => (
+          <AnalyticsMetricCard
+            key={title}
+            title={title}
+            subtitle={subtitle}
+            value={null}
+            loading
+            size="compact"
+          />
         ))}
       </div>
     </div>
@@ -236,7 +164,8 @@ export function GoalsPageContent({
     [filterContext, queryGoals, referenceDateIso],
   );
   const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
-  const summary = state.status === "SUCCESS" ? state.data : null;
+  const summary =
+    state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
 
   return (
     <PageContainer className="space-y-6">
@@ -249,14 +178,17 @@ export function GoalsPageContent({
           {state.status === "ERROR" ? (
             <AsyncQueryFeedback status="ERROR" />
           ) : null}
-          {summary === null ? (
-            <SummaryCardsPlaceholder
-              context={filterContext}
-              hidden={state.status === "ERROR"}
-            />
-          ) : (
-            <SummaryCards summary={summary} context={filterContext} />
-          )}
+          <div className="relative" aria-busy={state.status === "LOADING" || undefined}>
+            <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && summary !== null} />
+            {summary === null ? (
+              <SummaryCardsPlaceholder
+                context={filterContext}
+                hidden={state.status === "ERROR"}
+              />
+            ) : (
+              <SummaryCards summary={summary} />
+            )}
+          </div>
           <TakeChargeDataTable
             context={filterContext}
             referenceDateIso={referenceDateIso}

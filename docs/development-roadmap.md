@@ -1,6 +1,6 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-22
+- 更新日期：2026-09-26
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
@@ -31,6 +31,11 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Risk & Compliance → Environment V1
 - Environment Detail Expansion
 - Risk & Compliance → Certificates V1
+- Events Analytics V1
+- Actions Analytics V1
+- Certificates Overview / Requirement chart
+- Environment Analytics Metric Cards
+- Dashboard shared Analytics presentation reuse
 
 ## Architecture Hardening
 

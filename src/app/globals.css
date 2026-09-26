@@ -68,6 +68,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.928 0.006 264.531);
   --sidebar-ring: oklch(0.623 0.188 259.796);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-6: var(--muted-foreground);
+  --chart-certificate-required: oklch(0.82 0.09 255);
+  --chart-certificate-actual: oklch(0.49 0.18 258);
   --radius: 0.625rem;
   --page-padding: 1rem;
 }
@@ -99,6 +107,14 @@
   --sidebar-accent-foreground: oklch(0.968 0.001 286.375);
   --sidebar-border: oklch(0.274 0.005 286.033);
   --sidebar-ring: oklch(0.623 0.188 259.796);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --chart-6: var(--muted-foreground);
+  --chart-certificate-required: oklch(0.72 0.1 255);
+  --chart-certificate-actual: oklch(0.64 0.17 258);
 }
 
 @media (min-width: 48rem) {
@@ -110,6 +126,16 @@
 @media (min-width: 90rem) {
   :root {
     --page-padding: 2rem;
+  }
+}
+
+.analytics-number-transition {
+  transition: opacity 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analytics-number-transition {
+    transition: none !important;
   }
 }
 

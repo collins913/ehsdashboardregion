@@ -4,7 +4,7 @@ import {
   type KpiMockCoverage,
 } from "@/data/mock";
 import type { MockDataset } from "@/data/mock/mock-dataset";
-import type { EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
+import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult, NormalizedCertificateRecord } from "@/data/contracts/certificates";
 import type {
   KpiDetailQuery,
@@ -53,6 +53,8 @@ import type {
   EventsQueryResult,
   NormalizedEventRecord,
 } from "@/data/contracts/events";
+import type { EventAnalyticsQuery, EventAnalyticsResult } from "@/data/contracts/event-analytics";
+import type { ActionAnalyticsQuery, ActionAnalyticsResult } from "@/data/contracts/action-analytics";
 import type {
   NormalizedTakeChargeRecord,
   TakeChargeFieldDefinition,
@@ -92,6 +94,9 @@ import {
 } from "@/lib/rules/goal-rules";
 import { classifyTakeChargeRecordState } from "@/lib/rules/take-charge-rules";
 import { buildTakeChargeMonthlyAggregates } from "@/data/take-charge-monthly-aggregate";
+import { buildEventAnalytics } from "@/lib/rules/event-analytics";
+import { buildActionAnalytics } from "@/lib/rules/action-analytics";
+import { buildEnvironmentAnalytics } from "@/lib/rules/environment-analytics";
 
 function scopeIncludes<T>(scope: FilterScope<T>, value: T): boolean {
   return scope.kind === "ALL" || scope.values.includes(value);
@@ -941,6 +946,14 @@ export function createMockEhsRepository(
     };
   }
 
+  async function getActionsAnalytics({ context }: ActionAnalyticsQuery): Promise<ActionAnalyticsResult> {
+    const dataSet = actionDataSet(context, "ALL");
+    return {
+      ...buildActionAnalytics(context, dataSet.items),
+      availability: dataSet.availability,
+    };
+  }
+
   function eventDataSet(
     context: EhsFilterContext,
     viewMode: EventsQuery["viewMode"],
@@ -1067,6 +1080,16 @@ export function createMockEhsRepository(
       pageIndex,
       pageSize,
       availableEventTypes,
+    };
+  }
+
+  async function getEventsAnalytics({
+    context,
+  }: EventAnalyticsQuery): Promise<EventAnalyticsResult> {
+    const dataSet = eventDataSet(context, "ALL");
+    return {
+      ...buildEventAnalytics(context, dataSet.items),
+      availability: dataSet.availability,
     };
   }
 
@@ -1335,6 +1358,18 @@ export function createMockEhsRepository(
       : incompleteDataSet(items);
   }
 
+  async function getEnvironmentAnalytics({ context, period }: EnvironmentAnalyticsQuery): Promise<EnvironmentAnalyticsResult> {
+    const environment = await getEnvironment({ context });
+    const eligibleStoreCount = requestedStores(context, stores).length;
+    return buildEnvironmentAnalytics(
+      environment.availability,
+      environment.items,
+      eligibleStoreCount,
+      period,
+      formatBusinessDate(referenceDate.toISOString()),
+    );
+  }
+
   async function getCertificates({ context }: CertificatesQuery): Promise<CertificatesQueryResult> {
     const selectedStores = requestedStores(context, stores);
     const selectedIds = new Set(selectedStores.map((store) => store.storeId));
@@ -1378,11 +1413,14 @@ export function createMockEhsRepository(
     getKpiInspectionDetails,
     getKpiAstmDetails,
     getActions,
+    getActionsAnalytics,
     getEvents,
+    getEventsAnalytics,
     getTakeChargeGoals,
     getTakeChargeRecords,
     getStores,
     getEnvironment,
+    getEnvironmentAnalytics,
     getCertificates,
     getFilterStores: async () => stores.map(toKpiStore),
   };

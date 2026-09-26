@@ -172,6 +172,7 @@ Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明
 - Event Type 筛选；选项来自当前 scoped normalized Event 数据，不在 UI 固定 taxonomy。
 - “全部 / 未关闭”切换；默认“全部”。
 - Current Open 仅显示 `RecordState = OPEN`；All 保留当前范围全部记录，当前已确认源状态为 `Open` 与 `Closed`，未知未来值保留原文并归类 `UNKNOWN`，不进入 Current Open。
+- 页面在表格上方展示 Events Analytics V1：类型分布、已关闭 / 未关闭数量与关闭率、当前 Global Period 的逐月事件数量趋势。事件趋势支持按当前范围内实际存在的事件类型快速查看，默认“全部”，且只影响趋势图。Analytics 只响应 Region、Area、Store、Period，不受表格的“全部 / 未关闭”、Event Type、排序或分页影响。
 - 点击记录打开 Event Detail。
 
 当前已知 source Event Type 包括 `Agency` 与 `Non-Agency Event`，未来新增 source value 时筛选与列表应自动支持。
@@ -201,6 +202,7 @@ Event Detail V1 仅展示已确认的公共字段：Store 中文名称、Event I
 - `Cancelled` 为已排除，不属于未关闭；不得与 `Closed` 合并。
 - Performance → KPI 的 Actions 下钻使用相同 Region / Area / Store / Period 范围，只显示 `RecordState = OPEN`；相同筛选下应与本页面 Open 视图返回相同 Action ID。
 - 下钻明细用于追踪当前仍需整改的行动项，不要求与当前 Period 的 Closure Rate aggregate 分子、分母对账。
+- 页面在表格上方展示 Actions Analytics V1：关闭情况与当前 Global Period 的逐月行动项数量趋势。关闭率按 `(Closed + Cancelled) / 当前范围全部 Action 记录` 计算，`UNKNOWN` 与 OPEN 记录计入分母但不计入分子；原始 RecordState 分类保持不变。趋势按 Submitted Date 计数并覆盖完整 included months。Analytics 只响应 Region、Area、Store、Period，不受表格筛选、排序或分页影响。
 - 未来新增源状态的分类：TBD；页面不得自行猜测。
 
 ### 7.3 列表与详情
@@ -254,7 +256,7 @@ Category 不来自源数据，仅通过集中 Certificate Type exact mapping 得
 
 ### 8.3 状态与筛选
 
-证件有效期按 Dashboard referenceDate 评价：到期日当天有效；过期、缺失或无效日期均异常。类别无记录或任一记录异常则异常，否则正常。不检查证件种类是否齐全，不实现 Required Slot、人数要求或到期提醒。
+证件有效期按 Dashboard referenceDate 评价：到期日当天有效；过期、缺失或无效日期均异常。类别无记录或任一记录异常则异常，否则正常。此类别状态不检查证件种类是否齐全，也不实现 Required Slot 完整性或到期提醒。
 
 Region / Area / Store 生效；Period ignored，变化不查询、不 loading，不与 referenceDate 混用。Raw 仅含 TRTID、English Store Name、Certificate Type、Expiry Date、Person、Person Email、Business Title；门店解析复用既有 TRTID primary / English fallback、conflict 与历史名称语义。
 
@@ -266,19 +268,23 @@ Region / Area / Store 生效；Period ignored，变化不查询、不 loading，
 
 本次用户确认的 V1 覆盖旧五类别、Required Slot、“无”展示及缺日期未确定规则；历史决策中与此冲突的 Certificates 定义不再适用于本轮 V1。
 
+### 8.4 Certificate Overview
+
+证件页面在表格上方展示双柱图“证件配置概览”。所有正式 Certificate Type 均显示实际数量；Requirement 已配置的类型显示应持有与实际数量，未配置的类型以 `requiredCount = null` 表示“未设置”，不绘制应持有柱。分类顺序为安全健康（S、M、H1、H2）、急救员（急救员证）、特种作业（熔化焊接与热切割作业）、安全驾驶（安全驾驶内训师、内驾证）。短标签和稳定顺序由 Certificate taxonomy metadata 定义；Tooltip 提供大分类与完整正式名称。应持有数随 Region / Area / Store 筛选后的门店集合计算，Period 忽略。当前配置：四种安全健康类型各 1 张 / 店、急救员证 2 张 / 店、安全驾驶内训师 1 张 / 店；其它类型未设置 Requirement。实际数量按筛选范围内对应 Certificate 记录数统计，沿用当前 actualCount 口径。图表统计不改变门店类别 NORMAL / ABNORMAL 规则。
+
 ## 9. Risk & Compliance → Environment
 
 ### 9.1 Environment 门店表
 
 固定默认六列：门店、设施信息、环保证照、应急预案、监测、废弃物合同。门店只显示 Store Master 的中文名称；其余五列仅提供统一“查看”入口，不在主表展示状态、日期、编号或数量。
 
-Environment 当前仍不产生正常、异常、评分或其它 Business Result。页面只展示 normalized source data，不根据自由文本、缺失值或日期推断业务结论。支持 scoped 集合排序、列显示控制与 adaptive pagination。
+Environment 当前仍不产生正常、异常、评分或其它环境合规 Business Result。页面在 Global Filters 下方展示危险废物合同持有率、固体废物合同持有率、到期合同数量三张指标卡。两类持有率均以 Global Filters 范围内全部门店为分母；每家门店至少有一条 `validTo` 合法且不早于 Dashboard `referenceDate` 的对应类型合同才计入分子，每店每类最多计一次，多份合同中任一条有效即计入。缺失、无效或已过期的截止日期不构成有效合同。到期合同数量统计两类废弃物合同中有效期止落入 Global Period 的合同记录。持有率只跟随 Region / Area / Store scope 与 referenceDate；Period 只影响到期数量。主表仍只展示 normalized source data，不根据自由文本推断合规结论，并支持 scoped 集合排序、列显示控制与 adaptive pagination。
 
 ### 9.2 数据与筛选边界
 
 Raw Source 使用 TRTID、English Store Name 与显式 typed Environment detail fields，不保存中文门店名。完全复用已有 TRTID 优先、英文名辅助的 Store Resolution，保留 fallback、conflict 与历史名称语义；UI 只消费 canonical Store。
 
-Region / Area / Store 有效，Period 与 referenceDate 当前均不参与查询身份。日期仅按 date-only 源值展示，不计算有效性。
+Environment detail 仅由 Region / Area / Store 决定，Period 与 referenceDate 不参与详情查询。Analytics 持有率按当前 scope 与 referenceDate 计算；Period 只参与到期合同数量。到期数仅纳入有效 date-only 有效期止位于所选完整月份区间内的危险废物和一般工业固体废物合同记录；缺失或无效日期排除并保留排除计数，不推断到期状态。
 
 ### 9.3 Detail Expansion
 

@@ -26,6 +26,7 @@
 - 使用 Tailwind 4px 间距体系；常用间距为 `2`、`3`、`4`、`6`、`8`。
 - 页面水平边距由 `--page-padding` 控制：移动端 16px、平板 24px、1440px 起 32px。
 - 内容最大宽度为 1600px，由 `PageContainer` 统一执行。
+- Dashboard Global Filters 与页面首个内容区之间为 24px；Analytics 与表格工具栏之间沿用 24px section gap。GlobalFilters 不承担页面外部间距。
 - Desktop First：重点检查 1440px 与 1920px；平板保留完整操作，移动端保证基本可用。
 
 ## Radius and shadow
@@ -55,6 +56,7 @@
 - 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 - 异步分页/排序 pending 在固定宽度的 footer 槽位显示轻量反馈，同时禁用重复操作；同步客户端分页不显示请求反馈。
+- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表，CountTrend 将最新预计算数据直接交给稳定的 Recharts AreaChart 并使用其默认动画，不自行路由月份域变化；中心数字插值 450ms；刷新失败时保留等高 Card 并显示错误。其它共享图表动画尊重 `prefers-reduced-motion`。
 - adaptive page sizing 复用共享测量行为，仅使用 5 / 7 / 10 档位；已有业务表格由 Feature 持有分页状态，通用 shared DataTable 自行持有分页状态，不另建 responsive table engine。
 - 业务表格正文行以 Actions 行为基准：shared DataTable presentation 统一单元格 22px 行盒，TableCellTrigger 与 placeholder 行遵循同一几何。
 - Sticky 首列维持不透明背景，并通过 shared row state 跟随整行 hover 与 selected 背景。

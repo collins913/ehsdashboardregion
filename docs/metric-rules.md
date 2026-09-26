@@ -459,11 +459,17 @@ Confirmed mapping:
 
 Events detail queries apply Global Region / Area / Store and the Global Period
 to source `Event Date` using `[startInclusive, endExclusive)`. `OPEN_ONLY`
-adds `RecordState = OPEN`; `ALL` retains the supported lifecycle states in the
-same scope. Event Type filtering uses the normalized source value and does not
-change business status.
+adds `RecordState = OPEN`; `ALL` retains all normalized records in the same
+scope, including `UNKNOWN`. Event Type filtering uses the normalized source
+value and does not change business status.
 
 `Event Date` is the stable source / contract field name. User-facing terminology is `Event Time` / “事件时间”.
+
+Events Analytics closure rate is `CLOSED / (CLOSED + OPEN) * 100`. `UNKNOWN`
+records remain included in the ALL-scope total and event type distribution, but
+are excluded from the closure-rate denominator. If a scope or month contains no
+OPEN or CLOSED records, its closure rate is null rather than zero. Monthly rates
+use records whose Event Date falls within that Asia/Shanghai calendar month.
 
 ASTM evaluation follows section `3.5`.
 
@@ -504,6 +510,22 @@ never determine or reconcile the source-provided Action Closure Rate aggregate.
 
 Due Date must not be used to automatically derive an `Overdue` status unless a future business rule explicitly defines that behavior.
 
+### Actions Analytics V1
+
+The Actions page Analytics closure rate is a separate detail-derived metric; it
+does not replace or reconcile the Performance → KPI source-provided Action
+Closure Rate. Within the current Global Filter scope, all Actions are the
+denominator. Only known `Closed` and `Cancelled` source statuses are the
+numerator; OPEN and UNKNOWN records remain in the denominator but not the
+numerator. Thus `Cancelled` remains `EXCLUDED` for lifecycle filtering while
+counting in this Analytics numerator by explicit page metric definition. With
+no scoped records, the rate is null.
+
+The Actions monthly count trend uses the normalized `Submitted Date` and the
+current Global Period's complete included-month sequence. The Repository / Rule
+returns zero-filled months in ascending order. Table view mode, sorting and
+pagination do not affect either Analytics result.
+
 ---
 
 # 7. Risk & Compliance → Certificates
@@ -542,9 +564,15 @@ daysUntilExpiry 为两个业务日期的自然日差；到期当天为 0 且有�
 - 任一单证 ABNORMAL → ABNORMAL。
 - 至少一张且全部 NORMAL → NORMAL。
 
-仅评价已上传记录，不检查 S / M / H1 / H2 或安全驾驶两种 Type 是否齐全。无 Required Slot、人数要求、UNDETERMINED、即将到期或提醒规则。输出仅业务语义，不返回 UI 样式。
+仅评价已上传记录，不检查 S / M / H1 / H2 或安全驾驶两种 Type 是否齐全。类别状态不执行 Required Slot 完整性判断，不产生人数要求结论、UNDETERMINED、即将到期或提醒规则。输出仅业务语义，不返回 UI 样式。
 
-## 7.4 Filters
+## 7.4 Certificate Overview counts
+
+Certificate Overview 独立于 Store × Category 状态规则，展示所有正式 Certificate Type。分类与类型顺序及短标签取自 `src/lib/rules/certificate-types.ts`；每个分类内保持该 metadata 定义的顺序。要求配置集中于 `src/lib/rules/certificate-requirements.ts`：`主要负责人安全生产培训合格证书-S`、`安全生产管理人员安全生产培训合格证书-M`、`主要负责人职业卫生培训合格证书-H1`、`职业卫生管理人员职业卫生培训合格证书-H2` 各 1 / scoped store；`急救员证` 为 2 / scoped store；`安全驾驶内训师` 为 1 / scoped store。`安全驾驶内驾证` 与 `熔化焊接与热切割作业` 未设置 Requirement。
+
+`requiredCount = scopedStoreCount × requiredPerStore`；没有配置时 `requiredCount = null`，表示未设置，不表示 0。`actualCount` 和本轮已实现口径保持不变。Region / Area / Store 影响门店数和实际记录范围；Period 忽略。图表不推导合规状态，也不改变 Store × Category 结果。
+
+## 7.5 Filters
 
 Region / Area / canonical Store 生效。Period ignored；referenceDate 仅用于有效期和天数评价，与 Global Period 独立。
 
@@ -554,7 +582,7 @@ Region / Area / canonical Store 生效。Period ignored；referenceDate 仅用�
 
 ## 8.0 Current-state Environment V1 boundary
 
-当前 V1 仅提供环境影响评价、排污许可、排水许可、环境预案、监测、废弃物合同六个源值；各值仅为“有 / 无 / 不适用”，不产生 Business Result。“无”不能推导异常、健康度或评分。Region / Area / Store 生效，Period ignored。
+当前 detail V1 仅展示环境影响评价、排污许可、排水许可、环境预案、监测与废弃物合同 source data，不产生合规 Business Result。“无”不能推导异常、健康度或评分。Region / Area / Store 生效，Period ignored。
 
 以下 8.1–8.8 是历史环境合规需求，**不属于 Environment 当前状态 V1，也不是 Overview 可直接消费的当前合规结果**。后续适用关系与真实输入需另行确认；不得将这些规则应用到六个当前源值。
 
@@ -741,6 +769,12 @@ The following are NOT currently defined:
 The rule layer must not infer these conditions.
 
 ---
+
+## 8.9 Environment Analytics V1
+
+- 危险废物合同持有率 = 当前 Global Filters 范围内至少有一条在 Dashboard `referenceDate` 当天有效的危险废物合同的门店数 ÷ 当前范围内全部门店数；一般工业固体废物合同持有率按对应合同类型使用同一口径。有效定义为 `validTo` 是合法 date-only 值且 `validTo >= referenceDate`；截止日期缺失、无效或早于 referenceDate 均不计为有效合同。每店每类只计一次，多份合同中任一条有效即计入。Environment 数据不完整或范围内没有门店时，比例为 null。
+- 到期合同数量仅统计危险废物与一般工业固体废物合同记录。`validTo` 为合法 date-only 值，且其自然月属于 Global Period `includedMonths` 时计 1 条。缺失或无效日期不计入，并保留排除记录数。Period 无效、或 scoped Environment 数据为 `INCOMPLETE` / `UNAVAILABLE` 时，总数为 null，不能显示部分计数为完整结论。
+- 持有率只响应 Region / Area / Store，并以 referenceDate 判断合同有效性；Global Period 不影响持有率。到期合同数量仍仅响应 Global Period。所有筛选和聚合均由 Environment Repository 与本规则层完成；React 不过滤合同、不计数、不比较日期。
 
 # 9. Rule Output Contract
 

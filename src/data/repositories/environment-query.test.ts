@@ -25,10 +25,17 @@ describe("Environment detail query", () => {
     ]);
     expect(new Set(raw.map((record) => record.监测))).toEqual(new Set(["有", "无", "不适用"]));
     expect(raw.some((record) => record.环境影响评价.总量要求["气-颗粒物"] === null)).toBe(true);
-    expect(raw.some((record) => record.废弃物合同.危险废物处置合同.length === 0)).toBe(true);
     expect(raw.some((record) => record.废弃物合同.危险废物处置合同.length > 1)).toBe(true);
-    expect(new Set(raw.map((record) => record.废弃物合同.危险废物处置合同.length))).toEqual(new Set([0, 1, 2, 3]));
-    expect(new Set(raw.map((record) => record.废弃物合同.一般工业固体废物处置合同.length))).toEqual(new Set([0, 1, 2, 3]));
+    expect(new Set(raw.map((record) => record.废弃物合同.危险废物处置合同.length))).toEqual(new Set([1, 2, 3]));
+    expect(new Set(raw.map((record) => record.废弃物合同.一般工业固体废物处置合同.length))).toEqual(new Set([1, 2, 3]));
+    const hazardousContracts = raw.map((record) => record.废弃物合同.危险废物处置合同);
+    const solidContracts = raw.map((record) => record.废弃物合同.一般工业固体废物处置合同);
+    for (const contractsByStore of [hazardousContracts, solidContracts]) {
+      expect(contractsByStore.every((contracts) => contracts.length > 0)).toBe(true);
+      expect(contractsByStore.some((contracts) => contracts.some(({ 有效期止 }) => 有效期止 === null))).toBe(true);
+      expect(contractsByStore.some((contracts) => contracts.some(({ 有效期止 }) => 有效期止 !== null && 有效期止 < "2026-09-15"))).toBe(true);
+      expect(contractsByStore.some((contracts) => contracts.some(({ 有效期止 }) => 有效期止 !== null && 有效期止 >= "2026-09-15"))).toBe(true);
+    }
   });
 
   it("preserves unrestricted detail text without status inference", async () => {

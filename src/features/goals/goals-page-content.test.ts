@@ -56,7 +56,7 @@ describe("Goals summary cards", () => {
 
   it("renders all four values as matching plain-text metrics", () => {
     const markup = renderToStaticMarkup(
-      createElement(SummaryCards, { summary: summary(50), context }),
+      createElement(SummaryCards, { summary: summary(50) }),
     );
 
     expect(markup).toContain(">48<");
@@ -69,7 +69,7 @@ describe("Goals summary cards", () => {
 
   it("renders an empty close rate as plain text", () => {
     const markup = renderToStaticMarkup(
-      createElement(SummaryCards, { summary: summary(null), context }),
+      createElement(SummaryCards, { summary: summary(null) }),
     );
 
     expect(markup).toContain(">无<");

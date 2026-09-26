@@ -21,8 +21,9 @@ const context: EhsFilterContext = { region: { kind: "ALL" }, area: { kind: "ALL"
 
 describe("Certificates V1 feature", () => {
   it("uses the injected Server Action envelope and skips unresolved filter contexts", async () => {
-    const query = vi.fn(async () => ({ availability: "AVAILABLE" as const, items: [row] as const, unknownTypeRecords: [] }));
-    expect(await loadCertificatesPageData(context, "reference", query)).toEqual({ availability: "AVAILABLE", items: [row], unknownTypeRecords: [] });
+    const pageResult = { availability: "AVAILABLE" as const, items: [row] as const, unknownTypeRecords: [], overview: { items: [], groups: [] } };
+    const query = vi.fn(async () => pageResult);
+    expect(await loadCertificatesPageData(context, "reference", query)).toEqual(pageResult);
     expect(query).toHaveBeenCalledWith({ referenceDateIso: "reference", query: context });
     query.mockClear();
     expect(await loadCertificatesPageData(null, "reference", query)).toBeNull();

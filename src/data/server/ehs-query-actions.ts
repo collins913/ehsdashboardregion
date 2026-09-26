@@ -2,6 +2,8 @@
 
 import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
+import type { EventAnalyticsQuery, EventAnalyticsResult } from "@/data/contracts/event-analytics";
+import type { ActionAnalyticsQuery, ActionAnalyticsResult } from "@/data/contracts/action-analytics";
 import type { EhsFilterContext, EhsStoreScope } from "@/data/contracts/kpi";
 import type {
   KpiDetailQuery,
@@ -12,8 +14,8 @@ import type {
   KpiAstmDetailRecord,
 } from "@/data/contracts/kpi-details";
 import type { StoresQueryResult } from "@/data/contracts/stores";
-import type { EnvironmentQueryResult } from "@/data/contracts/environment";
-import type { CertificatesQueryResult } from "@/data/contracts/certificates";
+import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { CertificatesPageQueryResult } from "@/data/contracts/certificates";
 import type {
   TakeChargeGoalsSummary,
   TakeChargeRecordsQuery,
@@ -21,6 +23,7 @@ import type {
 } from "@/data/contracts/take-charge";
 import { createEhsRepository } from "@/data/repositories/create-ehs-repository.server";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
 import { authorizeBusinessScope } from "@/lib/access/access-service.server";
 import type { KpiRow } from "@/features/kpi/types";
 
@@ -93,11 +96,31 @@ export async function queryActions({
   return repositoryFor(referenceDateIso).getActions({ ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } });
 }
 
+export async function queryActionsAnalytics({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<ActionAnalyticsQuery>): Promise<ActionAnalyticsResult> {
+  return repositoryFor(referenceDateIso).getActionsAnalytics({
+    ...query,
+    context: { ...query.context, ...await authorizeBusinessScope(query.context) },
+  });
+}
+
 export async function queryEvents({
   referenceDateIso,
   query,
 }: QueryEnvelope<EventsQuery>): Promise<EventsQueryResult> {
   return repositoryFor(referenceDateIso).getEvents({ ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } });
+}
+
+export async function queryEventsAnalytics({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<EventAnalyticsQuery>): Promise<EventAnalyticsResult> {
+  return repositoryFor(referenceDateIso).getEventsAnalytics({
+    ...query,
+    context: { ...query.context, ...await authorizeBusinessScope(query.context) },
+  });
 }
 
 export async function queryTakeChargeGoals({
@@ -125,6 +148,17 @@ export async function queryEnvironment({ referenceDateIso, query: context }: Que
   return repositoryFor(referenceDateIso).getEnvironment({ context: await authorizeBusinessScope(context) });
 }
 
-export async function queryCertificates({ referenceDateIso, query: context }: QueryEnvelope<EhsStoreScope>): Promise<CertificatesQueryResult> {
-  return repositoryFor(referenceDateIso).getCertificates({ context: await authorizeBusinessScope(context) });
+export async function queryEnvironmentAnalytics({
+  referenceDateIso,
+  query,
+}: QueryEnvelope<EnvironmentAnalyticsQuery>): Promise<EnvironmentAnalyticsResult> {
+  return repositoryFor(referenceDateIso).getEnvironmentAnalytics({
+    ...query,
+    context: await authorizeBusinessScope(query.context),
+  });
+}
+
+export async function queryCertificates({ referenceDateIso, query: context }: QueryEnvelope<EhsStoreScope>): Promise<CertificatesPageQueryResult> {
+  const certificates = await repositoryFor(referenceDateIso).getCertificates({ context: await authorizeBusinessScope(context) });
+  return { ...certificates, overview: buildCertificateOverview(certificates) };
 }

@@ -8,6 +8,8 @@ import type {
   ActionsQueryResult,
 } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
+import type { EventAnalyticsQuery, EventAnalyticsResult } from "@/data/contracts/event-analytics";
+import type { ActionAnalyticsQuery, ActionAnalyticsResult } from "@/data/contracts/action-analytics";
 import type {
   TakeChargeGoalsQuery,
   TakeChargeGoalsSummary,
@@ -15,7 +17,7 @@ import type {
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
-import type { EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult } from "@/data/contracts/certificates";
 import type {
   KpiDetailQuery,
@@ -44,10 +46,12 @@ export interface KpiQueries {
 
 export interface ActionsQueries {
   getActions(query: ActionsQuery): Promise<ActionsQueryResult>;
+  getActionsAnalytics(query: ActionAnalyticsQuery): Promise<ActionAnalyticsResult>;
 }
 
 export interface EventsQueries {
   getEvents(query: EventsQuery): Promise<EventsQueryResult>;
+  getEventsAnalytics(query: EventAnalyticsQuery): Promise<EventAnalyticsResult>;
 }
 
 export interface TakeChargeQueries {
@@ -65,6 +69,7 @@ export interface StoresQueries {
 
 export interface EnvironmentQueries {
   getEnvironment(query: EnvironmentQuery): Promise<EnvironmentQueryResult>;
+  getEnvironmentAnalytics(query: EnvironmentAnalyticsQuery): Promise<EnvironmentAnalyticsResult>;
 }
 
 export interface GlobalFilterQueries {

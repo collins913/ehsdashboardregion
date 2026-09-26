@@ -14,7 +14,7 @@ function wasteContracts(
   category: "危险废物" | "一般工业固体废物",
   count: number,
 ): readonly RawEnvironmentWasteContract[] {
-  return Array.from({ length: count }, (_, contractIndex) => ({
+  return Array.from({ length: Math.max(1, count) }, (_, contractIndex) => ({
     供应商名称: `${category}处置供应商 ${storeIndex + 1}-${contractIndex + 1}`,
     种类:
       category === "危险废物"
@@ -24,8 +24,15 @@ function wasteContracts(
         : contractIndex % 2 === 0
           ? "废纸及包装物"
           : "一般工业固废",
-    有效期起: `2026-${String((contractIndex % 6) + 1).padStart(2, "0")}-01` as IsoDate,
-    有效期止: `2027-${String((contractIndex % 6) + 1).padStart(2, "0")}-01` as IsoDate,
+    有效期起: "2025-01-01" as IsoDate,
+    有效期止:
+      storeIndex % 5 === 0
+        ? ("2026-02-15" as IsoDate)
+        : storeIndex % 5 === 1
+          ? null
+          : contractIndex === 0
+            ? ("2030-12-31" as IsoDate)
+            : (`2026-${String(((storeIndex * 2 + contractIndex) % 12) + 1).padStart(2, "0")}-15` as IsoDate),
   }));
 }
 

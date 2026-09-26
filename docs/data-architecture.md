@@ -152,7 +152,7 @@ Raw Event
 ## Global Filters
 
 - Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
-- 同一筛选状态派生有效 Store scope 与完整 period-aware context；query readiness / identity 仅依赖实际使用的维度。Stores、Environment、Certificates 使用无 Period 的 typed scope，经既有 Server Action / Repository 查询；自定义 Period 未完整不阻断它们，不建立第二套 Provider 或默认 Period workaround。
+- 同一筛选状态派生有效 Store scope 与完整 period-aware context；query readiness / identity 仅依赖实际使用的维度。Stores、Environment detail、Certificates 使用无 Period 的 typed scope，经既有 Server Action / Repository 查询；Environment Analytics 的废弃物合同到期数量另依赖 Global Period，持有率 snapshot 不依赖 Period。自定义 Period 未完整不阻断 detail 查询，不建立第二套 Provider 或默认 Period workaround。
 - Region、Area、Store 沿用 `EhsFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
 - Repository 向筛选 UI 提供 `storeId`、`displayName`、Region、Area，不允许 UI 使用名称或 TRTID 自行关联。
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
@@ -169,9 +169,9 @@ Environment Raw Source (TRTID / English Store Name + typed detail fields)
 → Environment Feature / Table / shared Detail Sheet
 ```
 
-Environment 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。设施信息和 Monitoring 新字段保持 TBD。
+Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同记录计分子；到期记录数则按 normalized 合同记录与 Period 计算。设施信息和 Monitoring 新字段保持 TBD。
 
-Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，并复用一个 Detail Sheet；不创建独立 Repository runtime、Rule Engine、Table 或 Detail framework。废弃物合同数组保留所有源记录及顺序，不去重、不截断。Standard Mock 使用既有 Store Master 生成少量 deterministic detail records；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
+Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，并复用一个 Detail Sheet；不创建独立 Repository runtime、Table 或 Detail framework。废弃物合同数组保留所有源记录及顺序，不去重、不截断。Standard Mock 使用既有 Store Master 为每家门店生成 deterministic detail record；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
 
 ## Certificates V1 current-state query
 
@@ -179,7 +179,7 @@ Raw Certificate → existing Mock Dataset → same EHS Repository / existing Sto
 
 Detail 的 Type grouping 属于纯 presentation：根据当前类别已规范化 records 形成 typed groups，保持所有同 Type 记录，纵向展示 Type sections / record cards。不硬编码 Type 布局，也不重新计算类别、有效期或状态。
 
-TRTID primary、English Store Name fallback 与 conflict / historical-name 语义沿用现有 resolver。Raw 不携带中文名称或 Category；Type 使用集中 exact mapping，未知 Type 保留独立 normalized records，不猜分类。每张记录和类别仅 NORMAL / ABNORMAL；Period ignored，referenceDate 用于 date-only 有效期与自然日差。UI 不计算规则，不创建独立 Repository、Table、Detail 或 Required Slot framework。未来字段通过显式 typed contract 扩展。Performance Profile 仅提供少量 deterministic shape compatibility。
+TRTID primary、English Store Name fallback 与 conflict / historical-name 语义沿用现有 resolver。Raw 不携带中文名称或 Category；Type 使用集中 exact mapping，未知 Type 保留独立 normalized records，不猜分类。每张记录和类别仅 NORMAL / ABNORMAL；Period ignored，referenceDate 用于 date-only 有效期与自然日差。UI 不计算规则，不创建独立 Repository、Table、Detail 或通用 Required Slot framework。Certificate Overview 的每店数量配置、完整类型行、分类分组与排序由集中 taxonomy / domain rules 准备，不改变类别状态。未来字段通过显式 typed contract 扩展。Performance Profile 仅提供少量 deterministic shape compatibility。
 
 ## Store Master Data
 

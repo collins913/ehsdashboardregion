@@ -173,8 +173,8 @@ describe("scoped Events repository query", () => {
       pageSize: 100,
     });
     const allEvents = await repository.getEvents({ context: context(), viewMode: "ALL", pageIndex: 0, pageSize: 100 });
-    expect(allEvents.items).toHaveLength(18);
-    expect(openEvents.items).toHaveLength(15);
+    expect(allEvents.items).toHaveLength(21);
+    expect(openEvents.items).toHaveLength(18);
     expect(new Set(openEvents.items.map(({ eventType }) => eventType))).toEqual(
       new Set([
         "Injury/Illness",

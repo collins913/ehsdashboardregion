@@ -66,7 +66,7 @@ export function createKpiMockData(referenceDate: Date) {
     ),
     actionRecords: createMockActionRecords(supportedMonths),
     eventRecords: createMockEventRecords(supportedMonths),
-    environmentRecords: createEnvironmentMockRecords(mockStores),
+    environmentRecords: createEnvironmentMockRecords(mockStores, mockStores.length),
     certificateRecords: createMockCertificateRecords(mockStores, referenceDate),
     takeChargeRecords: createMockTakeChargeRecords(supportedMonths),
     takeChargeAnnualAggregateFixtures:

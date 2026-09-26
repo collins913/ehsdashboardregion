@@ -287,6 +287,8 @@ Events scoped Repository query 复用 `EhsFilterContext`，以 Event Date 应用
 
 Events query 还接收 sorting、`pageIndex`、`pageSize`，返回当前页 records、`totalCount`、DataAvailability 及分页前从当前 Global Scope + view mode 生成的 `availableEventTypes`。
 
+Events Analytics 使用独立的 context-only Repository query，不接收 Events 表格筛选、排序或分页条件。`EventAnalyticsResult` 返回 ALL scope 的事件总数、按数量降序的事件类型计数、OPEN / CLOSED 汇总及关闭率，以及覆盖 `EhsFilterContext.period.includedMonths` 的逐月事件数量与关闭率。`trendSeries` 预计算 ALL 与当前查询范围内各 Event Type 的逐月数量；每条序列覆盖全部 included months，缺失月份为 0 并按月份升序。UNKNOWN 保留在总数和类型分布中，但不进入关闭率分母；没有可评价的 OPEN / CLOSED 记录时关闭率为 null。
+
 ## 7. Risk & Compliance → Action Record
 
 | 逻辑字段 | 要求 |
@@ -320,6 +322,8 @@ Actions scoped Repository query 复用 `EhsFilterContext`，以 Submitted Date �
 
 Actions query 还接收 sorting、`pageIndex`、`pageSize`，Repository 对完整 scoped result 先应用 Period、view mode 与排序，再返回当前页、`totalCount` 和 DataAvailability。
 
+Actions Analytics 使用独立的 context-only Repository query，不接收表格 view mode、sorting 或 pagination。`ActionAnalyticsResult` 返回 `closedOrCancelledCount`、`otherCount`、`closureRate`，以及覆盖 `EhsFilterContext.period.includedMonths` 的逐月 `actionCount`。分母为当前 Global Filter scope 内全部 normalized Action 记录；`Closed` 与 `Cancelled` 计入分子，OPEN 与 UNKNOWN 计入其余数量。关闭率为 `(Closed + Cancelled) / 全部记录 * 100`，无记录时为 null。此 Analytics 口径不改变 `Cancelled → EXCLUDED` 状态映射，也不修改 Performance → KPI 的 source-provided Action Closure Rate。月度数量按 Submitted Date 的 Asia/Shanghai 月份归属，缺失月份补 0 并按月份升序；筛选、状态计数、关闭率与月度聚合由 Repository / Rule 完成。
+
 ## 8. Risk & Compliance → Certificates
 
 ### 8.1 Raw Source
@@ -336,11 +340,15 @@ Category 为安全健康、急救员、特种作业、安全驾驶；未知 Type
 
 每个 scoped Store 的结果包含四类别 summary（类别、状态、normalized records），即使无证件也保留门店及空类别。类别无记录或任一单证异常则 ABNORMAL，否则 NORMAL。
 
-### 8.3 Query 与 Detail
+### 8.3 Overview result
+
+Certificate 页面查询结果另含 Overview：`items` 为所有正式 Certificate Type 的已排序行，每行包含 `certificateCategory`、`categoryLabel`、`certificateType`、`shortLabel`、`fullLabel`、`requiredCount: number | null` 与 `actualCount`。Requirement 未配置时 `requiredCount` 为 null，表示“未设置”。`groups` 提供 `certificateCategory`、显示用 `label`、`startIndex`、`itemCount`，顺序与 rows 已在领域层准备好，供 X 轴显示大分类分组。Category 顺序、类型顺序及 shortLabel 来自集中 Certificate taxonomy metadata；所有正式类型都有行。requiredCount 根据 scoped `items` 门店数计算，actualCount 按这些门店下对应 normalized record 数计算，保持当前已实现口径。该结果由 Server Action 调用 Certificate domain rule 生成，不由 Repository 或 UI 聚合。
+
+### 8.4 Query 与 Detail
 
 复用现有 Store Resolution：TRTID primary、English Store Name fallback，保留 conflict / historical-name / duplicate / unresolved 语义。Region / Area / canonical Store 生效，Period ignored。查询使用现有 Data Availability 表达源解析完整性，不额外创造证件业务状态。
 
-Detail Header：中文门店、类别、类别状态。按当前 records 的实际 Type 形成纵向 sections，每个 Type 下全部记录使用纵向 cards 展示 Person、Person Email、Business Title、Expiry Date、距离到期天数、单证状态；Type 只作为 section heading。新 normalized Type 自动追加，同 Type 多记录不去重或覆盖。未来新增字段必须显式扩展 typed contract 和 presentation。不实现 Required Slot 完整性或到期提醒。
+Detail Header：中文门店、类别、类别状态。按当前 records 的实际 Type 形成纵向 sections，每个 Type 下全部记录使用纵向 cards 展示 Person、Person Email、Business Title、Expiry Date、距离到期天数、单证状态；Type 只作为 section heading。新 normalized Type 自动追加，同 Type 多记录不去重或覆盖。未来新增字段必须显式扩展 typed contract 和 presentation。类别状态不检查 Required Slot 完整性，也不提供到期提醒。
 
 ## 9. Risk & Compliance → Environment
 
@@ -358,6 +366,8 @@ Raw Source 顶层保留：`TRTID`、`English Store Name`、`环境影响评价`�
 Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`、`facilityInformation`、`environmentalLicenses`（环境影响评价 / 排污许可 / 排水许可）、`emergencyPlan`、`monitoring`、`wasteContracts`。设施信息当前为 TBD 空结构；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
 
 Environment query 接收 typed Store scope，仅使用 Region / Area / canonical Store，不要求 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
+
+Environment Analytics 查询接收 canonical Store scope 与可空 Global Period。危险废物与一般工业固体废物合同持有率分别以当前 Global Filters 范围内全部门店为分母，以至少有一条对应类型合同记录的门店数为分子；每家门店每类最多计一次。只有 Environment 数据完整且分母大于 0 时返回比例，否则比例为 null。到期合同数量按两类合同记录的 `validTo` 统计，只有 Period 有效且 Environment 数据完整时返回数值；缺失或无效 `validTo` 不计入，并由 `excludedContractMissingOrInvalidExpiryDateCount` 保留审计信息。结果包含所用 `periodMonths`，供 stale result 展示匹配周期标签。
 
 主表仅提供门店与五个详情入口。一个 Detail Sheet 按明确 typed contract 展示设施信息、环保证照、应急预案、监测或废弃物合同；日期仅展示，不计算过期。Environment 不输出 Business Result，也不套用既有合规规则。
 

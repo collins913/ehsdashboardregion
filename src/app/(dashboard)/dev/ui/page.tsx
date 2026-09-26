@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
+import { AnimatedNumber } from "@/components/shared/animated-number";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
@@ -217,6 +219,7 @@ export default function UiLabPage() {
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
   const [filterPreview, setFilterPreview] = useState("ALL");
+  const [animatedNumberPreview, setAnimatedNumberPreview] = useState(52);
 
   return (
     <>
@@ -383,6 +386,42 @@ export default function UiLabPage() {
                 onValueChange={setMonth}
                 aria-label="月份示例"
               />
+            </DemoSurface>
+            <DemoSurface
+              title="AnimatedNumber"
+              description="仅演示 resolved 数值更新插值，并尊重系统减少动态效果设置。"
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="min-w-16 text-2xl font-semibold tabular-nums">
+                  <AnimatedNumber value={animatedNumberPreview} />
+                </span>
+                {[31, 67].map((value) => (
+                  <Button key={value} variant="outline" size="sm" onClick={() => setAnimatedNumberPreview(value)}>
+                    显示 {value}
+                  </Button>
+                ))}
+              </div>
+            </DemoSurface>
+            <DemoSurface
+              title="AnalyticsMetricCard"
+              description="同一共享指标卡支持默认与紧凑布局，并用调用方 formatter 展示数值。"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <AnalyticsMetricCard
+                  title="提交总数"
+                  subtitle="2026-07 至 2026-09"
+                  value={animatedNumberPreview}
+                  size="compact"
+                  info={<p>已预计算的整数值，展示紧凑布局。</p>}
+                />
+                <AnalyticsMetricCard
+                  title="平均提交数"
+                  subtitle="2026 年"
+                  value={5.9}
+                  formatter={(value) => value.toFixed(1)}
+                  info={<p>已预计算的一位小数值。</p>}
+                />
+              </div>
             </DemoSurface>
             <DemoSurface
               title="TableCellTrigger"

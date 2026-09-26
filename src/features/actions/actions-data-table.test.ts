@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NormalizedActionRecord } from "@/data/contracts/actions";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
+import { ActionDetailContent } from "@/features/actions/action-detail-content";
 import {
   ACTION_COLUMN_SIZE_ROLES,
-  ActionDetailContent,
   ActionsDataTable,
   DEFAULT_ACTION_COLUMN_VISIBILITY,
   DEFAULT_ACTIONS_VIEW_MODE,
@@ -34,8 +34,8 @@ const record: NormalizedActionRecord = {
 };
 
 describe("Actions table defaults", () => {
-  it("defaults to Current Open", () => {
-    expect(DEFAULT_ACTIONS_VIEW_MODE).toBe("OPEN_ONLY");
+  it("defaults to All", () => {
+    expect(DEFAULT_ACTIONS_VIEW_MODE).toBe("ALL");
   });
 
   it("shows six primary columns and hides four secondary columns", () => {

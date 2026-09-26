@@ -1,5 +1,5 @@
-import type { DataSet, EhsStoreScope } from "@/data/contracts/kpi";
-import type { EnvironmentSourceValue, IsoDate, StoreId } from "@/types/ehs";
+import type { DataAvailability, DataSet, EhsStoreScope, KpiPeriod } from "@/data/contracts/kpi";
+import type { EnvironmentSourceValue, IsoDate, Month, StoreId } from "@/types/ehs";
 
 export type EnvironmentFacilityInformation = null;
 
@@ -77,3 +77,23 @@ export interface EnvironmentQuery {
 }
 
 export type EnvironmentQueryResult = DataSet<NormalizedEnvironmentRecord>;
+
+export interface EnvironmentAnalyticsQuery {
+  context: EhsStoreScope;
+  period: KpiPeriod | null;
+}
+
+export interface EnvironmentContractHoldingSnapshot {
+  storesWithValidContractCount: number;
+  eligibleStoreCount: number;
+  rate: number | null;
+}
+
+export interface EnvironmentAnalyticsResult {
+  availability: DataAvailability;
+  periodMonths: readonly Month[] | null;
+  hazardousWasteContractHolding: EnvironmentContractHoldingSnapshot;
+  solidWasteContractHolding: EnvironmentContractHoldingSnapshot;
+  expiringContractCount: number | null;
+  excludedContractMissingOrInvalidExpiryDateCount: number;
+}

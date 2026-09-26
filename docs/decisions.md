@@ -33,9 +33,9 @@ Access Management（仅全局管理员）
 
 全局筛选预留 Region、Area、Store、Period。它们不属于 Overview 私有页面。
 
-Store Master Data 不使用 Period；其它筛选关系仍按各模块需求执行。
+Store Master Data 不使用 Period；Environment detail 与持有率 snapshot 不使用 Period，Environment Analytics 到期合同数量使用 Period；其它筛选关系仍按各模块需求执行。
 
-Query readiness / identity 只依赖该业务查询真正使用的 filter dimensions。Stores、Environment、Certificates 从同一 Global Filter State 消费有效 Store scope，不依赖 Period 有效性，不补造默认 Period；period-aware 查询继续要求完整有效 Period。保持一份 Provider 和现有 Repository / async 边界。
+Query readiness / identity 只依赖该业务查询真正使用的 filter dimensions。Stores、Environment detail、Certificates 从同一 Global Filter State 消费有效 Store scope，不依赖 Period 有效性，不补造默认 Period；Environment Analytics 到期合同数量依赖有效 Period，持有率 snapshot 不依赖 Period。保持一份 Provider 和现有 Repository / async 边界。
 
 Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
 
@@ -55,7 +55,7 @@ Overview 只汇总前述模块的统一结果，不产生另一套业务事实�
 
 ### D-006 业务规则不得散落在页面组件
 
-Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判定由集中业务逻辑维护。Environment 仅展示 normalized typed data，不产生合规判定或根据文本、缺失值、日期推断状态。页面组件只消费结果。
+Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判定由集中业务逻辑维护。Environment detail 仅展示 normalized typed data，不产生合规判定或根据文本、缺失值、日期推断状态。Environment Analytics 在后端按全局筛选门店范围计算两类合同持有率与到期合同数量；页面组件只消费结果。
 
 ### D-007 数据源直接值不得由 Dashboard 重算
 
@@ -131,9 +131,9 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 
 Event Type 保留 source-provided string，筛选选项由 normalized records 动态生成，不把 UI 限定为上述两项。ASTM 不在 Events 页面单独建立模块。
 
-### D-018 Events 与 Actions 默认显示 Open
+### D-018 Events 与 Actions 默认显示 All
 
-两个页面均提供 Open / All 切换，并默认 Open。
+两个页面均提供 All / Open 切换，并默认 All。
 
 - Actions 已确认 `Assigned`、`In Progress`、`In Review`、`Sign Off` 为 `OPEN`，`Closed` 为 `CLOSED`，`Cancelled` 为 `EXCLUDED`；未知未来状态为 `UNKNOWN`。Raw Status 保留，UI 不重新分类。
 - Events 的 `Open` 归类为 `OPEN`，`Closed` 归类为 `CLOSED`；未确认值为 `UNKNOWN`，不得猜测为 Open。
@@ -146,7 +146,7 @@ Actions 页面展示明细；KPI 页面读取数据源提供的 Action Closure R
 
 ### D-020 Certificates V1 四类别与集中 exact mapping（替代旧五类别 / Required Slot 决策）
 
-V1 类别为安全健康、急救员、特种作业、安全驾驶。Category 由集中 Certificate Type exact mapping 得到，不来自 Raw，不使用 Person、Business Title、别名或模糊匹配。未知 Type 保留独立 normalized record，不影响四类别评价。Required Slot 不参与 V1，不提前建立完整性 framework；未来扩展需另行确认。
+V1 类别为安全健康、急救员、特种作业、安全驾驶。Category 由集中 Certificate Type exact mapping 得到，不来自 Raw，不使用 Person、Business Title、别名或模糊匹配。未知 Type 保留独立 normalized record，不影响四类别评价。Store × Category 状态不执行 Required Slot 完整性检查。Certificate Overview 展示全部八种正式 Type；其中六种按明确配置展示应持有数，两种 `requiredCount = null` 表示未设置。不建立通用 Required Slot framework，也不改变类别状态。
 
 ### D-021 Certificates V1 单证与类别只使用正常 / 异常（替代旧“无” / 缺日期未确定决策）
 
@@ -259,6 +259,8 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 `EHS_MOCK_PROFILE` 未设置、空值或 `standard` 时固定选择 Standard；`performance` 选择 deterministic Performance Dataset，其他非空值立即失败。两种 Profile 只在 Mock Source / Dataset 层不同，共用同一个 Mock Repository、Adapter、Store Resolution、availability、筛选、排序、分页及业务规则。Feature、UI、Server Action DTO 与 Repository public contract 不感知 Profile。Production 是未来独立 Repository implementation，不是第三个 Mock Profile。
 
 ## 9. 明确未决事项
+
+Environment Analytics 的危险废物与一般工业固体废物合同持有率均以 Global Filters 范围内全部门店为分母；每店至少一条对应合同记录计入分子。Period 只影响合同到期数量。
 
 以下内容没有默认答案：
 

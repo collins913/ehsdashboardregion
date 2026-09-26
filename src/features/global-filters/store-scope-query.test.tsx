@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import type { KpiStore } from "@/data/contracts/kpi";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { StoresPageContent } from "@/features/stores/stores-page-content";
 import { EnvironmentPageContent } from "@/features/environment/environment-page-content";
@@ -59,7 +60,7 @@ function render(page: () => ReactElement): ReactElement {
 }
 function tableProps(element: ReactElement): Record<string, unknown> | undefined {
   const props = element.props as Record<string, unknown>;
-  if ("queryStatus" in props) return props;
+  if ("queryStatus" in props || ("context" in props && "queryActions" in props)) return props;
   const children = Array.isArray(props.children) ? props.children : [props.children];
   for (const child of children) {
     if (child && typeof child === "object" && "props" in child) {
@@ -78,7 +79,10 @@ beforeEach(() => {
 const modules = [
   { name: "Stores", query: vi.fn(({ query }) => repository.getStores({ context: query })), page: StoresPageContent, prop: "queryStores" },
   { name: "Environment", query: vi.fn(({ query }) => repository.getEnvironment({ context: query })), page: EnvironmentPageContent, prop: "queryEnvironment" },
-  { name: "Certificates", query: vi.fn(({ query, referenceDateIso }) => createMockEhsRepository(new Date(referenceDateIso), { dataset }).getCertificates({ context: query })), page: CertificatesPageContent, prop: "queryCertificates" },
+  { name: "Certificates", query: vi.fn(async ({ query, referenceDateIso }) => {
+    const certificates = await createMockEhsRepository(new Date(referenceDateIso), { dataset }).getCertificates({ context: query });
+    return { ...certificates, overview: buildCertificateOverview(certificates) };
+  }), page: CertificatesPageContent, prop: "queryCertificates" },
 ] as const;
 describe.each(modules)("$name Store-scope dependency", ({ name, query, page, prop }) => {
   // The discriminated page signatures are exercised through their actual query prop.
@@ -156,13 +160,13 @@ describe.each(modules)("$name Store-scope dependency", ({ name, query, page, pro
 });
 it("Actions still waits for a complete Period and resumes with the actual Period", () => {
   const queryActions = vi.fn();
+  const queryActionsAnalytics = vi.fn();
   state = { ...state, period: { mode: "CUSTOM", startMonth: null, endMonth: null } };
   expect(toEhsStoreScope(state, stores)).not.toBeNull();
-  const waiting = render(() => ActionsPageContent({ queryActions }));
+  const waiting = render(() => ActionsPageContent({ queryActions, queryActionsAnalytics }));
   expect(tableProps(waiting)).toBeUndefined();
   expect(JSON.stringify(waiting)).toContain("当前筛选条件尚不能生成行动项数据");
   state = { ...state, period: { mode: "THIS_MONTH" } };
-  const ready = render(() => ActionsPageContent({ queryActions }));
-  const children = (ready.props as { children: ReactElement }).children;
-  expect((children.props as { context: unknown }).context).toEqual(toEhsFilterContext(state, "2026-09", stores));
+  const ready = render(() => ActionsPageContent({ queryActions, queryActionsAnalytics }));
+  expect(tableProps(ready)?.context).toEqual(toEhsFilterContext(state, "2026-09", stores));
 });

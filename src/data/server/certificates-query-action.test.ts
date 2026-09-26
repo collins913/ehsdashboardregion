@@ -15,7 +15,11 @@ describe("Certificates Server Action", () => {
       region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" },
     };
     const referenceDateIso = "2026-09-15T00:00:00+08:00";
-    expect(await queryCertificates({ referenceDateIso, query })).toEqual({ availability: "CONFIRMED_EMPTY", items: [], unknownTypeRecords: [] });
+    const result = await queryCertificates({ referenceDateIso, query });
+    expect(result).toMatchObject({ availability: "CONFIRMED_EMPTY", items: [], unknownTypeRecords: [] });
+    expect(result.overview.items).toHaveLength(8);
+    expect(result.overview.items.every((item) => item.actualCount === 0)).toBe(true);
+    expect(result.overview.items.filter((item) => item.requiredCount === null)).toHaveLength(2);
     expect(factory).toHaveBeenCalledWith(new Date(referenceDateIso));
     expect(getCertificates).toHaveBeenCalledWith({ context: query });
   });
