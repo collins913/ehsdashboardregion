@@ -18,4 +18,12 @@ describe("server authorization boundary", () => {
     await expect(loadManualGrants({})).rejects.toThrow("NOT_AUTHORIZED");
     await expect(loadAuditLog("")).rejects.toThrow("NOT_AUTHORIZED");
   });
+
+  it("rejects malformed read-only Access query inputs before service authorization", async () => {
+    vi.stubEnv("EHS_MOCK_USER_EMAIL", "admin@example.test");
+    await expect(loadManualGrants({ scope: { region: null } } as never))
+      .rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+    await expect(loadAuditLog(undefined as never))
+      .rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+  });
 });

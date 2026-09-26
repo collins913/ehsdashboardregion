@@ -74,6 +74,14 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --chart-6: var(--muted-foreground);
+  --analytics-primary: lab(54.1736% 13.3369 -74.6839);
+  --analytics-secondary: lab(77.5052% -6.4629 -36.42);
+  --analytics-series-1: lab(77.5052% -6.4629 -36.42);
+  --analytics-series-2: lab(54.1736% 13.3369 -74.6839);
+  --analytics-series-3: lab(44.0605% 29.0279 -86.0352);
+  --analytics-series-4: lab(36.9089% 35.0961 -85.6872);
+  --analytics-series-5: lab(30.2514% 27.7853 -70.2699);
+  --analytics-series-6: lab(65% -12 -45);
   --chart-certificate-required: oklch(0.82 0.09 255);
   --chart-certificate-actual: oklch(0.49 0.18 258);
   --radius: 0.625rem;
@@ -113,6 +121,14 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --chart-6: var(--muted-foreground);
+  --analytics-primary: lab(67% 13.3369 -74.6839);
+  --analytics-secondary: lab(73% -6.4629 -36.42);
+  --analytics-series-1: lab(73% -6.4629 -36.42);
+  --analytics-series-2: lab(67% 13.3369 -74.6839);
+  --analytics-series-3: lab(62% 24.0279 -72.0352);
+  --analytics-series-4: lab(58% 29.0961 -68.6872);
+  --analytics-series-5: lab(54% 23.7853 -57.2699);
+  --analytics-series-6: lab(70% -10 -40);
   --chart-certificate-required: oklch(0.72 0.1 255);
   --chart-certificate-actual: oklch(0.64 0.17 258);
 }

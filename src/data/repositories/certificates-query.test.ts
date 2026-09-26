@@ -6,6 +6,7 @@ import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { RawCertificateRecord } from "@/types/ehs";
 import { CERTIFICATE_TYPE_CATEGORIES } from "@/lib/rules/certificate-types";
+import { buildCertificateOverview, CERTIFICATE_REQUIREMENTS } from "@/lib/rules/certificate-requirements";
 
 const reference = new Date("2026-09-14T16:00:00Z");
 const dataset = createKpiMockData(reference);
@@ -78,6 +79,15 @@ describe("Certificates V1 Repository", () => {
     const result = await createMockEhsRepository(reference, { dataset: duplicateDataset }).getCertificates({ context });
     expect(result.availability).toBe("INCOMPLETE");
     expect(result.items.flatMap((item) => item.categories.flatMap((category) => category.records))).toEqual([]);
+  });
+  it("keeps the complete Store Master denominator when certificate records are INCOMPLETE", async () => {
+    const result = await repository([{ ...raw, TRTID: "missing-store", "English Store Name": "missing-store" }]).getCertificates({ context });
+    expect(result.availability).toBe("INCOMPLETE");
+    expect(result.items.map((item) => item.storeId)).toEqual(dataset.stores.map((store) => store.trtid));
+    const overview = buildCertificateOverview(result);
+    const configuredType = Object.keys(CERTIFICATE_REQUIREMENTS)[0];
+    expect(overview.items.find((item) => item.certificateType === configuredType)?.requiredCount)
+      .toBe(dataset.stores.length * CERTIFICATE_REQUIREMENTS[configuredType]);
   });
   it.each([["region", dataset.stores[0].region], ["area", dataset.stores[0].area], ["store", dataset.stores[0].trtid]] as const)("filters %s", async (scope, value) => {
     const result = await createMockEhsRepository(reference).getCertificates({ context: { ...context, [scope]: { kind: "INCLUDE", values: [value] } } });

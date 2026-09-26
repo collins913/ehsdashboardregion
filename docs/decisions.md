@@ -252,7 +252,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 
 ### D-040 Client 数据访问统一经过 Server Action
 
-正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 使用 server-only factory 创建当前 Repository，并返回 normalized async result。Mock Repository 是当前 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores、Environment 与 Certificates 当前保留 Client pagination。
+正式 Client Feature 不创建或导入 Repository implementation。Client 仅提交可序列化 query DTO；Server Action 在授权与 Repository 之前执行 runtime shape / type / enum / whitelist / bounds / date validation，再使用 server-only factory 创建当前 Repository，并返回 normalized async result。非法 query 返回受控 `INVALID_QUERY_INPUT` 错误，不使用默认值掩盖调用错误。Mock Repository 是当前 development implementation，不在 public barrel 中伪装为 Production。Actions、Events、Take Charge 在 Repository 中先完成完整 scoped result 的排序再分页；KPI、Stores、Environment 与 Certificates 当前保留 Client pagination。
 
 ### D-041 Mock Profile 只切换 server-only Dataset
 
@@ -274,7 +274,7 @@ Environment Analytics 的危险废物与一般工业固体废物合同持有率�
 
 ### D-042 Access Management V1 权限真源
 
-Base Grants 从组织联系人邮箱派生，不由管理员 CRUD；Manual Grants 在 Demo 中由独立 Mock Repository 保存，存在即生效、删除即失效，没有截止时间与过期状态。服务端合并授权、应用 Region / Area / Store 继承，并在业务数据返回前完成授权。GLOBAL_USER 有全局数据访问；GLOBAL_ADMIN 另可进入 /access 的手动权限管理与操作日志两个 Tab。UI 只维护 Manual Grants，日志承担历史追踪；React 不计算权限。写入输入由 Server Action 做运行时解析，Access Service 拒绝导致有效 GLOBAL_ADMIN 为零的修改或删除。Production 必须将该检查与持久化写入纳入同一原子事务。
+Base Grants 从组织联系人邮箱派生，不由管理员 CRUD；Manual Grants 在 Demo 中由独立 Mock Repository 保存，存在即生效、删除即失效，没有截止时间与过期状态。服务端合并授权、应用 Region / Area / Store 继承，并在业务数据返回前完成授权。GLOBAL_USER 有全局数据访问；GLOBAL_ADMIN 另可进入 /access 的手动权限管理与操作日志两个 Tab。`/dev/*` 原型路由可部署在 Production，但其服务端 route layout 仅允许 Effective Access 中 `canManageAccess` 的 GLOBAL_ADMIN 渲染，其他身份转至 `/no-access`。UI 只维护 Manual Grants，日志承担历史追踪；React 不计算权限。写入输入由 Server Action 做运行时解析，Access Service 拒绝导致有效 GLOBAL_ADMIN 为零的修改或删除。Production 必须将该检查与持久化写入纳入同一原子事务。
 
 ### D-043 Protected source 与未来部署边界
 

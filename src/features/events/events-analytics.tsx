@@ -27,16 +27,16 @@ type QueryAction = (input: {
 }) => Promise<EventAnalyticsResult>;
 
 const chartConfig = {
-  eventCount: { label: "事件数量", color: "lab(54.1736% 13.3369 -74.6839)" },
+  eventCount: { label: "事件数量", color: "var(--analytics-primary)" },
 } satisfies ChartConfig;
 
 const EVENT_TYPE_COLORS = [
-  "lab(77.5052% -6.4629 -36.42)",
-  "lab(54.1736% 13.3369 -74.6839)",
-  "lab(44.0605% 29.0279 -86.0352)",
-  "lab(36.9089% 35.0961 -85.6872)",
-  "lab(30.2514% 27.7853 -70.2699)",
-  "lab(65% -12 -45)",
+  "var(--analytics-series-1)",
+  "var(--analytics-series-2)",
+  "var(--analytics-series-3)",
+  "var(--analytics-series-4)",
+  "var(--analytics-series-5)",
+  "var(--analytics-series-6)",
 ] as const;
 
 function EventTypeDonut({ result }: { result: EventAnalyticsResult }) {

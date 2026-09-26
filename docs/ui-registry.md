@@ -48,7 +48,7 @@
 | AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
 | Chart | `src/components/ui/chart.tsx` provides the shadcn chart container, tooltip and color configuration primitives used by shared Analytics charts |
 | AnalyticsClosureRadial | Business-neutral stacked radial chart presentation; callers provide two precomputed segments, rate, labels and title |
-| AnalyticsCountTrend | Business-neutral monthly count area chart presentation; callers provide precomputed monthly rows and optional toolbar; one stable AreaChart receives the latest rows directly and uses Recharts default animation behavior |
+| AnalyticsCountTrend | Business-neutral monthly count area chart presentation; callers provide precomputed monthly rows and optional toolbar; one stable AreaChart receives latest rows directly and gates native Recharts animation through the shared reduced-motion hook |
 | AnalyticsMetricCard | Business-neutral metric card with default and compact layouts, optional HoverCard information and subtitle; formats integer, percentage and decimal values through AnimatedNumber without business calculation |
 | AnalyticsRefreshIndicator | Compact group-level updating status for stale Analytics results; positioned without changing layout and accepts only a refreshing flag |
 | Analytics layout | `src/components/shared/analytics-layout.ts` owns the shared 17.125rem Card height, 24px page section spacing and Analytics animation timing |
@@ -66,6 +66,8 @@
 | Utility | Responsibility |
 | --- | --- |
 | Business date/time formatter | Formats normalized timezone-aware timestamps as Asia/Shanghai `YYYY-MM-DD` or `YYYY-MM-DD HH:mm` for Take Charge, Actions and Events |
+| Business Period formatter (`src/lib/format-business-period.ts`) | Formats a validated natural-month `KpiPeriod` for KPI, KPI Detail and the Period-based Goals cards; annual YTD subtitles retain their distinct year meaning |
+| Analytics palette (`src/app/globals.css`) | Defines theme-aware `--analytics-*` colors for shared charts and the Events type distribution; preserves the accepted Light palette and provides readable Dark values |
 
 ## Shared hooks
 
@@ -73,7 +75,7 @@
 | --- | --- |
 | useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
 | useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result and guarded imperative reload; prevents stale async responses from replacing the latest query |
-| useAnalyticsChartAnimationEnabled | Disables initial chart tweening and respects `prefers-reduced-motion` for resolved-data transitions |
+| `useAnalyticsChartAnimationEnabled` (`src/components/shared/use-analytics-motion.ts`) | Disables initial chart tweening and gates subsequent Recharts transitions when `prefers-reduced-motion` is enabled |
 
 ## Feature-specific
 

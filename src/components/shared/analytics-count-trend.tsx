@@ -13,6 +13,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { formatBusinessMonth } from "@/lib/format-business-date-time";
+import { useAnalyticsChartAnimationEnabled } from "@/components/shared/use-analytics-motion";
+import { ANALYTICS_CHART_ANIMATION_DURATION } from "@/components/shared/analytics-layout";
 
 export interface AnalyticsCountTrendRow {
   month: string;
@@ -32,8 +34,9 @@ export function AnalyticsCountTrend({
 }) {
   const gradientId = `analytics-count-fill-${useId().replace(/:/g, "")}`;
   const config = {
-    count: { label: valueLabel, color: "lab(54.1736% 13.3369 -74.6839)" },
+    count: { label: valueLabel, color: "var(--analytics-primary)" },
   } satisfies ChartConfig;
+  const chartAnimationEnabled = useAnalyticsChartAnimationEnabled();
 
   return (
     <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4`}>
@@ -58,7 +61,7 @@ export function AnalyticsCountTrend({
                 cursor={false}
                 content={<ChartTooltipContent labelFormatter={(month) => formatBusinessMonth(String(month ?? ""))} indicator="dot" />}
               />
-              <Area dataKey="count" type="natural" baseValue={0} fill={`url(#${gradientId})`} stroke="var(--color-count)" />
+              <Area dataKey="count" type="natural" baseValue={0} fill={`url(#${gradientId})`} stroke="var(--color-count)" isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
             </AreaChart>
           </ChartContainer>
         </div>

@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/chart";
 
 const colors = {
-  numeratorCount: { label: "分子", color: "lab(54.1736% 13.3369 -74.6839)" },
-  otherCount: { label: "其他", color: "lab(77.5052% -6.4629 -36.42)" },
+  numeratorCount: { label: "分子", color: "var(--analytics-primary)" },
+  otherCount: { label: "其他", color: "var(--analytics-secondary)" },
 } satisfies ChartConfig;
 
 export function AnalyticsClosureRadial({

@@ -2,6 +2,11 @@
 import type { AccessQuery, AccessType, GrantInput, GrantUpdate, MutationResult } from "@/data/contracts/access";
 import { createManualGrant, deleteManualGrant, getAccessCatalog, listManualGrants, queryAuditLog, updateManualGrant } from "@/lib/access/access-service.server";
 import { isValidEmail } from "@/lib/access/access-domain";
+import {
+  InvalidQueryInputError,
+  parseAccessAuditFilter,
+  parseAccessQuery,
+} from "@/data/server/query-input-validation";
 
 const accessTypes: readonly AccessType[] = ["GLOBAL_USER", "GLOBAL_ADMIN", "REGION", "AREA", "STORE"];
 
@@ -37,7 +42,11 @@ function parseMutationId(value: unknown): string | null {
 }
 
 export async function loadAccessCatalog() { return getAccessCatalog(); }
-export async function loadManualGrants(query: AccessQuery & { accessType?: string }) { return listManualGrants(query); }
+export async function loadManualGrants(query: AccessQuery & { accessType?: string }) {
+  const parsed = parseAccessQuery(query);
+  if (parsed === null) throw new InvalidQueryInputError();
+  return listManualGrants(parsed);
+}
 export async function submitGrant(input: unknown): Promise<MutationResult<string>> {
   const parsed = parseGrantInput(input);
   return parsed ? createManualGrant(parsed) : invalidInput();
@@ -51,4 +60,8 @@ export async function removeGrant(id: unknown): Promise<MutationResult<string>> 
   const parsedId = parseMutationId(id);
   return parsedId ? deleteManualGrant(parsedId) : invalidInput();
 }
-export async function loadAuditLog(email: string) { return queryAuditLog(email); }
+export async function loadAuditLog(email: string) {
+  const parsed = parseAccessAuditFilter(email);
+  if (parsed === null) throw new InvalidQueryInputError();
+  return queryAuditLog(parsed);
+}

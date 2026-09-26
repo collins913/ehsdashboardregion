@@ -29,6 +29,7 @@ import {
   formatBusinessDate,
   formatBusinessMonth,
 } from "@/lib/format-business-date-time";
+import { formatBusinessPeriod } from "@/lib/format-business-period";
 
 type QueryEnvelope = { referenceDateIso: string; query: KpiDetailQuery };
 
@@ -62,17 +63,6 @@ const categoryLabels: Record<KpiDetailCategory, string> = {
 
 function displayValue(value: string | number | null): string {
   return value === null || value === "" ? "—" : String(value);
-}
-
-function periodLabel(context: EhsFilterContext): string {
-  const months = context.period.includedMonths;
-  const first = months[0];
-  const last = months[months.length - 1];
-  const formattedFirst = formatBusinessMonth(first);
-  const formattedLast = formatBusinessMonth(last);
-  return first === last
-    ? formattedFirst
-    : `${formattedFirst}–${formattedLast}`;
 }
 
 function SummaryResult({
@@ -288,7 +278,7 @@ export function KpiDetailSheet({
             <dl className="space-y-4">
               <Field
                 label={selection.category === "astmEvents" ? "统计周期" : "周期"}
-                value={periodLabel(context)}
+                value={formatBusinessPeriod(context.period)}
               />
               <div>
                 <dt className="text-xs text-muted-foreground">当前结果</dt>

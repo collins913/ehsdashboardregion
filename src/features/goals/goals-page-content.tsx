@@ -6,11 +6,12 @@ import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { PageContainer } from "@/components/shared/page-container";
-import type { EhsFilterContext, KpiPeriod } from "@/data/contracts/kpi";
+import type { EhsFilterContext } from "@/data/contracts/kpi";
 import type { TakeChargeGoalsSummary } from "@/data/contracts/take-charge";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import { TakeChargeDataTable } from "@/features/goals/take-charge-data-table";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
+import { formatBusinessPeriod } from "@/lib/format-business-period";
 
 export type GoalsSummaryQuery = (input: {
   referenceDateIso: string;
@@ -27,19 +28,12 @@ export async function loadGoalsPageData(
     : query({ referenceDateIso, query: context });
 }
 
-function periodLabel(period: KpiPeriod): string {
-  const months = period.includedMonths;
-  return months.length === 1
-    ? months[0]
-    : `${months[0]} 至 ${months[months.length - 1]}`;
-}
-
 export function SummaryCards({
   summary,
 }: {
   summary: TakeChargeGoalsSummary;
 }) {
-  const selectedPeriod = periodLabel(summary.period.period);
+  const selectedPeriod = formatBusinessPeriod(summary.period.period);
   const periodUnavailable =
     summary.period.availability === "INCOMPLETE" ||
     summary.period.availability === "UNAVAILABLE";
@@ -118,7 +112,7 @@ export function SummaryCardsPlaceholder({
   context: EhsFilterContext;
   hidden?: boolean;
 }) {
-  const selectedPeriod = periodLabel(context.period);
+  const selectedPeriod = formatBusinessPeriod(context.period);
   const currentYear = context.period.includedMonths[0]?.slice(0, 4) ?? "—";
   const cards = [
     { title: "提交总数", subtitle: selectedPeriod },

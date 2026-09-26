@@ -95,7 +95,7 @@ import {
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
-import { formatBusinessMonth } from "@/lib/format-business-date-time";
+import { formatBusinessPeriod } from "@/lib/format-business-period";
 import type {
   OccurrenceResult,
   PerformanceResult,
@@ -248,17 +248,6 @@ export function ActionsCell({
   );
 }
 
-function kpiPeriodLabel(context: EhsFilterContext): string {
-  const months = context.period.includedMonths;
-  const first = months[0];
-  const last = months[months.length - 1];
-  const formattedFirst = formatBusinessMonth(first);
-  const formattedLast = formatBusinessMonth(last);
-  return first === last
-    ? formattedFirst
-    : `${formattedFirst}–${formattedLast}`;
-}
-
 function ActionsSheet({
   row,
   open,
@@ -304,7 +293,7 @@ function ActionsSheet({
             <dl className="space-y-4 px-4">
               <div>
                 <dt className="text-xs text-muted-foreground">统计周期</dt>
-                <dd className="mt-1">{kpiPeriodLabel(context)}</dd>
+                <dd className="mt-1">{formatBusinessPeriod(context.period)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground">当前结果</dt>
