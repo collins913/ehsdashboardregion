@@ -17,11 +17,11 @@
 | Avatar | `src/components/ui/avatar.tsx` | AppSidebar account fallback, UI Lab reference |
 | Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
 | Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment, Certificates and Access Audit |
-| Accordion | `src/components/ui/accordion.tsx` | Environment environmental-license detail sections |
+| Accordion | `src/components/ui/accordion.tsx` | Shared DetailAccordion primitive composition for Environment license sections and Certificates Type groups |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls; shared FilterSelect |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Searchable Store multi-select list |
-| Card | `src/components/ui/card.tsx` | Goals summary metrics |
+| Card | `src/components/ui/card.tsx` | AnalyticsMetricCard, DetailRecordCard and feature-composed Cards |
 | Dialog | `src/components/ui/dialog.tsx` | Access Manual Grant create / edit |
 | AlertDialog | `src/components/ui/alert-dialog.tsx` | Access Manual Grant delete confirmation |
 | Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
@@ -38,6 +38,10 @@
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
 | PageHeader | Sidebar trigger, breadcrumb, title, optional actions and a focusable HoverCard description when route metadata provides one |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
+| DetailHeader | Accessible Sheet title/subtitle and optional caller-provided result/status display; body content must not repeat header information or invent a result; used by KPI, Actions, Events, Take Charge, Certificates, Environment, Stores and Access Audit details |
+| DetailRecordCard | Neutral compact Card shell for one record in a collection; contract multiplicity, not the current result count, determines use. Used by Certificates, KPI Training/Drill/Inspection/ASTM and embedded Action collections, plus Environment waste-contract collections. Singleton contracts render without a Card; one record has at most one primary shell. |
+| DetailAccordion / DetailAccordionItem | Business-neutral shadcn Accordion presentation; caller supplies title, optional count, disabled state, attention dot and default-open values. Count Badge is neutral and excluded from title hover underline. Used by Certificates and Environment; feature choices such as default-open groups are not global behavior. |
+| DetailField | Shared label/value spacing, typography and wrapping only; does not format dates, infer status or calculate business values. Used by KPI, Actions, Events, Take Charge, Stores and Environment detail fields |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
 | GlobalFilters | One persistent shared compact filter bar; Select and Store Button share trigger presentation, while Store retains Popover + Command canonical multi-select |
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
@@ -49,7 +53,7 @@
 | Chart | `src/components/ui/chart.tsx` provides the shadcn chart container, tooltip and color configuration primitives used by shared Analytics charts |
 | AnalyticsClosureRadial | Business-neutral stacked radial chart presentation; callers provide two precomputed segments, rate, labels and title |
 | AnalyticsCountTrend | Business-neutral monthly count area chart presentation; callers provide precomputed monthly rows and optional toolbar; one stable AreaChart receives latest rows directly and gates native Recharts animation through the shared reduced-motion hook |
-| AnalyticsMetricCard | Business-neutral metric card with default and compact layouts, optional HoverCard information and subtitle; formats integer, percentage and decimal values through AnimatedNumber without business calculation |
+| AnalyticsMetricCard | Single presentation for numeric Dashboard summary cards: title, optional inline Info HoverCard, description, animated value, and a shared natural-height, spacing and typography contract. Used by Goals, Environment and UI Lab. Features provide business content and Grid composition; the component does not own grids, calculations, queries or status evaluation. |
 | AnalyticsRefreshIndicator | Compact group-level updating status for stale Analytics results; positioned without changing layout and accepts only a refreshing flag |
 | Analytics layout | `src/components/shared/analytics-layout.ts` owns the shared 17.125rem Card height, 24px page section spacing and Analytics animation timing |
 | AnimatedNumber | Interpolates already-computed display values; respects `prefers-reduced-motion` |
@@ -89,6 +93,7 @@
 | ActionStatusDisplay | Actions feature adapter that maps centralized workflow presentation into shared StatusDisplay for tables and details |
 | EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
 | EventsPageContent | Connects shared Global Filter Context and feature-local filters to the injected server query boundary |
+| CertificatesDataTable | Certificates table and category detail Sheet; formal Type groups use collapsed shadcn Accordion items with neutral counts, disabled empty groups and a destructive dot for evaluated abnormal records |
 | GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; four metric cards reuse AnalyticsMetricCard and retain the latest resolved summary during refresh |
 | TakeChargeDataTable | Repository-paginated Take Charge records with All / Open Only view mode (defaults to All), repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 | StoresDataTable | Store Master browser with sortable confirmed fields, column visibility, adaptive pagination, sticky Store column and Store Detail Sheet |

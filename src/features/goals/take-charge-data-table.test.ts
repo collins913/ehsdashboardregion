@@ -113,7 +113,7 @@ describe("Take Charge Data Table contract", () => {
     expect(markup).not.toContain("摘要: 未排序");
   });
 
-  it("renders the complete core detail without TRTID", () => {
+  it("renders the complete core record detail without repeating Sheet status or exposing TRTID", () => {
     const markup = renderToStaticMarkup(
       createElement(
         TooltipProvider,
@@ -125,10 +125,11 @@ describe("Take Charge Data Table contract", () => {
     expect(markup).not.toContain("测试门店");
     expect(markup).toContain("TCH-1842753");
     expect(markup).toContain("完整的 Take Charge 建议摘要");
-    expect(markup).toContain("PendingReview");
+    expect(markup).not.toContain("PendingReview");
     expect(markup).not.toContain("TEST-001");
     expect(markup).toContain("2026-09-11 09:42");
     expect(markup).not.toContain("09:42:00");
+    expect(markup).not.toContain('data-slot="card"');
   });
 
   it("formats the same normalized datetime for compact table and full detail", () => {

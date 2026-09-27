@@ -3,10 +3,8 @@
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
+import { DetailHeader } from "@/components/shared/detail-header";
 import type { EnvironmentDetail } from "./environment-view-model";
 import { EmergencyPlanDetail } from "./details/emergency-plan-detail";
 import { EnvironmentalLicensesDetail } from "./details/environmental-licenses-detail";
@@ -39,10 +37,10 @@ export function EnvironmentDetailSheet({
   return (
     <Sheet open={detail !== null} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{detail?.storeDisplayName ?? "环境详情"}</SheetTitle>
-          <SheetDescription>{detail?.label ?? ""}</SheetDescription>
-        </SheetHeader>
+        <DetailHeader
+          title={detail?.label ?? "环境详情"}
+          subtitle={detail?.storeDisplayName ?? ""}
+        />
         {detail ? (
           <div className="min-w-0 px-4 pb-4">
             <EnvironmentDetailContent detail={detail} />

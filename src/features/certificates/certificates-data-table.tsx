@@ -19,9 +19,11 @@ import {
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import { StatusDisplay } from "@/components/shared/status-display";
+import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
+import { DetailHeader } from "@/components/shared/detail-header";
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CertificatesTableRow } from "./certificates-view-model";
 
@@ -42,35 +44,48 @@ const columnLabels = Object.fromEntries([ ["store", "门店"], ...CERTIFICATES_I
 
 export function CertificatesDetailContent({ detail }: { detail: CertificatesDetail }) {
   return (
-    <div className="space-y-4 px-4 pb-4">
-      <dl className="grid gap-4 sm:grid-cols-2">
-        <div><dt className="text-xs text-muted-foreground">门店</dt><dd className="mt-1 break-words">{detail.storeDisplayName}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">证件分类</dt><dd className="mt-1">{detail.certificateCategory}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">分类状态</dt><dd className="mt-1"><StatusDisplay status={detail.status} /></dd></div>
-      </dl>
-      {detail.groups.length === 0 ? <p className="text-sm text-muted-foreground">当前分类暂无证件记录</p> : (
-        <div className="space-y-6">
-          {detail.groups.map((group) => (
-            <section key={group.certificateType} className="min-w-0 space-y-3">
-              <h3 className="break-words text-lg font-semibold">{group.certificateType}</h3>
+    <div className="min-w-0 px-4 pb-4">
+      <DetailAccordion>
+        {detail.groups.map((group) => (
+          <DetailAccordionItem
+            key={group.certificateType}
+            value={group.certificateType}
+            title={group.label}
+            count={group.count}
+            disabled={group.disabled}
+            attention={group.hasAbnormalRecords}
+            contentClassName="space-y-3"
+          >
               {group.records.map((record, index) => (
-                <Card key={index} className="min-w-0 py-4 shadow-none">
-                  <CardContent className="px-4">
-                    <dl className="space-y-3">
-                      <div><dt className="text-xs text-muted-foreground">状态</dt><dd className="mt-1"><StatusDisplay status={record.certificateStatus} /></dd></div>
-                      <div><dt className="text-xs text-muted-foreground">人员</dt><dd className="mt-1 break-words">{record.person}</dd></div>
-                      <div><dt className="text-xs text-muted-foreground">人员邮箱</dt><dd className="mt-1 break-all">{record.personEmail}</dd></div>
-                      <div><dt className="text-xs text-muted-foreground">岗位</dt><dd className="mt-1 break-words">{record.businessTitle}</dd></div>
-                      <div><dt className="text-xs text-muted-foreground">到期日期</dt><dd className="mt-1 break-words">{record.expiryDate || "—"}</dd></div>
-                      <div><dt className="text-xs text-muted-foreground">距离到期天数</dt><dd className="mt-1">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</dd></div>
-                    </dl>
-                  </CardContent>
-                </Card>
+                <DetailRecordCard key={`${record.certificateType}-${record.personEmail}-${index}`}>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="min-w-0 break-words text-base font-medium">{record.person}</p>
+                          <StatusDisplay status={record.certificateStatus} className="shrink-0" />
+                        </div>
+                        <p className="break-all text-sm text-muted-foreground">{record.personEmail}</p>
+                      </div>
+                      <dl>
+                        <dt className="text-xs text-muted-foreground">岗位</dt>
+                        <dd className="mt-1 break-words text-sm">{record.businessTitle}</dd>
+                      </dl>
+                      <dl className="grid grid-cols-2 gap-4">
+                        <div className="min-w-0">
+                          <dt className="text-xs text-muted-foreground">到期日期</dt>
+                          <dd className="mt-1 break-words text-sm">{record.expiryDate || "—"}</dd>
+                        </div>
+                        <div className="min-w-0">
+                          <dt className="text-xs text-muted-foreground">距离到期</dt>
+                          <dd className="mt-1 text-sm">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                </DetailRecordCard>
               ))}
-            </section>
-          ))}
-        </div>
-      )}
+          </DetailAccordionItem>
+        ))}
+      </DetailAccordion>
     </div>
   );
 }
@@ -195,13 +210,12 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
       </div>
       <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null); }}>
         <SheetContent className="overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{detail?.storeDisplayName ?? "证件详情"}</SheetTitle>
-            <SheetDescription className="flex items-center gap-2">
-              {detail?.certificateCategory ?? ""}
-              {detail ? <StatusDisplay status={detail.status} /> : null}
-            </SheetDescription>
-          </SheetHeader>
+          <DetailHeader
+            title={detail?.certificateCategory ?? "证件详情"}
+            subtitle={detail?.storeDisplayName ?? ""}
+            resultLabel="当前结果"
+            result={detail ? <StatusDisplay status={detail.status} /> : undefined}
+          />
           {detail ? <CertificatesDetailContent detail={detail} /> : null}
         </SheetContent>
       </Sheet>

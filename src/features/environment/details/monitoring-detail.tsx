@@ -1,5 +1,5 @@
 import type { EnvironmentMonitoring } from "@/data/contracts/environment";
-import { DetailField } from "./detail-field";
+import { DetailField } from "@/components/shared/detail-field";
 
 export function MonitoringDetail({ monitoring }: { monitoring: EnvironmentMonitoring }) {
   return (

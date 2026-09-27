@@ -24,6 +24,8 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DetailField } from "@/components/shared/detail-field";
+import { DetailHeader } from "@/components/shared/detail-header";
 import {
   DataTableLoadingCellContent,
   DataTablePendingValue,
@@ -43,13 +45,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -143,7 +139,6 @@ export function StoreDetailContent({
   record: NormalizedStoreRecord;
 }) {
   const fields = [
-    ["中文门店名", record.storeNameCn],
     ["英文门店名", record.storeNameEn],
     ["TRTID", record.trtid],
     ["区域", record.region],
@@ -160,17 +155,13 @@ export function StoreDetailContent({
     <div className="px-4 pb-4">
       <dl className="grid gap-4 sm:grid-cols-2">
         {fields.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="mt-1 break-words">{displayValue(value)}</dd>
-          </div>
+          <DetailField key={label} label={label}>{displayValue(value)}</DetailField>
         ))}
         {contacts.map(([label, name, email]) => (
-          <div key={label}>
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="mt-1 break-words">{displayValue(name)}</dd>
-            <dd className="break-all text-sm text-muted-foreground">{displayValue(email)}</dd>
-          </div>
+          <DetailField key={label} label={label}>
+            <span className="block break-words">{displayValue(name)}</span>
+            <span className="block break-all text-sm text-muted-foreground">{displayValue(email)}</span>
+          </DetailField>
         ))}
       </dl>
     </div>
@@ -189,10 +180,7 @@ function StoreDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>门店详情</SheetTitle>
-          <SheetDescription>{record?.storeNameCn ?? ""}</SheetDescription>
-        </SheetHeader>
+        <DetailHeader title="门店" subtitle={record?.storeNameCn ?? ""} />
         {record ? <StoreDetailContent record={record} /> : null}
       </SheetContent>
     </Sheet>

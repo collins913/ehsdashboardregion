@@ -22,6 +22,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DetailHeader } from "@/components/shared/detail-header";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
@@ -51,13 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -168,11 +163,13 @@ function EventDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>事件</SheetTitle>
-          <SheetDescription>{record?.storeDisplayName ?? ""}</SheetDescription>
-        </SheetHeader>
-        {record ? <EventDetailContent record={record} /> : null}
+        <DetailHeader
+          title="事件"
+          subtitle={record?.storeDisplayName ?? ""}
+          resultLabel="当前状态"
+          result={record ? <StatusDisplay status={record.recordState} /> : undefined}
+        />
+        {record ? <div className="space-y-4 px-4 pb-4"><EventDetailContent record={record} showStatus={false} /></div> : null}
       </SheetContent>
     </Sheet>
   );

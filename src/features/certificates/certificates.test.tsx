@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { loadCertificatesPageData } from "./certificates-page-content";
 import { CertificatesDataTable, CertificatesDetailContent } from "./certificates-data-table";
 import { buildCertificatesDetail, CERTIFICATES_ITEMS, certificatesQueryKey, toCertificatesTableRows, groupCertificateRecords } from "./certificates-view-model";
+import { CERTIFICATE_TYPE_CATEGORIES } from "@/lib/rules/certificate-types";
 import type { CertificatesStoreRow, NormalizedCertificateRecord } from "@/data/contracts/certificates";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
@@ -35,59 +36,84 @@ describe("Certificates V1 feature", () => {
     expect(detail.status).toBe("ABNORMAL");
     expect(detail.storeDisplayName).toBe("中文门店");
     const html = renderToStaticMarkup(createElement(CertificatesDetailContent, { detail }));
-    expect(html).toContain("异常");
+    expect(detail.status).toBe("ABNORMAL");
+    const expectedTypes = Object.entries(CERTIFICATE_TYPE_CATEGORIES).filter(([, category]) => category === label).map(([type]) => type);
+    expect(detail.groups.map((group) => group.certificateType)).toEqual(expectedTypes);
     if (key === "safetyHealth") {
-      for (const text of [certificate.person, certificate.personEmail, certificate.businessTitle, certificate.certificateType, "-5 天"]) expect(html).toContain(text);
-    } else expect(html).toContain("当前分类暂无证件记录");
+      expect(detail.groups[0].records).toEqual([certificate]);
+      expect(detail.groups[0].count).toBe(1);
+      expect(detail.groups[0].hasAbnormalRecords).toBe(true);
+      expect((html.match(/bg-destructive/g) ?? []).length).toBe(1);
+    } else {
+      expect(detail.groups.every((group) => group.count === 0 && group.disabled && !group.hasAbnormalRecords)).toBe(true);
+      expect((html.match(/>0<\/span>/g) ?? []).length).toBe(expectedTypes.length);
+    }
+    expect(html).not.toContain(certificate.person); // Record content stays inside initially collapsed panels.
     expect(html).not.toMatch(/Required Slot|即将到期|TRTID|UNDETERMINED/);
   });
-  it("renders null days as an em dash and record status independently", () => {
+  it("prepares multiple records and retains evaluated status and day values", () => {
     const detail = { storeDisplayName: "中文门店", certificateCategory: "安全健康" as const, status: "ABNORMAL" as const,
       records: [{ ...certificate, expiryDate: null, daysUntilExpiry: null }, { ...certificate, certificateStatus: "NORMAL" as const, daysUntilExpiry: 0 }] };
-    const presentation = { ...detail, groups: groupCertificateRecords(detail.records) };
-    const html = renderToStaticMarkup(createElement(CertificatesDetailContent, { detail: presentation }));
-    expect(html).toContain("—"); expect(html).toContain("正常"); expect(html).toContain("异常"); expect(html).toContain("0 天");
+    const groups = groupCertificateRecords(detail.certificateCategory, detail.records);
+    expect(groups[0].records).toEqual(detail.records);
+    expect(groups[0].count).toBe(2);
+    expect(groups[0].disabled).toBe(false);
+    expect(groups[0].hasAbnormalRecords).toBe(true);
+    expect(groups[0].records[0].daysUntilExpiry).toBeNull();
+    expect(groups[0].records[1].daysUntilExpiry).toBe(0);
   });
   it("keeps normalized category status rather than recomputing it", () => {
     const supplied = { ...row, categories: row.categories.map((category) => ({ ...category, status: "NORMAL" as const })) };
     expect(toCertificatesTableRows([supplied])[0].safetyHealth).toBe("NORMAL");
   });
-  it("groups actual Types in first-seen order without dropping duplicate records or mutating input", () => {
+  it("builds all official Type groups in taxonomy order and preserves every matching record", () => {
     const second = { ...certificate, person: "第二位人员" };
-    const future = { ...certificate, certificateType: "新的安全健康证书-X" };
-    const records = Object.freeze([Object.freeze(certificate), Object.freeze(future), Object.freeze(second), Object.freeze({ ...future })]);
-    const groups = groupCertificateRecords(records);
-    expect(groups.map((group) => group.certificateType)).toEqual([certificate.certificateType, future.certificateType]);
+    const h1 = { ...certificate, certificateType: "主要负责人职业卫生培训合格证书-H1", certificateStatus: "NORMAL" as const, certificateReason: "NORMAL" as const };
+    const records = Object.freeze([Object.freeze(certificate), Object.freeze(h1), Object.freeze(second)]);
+    const groups = groupCertificateRecords("安全健康", records);
+    expect(groups.map((group) => group.certificateType)).toEqual(
+      Object.entries(CERTIFICATE_TYPE_CATEGORIES).filter(([, category]) => category === "安全健康").map(([type]) => type),
+    );
     expect(groups[0].records).toEqual([certificate, second]);
-    expect(groups[1].records).toHaveLength(2);
+    expect(groups[0].count).toBe(2);
+    expect(groups[0].disabled).toBe(false);
+    expect(groups[0].hasAbnormalRecords).toBe(true);
+    expect(groups[1].count).toBe(0);
+    expect(groups[1].disabled).toBe(true);
+    expect(groups[1].hasAbnormalRecords).toBe(false);
+    expect(groups[2].records).toEqual([h1]);
+    expect(groups[2].hasAbnormalRecords).toBe(false);
     expect(groups.flatMap((group) => group.records)).toHaveLength(records.length);
-    expect(groupCertificateRecords([])).toEqual([]);
   });
-  it("renders future normalized Types and all records vertically without a records Table", () => {
+  it("renders every formal Type as a collapsed Accordion and keeps records in their prepared groups", () => {
     const records = [
       certificate,
-      { ...certificate, certificateType: "新的安全健康证书-X", person: "未来人员" },
       { ...certificate, person: "同类型第二位", personEmail: "second@example.test" },
     ];
     const supplied = { ...row, categories: row.categories.map((category) => category.certificateCategory === "安全健康" ? { ...category, records } : category) };
     const detail = buildCertificatesDetail(toCertificatesTableRows([supplied])[0], "safetyHealth");
     const html = renderToStaticMarkup(createElement(CertificatesDetailContent, { detail }));
     expect(html).not.toContain("<table");
-    expect((html.match(/<section /g) ?? []).length).toBe(2);
-    expect((html.match(/data-slot="card"/g) ?? []).length).toBe(3);
-    for (const value of ["新的安全健康证书-X", "未来人员", "同类型第二位", "second@example.test", certificate.expiryDate!]) expect(html).toContain(value);
-    expect(html.split(certificate.certificateType)).toHaveLength(2); // once as section heading, not in each card
-    const content = readFileSync("src/features/certificates/certificates-data-table.tsx", "utf8").split("export function CertificatesDataTable")[0];
-    expect(content).toContain("detail.groups.map");
-    expect(content).toContain("group.records.map");
-    expect(content).not.toMatch(/主要负责人|安全驾驶内|S\/M\/H1\/H2|switch\(|Object\.keys/);
+    expect((html.match(/data-slot="accordion-item"/g) ?? []).length).toBe(4);
+    expect((html.match(/aria-expanded="false"/g) ?? []).length).toBe(4);
+    expect((html.match(/data-disabled="" data-orientation="vertical" data-slot="accordion-item"/g) ?? []).length).toBe(3);
+    expect(html).toContain(certificate.certificateType);
+    expect(html).toContain("安全生产管理人员安全生产培训合格证书-M");
+    expect(html).toContain("主要负责人职业卫生培训合格证书-H1");
+    expect(html).toContain("职业卫生管理人员职业卫生培训合格证书-H2");
+    expect(html).not.toContain("同类型第二位");
+    expect(detail.groups[0].records).toHaveLength(2);
+    expect(detail.groups[0].records[1].personEmail).toBe("second@example.test");
+    expect((html.match(/aria-hidden="true" class="size-2/g) ?? []).length).toBe(1);
   });
   it("displays supplied status and days even if they disagree with the displayed date", () => {
     const records = [{ ...certificate, expiryDate: "1900-01-01", certificateStatus: "NORMAL" as const, daysUntilExpiry: 128 }];
-    const detail = { storeDisplayName: "中文门店", certificateCategory: "安全健康" as const, status: "ABNORMAL" as const, records, groups: groupCertificateRecords(records) };
-    const html = renderToStaticMarkup(createElement(CertificatesDetailContent, { detail }));
-    expect(html).toContain("正常"); expect(html).toContain("异常");
-    expect(html).toContain("1900-01-01"); expect(html).toContain("128 天");
+    const detail = { storeDisplayName: "中文门店", certificateCategory: "安全健康" as const, status: "ABNORMAL" as const, records, groups: groupCertificateRecords("安全健康", records) };
+    const groups = groupCertificateRecords(detail.certificateCategory, records);
+    expect(groups[0].hasAbnormalRecords).toBe(false);
+    expect(groups[0].records[0].certificateStatus).toBe("NORMAL");
+    expect(groups[0].records[0].expiryDate).toBe("1900-01-01");
+    expect(groups[0].records[0].daysUntilExpiry).toBe(128);
   });
   it("renders five sortable columns using the existing table layout", () => {
     const html = renderToStaticMarkup(createElement(CertificatesDataTable, { rows: [tableRow], queryKey: "scope", queryStatus: "READY" }));
@@ -100,10 +126,13 @@ describe("Certificates V1 feature", () => {
     expect(certificatesQueryKey({ ...context, store: { kind: "INCLUDE", values: ["canonical"] } }, "reference")).not.toBe(certificatesQueryKey(context, "reference"));
   });
   it("uses shared async pending and leaves rules and Mock outside UI", () => {
-    for (const file of ["certificates-page-content.tsx", "certificates-data-table.tsx", "certificates-view-model.ts"]) {
+    for (const file of ["certificates-page-content.tsx", "certificates-data-table.tsx"]) {
       const source = readFileSync("src/features/certificates/" + file, "utf8");
       expect(source).not.toMatch(/@\/data\/mock|@\/lib\/rules|evaluateCertificate|Date\.now|Date\.parse/);
     }
+    const viewModel = readFileSync("src/features/certificates/certificates-view-model.ts", "utf8");
+    expect(viewModel).toContain("CERTIFICATE_TYPE_CATEGORIES");
+    expect(viewModel).not.toMatch(/evaluateCertificate|Date\.now|Date\.parse/);
     const page = readFileSync("src/features/certificates/certificates-page-content.tsx", "utf8");
     expect(page).toContain("useLatestAsyncQuery(queryKey");
     expect(page).toContain("state.resolved?.data");

@@ -3,15 +3,12 @@
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import { DetailField } from "@/components/shared/detail-field";
+import { DetailHeader } from "@/components/shared/detail-header";
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import { StatusDisplay } from "@/components/shared/status-display";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
   KpiDetailQuery,
@@ -65,11 +62,7 @@ function displayValue(value: string | number | null): string {
   return value === null || value === "" ? "—" : String(value);
 }
 
-function SummaryResult({
-  selection,
-}: {
-  selection: KpiDetailSelection;
-}) {
+function SummaryResult(selection: KpiDetailSelection) {
   switch (selection.category) {
     case "training":
       return selection.row.training.availability === "INCOMPLETE" || selection.row.training.availability === "UNAVAILABLE"
@@ -100,21 +93,14 @@ function Field({
   value: string | number | null;
 }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words">{displayValue(value)}</dd>
-    </div>
+    <DetailField label={label}>{displayValue(value)}</DetailField>
   );
 }
 
 function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
   const incompletePeople = record.incompletePeople?.join("、") ?? null;
   return (
-    <Card className="gap-3 py-4">
-      <CardHeader className="px-4">
-        <CardTitle className="text-sm leading-normal">{record.trainingName}</CardTitle>
-      </CardHeader>
-      <CardContent className="px-4">
+    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.trainingName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
           <Field label="完成率" value={record.completionRate} />
@@ -122,34 +108,24 @@ function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
             <Field label="未完成人员" value={incompletePeople} />
           </div>
         </dl>
-      </CardContent>
-    </Card>
+    </DetailRecordCard>
   );
 }
 
 function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
   return (
-    <Card className="gap-3 py-4">
-      <CardHeader className="px-4">
-        <CardTitle className="text-sm leading-normal">{record.drillName}</CardTitle>
-      </CardHeader>
-      <CardContent className="px-4">
+    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.drillName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
           <Field label="状态" value={record.status} />
         </dl>
-      </CardContent>
-    </Card>
+    </DetailRecordCard>
   );
 }
 
 function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
   return (
-    <Card className="gap-3 py-4">
-      <CardHeader className="px-4">
-        <CardTitle className="text-sm leading-normal">{record.inspectionName}</CardTitle>
-      </CardHeader>
-      <CardContent className="px-4">
+    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.inspectionName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <div className="col-span-2">
             <Field label="检查人" value={record.inspector} />
@@ -157,8 +133,7 @@ function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
           <Field label="截止日期" value={record.dueDate === null ? null : formatBusinessDate(record.dueDate)} />
           <Field label="状态" value={record.status} />
         </dl>
-      </CardContent>
-    </Card>
+    </DetailRecordCard>
   );
 }
 
@@ -219,7 +194,9 @@ function DetailRecords({
     <div className="space-y-3">
       {warning}
       {data.result.items.map((record) => (
-        <EventDetailContent key={record.eventId} record={record} />
+        <DetailRecordCard key={record.eventId}>
+          <EventDetailContent record={record} />
+        </DetailRecordCard>
       ))}
     </div>
   );
@@ -269,27 +246,23 @@ export function KpiDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{selection ? categoryLabels[selection.category] : ""}</SheetTitle>
-          <SheetDescription>{selection?.row.store.displayName ?? ""}</SheetDescription>
-        </SheetHeader>
+        <DetailHeader
+          title={selection ? categoryLabels[selection.category] : ""}
+          subtitle={selection?.row.store.displayName ?? ""}
+          resultLabel="当前结果"
+          result={selection
+            ? summaryPending
+              ? <Skeleton className="h-6 w-20" aria-label="正在更新当前结果" />
+              : SummaryResult(selection) ?? undefined
+            : undefined}
+        />
         {selection ? (
-          <div className="space-y-6 px-4 pb-4">
-            <dl className="space-y-4">
+          <div className="space-y-4 px-4 pb-4">
+            <dl>
               <Field
                 label={selection.category === "astmEvents" ? "统计周期" : "周期"}
                 value={formatBusinessPeriod(context.period)}
               />
-              <div>
-                <dt className="text-xs text-muted-foreground">当前结果</dt>
-                <dd className="mt-1">
-                  {summaryPending ? (
-                    <Skeleton className="h-6 w-20" aria-label="正在更新当前结果" />
-                  ) : (
-                    <SummaryResult selection={selection} />
-                  )}
-                </dd>
-              </div>
             </dl>
             <section className="space-y-3" aria-label="记录明细">
               <h3 className="text-sm font-medium">记录</h3>

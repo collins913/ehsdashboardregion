@@ -101,5 +101,6 @@ describe("Event detail", () => {
     expect(markup).not.toContain("TRTID");
     expect(markup).not.toContain("门店英文");
     expect(markup).not.toContain("Severity");
+    expect(markup).not.toContain('data-slot="card"');
   });
 });

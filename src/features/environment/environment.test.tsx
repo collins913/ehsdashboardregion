@@ -11,7 +11,6 @@ import {
 } from "./environment-view-model";
 import { EmergencyPlanDetail } from "./details/emergency-plan-detail";
 import { EnvironmentalLicensesDetail } from "./details/environmental-licenses-detail";
-import { WasteContractsDetail } from "./details/waste-contracts-detail";
 import { loadEnvironmentPageData } from "./environment-page-content";
 import type { NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
@@ -100,11 +99,13 @@ describe("Environment detail feature", () => {
   it("renders one Accordion with the three environmental-license sections and explicit EIA fields", () => {
     const markup = renderToStaticMarkup(createElement(EnvironmentalLicensesDetail, record.environmentalLicenses));
     for (const heading of ["环境影响评价", "排污许可", "排水许可"]) expect(markup).toContain(heading);
-    for (const field of ["气-颗粒物", "气-VOCs", "水-氨氮", "水-总氮", "水-总磷", "水-CODcr"]) expect(markup).toContain(field);
-    expect(markup).toContain("自定义环评说明");
-    expect(markup).toContain("1.25 吨/年");
-    expect(markup).toContain("—");
+    expect(markup).not.toContain("气-颗粒物"); // Accordion bodies stay collapsed until requested.
+    expect(record.environmentalLicenses.environmentalImpactAssessment.assessmentText).toBe("自定义环评说明");
+    expect(record.environmentalLicenses.environmentalImpactAssessment.totalRequirements.airParticulate).toBe(1.25);
+    expect(record.environmentalLicenses.dischargePermit.remarks).toBe("排污许可备注");
+    expect(record.environmentalLicenses.drainagePermit.remarks).toBe("排水许可备注");
     expect(markup).toContain('data-slot="accordion"');
+    expect((markup.match(/aria-expanded="false"/g) ?? []).length).toBe(3);
 
     const source = readFileSync("src/features/environment/details/environmental-licenses-detail.tsx", "utf8");
     for (const field of ["执行报告", "编号", "产能", "涂料批复用量", "洗车", "有效期起", "有效期止", "备注"]) expect(source).toContain(field);
@@ -121,7 +122,7 @@ describe("Environment detail feature", () => {
   it("keeps Facility as TBD and Monitoring to its existing known value", () => {
     const facility = renderToStaticMarkup(createElement(EnvironmentDetailContent, { detail: buildEnvironmentDetail(record, "facility") }));
     const monitoring = renderToStaticMarkup(createElement(EnvironmentDetailContent, { detail: buildEnvironmentDetail(record, "monitoring") }));
-    expect(facility).toContain("设施信息");
+    expect(facility).not.toContain("设施信息"); // The Sheet header owns the detail title.
     expect(facility).toContain("详情字段待定义");
     expect(monitoring).toContain("当前监测信息");
     expect(monitoring).toContain("有");
@@ -129,28 +130,60 @@ describe("Environment detail feature", () => {
     expect(monitoring).not.toMatch(/机构|频次|监测日期|检测结果|合格|不合格/);
   });
 
-  it("renders zero and every repeated Waste Contract without Accordion, dedupe or limit", () => {
-    const markup = renderToStaticMarkup(createElement(WasteContractsDetail, record.wasteContracts));
-    expect(markup).toContain("危险废物处置合同");
-    expect(markup).toContain("一般工业固体废物处置合同");
-    expect(markup).toContain("当前暂无合同记录");
-    expect((markup.match(/重复供应商/g) ?? []).length).toBe(2);
-    expect(markup).toContain("第三供应商");
-    expect(markup).not.toContain('data-slot="accordion"');
-    const source = readFileSync("src/features/environment/details/waste-contracts-detail.tsx", "utf8");
-    expect(source).toContain("contracts.map");
-    expect(source).not.toMatch(/slice\(|sort\(|dedup|limit/i);
+  it("prepares both formal Waste Contract groups with counts and defaults non-empty groups open", () => {
+    const detail = buildEnvironmentDetail(record, "wasteContracts");
+    if (detail.kind !== "wasteContracts") throw new Error("Expected Waste Contract detail.");
+    expect(detail.data.groups.map(({ value, label, count, disabled }) => ({ value, label, count, disabled }))).toEqual([
+      { value: "hazardousWaste", label: "危险废物处置合同", count: 3, disabled: false },
+      { value: "generalIndustrialSolidWaste", label: "一般工业固体废物处置合同", count: 0, disabled: true },
+    ]);
+    expect(detail.data.groups[0]?.records).toEqual(record.wasteContracts.hazardousWaste);
+    expect(detail.data.groups[1]?.records).toEqual([]);
+    expect(detail.data.defaultOpenValues).toEqual(["hazardousWaste"]);
   });
 
-  it("renders zero, one and many records independently for both Waste Contract categories", () => {
+  it("renders all Waste Contract categories, keeps all records, and opens populated groups by default", () => {
+    const detail = buildEnvironmentDetail(record, "wasteContracts");
+    if (detail.kind !== "wasteContracts") throw new Error("Expected Waste Contract detail.");
+    const markup = renderToStaticMarkup(createElement(EnvironmentDetailContent, { detail }));
+    expect(markup).toContain("危险废物处置合同");
+    expect(markup).toContain("一般工业固体废物处置合同");
+    expect((markup.match(/aria-expanded="true"/g) ?? []).length).toBe(1);
+    expect((markup.match(/aria-expanded="false"/g) ?? []).length).toBe(1);
+    expect((markup.match(/>3<\/span>/g) ?? []).length).toBe(1);
+    expect((markup.match(/>0<\/span>/g) ?? []).length).toBe(1);
+    expect(markup).toContain("重复供应商");
+    expect((markup.match(/重复供应商/g) ?? []).length).toBe(2);
+    expect(markup).toContain("第三供应商");
+    expect(markup).toContain('data-slot="accordion"');
+    expect((markup.match(/data-disabled="" data-orientation="vertical" data-slot="accordion-item"/g) ?? []).length).toBe(1);
+    const source = readFileSync("src/features/environment/details/waste-contracts-detail.tsx", "utf8");
+    expect(source).not.toMatch(/slice\(|sort\(|dedup|limit|\.filter\(|\.some\(/i);
+  });
+
+  it("prepares zero, one and many records independently for both Waste Contract categories", () => {
     const contract = record.wasteContracts.hazardousWaste[0]!;
     for (const [hazardousCount, generalCount] of [[0, 1], [1, 3], [3, 0]] as const) {
-      const markup = renderToStaticMarkup(createElement(WasteContractsDetail, {
-        hazardousWaste: Array.from({ length: hazardousCount }, () => contract),
-        generalIndustrialSolidWaste: Array.from({ length: generalCount }, () => contract),
-      }));
+      const detail = buildEnvironmentDetail({
+        ...record,
+        wasteContracts: {
+          hazardousWaste: Array.from({ length: hazardousCount }, () => contract),
+          generalIndustrialSolidWaste: Array.from({ length: generalCount }, () => contract),
+        },
+      }, "wasteContracts");
+      if (detail.kind !== "wasteContracts") throw new Error("Expected Waste Contract detail.");
+      expect(detail.data.groups.map(({ count, disabled }) => ({ count, disabled }))).toEqual([
+        { count: hazardousCount, disabled: hazardousCount === 0 },
+        { count: generalCount, disabled: generalCount === 0 },
+      ]);
+      expect(detail.data.defaultOpenValues).toEqual([
+        ...(hazardousCount > 0 ? ["hazardousWaste"] : []),
+        ...(generalCount > 0 ? ["generalIndustrialSolidWaste"] : []),
+      ]);
+      const markup = renderToStaticMarkup(createElement(EnvironmentDetailContent, { detail }));
       expect((markup.match(/供应商名称/g) ?? []).length).toBe(hazardousCount + generalCount);
-      expect((markup.match(/当前暂无合同记录/g) ?? []).length).toBe(Number(hazardousCount === 0) + Number(generalCount === 0));
+      expect((markup.match(/aria-expanded="true"/g) ?? []).length).toBe(Number(hazardousCount > 0) + Number(generalCount > 0));
+      expect((markup.match(/data-disabled="" data-orientation="vertical" data-slot="accordion-item"/g) ?? []).length).toBe(Number(hazardousCount === 0) + Number(generalCount === 0));
     }
   });
 

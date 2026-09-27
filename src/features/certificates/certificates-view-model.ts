@@ -1,6 +1,7 @@
 import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
 import type { CertificatesStoreRow, CertificateCategorySummary, NormalizedCertificateRecord } from "@/data/contracts/certificates";
+import { CERTIFICATE_TYPE_CATEGORIES } from "@/lib/rules/certificate-types";
 
 export const CERTIFICATES_ITEMS = [
   { key: "safetyHealth", label: "安全健康" },
@@ -36,26 +37,43 @@ export function toCertificatesTableRows(rows: readonly CertificatesStoreRow[]): 
     return { ...row, safetyHealth: statusFor("安全健康"), firstAid: statusFor("急救员"), specialOperations: statusFor("特种作业"), safeDriving: statusFor("安全驾驶") };
   });
 }
-export interface CertificateTypeGroup {
+export interface CertificateDetailGroup {
   certificateType: string;
+  label: string;
+  count: number;
+  hasAbnormalRecords: boolean;
   records: readonly NormalizedCertificateRecord[];
+  disabled: boolean;
 }
 
-// Presentation only: preserve first-seen Type order and every normalized record.
-export function groupCertificateRecords(records: readonly NormalizedCertificateRecord[]): readonly CertificateTypeGroup[] {
-  const groups = new Map<string, NormalizedCertificateRecord[]>();
-  for (const record of records) {
-    const group = groups.get(record.certificateType);
-    if (group) group.push(record);
-    else groups.set(record.certificateType, [record]);
-  }
-  return [...groups].map(([certificateType, records]) => ({ certificateType, records }));
+// Presentation preparation: taxonomy determines membership and order; record state is already evaluated upstream.
+export function groupCertificateRecords(
+  category: CertificateCategorySummary["certificateCategory"],
+  records: readonly NormalizedCertificateRecord[],
+): readonly CertificateDetailGroup[] {
+  return Object.entries(CERTIFICATE_TYPE_CATEGORIES)
+    .filter(([, certificateCategory]) => certificateCategory === category)
+    .map(([certificateType]) => {
+      const typeRecords = records.filter((record) => record.certificateType === certificateType);
+      return {
+        certificateType,
+        label: certificateType,
+        count: typeRecords.length,
+        hasAbnormalRecords: typeRecords.some((record) => record.certificateStatus === "ABNORMAL"),
+        records: typeRecords,
+        disabled: typeRecords.length === 0,
+      };
+    });
 }
 
 export function buildCertificatesDetail(record: CertificatesTableRow, key: CertificatesItemKey) {
   const category = CERTIFICATES_ITEMS.find((item) => item.key === key)!.label;
   const summary = record.categories.find((item) => item.certificateCategory === category)!;
-  return { storeDisplayName: record.storeDisplayName, ...summary, groups: groupCertificateRecords(summary.records) };
+  return {
+    storeDisplayName: record.storeDisplayName,
+    ...summary,
+    groups: groupCertificateRecords(summary.certificateCategory, summary.records),
+  };
 }
 export type CertificatesDetail = ReturnType<typeof buildCertificatesDetail>;
 export function certificatesQueryKey(context: EhsStoreScope | null, referenceDateIso: string) {

@@ -1,6 +1,6 @@
 import type { EnvironmentEmergencyPlan } from "@/data/contracts/environment";
+import { DetailField } from "@/components/shared/detail-field";
 import { displayEnvironmentValue } from "../environment-view-model";
-import { DetailField } from "./detail-field";
 
 export function EmergencyPlanDetail({ emergencyPlan }: { emergencyPlan: EnvironmentEmergencyPlan }) {
   return (

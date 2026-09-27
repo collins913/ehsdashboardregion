@@ -5,6 +5,10 @@ import { CheckCircle2 } from "lucide-react";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
+import { DetailField } from "@/components/shared/detail-field";
+import { DetailHeader } from "@/components/shared/detail-header";
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
   dataTableClassName,
@@ -30,9 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -136,29 +137,38 @@ function DetailSheetDemo() {
       <SheetTrigger asChild>
         <Button variant="outline">查看详情示例</Button>
       </SheetTrigger>
-      <SheetContent className="overflow-y-auto sm:max-w-xl!">
-        <SheetHeader>
-          <SheetTitle>记录详情</SheetTitle>
-          <SheetDescription>
-            验证统一 Sheet 标题、字段和值的排布。
-          </SheetDescription>
-        </SheetHeader>
-        <dl className="grid gap-4 px-4 pb-4 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">门店</dt>
-            <dd className="mt-1 font-medium">示例星河店</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">负责人</dt>
-            <dd className="mt-1">—</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-muted-foreground">描述</dt>
-            <dd className="mt-1 leading-6">
-              这是一段用于验证详情面板长文本自然换行的示例内容，不代表任何正式业务记录。
-            </dd>
-          </div>
-        </dl>
+      <SheetContent className="overflow-y-auto">
+        <DetailHeader
+          title="特种作业"
+          subtitle="示例星河店"
+          resultLabel="当前结果"
+          result={<StatusDisplay status="NORMAL" />}
+        />
+        <div className="space-y-4 px-4 pb-4">
+          <DetailAccordion>
+            <DetailAccordionItem title="焊接作业证" value="welding" count={1} attention>
+              <DetailRecordCard
+                header={
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-base font-medium">Yue SUN（孙悦）</p>
+                    <StatusDisplay status="ABNORMAL" />
+                  </div>
+                }
+              >
+                <div className="space-y-4">
+                  <DetailField label="岗位">可自然换行的岗位名称示例</DetailField>
+                  <dl className="grid grid-cols-2 gap-4">
+                    <DetailField label="到期日期">2026-09-21</DetailField>
+                    <DetailField label="距离到期">-5 天</DetailField>
+                  </dl>
+                </div>
+              </DetailRecordCard>
+            </DetailAccordionItem>
+            <DetailAccordionItem title="空证件类别" value="empty" count={0} disabled>
+              <p className="text-sm text-muted-foreground">无记录</p>
+            </DetailAccordionItem>
+          </DetailAccordion>
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -404,15 +414,14 @@ export default function UiLabPage() {
             </DemoSurface>
             <DemoSurface
               title="AnalyticsMetricCard"
-              description="同一共享指标卡支持默认与紧凑布局，并用调用方 formatter 展示数值。"
+              description="数字型 Dashboard 卡片共用标题、说明、Info 和数值的 presentation，并用调用方 formatter 展示数值。"
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <AnalyticsMetricCard
                   title="提交总数"
                   subtitle="2026-07 至 2026-09"
                   value={animatedNumberPreview}
-                  size="compact"
-                  info={<p>已预计算的整数值，展示紧凑布局。</p>}
+                  info={<p>已预计算的整数值，展示统一的指标卡样式。</p>}
                 />
                 <AnalyticsMetricCard
                   title="平均提交数"

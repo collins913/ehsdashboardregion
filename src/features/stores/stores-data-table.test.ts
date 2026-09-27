@@ -84,12 +84,12 @@ describe("Stores Data Table contract", () => {
 });
 
 describe("Store detail", () => {
-  it("renders all four contacts and their emails", () => {
+  it("renders all four contacts and their emails without repeating the Header store name", () => {
     const markup = renderToStaticMarkup(
       createElement(StoreDetailContent, { record }),
     );
 
-    expect(markup).toContain("测试中文门店");
+    expect(markup).not.toContain("测试中文门店");
     expect(markup).toContain("Test English Store");
     expect(markup).toContain("TEST-001");
     expect(markup).toContain("测试区域");

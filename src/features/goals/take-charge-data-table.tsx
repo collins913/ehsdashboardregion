@@ -21,6 +21,8 @@ import {
   useTable,
 } from "@tanstack/react-table";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
+import { DetailField } from "@/components/shared/detail-field";
+import { DetailHeader } from "@/components/shared/detail-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import {
@@ -45,13 +47,7 @@ import {
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -169,42 +165,17 @@ export function TakeChargeDetailContent({
   record: NormalizedTakeChargeRecord;
 }) {
   return (
-    <div className="space-y-6 px-4 pb-4">
+    <div className="space-y-4 px-4 pb-4">
       <dl className="space-y-4">
-        <div className="min-w-0">
-          <dt className="text-xs text-muted-foreground">TCH 编号</dt>
-          <dd className="mt-1 break-words">{record.tchId}</dd>
-        </div>
+          <DetailField label="TCH 编号">{record.tchId}</DetailField>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <dt className="text-xs text-muted-foreground">状态</dt>
-            <dd className="mt-1">
-              <StatusDisplay
-                status={record.recordState}
-                label={statusLabel(record)}
-              />
-            </dd>
-          </div>
+          <DetailField label="提交人">{record.submittedBy}</DetailField>
+          <DetailField label="提交时间">{formatBusinessDateTime(record.submittedAt)}</DetailField>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0">
-            <dt className="text-xs text-muted-foreground">提交人</dt>
-            <dd className="mt-1 break-words">{record.submittedBy}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-xs text-muted-foreground">提交时间</dt>
-            <dd className="mt-1 break-words">
-              {formatBusinessDateTime(record.submittedAt)}
-            </dd>
-          </div>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-xs text-muted-foreground">摘要</dt>
-          <dd className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+          <DetailField label="摘要" valueClassName="whitespace-pre-wrap text-sm text-muted-foreground">
             {record.summary}
-          </dd>
-        </div>
-      </dl>
+          </DetailField>
+        </dl>
     </div>
   );
 }
@@ -221,10 +192,12 @@ function TakeChargeDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Take Charge</SheetTitle>
-          <SheetDescription>{record?.storeDisplayName ?? ""}</SheetDescription>
-        </SheetHeader>
+        <DetailHeader
+          title="Take Charge"
+          subtitle={record?.storeDisplayName ?? ""}
+          resultLabel="当前状态"
+          result={record ? <StatusDisplay status={record.recordState} label={statusLabel(record)} /> : undefined}
+        />
         {record ? <TakeChargeDetailContent record={record} /> : null}
       </SheetContent>
     </Sheet>

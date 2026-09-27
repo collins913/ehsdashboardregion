@@ -112,6 +112,7 @@ describe("Action detail", () => {
     expect(markup).toContain("2026-09-30 18:00");
     expect(markup).toContain("—");
     expect(markup).not.toContain("TRTID");
+    expect(markup).not.toContain('data-slot="card"');
   });
 
   it("uses the shared business-time formatter", () => {

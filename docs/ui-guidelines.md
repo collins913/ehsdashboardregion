@@ -40,6 +40,9 @@
 - `DashboardShell` 持续挂载 `PageHeader` / `GlobalFilters`；业务路由只组合内容与 `PageContainer`，不复制或重新挂载 Header。
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
 - PageHeader 仅常驻显示页面标题；导航元数据中的非空说明通过标题的悬停或键盘焦点触发共享 shadcn HoverCard，不在标题旁增加提示图标；无说明时不渲染浮层。
+- 正式 Detail Sheet 复用 shared `DetailHeader`：标题表达所选业务列、指标、分类或实体，副标题在适用时显示 Store Master 中文门店名；只有调用方提供正式结果/状态时才显示对应区块。正文不重复 Header 已表达的信息或虚构结果。
+- Detail Accordion 表达业务分类 / 信息组。是否使用 `DetailRecordCard` 由正式 contract 的 multiplicity 决定，而非当前 mock 返回条数：singleton contract 直接展示 `DetailField` / layout；collection contract（0 / 1 / N）为每条 record 使用一个 `DetailRecordCard`。同一条 record 最多一个主要 DetailRecordCard shell；collection renderer 负责 record 边界，嵌入其中的业务内容不得再套 Card。不得为装饰添加 Card 或嵌套 Card。`DetailAccordion` 只负责 presentation；title、count、disabled、attention 与 default-open values 由调用方提供。空组可用 disabled semantics；count Badge 保持中性且不继承标题 hover 下划线。展开默认值属于 feature 选择，不是全局默认行为。
+- `DetailField` 只负责 label、value、间距、排版与换行；不格式化日期、不推断状态、不计算业务值，也不把 null 转成零。业务组件按字段与 contract 提供已准备好的显示值。
 - 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。
 - 表单 mutation feedback：字段校验显示在字段附近；pending 显示在触发操作的控件内；成功与服务端 / mutation 失败使用 Sonner。
 
@@ -57,6 +60,9 @@
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 - 异步分页/排序 pending 在固定宽度的 footer 槽位显示轻量反馈，同时禁用重复操作；同步客户端分页不显示请求反馈。
 - Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表，CountTrend 将最新预计算数据直接交给稳定的 Recharts AreaChart 并使用其默认动画，不自行路由月份域变化；中心数字插值 450ms；刷新失败时保留等高 Card 并显示错误。其它共享图表动画尊重 `prefers-reduced-motion`。
+- Dashboard Analytics 统一使用移动端（<640px）、中间屏（640–1151px）、桌面（>=1152px）的响应阶段。图表按组合与最小可读宽度选择列宽；必要时可在中间屏使用现有断点，不为统一列数牺牲可读性。
+- 同类 AnalyticsMetricCard 组使用一致的响应式列断点：小于 640px 为 1 列，640–1151px 为 2 列，1152px 起按该页面卡片数量使用完整列数。统一断点，不统一业务卡片数量；具体列数由 feature 布局决定。
+- 数字型 Dashboard summary cards 统一使用 shared `AnalyticsMetricCard` presentation contract。Feature 只负责 Grid composition 和业务内容，不覆盖卡片高度、间距、字体、Info trigger 或数值样式。
 - adaptive page sizing 复用共享测量行为，仅使用 5 / 7 / 10 档位；已有业务表格由 Feature 持有分页状态，通用 shared DataTable 自行持有分页状态，不另建 responsive table engine。
 - 业务表格正文行以 Actions 行为基准：shared DataTable presentation 统一单元格 22px 行盒，TableCellTrigger 与 placeholder 行遵循同一几何。
 - Sticky 首列维持不透明背景，并通过 shared row state 跟随整行 hover 与 selected 背景。

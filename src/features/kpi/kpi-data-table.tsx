@@ -28,6 +28,7 @@ import {
 } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
+import { DetailHeader } from "@/components/shared/detail-header";
 import {
   availabilityLabels,
   DataAvailabilityDisplay,
@@ -50,14 +51,7 @@ import {
   StatusDisplay,
 } from "@/components/shared/status-display";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -77,6 +71,7 @@ import type {
   PerformanceKpiValue,
 } from "@/features/kpi/types";
 import { ActionDetailContent } from "@/features/actions/action-detail-content";
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import {
   KpiDetailSheet,
   type KpiDetailQueries,
@@ -284,26 +279,22 @@ function ActionsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>行动项</SheetTitle>
-          <SheetDescription>{row?.store.displayName ?? ""}</SheetDescription>
-        </SheetHeader>
+        <DetailHeader
+          title="行动项"
+          subtitle={row?.store.displayName ?? ""}
+          resultLabel="当前结果"
+          result={row
+            ? row.actions.availability === "INCOMPLETE" || row.actions.availability === "UNAVAILABLE"
+              ? <DataAvailabilityDisplay availability={row.actions.availability} />
+              : <StatusDisplay status={row.actions.result} />
+            : undefined}
+        />
         <div className="space-y-6 pb-4">
           {row ? (
             <dl className="space-y-4 px-4">
               <div>
                 <dt className="text-xs text-muted-foreground">统计周期</dt>
                 <dd className="mt-1">{formatBusinessPeriod(context.period)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">当前结果</dt>
-                <dd className="mt-1">
-                  {row.actions.availability === "INCOMPLETE" || row.actions.availability === "UNAVAILABLE" ? (
-                    <DataAvailabilityDisplay availability={row.actions.availability} />
-                  ) : (
-                    <StatusDisplay status={row.actions.result} />
-                  )}
-                </dd>
               </div>
             </dl>
           ) : null}
@@ -323,12 +314,11 @@ function ActionsSheet({
           ) : actions.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">没有未关闭行动项。</p>
           ) : (
-            <div className="space-y-6">
-              {actions.items.map((action, index) => (
-                <div key={action.actionId}>
-                  {index > 0 ? <Separator className="mb-6" /> : null}
+            <div className="space-y-3">
+              {actions.items.map((action) => (
+                <DetailRecordCard key={action.actionId}>
                   <ActionDetailContent record={action} />
-                </div>
+                </DetailRecordCard>
               ))}
             </div>
           )}

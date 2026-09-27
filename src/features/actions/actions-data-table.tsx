@@ -31,6 +31,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DetailHeader } from "@/components/shared/detail-header";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
@@ -42,13 +43,7 @@ import {
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -165,11 +160,13 @@ function ActionDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>行动项</SheetTitle>
-          <SheetDescription>{record?.storeDisplayName ?? ""}</SheetDescription>
-        </SheetHeader>
-        {record ? <ActionDetailContent record={record} /> : null}
+        <DetailHeader
+          title="行动项"
+          subtitle={record?.storeDisplayName ?? ""}
+          resultLabel="当前状态"
+          result={record ? <ActionStatusDisplay status={record.sourceStatus} /> : undefined}
+        />
+        {record ? <div className="space-y-4 px-4 pb-4"><ActionDetailContent record={record} showStatus={false} /></div> : null}
       </SheetContent>
     </Sheet>
   );

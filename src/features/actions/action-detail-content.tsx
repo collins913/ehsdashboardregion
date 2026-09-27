@@ -1,35 +1,22 @@
-import type { ReactNode } from "react";
+import { DetailField } from "@/components/shared/detail-field";
 import type { NormalizedActionRecord } from "@/data/contracts/actions";
 import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import { formatBusinessDateTime } from "@/lib/format-business-date-time";
 
-function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words">{children}</dd>
-    </div>
-  );
-}
-
 export function ActionDetailContent({
   record,
+  showStatus = true,
 }: {
   record: NormalizedActionRecord;
+  showStatus?: boolean;
 }) {
   return (
-    <div className="space-y-6 px-4 pb-4">
+    <div className="space-y-4">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <p className="min-w-0 break-words text-base font-medium">{record.actionId}</p>
+        {showStatus ? <ActionStatusDisplay status={record.sourceStatus} /> : null}
+      </div>
       <dl className="grid gap-4 sm:grid-cols-2">
-        <DetailField label="行动项编号">{record.actionId}</DetailField>
-        <DetailField label="状态">
-          <ActionStatusDisplay status={record.sourceStatus} />
-        </DetailField>
         <DetailField label="提交人">{record.submittedBy}</DetailField>
         <DetailField label="提交时间">
           {formatBusinessDateTime(record.submittedDate)}
