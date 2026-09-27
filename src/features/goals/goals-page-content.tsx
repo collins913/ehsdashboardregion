@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
+import { ANALYTICS_PAGE_CONTAINER_CLASS_NAME } from "@/components/shared/analytics-layout";
 import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh-indicator";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
@@ -45,7 +46,6 @@ export function SummaryCards({
     <div className="grid gap-3 sm:grid-cols-2 md:min-[1152px]:grid-cols-4">
       <AnalyticsMetricCard
         title="提交总数"
-        size="compact"
         subtitle={selectedPeriod}
         value={periodUnavailable ? null : summary.period.submissionTotal ?? 0}
         valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
@@ -58,7 +58,6 @@ export function SummaryCards({
       />
       <AnalyticsMetricCard
         title="关闭率"
-        size="compact"
         subtitle={selectedPeriod}
         value={periodUnavailable ? null : summary.period.closeRate.value}
         emptyLabel="无"
@@ -73,7 +72,6 @@ export function SummaryCards({
       />
       <AnalyticsMetricCard
         title="今年平均提交数"
-        size="compact"
         subtitle={`${summary.annual.currentYear} 年`}
         value={annualUnavailable ? null : summary.annual.averageSubmissionsYtd.value}
         emptyLabel="无"
@@ -88,7 +86,6 @@ export function SummaryCards({
       />
       <AnalyticsMetricCard
         title="今年参与率"
-        size="compact"
         subtitle={`${summary.annual.currentYear} 年`}
         value={annualUnavailable ? null : summary.annual.participationRateYtd.value}
         emptyLabel="无"
@@ -134,7 +131,6 @@ export function SummaryCardsPlaceholder({
             subtitle={subtitle}
             value={null}
             loading
-            size="compact"
           />
         ))}
       </div>
@@ -162,7 +158,7 @@ export function GoalsPageContent({
     state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
 
   return (
-    <PageContainer className="space-y-6">
+    <PageContainer className={`${ANALYTICS_PAGE_CONTAINER_CLASS_NAME} space-y-6`}>
       {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成 Goals 数据，请调整筛选条件。

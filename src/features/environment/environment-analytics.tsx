@@ -61,7 +61,7 @@ export function EnvironmentAnalytics({
       {result && result.availability !== "AVAILABLE" && result.availability !== "CONFIRMED_EMPTY" ? (
         <div className="flex"><DataAvailabilityDisplay availability={result.availability} /></div>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:min-[1152px]:grid-cols-3">
         <AnalyticsMetricCard
           title="危险废物合同持有率"
           value={result?.hazardousWasteContractHolding.rate ?? null}
