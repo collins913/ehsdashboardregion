@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { useAnalyticsChartAnimationEnabled } from "@/components/shared/use-analytics-motion";
-import { AnalyticsClosureRadial } from "@/components/shared/analytics-closure-radial";
 import { AnalyticsCountTrend } from "@/components/shared/analytics-count-trend";
 import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh-indicator";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -80,16 +79,12 @@ function EventsAnalyticsPlaceholder({
 }) {
   return (
     <section className="space-y-3" aria-label="Events Analytics" aria-busy={loading || undefined}>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12">
-      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 md:col-span-1 xl:col-span-3`}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 lg:col-span-4`}>
         <CardHeader className="px-4 py-4"><CardTitle>类型分布</CardTitle></CardHeader>
         <CardContent className="flex flex-1 items-center justify-center px-4 pt-4">{loading ? <Skeleton className="size-44 rounded-full" /> : <p className="text-sm text-muted-foreground">{message}</p>}</CardContent>
       </Card>
-      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 md:col-span-1 xl:col-span-3`}>
-        <CardHeader className="px-4 py-4"><CardTitle>关闭情况</CardTitle></CardHeader>
-        <CardContent className="flex flex-1 items-center justify-center px-4 pt-4">{loading ? <Skeleton className="h-28 w-56" /> : <p className="text-sm text-muted-foreground">{message}</p>}</CardContent>
-      </Card>
-      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 md:col-span-2 xl:col-span-6`}>
+      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 lg:col-span-8`}>
         <CardHeader className="px-4 py-4"><CardTitle>事件趋势</CardTitle></CardHeader>
         <CardContent className="flex min-h-0 flex-1 items-center px-4 pt-4">{loading ? <Skeleton className="h-40 w-full" /> : <p className="text-sm text-muted-foreground">{message}</p>}</CardContent>
       </Card>
@@ -151,20 +146,9 @@ export function EventsAnalytics({
   return (
     <section aria-label="Events Analytics" aria-busy={state.status === "LOADING" || undefined} className="relative space-y-3">
       <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && state.resolved !== null} />
-      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-12">
-        <div className="h-full md:col-span-1 xl:col-span-3"><EventTypeDonut result={result} /></div>
-        <div className="h-full md:col-span-1 xl:col-span-3">
-          <AnalyticsClosureRadial
-            title="关闭情况"
-            numeratorCount={result.closure.closedCount}
-            otherCount={result.closure.openCount}
-            rate={result.closure.closureRate}
-            rateLabel="关闭率"
-            numeratorLabel="已关闭"
-            otherLabel="未关闭"
-          />
-        </div>
-        <div className="h-full md:col-span-2 xl:col-span-6">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
+        <div className="h-full lg:col-span-4"><EventTypeDonut result={result} /></div>
+        <div className="h-full lg:col-span-8">
           <AnalyticsCountTrend
             title="事件趋势"
             data={trendData}

@@ -172,7 +172,7 @@ Events 展示当前 Global Region / Area / Store / Period 范围内的 Event 明
 - Event Type 筛选；选项来自当前 scoped normalized Event 数据，不在 UI 固定 taxonomy。
 - “全部 / 未关闭”切换；默认“全部”。
 - Current Open 仅显示 `RecordState = OPEN`；All 保留当前范围全部记录，当前已确认源状态为 `Open` 与 `Closed`，未知未来值保留原文并归类 `UNKNOWN`，不进入 Current Open。
-- 页面在表格上方展示 Events Analytics V1：类型分布、已关闭 / 未关闭数量与关闭率、当前 Global Period 的逐月事件数量趋势。事件趋势支持按当前范围内实际存在的事件类型快速查看，默认“全部”，且只影响趋势图。Analytics 只响应 Region、Area、Store、Period，不受表格的“全部 / 未关闭”、Event Type、排序或分页影响。
+- 页面在表格上方展示 Events Analytics V1：类型分布和当前 Global Period 的逐月事件数量趋势。事件趋势支持按当前范围内实际存在的事件类型快速查看，默认“全部”，且只影响趋势图。Analytics 只响应 Region、Area、Store、Period，不受表格的“全部 / 未关闭”、Event Type、排序或分页影响。
 - 点击记录打开 Event Detail。
 
 当前已知 source Event Type 包括 `Agency` 与 `Non-Agency Event`，未来新增 source value 时筛选与列表应自动支持。

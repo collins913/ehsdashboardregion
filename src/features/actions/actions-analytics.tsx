@@ -27,14 +27,14 @@ function ActionsAnalyticsPlaceholder({
 }) {
   return (
     <section className="space-y-3" aria-label="Actions Analytics" aria-busy={loading || undefined}>
-      <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-12">
-      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 xl:col-span-4`}>
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
+      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 lg:col-span-4`}>
         <CardHeader className="px-4 py-4"><CardTitle>关闭情况</CardTitle></CardHeader>
         <CardContent className="flex flex-1 items-center justify-center px-4 pt-4">
           {loading ? <Skeleton className="h-28 w-56" /> : <p className="text-sm text-muted-foreground">{message}</p>}
         </CardContent>
       </Card>
-      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 xl:col-span-8`}>
+      <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4 lg:col-span-8`}>
         <CardHeader className="px-4 py-4"><CardTitle>行动项趋势</CardTitle></CardHeader>
         <CardContent className="flex min-h-0 flex-1 items-center px-4 pt-4">
           {loading ? <Skeleton className="h-40 w-full" /> : <p className="text-sm text-muted-foreground">{message}</p>}
@@ -81,8 +81,8 @@ export function ActionsAnalytics({
   return (
     <section aria-label="Actions Analytics" aria-busy={state.status === "LOADING" || undefined} className="relative space-y-3">
       <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && state.resolved !== null} />
-      <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-12">
-        <div className="h-full xl:col-span-4">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-12">
+        <div className="h-full lg:col-span-4">
           <AnalyticsClosureRadial
             title="关闭情况"
             numeratorCount={result.closure.closedOrCancelledCount}
@@ -93,7 +93,7 @@ export function ActionsAnalytics({
             otherLabel="未关闭或未知"
           />
         </div>
-        <div className="h-full xl:col-span-8">
+        <div className="h-full lg:col-span-8">
           <AnalyticsCountTrend
             title="行动项趋势"
             data={trendData}
