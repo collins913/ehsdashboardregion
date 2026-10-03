@@ -148,7 +148,7 @@ export function DataTablePendingFeedback({
     >
       {isPending ? (
         <>
-          <Loader2Icon aria-hidden="true" className="size-3 animate-spin" />
+          <Loader2Icon aria-hidden="true" className="size-3 animate-spin motion-reduce:animate-none" />
           加载中…
         </>
       ) : null}

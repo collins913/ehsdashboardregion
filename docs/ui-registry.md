@@ -55,8 +55,8 @@
 | AnalyticsCountTrend | Business-neutral monthly count area chart presentation; callers provide precomputed monthly rows and optional toolbar; one stable AreaChart receives latest rows directly and gates native Recharts animation through the shared reduced-motion hook |
 | AnalyticsMetricCard | Single presentation for numeric Dashboard summary cards: title, optional inline Info HoverCard, description, animated value, and a shared natural-height, spacing and typography contract. Used by Goals, Environment and UI Lab. Features provide business content and Grid composition; the component does not own grids, calculations, queries or status evaluation. |
 | AnalyticsRefreshIndicator | Compact group-level updating status for stale Analytics results; positioned without changing layout and accepts only a refreshing flag |
-| Analytics layout | `src/components/shared/analytics-layout.ts` owns the shared 17.125rem Card height, 24px page section spacing and Analytics animation timing |
-| AnimatedNumber | Interpolates already-computed display values; respects `prefers-reduced-motion` |
+| Analytics layout | `src/components/shared/analytics-layout.ts` owns the shared 17.125rem Card height, 24px page section spacing, 325ms number timing and 375ms chart timing |
+| AnimatedNumber | Interpolates already-computed display values in 325ms; respects `prefers-reduced-motion` |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
 | DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists; Features provide columns, rows and column size roles |
@@ -79,7 +79,7 @@
 | --- | --- |
 | useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
 | useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result and guarded imperative reload; prevents stale async responses from replacing the latest query |
-| `useAnalyticsChartAnimationEnabled` (`src/components/shared/use-analytics-motion.ts`) | Disables initial chart tweening and gates subsequent Recharts transitions when `prefers-reduced-motion` is enabled |
+| `useAnalyticsChartAnimationEnabled` (`src/components/shared/use-analytics-motion.ts`) | Disables initial chart tweening and gates 375ms Recharts data transitions when `prefers-reduced-motion` is enabled |
 
 ## Feature-specific
 

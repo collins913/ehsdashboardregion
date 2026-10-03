@@ -59,7 +59,7 @@
 - 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 - 异步分页/排序 pending 在固定宽度的 footer 槽位显示轻量反馈，同时禁用重复操作；同步客户端分页不显示请求反馈。
-- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表，CountTrend 将最新预计算数据直接交给稳定的 Recharts AreaChart 并使用其默认动画，不自行路由月份域变化；中心数字插值 450ms；刷新失败时保留等高 Card 并显示错误。其它共享图表动画尊重 `prefers-reduced-motion`。
+- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表，CountTrend 将最新预计算数据直接交给稳定的 Recharts AreaChart，不自行路由月份域变化；图表数据更新动画 375ms，数字动画 325ms，均尊重 `prefers-reduced-motion`。
 - Dashboard Analytics 统一使用移动端（<640px）、中间屏（640–1151px）、桌面（>=1152px）的响应阶段。图表按组合与最小可读宽度选择列宽；必要时可在中间屏使用现有断点，不为统一列数牺牲可读性。
 - 同类 AnalyticsMetricCard 组使用一致的响应式列断点：小于 640px 为 1 列，640–1151px 为 2 列，1152px 起按该页面卡片数量使用完整列数。统一断点，不统一业务卡片数量；具体列数由 feature 布局决定。
 - 数字型 Dashboard summary cards 统一使用 shared `AnalyticsMetricCard` presentation contract。Feature 只负责 Grid composition 和业务内容，不覆盖卡片高度、间距、字体、Info trigger 或数值样式。
@@ -67,6 +67,13 @@
 - 业务表格正文行以 Actions 行为基准：shared DataTable presentation 统一单元格 22px 行盒，TableCellTrigger 与 placeholder 行遵循同一几何。
 - Sticky 首列维持不透明背景，并通过 shared row state 跟随整行 hover 与 selected 背景。
 - 可下钻单元格复用 `TableCellTrigger`，详情复用已有 Sheet；同一领域的类别共用详情结构，不创建 Generic Detail framework。
+
+## Motion
+
+- Micro interaction 使用 120–150ms，用于 Tooltip、HoverCard、hover 和 focus；说明型 HoverCard 打开延迟约 100–150ms，Tooltip 默认即时出现。
+- Structural transition 使用 180–220ms，用于 Sheet、Dialog、Accordion、Sidebar 和 Tabs active indicator。Accordion 只做单一高度动画与 chevron rotation；Tabs 不给 panel 增加 entrance animation。
+- Data update animation 使用 300–400ms，用于 `AnimatedNumber` 和 Recharts Analytics 图表。尊重 `prefers-reduced-motion`，不增加 artificial delay、stagger 或 bounce。
+- 表格排序/分页、Global Filter 更新与页面软导航不做整表或整页 entrance/exit；刷新时保留已解析内容，只有首次加载可使用 Skeleton。
 
 ## Navigation
 

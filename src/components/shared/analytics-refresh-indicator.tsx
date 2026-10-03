@@ -5,7 +5,7 @@ export function AnalyticsRefreshIndicator({ refreshing }: { refreshing: boolean 
 
   return (
     <div className="absolute -top-6 right-0 z-10 flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
-      <LoaderCircle aria-hidden="true" className="size-3 animate-spin" />
+      <LoaderCircle aria-hidden="true" className="size-3 animate-spin motion-reduce:animate-none" />
       更新中
     </div>
   );

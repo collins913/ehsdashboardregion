@@ -75,7 +75,7 @@ export function PageHeader({
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               {description ? (
-                <HoverCard openDelay={250} closeDelay={150}>
+                <HoverCard openDelay={125} closeDelay={100}>
                   <HoverCardTrigger asChild>
                     <h1
                       tabIndex={0}

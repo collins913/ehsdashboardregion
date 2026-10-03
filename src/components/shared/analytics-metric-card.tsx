@@ -29,7 +29,7 @@ export function AnalyticsMetricCard({
         <div className="min-w-0 space-y-1.5">
           <CardTitle className="text-sm">
             {info ? (
-              <HoverCard openDelay={250} closeDelay={150}>
+              <HoverCard openDelay={125} closeDelay={100}>
                 <HoverCardTrigger asChild>
                   <button
                     type="button"
