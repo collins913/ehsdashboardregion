@@ -20,11 +20,12 @@ const expectedIdentityAndOwnership = [
 describe("Store Master mock", () => {
   it("keeps Store identity and ownership fields stable", () => {
     expect(
-      mockStores.map(
+      mockStores.slice(0, expectedIdentityAndOwnership.length).map(
         ({ trtid, region, area, manager, ehsAmbassador }) =>
           [trtid, region, area, manager, ehsAmbassador] as const,
       ),
     ).toEqual(expectedIdentityAndOwnership);
+    expect(mockStores).toHaveLength(50);
   });
 
   it("keeps Chinese and English display names unique", () => {

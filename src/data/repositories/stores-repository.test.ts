@@ -89,8 +89,8 @@ describe("scoped Stores repository query", () => {
       },
     });
 
-    expect(region.items).toHaveLength(4);
-    expect(area.items).toHaveLength(2);
+    expect(region.items).toHaveLength(mockStores.filter(({ region }) => region === mockStores[0].region).length);
+    expect(area.items).toHaveLength(mockStores.filter(({ area }) => area === mockStores[0].area).length);
     expect(store.items.map(({ storeId }) => storeId)).toEqual([
       mockStores[0].trtid,
       mockStores[3].trtid,

@@ -149,40 +149,13 @@ This does not prevent deterministic testing because tests can inject a reference
 
 ## 3.1 Training
 
-### Purpose
+### V1 achievement rule
 
-Determine whether all required Training records that exist within the selected Period have been fully completed by the Store.
+For each Store × Month, every item in the formal required Training set must have a present, valid source record and source-provided `completionRate = 100` for the metric to be `ACHIEVED`. Any required item that is below 100%, absent, invalid, malformed, or covered by an incomplete source makes the monthly Training metric `NOT_ACHIEVED`.
 
-### Input
+The current Mock V1 provider centrally declares two synthetic required items in `src/data/mock/overview-required-sets.ts`; these labels validate calculation behavior and are not authoritative business names. Both Standard and Performance source generators use this same catalog. The rule receives the provider's set independently from observed records. Production must replace the Mock provider with an authoritative Store × Month catalog source without changing ScoreContribution or Overview aggregation. A missing provider/set at runtime produces 0/1 with `RULE_CONFIGURATION_MISSING`.
 
-- required Training records that exist within the selected Period;
-- whether each required Training achieved full-person completion;
-- Training source coverage for the requested Store × Period.
-
-### Rule
-
-All existing required Training records are fully completed
-→ `ACHIEVED`
-
-Any existing required Training record is not fully completed
-→ `NOT_ACHIEVED`
-
-Complete source coverage with no Training records
-→ `ACHIEVED`
-
-Incomplete or unavailable source coverage
-→ `UNDETERMINED`
-
-### Result Type
-
-`PerformanceResult`
-
-### Explicit TBD
-
-- how the required Training set is identified;
-- source-system mapping to “fully completed”.
-
-These Period/source mappings must be resolved outside the UI.
+`completionRate` and `incompletePeople` remain source-provided; do not recalculate them from person-level rows.
 
 ---
 
@@ -227,9 +200,7 @@ Any included month fails
 - Incomplete or unavailable Drill source coverage returns `UNDETERMINED`; record absence under complete coverage returns `NOT_ACHIEVED`.
 - A record is completed only when its normalized open-text Source Status exactly equals `已完成`. Other non-empty source text is incomplete; missing or empty status follows the `INCOMPLETE` / `UNDETERMINED` data-availability path.
 
-### Explicit TBD
-
-- partial-month inclusion follows the Period policy.
+For the monthly Overview contribution, evaluate the one included month using the same rule. Period-range KPI behavior remains governed by the existing Period contract.
 
 ---
 
@@ -292,38 +263,13 @@ Display boundary:
 
 ## 3.4 Inspections
 
-### Purpose
+### V1 achievement rule
 
-Determine whether all required Inspections within the selected Period were completed.
+For each Store × Month, the metric is `ACHIEVED` only when every task in the formal required Inspection set has a present valid record and a completed status. A required task that is unfinished, missing, has missing/invalid status, malformed source, or incomplete required coverage makes the monthly metric `NOT_ACHIEVED`.
 
-### Rule
+The current Mock V1 provider centrally declares two synthetic expected tasks in `src/data/mock/overview-required-sets.ts`; these labels validate calculation behavior and are not authoritative business names. Both Standard and Performance source generators use this same task set. The rule receives the provider's set independently from observed records. Production must replace the Mock provider with an authoritative Store × Month expected-task source/config without changing ScoreContribution or Overview aggregation. A missing provider/set at runtime produces 0/1 with `RULE_CONFIGURATION_MISSING`.
 
-For every included month:
-
-At least one required Inspection exists and all required Inspections are completed
-→ month passes
-
-No required Inspection exists, or any required Inspection is incomplete
-→ month fails
-
-All included months pass
-→ `ACHIEVED`
-
-Any included month fails
-→ `NOT_ACHIEVED`
-
-Incomplete or unavailable Inspection source coverage
-→ `UNDETERMINED`
-
-### Result Type
-
-`PerformanceResult`
-
-Inspection completion uses the normalized open-text Source Status. Only an exact value of `已完成` is completed; any other non-empty value is incomplete. A missing or empty status follows the `INCOMPLETE` / `UNDETERMINED` data-availability path.
-
-### Explicit TBD
-
-- source of the required Inspection set.
+Inspection Status remains nullable open text. Preserve source text; only the exact normalized value `已完成` means completed. Other non-empty values are not completed under the existing rule; missing status or incomplete required coverage does not prove completion. A malformed non-string status is `SOURCE_INVALID`; it does not introduce a new completed-status mapping.
 
 ---
 
@@ -350,6 +296,8 @@ No Event has:
 `ASTMInjuryIllness = "Yes"`
 
 → `NOT_OCCURRED`
+
+The source enum is `Yes` / `No`. An unknown enum value makes scoped Event coverage `INCOMPLETE`; it must not be treated as `No` or yield `NOT_OCCURRED`.
 
 ### Important Constraints
 
@@ -803,3 +751,44 @@ No Rule Engine function should return:
 - Badge variants;
 - icons;
 - localized UI text.
+
+# 10. Overview V1 scoring rules
+
+Overview consumes domain results and records a per-Store, per-metric, per-month contribution. It does not interpret raw source records or recalculate domain results.
+
+## 10.1 Fixed V1 points and score rate
+
+Each of the 12 catalog entries applies to every Store and contributes exactly `availablePoints = 1` per month. V1 has no per-Store N/A denominator exclusion. An existing domain `ACHIEVED` result contributes `outcome = ACHIEVED`, `earnedPoints = 1`; `NOT_ACHIEVED`, `UNDETERMINED`, or any other result that cannot prove achievement contributes `outcome = NOT_ACHIEVED`, `earnedPoints = 0`. The reason preserves whether this was a valid rule failure, missing source, invalid source, incomplete coverage, explicit N/A, or missing scoring configuration. None removes the metric from the denominator. V1 therefore has `12` total available points per Store × Month, the same for every Store, and does not calculate Overview completeness.
+
+`scoreRate = sum(earnedPoints) / sum(availablePoints)`. Store, Area, and Region all use pooled points. Area / Region first sum all descendant contributions and then calculate the rate; never average descendant score rates. All Stores participate in ranking. Ranking uses formal `scoreRate`, with a deterministic tie-break. Change is `currentScoreRate - previousScoreRate`; no completeness gate is applied.
+
+Data-quality cause remains attached to each contribution and does not alter its points. The diagnostic reason values are `ACHIEVED`, `RULE_NOT_MET`, `SOURCE_MISSING`, `SOURCE_INVALID`, `SOURCE_INCOMPLETE`, `NOT_APPLICABLE`, and `RULE_CONFIGURATION_MISSING`. `NOT_APPLICABLE` records an explicit domain applicability result but still contributes 0/1 in V1. `RULE_CONFIGURATION_MISSING` distinguishes an absent required-set/configuration from a missing source record. Domain/repository preparation classifies the cause; Overview UI does not inspect raw data to derive it.
+
+## 10.2 V1 scoring metric catalog
+
+Each row below has one available point per Store × Month. Existing domain rules remain authoritative; this section defines only how their results enter Overview scoring.
+
+| Metric | Dimension | Domain result used by scoring | V1 contribution |
+|---|---|---|---|
+| Training | Performance | Section 3.1; all required items must have valid records and completionRate = 100 | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason; Mock V1 provider exists, Production source remains future work |
+| Drill | Performance | Section 3.2 monthly result | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
+| Action Closure Rate KPI | Performance | Section 3.3 source aggregate and >= 90% target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason; do not derive from Action details |
+| Inspection | Performance | Section 3.4; every expected task must be complete | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason; Mock V1 provider exists, Production source remains future work |
+| ASTM Incident | Performance | Section 3.5 `OccurrenceResult` | `NOT_OCCURRED` → ACHIEVED 1/1; `OCCURRED` → NOT_ACHIEVED 0/1; missing / invalid / incomplete → 0/1 with the corresponding diagnostic reason |
+| Take Charge Close Rate | Take Charge | Section 4.2 Goal result | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
+| Average Submissions YTD | Take Charge | Section 4.3 source aggregate and >= 4 target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
+| Participation Rate YTD | Take Charge | Section 4.4 source aggregate and >= 50% target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
+| Safety & Health Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
+| First Aid Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
+| Special Work Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
+| Safe Driving Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
+
+Environment is not in the V1 catalog. Current Environment V1 has no compliance or score result. A future Environment metric must first have a confirmed domain result and then emit the same contribution contract; the Overview aggregation formula does not change.
+
+Mock V1 required sets are explicitly declared in one provider at `src/data/mock/overview-required-sets.ts`; observed records never define their membership. Standard and Performance use the same provider and generators. Production must inject an authoritative provider. `RULE_CONFIGURATION_MISSING` remains reserved for an absent/invalid runtime set; source-unavailable or incomplete coverage keeps its own reason.
+
+## 10.3 History contribution invariant
+
+For every Store × V1 Metric × Month, the calculation must produce one contribution, including when source data is wholly missing: `earnedPoints = 0`, `availablePoints = 1`, `reason = SOURCE_MISSING`. Absence of a contribution must not mean missing source. Source-invalid and source-incomplete cases likewise keep the 0/1 denominator and their distinct reasons.
+
+Use domain historical records evaluated with the relevant month-end reference date when that reliably reconstructs the domain result. Use a production snapshot later when historical records cannot reliably reconstruct it. No snapshot mechanism is defined or implemented by this Phase 1 contract.

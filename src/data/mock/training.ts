@@ -1,35 +1,36 @@
 import { mockStores } from "@/data/mock/stores";
-import type { Month, TrainingRecord } from "@/types/ehs";
+import { MOCK_V1_REQUIRED_TRAINING_ITEMS } from "@/data/mock/overview-required-sets";
+import type { Month, StoreMasterData, TrainingRecord } from "@/types/ehs";
 
 type SupportedMonths = readonly [Month, ...Month[]];
 
 export function createMockTrainingRecords(
   months: SupportedMonths,
 ): readonly TrainingRecord[] {
-  return mockStores.flatMap((store, storeIndex) =>
-    months.flatMap((month, monthIndex) => {
-      if (
-        storeIndex === mockStores.length - 1 &&
-        monthIndex === months.length - 1
-      ) {
-        return [];
-      }
+  return createMockTrainingRecordsForStores(mockStores, months);
+}
 
-      return [{
-        storeReference: { trtid: store.trtid },
-        month,
-        trainingName: `月度必修培训 ${monthIndex + 1}`,
-        completionRate:
-          storeIndex % 4 === 1 && monthIndex === months.length - 1 ? 84 : 100,
-        incompletePeople:
-          storeIndex % 4 === 1 && monthIndex === months.length - 1
-            ? ["张晓雨", "陈嘉宁"]
-            : [],
-        isRequired: true,
-        isFullyCompleted: !(
-          storeIndex % 4 === 1 && monthIndex === months.length - 1
-        ),
-      } satisfies TrainingRecord];
+export function createMockTrainingRecordsForStores(
+  stores: readonly StoreMasterData[],
+  months: SupportedMonths,
+): readonly TrainingRecord[] {
+  return stores.flatMap((store, storeIndex) =>
+    months.flatMap((month, monthIndex) => {
+      const scenario = (storeIndex + monthIndex) % 7;
+      return MOCK_V1_REQUIRED_TRAINING_ITEMS.flatMap((trainingName, itemIndex) => {
+        if (scenario === 2 && itemIndex === 1) return [];
+        const completionRate = scenario === 1 && itemIndex === 1 ? 84
+          : scenario === 3 && itemIndex === 1 ? Number.NaN
+            : scenario === 4 && itemIndex === 1 ? null
+              : 100;
+        return [{
+          storeReference: { trtid: store.trtid },
+          month,
+          trainingName,
+          completionRate,
+          incompletePeople: completionRate !== 100 ? ["Mock incomplete participant"] : [],
+        } satisfies TrainingRecord];
+      });
     }),
   );
 }

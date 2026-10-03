@@ -39,7 +39,7 @@ function wasteContracts(
 // Small source-like detail fixture; references come from the existing Store Master.
 export function createEnvironmentMockRecords(
   stores: readonly StoreMasterData[],
-  storeLimit = 12,
+  storeLimit = stores.length,
 ): readonly RawEnvironmentRecord[] {
   return stores.slice(0, storeLimit).map((store, index) => ({
     TRTID: store.trtid,

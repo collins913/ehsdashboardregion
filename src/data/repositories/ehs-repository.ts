@@ -27,6 +27,7 @@ import type {
   KpiInspectionDetailRecord,
   KpiAstmDetailRecord,
 } from "@/data/contracts/kpi-details";
+import type { OverviewScoreData, OverviewScoreDataQuery } from "@/data/contracts/overview";
 
 export interface KpiQueries {
   getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot>;
@@ -42,6 +43,10 @@ export interface KpiQueries {
   getKpiAstmDetails(
     query: KpiDetailQuery,
   ): Promise<KpiDetailRecords<KpiAstmDetailRecord>>;
+}
+
+export interface OverviewQueries {
+  getOverviewScoreData(query: OverviewScoreDataQuery): Promise<OverviewScoreData>;
 }
 
 export interface ActionsQueries {
@@ -88,4 +93,5 @@ export interface EhsRepository
     StoresQueries,
     EnvironmentQueries,
     CertificatesQueries,
+    OverviewQueries,
     GlobalFilterQueries {}

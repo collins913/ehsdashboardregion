@@ -20,7 +20,7 @@ describe("server Repository factory mock profile", () => {
     delete process.env.EHS_MOCK_PROFILE;
 
     expect(await createEhsRepository(referenceDate).getFilterStores()).toHaveLength(
-      12,
+      50,
     );
   });
 

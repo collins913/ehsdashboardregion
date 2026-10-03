@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
+import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import type { MockTakeChargeAnnualAggregateFixture } from "@/data/mock/take-charge";
 import { mockStores } from "@/data/mock/stores";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
+import { isTakeChargeClosedForRate } from "@/lib/rules/take-charge-rules";
 import type { Month, TakeChargeRecord } from "@/types/ehs";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
@@ -39,23 +41,30 @@ function takeCharge(
 
 describe("Take Charge Goals repository", () => {
   it("provides deterministic 2026 Q3 and current-year mock results", async () => {
+    const dataset = createKpiMockData(referenceDate);
     const summary = await createMockEhsRepository(referenceDate).getTakeChargeGoals({
       context: context(),
     });
+    const periodRecords = dataset.takeChargeRecords.filter(({ submittedAt }) => submittedAt >= "2026-07-01" && submittedAt < "2026-10-01");
+    const annualSourceRows = dataset.takeChargeAnnualAggregateFixtures.filter(({ referenceMonth }) => referenceMonth === "2026-09");
+    const submissionsNumerator = annualSourceRows.reduce((sum, row) => sum + row.submissionsNumerator, 0);
+    const submissionsDenominator = annualSourceRows.reduce((sum, row) => sum + row.submissionsDenominator, 0);
+    const participationNumerator = annualSourceRows.reduce((sum, row) => sum + row.participationNumerator, 0);
+    const participationDenominator = annualSourceRows.reduce((sum, row) => sum + row.participationDenominator, 0);
 
     expect(summary.period).toMatchObject({
       availability: "AVAILABLE",
-      submissionTotal: 48,
-      closedCount: 24,
-      closeRate: { value: 50, result: "NOT_ACHIEVED" },
+      submissionTotal: periodRecords.length,
+      closedCount: periodRecords.filter(({ Status }) => isTakeChargeClosedForRate(Status)).length,
+      closeRate: { value: (periodRecords.filter(({ Status }) => isTakeChargeClosedForRate(Status)).length / periodRecords.length) * 100, result: "NOT_ACHIEVED" },
     });
     expect(summary.annual.currentYear).toBe(2026);
     expect(summary.annual.averageSubmissionsYtd).toEqual({
-      value: 5.5,
-      result: "ACHIEVED",
+      value: submissionsNumerator / submissionsDenominator,
+      result: submissionsNumerator / submissionsDenominator >= 4 ? "ACHIEVED" : "NOT_ACHIEVED",
     });
     expect(summary.annual.participationRateYtd.value).toBeCloseTo(
-      (81 / 138) * 100,
+      (participationNumerator / participationDenominator) * 100,
     );
     expect(summary.annual.participationRateYtd.result).toBe("ACHIEVED");
   });
@@ -122,6 +131,7 @@ describe("Take Charge Goals repository", () => {
       {
         storeId: mockStores[0].trtid,
         year: 2026,
+        referenceMonth: "2026-09",
         submissionsNumerator: 8,
         submissionsDenominator: 2,
         participationNumerator: 1,
@@ -130,6 +140,7 @@ describe("Take Charge Goals repository", () => {
       {
         storeId: mockStores[1].trtid,
         year: 2026,
+        referenceMonth: "2026-09",
         submissionsNumerator: 90,
         submissionsDenominator: 10,
         participationNumerator: 9,
@@ -156,6 +167,15 @@ describe("Take Charge Goals repository", () => {
 
   it("applies Region, Area and canonical Store scopes", async () => {
     const repository = createMockEhsRepository(referenceDate);
+    const data = createKpiMockData(referenceDate);
+    const periodRecords = (storeIds: ReadonlySet<string>) => data.takeChargeRecords.filter((record) => {
+      const month = record.submittedAt.slice(0, 7);
+      const trtid = "trtid" in record.storeReference ? record.storeReference.trtid : "";
+      return storeIds.has(trtid) && month >= "2026-07" && month <= "2026-09";
+    });
+    const regionStoreIds = new Set(mockStores.filter(({ region }) => region === mockStores[0].region).map(({ trtid }) => trtid));
+    const areaStoreIds = new Set(mockStores.filter(({ area }) => area === mockStores[0].area).map(({ trtid }) => trtid));
+    const allStoreIds = new Set(mockStores.map(({ trtid }) => trtid));
     const region = await repository.getTakeChargeGoals({
       context: {
         ...context(),
@@ -176,14 +196,35 @@ describe("Take Charge Goals repository", () => {
     });
     const all = await repository.getTakeChargeGoals({ context: context() });
 
-    expect(region.period.submissionTotal).toBe(16);
-    expect(area.period.submissionTotal).toBe(8);
+    expect(region.period.submissionTotal).toBe(periodRecords(regionStoreIds).length);
+    expect(area.period.submissionTotal).toBe(periodRecords(areaStoreIds).length);
     expect(storeOnly.period.submissionTotal).toBe(4);
-    expect(all.period.submissionTotal).toBe(48);
+    expect(all.period.submissionTotal).toBe(periodRecords(allStoreIds).length);
   });
 });
 
 describe("Take Charge record query", () => {
+  it("uses the shared English-name fallback when TRTID is unavailable", async () => {
+    const record = takeCharge("EN-FALLBACK", "Submitted");
+    const repository = createMockEhsRepository(referenceDate, {
+      takeChargeRecords: [
+        { ...record, storeReference: { storeNameEn: mockStores[0].storeNameEn } },
+      ],
+    });
+    const result = await repository.getTakeChargeRecords({
+      context: {
+        ...context(),
+        store: { kind: "INCLUDE", values: [mockStores[0].trtid] },
+      },
+      viewMode: "ALL",
+      pageIndex: 0,
+      pageSize: 10,
+    });
+
+    expect(result.availability).toBe("AVAILABLE");
+    expect(result.items.map(({ tchId }) => tchId)).toEqual(["EN-FALLBACK"]);
+  });
+
   it("defaults are enforced by callers while OPEN_ONLY excludes CLOSED and UNKNOWN", async () => {
     const repository = createMockEhsRepository(referenceDate, {
       takeChargeRecords: [

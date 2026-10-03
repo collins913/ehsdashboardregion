@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
+import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
 import { DetailField } from "@/components/shared/detail-field";
@@ -57,6 +58,17 @@ import {
   queryDemoKpiActions,
   queryDemoKpiDetails,
 } from "./_fixtures/kpi-ui-fixture";
+
+const numericSortRows = [
+  { id: "numeric-2", label: "样例 2", value: 2 },
+  { id: "numeric-100", label: "样例 100", value: 100 },
+  { id: "numeric-missing", label: "缺失样例", value: null },
+  { id: "numeric-10", label: "样例 10", value: 10 },
+];
+const numericSortColumns: DataTableColumn<(typeof numericSortRows)[number]>[] = [
+  { id: "label", title: "名称", value: (row) => row.label, sizeRole: "primary" },
+  { id: "value", title: "数值", value: (row) => row.value === null ? "—" : String(row.value), sortValue: (row) => row.value, sizeRole: "compact" },
+];
 
 const tokenSamples = [
   { name: "background", className: "bg-background" },
@@ -166,6 +178,9 @@ function DetailSheetDemo() {
             </DetailAccordionItem>
             <DetailAccordionItem title="空证件类别" value="empty" count={0} disabled>
               <p className="text-sm text-muted-foreground">无记录</p>
+            </DetailAccordionItem>
+            <DetailAccordionItem title="带摘要的信息组" value="summary" summary={<span className="tabular-nums">3/5</span>}>
+              <p className="text-sm text-muted-foreground">摘要由调用方提供，展开内容沿用共享 Accordion。</p>
             </DetailAccordionItem>
           </DetailAccordion>
         </div>
@@ -493,6 +508,10 @@ export default function UiLabPage() {
             </p>
             <div className="mt-3 space-y-4">
               <ColumnSizingRolePreview />
+              <section aria-label="共享表格数值排序">
+                <h4 className="mb-2 text-sm font-medium">共享表格数值排序</h4>
+                <DataTable rows={numericSortRows} columns={numericSortColumns} emptyMessage="无样例数据" />
+              </section>
               <Button
                 variant="outline"
                 size="sm"

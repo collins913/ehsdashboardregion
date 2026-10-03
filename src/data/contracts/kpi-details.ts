@@ -21,6 +21,7 @@ export interface KpiDrillDetailRecord {
 }
 
 export interface KpiInspectionDetailRecord {
+  inspectionNumber: string;
   inspectionName: string;
   dueDate: IsoDate | null;
   inspector: string | null;

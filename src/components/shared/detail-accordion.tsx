@@ -27,6 +27,7 @@ export function DetailAccordion({
 export function DetailAccordionItem({
   value,
   title,
+  summary,
   count,
   disabled = false,
   attention = false,
@@ -35,6 +36,7 @@ export function DetailAccordionItem({
 }: {
   value: string;
   title: string;
+  summary?: ReactNode;
   count?: number;
   disabled?: boolean;
   attention?: boolean;
@@ -49,6 +51,7 @@ export function DetailAccordionItem({
             <span className="break-words group-hover:underline">{title}</span>
             {count !== undefined ? <Badge variant="secondary">{count}</Badge> : null}
           </span>
+          {summary}
           {attention ? (
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-destructive" />
           ) : null}

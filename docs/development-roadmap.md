@@ -1,11 +1,11 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-09-26
+- 更新日期：2026-10-02
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
 
-项目已完成基础架构及七个正式业务模块；Overview Demo 已有独立原型。Access Management V1 Demo：completed；Production Integration 为后续独立阶段。
+项目已完成基础架构及七个正式业务模块；Overview Data V1 与 Phase 2.5 Mock required-set provider 已接入正式 `/overview`。Training / Inspection 使用合成 Mock V1 集合验证规则；Production authoritative required-set source/config 仍待提供。Prototype 文件保留，但正式路由不依赖 Prototype 数据、评分或历史 fixture。Access Management V1 Demo：completed；Production Integration 为后续独立阶段。
 
 Environment Detail Expansion：completed。主表保持门店维度并提供五个详情入口；typed 环保证照、应急预案与废弃物合同明细已完成，设施信息及 Monitoring 新字段保持 TBD。
 
@@ -36,6 +36,7 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Certificates Overview / Requirement chart
 - Environment Analytics Metric Cards
 - Dashboard shared Analytics presentation reuse
+- Overview Data V1（正式 ScoreContribution 链路与 Server-side pooled aggregation）
 
 ## Architecture Hardening
 
@@ -51,17 +52,17 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 
 ## 后续开发顺序
 
-1. Overview readiness / 业务范围确认
-2. Overview V1
-3. ASTM KPI Drilldown（独立后续增强，不是 Overview 前置条件）
+1. 为 Production 提供 authoritative Training required item catalog 与 Inspection expected task set，并替换 Mock provider；Overview contract 与聚合不变。
+2. 生产历史若无法按月末 referenceDate 从可靠 Domain records 回算，再定义 snapshot；本阶段没有建立 snapshot。
+3. ASTM KPI Drilldown（独立后续增强，不是 Overview 前置条件）。
 
-依赖原则：Architecture Hardening、Performance V1、Environment V1 与 Certificates V1 已完成；Overview 组合既有 domain results，不复制业务规则。ASTM KPI Drilldown 复用现有 normalized Event Repository。Production Data Package Contract / Production Adapter 与帮助说明页面均留在 Overview 之后，不作为当前前置条件。
+依赖原则：Overview 只组合既有 Domain Results，不复制业务规则。Standard / Performance Mock 与正式 Overview 共用 Repository、Domain rules、contribution producer 和 aggregation。未定义 API 或 snapshot。ASTM KPI Drilldown 复用现有 normalized Event Repository。
 
 ## Performance & Scale Validation
 
 ### 当前：Standard Mock
 
-继续使用小型、人工可读、deterministic 的 Standard Mock，作为日常开发、UI 验收、单元测试和业务规则验证的默认数据集。
+继续使用包含 50 家门店、人工可读、deterministic 的 Standard Mock，作为日常开发、UI 验收、单元测试和业务规则验证的默认数据集。
 
 ### Performance V1
 

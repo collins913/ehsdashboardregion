@@ -1,12 +1,11 @@
 # Overview Demo V2
 
-This folder is an experimental and disposable Overview prototype.
+This file records the retained Overview prototype boundary. Formal `/overview` and guarded `/dev/overview` reuse presentation from `src/features/overview`; prepared Prototype calculations live under `src/data/prototype/overview`.
 
 - The current scoring model is a Demo assumption, not a formal business rule.
 - Demo fixtures are not a Production contract.
-- No formal feature may import from `overview-demo`.
-- A successful Demo must be migrated deliberately into formal architecture; do not simply rename this folder.
-- All Demo-only code in this folder and `src/data/mock/overview-demo` may be deleted together.
+- Prototype calculations and typed prepared data live under `src/data/prototype/overview`; fixtures stay under `src/data/mock/overview-demo`.
+- Formal UI does not import this feature folder or demo mock directly.
 - Region, Area and Store identity reuse the existing canonical Global Filter hierarchy.
 - Demo story templates are deterministically materialized onto the active canonical Store Master profile, including the 500-store performance profile.
 - Period mapping is prototype-only. The current Demo snapshot is fixed to Q2 2026 versus Q1 2026 and does not consume the Global Period selection.
@@ -25,5 +24,5 @@ This folder is an experimental and disposable Overview prototype.
 - Movement score-item point changes decompose the current Demo score only with comparable available-item denominators; no numeric contribution is claimed when completeness changes.
 - Child-scope change lists reuse existing score and delta results, show at most five declines and five improvements, and use stable scope IDs to break ties.
 - Recharts is used locally for the Attention Matrix, monthly Hero and Detail trends, lifecycle, dimension and issue-distribution charts. No shared chart system was added.
-- Demo fixture access is isolated behind `src/features/overview-demo/data/overview-demo-fixture-repository.ts`; formal Repository contracts are unchanged.
+- The former feature-local fixture repository now lives in the neutral prototype data layer; formal Repository contracts are unchanged.
 - Environment remains visible but is excluded from scoring until a formal scoring model exists.

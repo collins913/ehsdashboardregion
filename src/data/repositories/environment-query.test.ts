@@ -19,7 +19,7 @@ describe("Environment detail query", () => {
   it("creates deterministic source-like detail records for the existing Standard coverage", () => {
     expect(dataset.environmentRecords).toEqual(raw);
     expect(raw).toEqual(createEnvironmentMockRecords(dataset.stores));
-    expect(raw).toHaveLength(12);
+    expect(raw).toHaveLength(dataset.stores.length);
     expect(Object.keys(raw[0])).toEqual([
       "TRTID", "English Store Name", "环境影响评价", "排污许可", "排水许可", "环境预案", "监测", "废弃物合同",
     ]);

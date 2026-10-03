@@ -26,7 +26,7 @@ export interface CertificatesStoreRow {
   storeDisplayName: string;
   categories: readonly CertificateCategorySummary[];
 }
-export interface CertificatesQuery { context: EhsStoreScope }
+export interface CertificatesQuery { context: EhsStoreScope; referenceDate?: string }
 export type CertificatesQueryResult = DataSet<CertificatesStoreRow> & {
   unknownTypeRecords: readonly NormalizedCertificateRecord[];
 };

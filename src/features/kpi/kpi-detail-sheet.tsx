@@ -128,6 +128,9 @@ function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
     <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.inspectionName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <div className="col-span-2">
+            <Field label="检查编号" value={record.inspectionNumber} />
+          </div>
+          <div className="col-span-2">
             <Field label="检查人" value={record.inspector} />
           </div>
           <Field label="截止日期" value={record.dueDate === null ? null : formatBusinessDate(record.dueDate)} />

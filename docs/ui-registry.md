@@ -40,7 +40,7 @@
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | DetailHeader | Accessible Sheet title/subtitle and optional caller-provided result/status display; body content must not repeat header information or invent a result; used by KPI, Actions, Events, Take Charge, Certificates, Environment, Stores and Access Audit details |
 | DetailRecordCard | Neutral compact Card shell for one record in a collection; contract multiplicity, not the current result count, determines use. Used by Certificates, KPI Training/Drill/Inspection/ASTM and embedded Action collections, plus Environment waste-contract collections. Singleton contracts render without a Card; one record has at most one primary shell. |
-| DetailAccordion / DetailAccordionItem | Business-neutral shadcn Accordion presentation; caller supplies title, optional count, disabled state, attention dot and default-open values. Count Badge is neutral and excluded from title hover underline. Used by Certificates and Environment; feature choices such as default-open groups are not global behavior. |
+| DetailAccordion / DetailAccordionItem | Business-neutral shadcn Accordion presentation; caller supplies title, optional summary slot, count, disabled state, attention dot and default-open values. Count Badge is neutral and excluded from title hover underline. Used by Certificates, Environment and Overview score details; summary values and feature choices such as default-open groups are owned by callers. |
 | DetailField | Shared label/value spacing, typography and wrapping only; does not format dates, infer status or calculate business values. Used by KPI, Actions, Events, Take Charge, Stores and Environment detail fields |
 | PlaceholderPage | Prevents duplicated temporary-page layout |
 | GlobalFilters | One persistent shared compact filter bar; Select and Store Button share trigger presentation, while Store retains Popover + Command canonical multi-select |
@@ -59,7 +59,7 @@
 | AnimatedNumber | Interpolates already-computed display values in 325ms; respects `prefers-reduced-motion` |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
-| DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists; Features provide columns, rows and column size roles |
+| DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists and the Overview store score list; Features provide columns, rows and column size roles; optional numeric sortValue separates sorting from display and keeps missing numbers last |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
 | DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content with fixed-width footer feedback, semantic scope pending masks content and only unknown footer digits |
@@ -100,3 +100,10 @@
 | StoresPageContent | Connects shared canonical Store scope to the injected async Stores query; Period does not affect query readiness or identity |
 
 `src/hooks/use-mobile.ts` is an internal Sidebar dependency.
+
+### Overview feature presentation
+
+| Component | Responsibility |
+| --- | --- |
+| DimensionScoreAccordion | Reused by Overview dimension analysis and scope detail; renders prepared raw or per-store points and deltas through shared DetailAccordion. No score calculation. |
+| ScopeComparison | Complete scoped store score list using shared DataTable, TableCellTrigger and OverflowTooltip; shows score rate, rate delta, earned/total points and point delta, with shared text/numeric sorting and scope detail entry. |

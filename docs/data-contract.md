@@ -45,17 +45,18 @@ Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认�
 
 业务数据必须先解析到统一 Store，再进入规则计算。
 
-可用的候选匹配信息：
+所有业务源统一使用以下 source identity：
 
 - TRTID
-- Store Name CN
-- Store Name EN
+- English Store Name（optional fallback）
 
 约束：
 
-- TRTID 不保证是所有数据源的唯一关联键。
+- TRTID 是正式门店主标识；English Store Name 仅作可选 fallback。
+- 所有业务域统一通过同一个 Store Resolution：TRTID primary；TRTID 缺失或无法唯一解析时，English Store Name 精确唯一 fallback；明确冲突、重复命中或无法解析时不得静默选择。
+- Store Master 是当前快照；历史报表按当前组织归属解析。本阶段不引入 effectiveFrom / effectiveTo 或历史组织版本。
+- canonical `storeId` 由 Repository / normalization 生成，业务源不得提供。
 - 页面和业务组件不得自行按名称或 TRTID 匹配。
-- Events、Actions、Environment V1 与 Certificates V1 使用已确认的 TRTID 优先、Store English Name fallback 规则。TRTID 唯一匹配时，英文名无匹配视为可能的历史名称并接受 TRTID；英文名明确匹配另一门店时才判定冲突。其它数据源使用的字段、匹配优先级、名称规范化、重复命中与未命中处理：TBD。
 - Repository 输出给 KPI 组装层的记录必须使用规范化 `storeId`。页面不得消费源 Store Reference。
 
 ### 2.3 Data Availability
@@ -95,7 +96,13 @@ Source Reference 为可选结构，可包含：
 
 三个概念不得共用一个含义不明的 `Status` 字段。
 
-### 2.6 Async Query Boundary
+### 2.6 Null、Blank 与 Invalid
+
+blank / null 表示缺失；invalid date 保留为 invalid，不自动修正；缺少 required source column 属于 structural / data contract error。不得把 blank 转为 No、0、Normal 或 Achieved，也不得把 invalid date 替换为 today。required 状态按逐字段 contract 确认，本原则不把所有字段变成 required。Open-text 原文保留；闭合 enum 未知值沿现有 `UNKNOWN` / `INCOMPLETE` / Data Availability 语义处理，不映射为默认值。
+
+业务记录编号（如 Event ID、Action ID、TCH ID、Inspection Number）仅要求在各自业务域内唯一，不建立跨域全局编号。重复编号是数据质量问题；Repository 与 UI 保留全部源记录，不静默去重、合并或折叠。
+
+### 2.7 Async Query Boundary
 
 `EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment、Certificates 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
 
@@ -109,9 +116,9 @@ Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 
 |---|---|---|
 | Region | 门店所属 Region | 类型与字典 TBD |
 | Area | 门店所属 Area | 与 Region 关系 TBD |
-| Store Name CN | 门店中文名称 | 可能参与 Store Resolution |
+| Store Name CN | 门店中文名称 | 仅用于展示，不参与 Store Resolution |
 | Store Name EN | 门店英文名称 | 可能参与 Store Resolution |
-| TRTID | 内部门店标识 | 不称为 Store ID；跨源唯一性不保证 |
+| TRTID | 正式门店业务主标识 | 不是 canonical `storeId`；由统一 Store Resolution 解析 |
 | Region Owner / Email | 区域负责人姓名和邮箱 | 两者分别允许 null |
 | Area Owner / Email | 小区负责人姓名和邮箱 | 两者分别允许 null |
 | Manager | 门店经理 | 人员标识方式 TBD |
@@ -135,27 +142,18 @@ Create / Update / Delete Server Action 对运行时输入逐项解析：Email、
 
 ### 4.1 Training Record
 
-规则所需最小逻辑信息：
+Source grain：一行 = 门店 × Training Item × Month。
 
-- Store Reference
-- Month
-- Training Name
-- Completion Rate：数据源直接提供，Dashboard 不按人数计算
-- Incomplete People：数据源直接提供，Dashboard 不从人员记录推导
-- 是否属于当月要求完成的培训，或由数据源保证仅返回要求集合
-- 全员完成结果或足以得出该结果的数据
+Source fields：TRTID、English Store Name（optional fallback）、`trainingName`、`month`（`YYYY-MM`）、`completionRate`、`incompletePeople`。其中 `completionRate` 与 `incompletePeople` 是 source-provided；Dashboard 不按人数计算完成率，也不从人员明细重建未完成人员。
 
-以下尚未确认：
-
-- 具体 Source Status 值：TBD
-- Source Reference 是否提供：TBD
-- Requirement 集合的来源：TBD
+Source 不包含 `isRequired`、`isFullyCompleted` 或等价必修 / 全员完成标志。Required item set 不得由 `completionRate` 或人员列表推断。当前 Mock V1 使用集中 provider `src/data/mock/overview-required-sets.ts` 声明合成 item identity；Standard / Performance 共用。Production 必须以 authoritative Store × Month source/config 替换 provider；Overview / ScoreContribution contract 不依赖名单。运行时配置缺失时仍输出 0/1 `RULE_CONFIGURATION_MISSING`。Source coverage 单独表达。Store identity 使用通用 TRTID primary / English Store Name optional fallback。
 
 ### 4.2 Drill Record
 
 规则所需最小逻辑信息：
 
 - Store Reference
+- TRTID；English Store Name 为 optional fallback
 - Month
 - Drill Name
 - Source Status：开放文本，保留规范化后的源文案
@@ -167,6 +165,8 @@ Create / Update / Delete Server Action 对运行时输入逐项解析：Email、
 
 - 演练记录的唯一标识：TBD
 - Source Reference 是否提供：TBD
+
+Source grain：一行代表门店 × Drill Item × Month。当前无正式记录 ID；重复记录语义尚未作为 source ID 契约定义。
 
 ### 4.3 Action Closure Rate
 
@@ -192,23 +192,13 @@ Repository 必须返回与完整请求 Period 对应的单一源汇总值，或�
 
 ### 4.4 Inspection Record
 
-规则所需最小逻辑信息：
+Source grain：一行 = 一家门店 × 一个 Inspection Item × 一次具有 dueDate 的 Inspection record。
 
-- Store Reference
-- Month
-- Inspection Name
-- Due Date
-- Inspector
-- Source Status：开放文本，保留规范化后的源文案
-- 当前 Period 内要求完成的 Inspection
-- 缺失或空状态必须保留为 unavailable，不得视为未完成
+Source fields：`inspectionNumber`、TRTID、English Store Name（optional fallback）、`inspectionName`、`dueDate`（date-only `YYYY-MM-DD` 或 null）、`inspector`（string 或 null）、`status`（开放文本或 null）。Inspection source 不提供 `month`；Repository 使用严格校验后的 date-only `dueDate`，按 Asia/Shanghai 业务日派生月份并应用 Global Period。缺失或无效日期无法确定 Period membership，相关数据标记为 `INCOMPLETE`。`inspectionNumber` 由 source 提供，在 Inspection domain 内唯一；mock 使用确定性 `INP-XXXXX`。Production Dashboard 不生成编号。
 
-只有规范化后的 Source Status 精确等于 `已完成` 才视为完成；其它非空 Source Status 对 KPI 评价视为未完成。该字段不是闭合枚举。
+Source 不包含 `isRequired` 或等价必检标记。Dashboard 不根据实际记录推断必检资格。Status 为开放文本；保留原文，仅精确规范化为 `已完成` 才表示完成；status 可空。当前 Mock V1 使用集中 provider `src/data/mock/overview-required-sets.ts` 声明合成 expected task identity；Standard / Performance 共用。Production 必须以 authoritative Store × Month task source/config 替换 provider，并与 source record identity 对齐；Overview / ScoreContribution contract 不依赖任务名单。运行时配置缺失时仍输出 0/1 `RULE_CONFIGURATION_MISSING`。
 
-以下尚未确认：
-
-- Requirement 集合的来源：TBD
-- Source Reference 是否提供：TBD
+Mock V1 按该 expected set 评估月度 Overview contribution；KPI 页当前独立 Domain Result 不据此推导 requirement membership。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
 
 ### 4.5 ASTM Incident 输入
 
@@ -219,7 +209,7 @@ Repository 必须返回与完整请求 Period 对应的单一源汇总值，或�
 - Event Type
 - ASTMInjuryIllness
 
-`ASTMInjuryIllness = "Yes"` 表示 ASTM Incident，其它值表示非 ASTM Incident。
+`ASTMInjuryIllness` 是闭合 source enum：`Yes` 表示 ASTM Incident，`No` 表示非 ASTM Incident。未知值不得按 No 处理；对应 scoped data 标记 `INCOMPLETE`，ASTM KPI 不输出 occurrence 结论。
 
 ## 5. Performance → Goals 输入
 
@@ -233,13 +223,14 @@ Repository 向页面提供两组明确分离的结果：
 | 当前年度累计 | averageSubmissionsYtd | 当前组织范围的数据源 aggregate，1 位小数 |
 | 当前年度累计 | participationRateYtd | 当前组织范围的数据源 aggregate，0 位小数 |
 
-年度指标不携带 Global Period。多 Store、Area、Region 查询必须由数据源返回该范围 aggregate，不允许平均门店最终值。百分比统一使用 0–100。
+`averageSubmissionsYtd` 与 `participationRateYtd` 当前由 upstream 提供 aggregate，Dashboard 不从明细重新计算。年度指标不携带 Global Period。多 Store、Area、Region 查询必须由上游返回该范围 aggregate，不允许平均门店最终值。百分比统一使用 0–100。只有完整明细与正式 denominator 均定义后，才可评估迁移为 Dashboard-derived metric。
 
 ### 5.2 Take Charge Record
 
 Raw 公共字段：
 
 - TRTID
+- English Store Name（optional fallback）
 - TCH ID
 - Submitted By
 - Submitted At（当前源为 Asia/Shanghai 本地 `YYYY-MM-DDTHH:mm:ss`）
@@ -247,7 +238,7 @@ Raw 公共字段：
 - Status
 - Source Reference（可选）
 
-Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalized record 中输出带 offset 的 datetime。Normalized record 同时输出 canonical `storeId`、当前中文门店名、上述公共字段、raw Status、RecordState 与受字段定义控制的 `extraFields`。Take Charge 当前只通过 TRTID 解析门店；页面不读取 TRTID。
+Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalized record 中输出带 offset 的 datetime。Normalized record 同时输出 canonical `storeId`、当前中文门店名、上述公共字段、raw Status、RecordState 与受字段定义控制的 `extraFields`。Take Charge 与其它业务域统一使用 TRTID primary / English Store Name optional fallback；页面不读取源门店标识。
 
 可扩展字段只允许 `string | number | boolean | date | datetime | null`；必须先有稳定 key、中文 label、value type 与默认隐藏定义。动态字段不得覆盖核心字段，UI 不得枚举 raw object。
 
@@ -259,7 +250,7 @@ Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalize
 
 查询输入为 `EhsFilterContext + OPEN_ONLY | ALL + sorting + pageIndex + pageSize`；Repository 输出当前页 records、`totalCount`、DataAvailability 与 field definitions。Repository 对完整 scoped result 先应用 view mode 与排序，再分页；动态扩展字段 V1 不参与排序。
 
-今年平均提交数、今年参与率的生产源字段及人员分母定义仍由数据源契约确认；V1 mock 只通过隔离的 deterministic aggregate fixture 表达，不把 mock 公式固化为生产规则。
+年度 aggregate 的物理字段名由上游接口决定，mock fixture 不是生产 schema，也不得作为 Excel 原始记录列。参与率 denominator 未由本次确认给出；本轮不从明细推导。
 
 ## 6. Risk & Compliance → Event Record
 
@@ -267,15 +258,15 @@ Adapter 将 Source Submitted At 明确解释为 Asia/Shanghai，并在 normalize
 
 | 逻辑字段 | 要求 |
 |---|---|
-| Event ID | 数据源提供；唯一性范围 TBD |
-| Store Reference | 必须先通过 Store Resolution |
-| Event Type | 数据源提供 string；当前已知 `Agency`、`Non-Agency Event`，允许未来新增值 |
+| Event ID | 数据源提供；Event domain 内唯一；重复编号属于 data-quality issue，查询全量保留 |
+| Store Reference | TRTID primary，English Store Name optional fallback；统一通过 Store Resolution |
+| Event Type | 数据源提供开放 string；原文保留，允许未来新增值 |
 | Submitted By | 数据源提供；人员标识方式 TBD |
 | Event Date | 数据源提供的完整 datetime；Events Global Period 使用此字段 |
 | EventDetail.Description | 数据源提供的完整事件描述 |
 | Status | 数据源原始状态；V1 已确认 `Open`、`Closed` |
 | Source Reference | 可选追溯来源 |
-| ASTMInjuryIllness | 数据源原始字段；`Yes` 表示 ASTM Incident，其它值表示非 ASTM Incident |
+| ASTMInjuryIllness | 闭合 enum：`Yes` / `No`；未知值导致 scoped coverage `INCOMPLETE`，不得按 `No` 处理 |
 
 `Event Date` / `eventDate` 是稳定的 source / contract 字段命名；用户可见术语统一为 `Event Time` / “事件时间”。
 
@@ -293,8 +284,8 @@ Events Analytics 使用独立的 context-only Repository query，不接收 Event
 
 | 逻辑字段 | 要求 |
 |---|---|
-| Action ID | 数据源提供；唯一性范围 TBD |
-| Store Reference | 原始 Action 可同时提供 TRTID 与 Store English Name；必须先通过 Store Resolution |
+| Action ID | 数据源提供；Action domain 内唯一；重复编号属于 data-quality issue，查询全量保留 |
+| Store Reference | TRTID primary，English Store Name optional fallback；统一通过 Store Resolution |
 | Problem | 数据源提供 |
 | Action | 数据源提供；代码字段为 `action` |
 | Submitted By | 数据源提供；人员标识方式 TBD |
@@ -328,7 +319,7 @@ Actions Analytics 使用独立的 context-only Repository query，不接收表�
 
 ### 8.1 Raw Source
 
-仅七字段：TRTID、English Store Name、Certificate Type、Expiry Date、Person、Person Email、Business Title。Expiry Date 为 date-only 源字符串或 null，允许保留无效字符串用于异常原因。无中文门店名、源 Category、证号、发证日期、Source Reference 或 Required Slot。
+仅七字段：TRTID、可选 English Store Name、Certificate Type、Expiry Date、Person、Person Email、Business Title。一行一张证件；当前没有 source record ID，重复记录全部保留，不擅自去重。Expiry Date 为 date-only 源字符串或 null，允许保留无效字符串用于异常原因。无中文门店名、源 Category、证号、发证日期、Source Reference、Valid From 或 Required Slot。
 
 ### 8.2 Normalized contract
 
@@ -354,7 +345,7 @@ Detail Header：中文门店、类别、类别状态。按当前 records 的实�
 
 ### 9.0 Environment Detail 契约
 
-Raw Source 顶层保留：`TRTID`、`English Store Name`、`环境影响评价`、`排污许可`、`排水许可`、`环境预案`、`监测`、`废弃物合同`。Raw 不保存中文门店名或业务结果；自由文本字段不限制为状态枚举。
+Raw Source 顶层保留：`TRTID`、可选 `English Store Name`、`环境影响评价`、`排污许可`、`排水许可`、`环境预案`、`监测`、`废弃物合同`。Raw 不保存中文门店名或业务结果；自由文本字段不限制为状态枚举。
 
 - 环境影响评价：评价自由文本；总量要求含气-颗粒物、气-VOCs、水-氨氮、水-总氮、水-总磷、水-CODcr，均为 nullable 数值，单位吨/年。
 - 排污许可：许可自由文本、执行报告、编号、有效期起止、产能、涂料批复用量、备注。产能与涂料批复用量保留 source-like typed value，不预设单位。
@@ -451,3 +442,54 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 字段命名、枚举编码和错误返回结构：TBD。
 
 KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
+
+## 11. Overview ScoreContribution
+
+Overview 的 scoring 输入是领域规则完成评价后的 `ScoreContribution`，不是 raw record、UI 状态或 Prototype outcome。最小逻辑类型草案：
+
+```ts
+type ScoreContributionOutcome = "ACHIEVED" | "NOT_ACHIEVED";
+
+type ScoreContributionReason =
+  | "ACHIEVED"
+  | "RULE_NOT_MET"
+  | "SOURCE_MISSING"
+  | "SOURCE_INVALID"
+  | "SOURCE_INCOMPLETE"
+  | "NOT_APPLICABLE"
+  | "RULE_CONFIGURATION_MISSING";
+
+interface ScoreContribution {
+  metricId: OverviewMetricId;
+  dimensionId: "PERFORMANCE" | "TAKE_CHARGE" | "CERTIFICATES" | "ENVIRONMENT";
+  storeId: StoreId;
+  month: Month;
+  referenceDate: IsoDate;
+  earnedPoints: 0 | 1;
+  availablePoints: 1;
+  outcome: ScoreContributionOutcome;
+  reason: ScoreContributionReason;
+}
+
+type OverviewMetricId =
+  | "TRAINING"
+  | "DRILL"
+  | "ACTION_CLOSURE_RATE"
+  | "INSPECTION"
+  | "ASTM_INCIDENT"
+  | "TAKE_CHARGE_CLOSE_RATE"
+  | "AVERAGE_SUBMISSIONS_YTD"
+  | "PARTICIPATION_RATE_YTD"
+  | "CERTIFICATE_SAFETY_HEALTH"
+  | "CERTIFICATE_FIRST_AID"
+  | "CERTIFICATE_SPECIAL_WORK"
+  | "CERTIFICATE_SAFE_DRIVING";
+```
+
+Runtime types live in `src/data/contracts/overview.ts`. The repository returns scoped canonical Stores, supported months, and domain-produced contributions. The server query authorizes scope, reads this result, and passes it to Overview preparation; the browser receives only the prepared `OverviewResult`.
+
+V1 invariant: all 12 catalog metrics apply to every Store and produce one row per Store × Month; each has `availablePoints = 1`, and `earnedPoints` is exactly `1` for `ACHIEVED` or `0` for `NOT_ACHIEVED`. Every Store therefore has 12 available points per month. N/A, missing, invalid and incomplete source results remain rows with their diagnostic reason; no Store or metric is removed from the denominator. `referenceDate` is the month-end business date used for as-of rules. Contribution reason is prepared by the domain/repository boundary, never inferred by Overview UI from raw data.
+
+Metric catalog and achievement mapping are owned by `metric-rules.md`; this contract does not define a generic rule engine. A future metric adds its own domain result and contribution producer, then registers its `metricId` / `dimensionId`. A future approved weight changes the contribution point values consistently for every Store and month; pooled aggregation remains unchanged. Environment can later add a domain result and contribution under `ENVIRONMENT` without changing aggregation. Environment is excluded from the V1 metric catalog.
+
+Historical data from 2026-01 through the current business month produces one contribution for each Store × Metric × Month, including source-missing months. Prior supported months use month-end `referenceDate`; the current month uses the injected current business date. Recompute from reliable historical domain records using that reference date where possible; otherwise use a future production snapshot. Snapshot schema and implementation remain out of scope.

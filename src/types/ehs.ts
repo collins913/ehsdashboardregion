@@ -7,6 +7,7 @@ export type Month = `${number}-${number}`;
 export type StoreId = string;
 
 export type EnvironmentSourceValue = "有" | "无" | "不适用";
+export type AstmInjuryIllnessSourceValue = "Yes" | "No";
 
 export interface RawEnvironmentImpactAssessment {
   环境影响评价: string | null;
@@ -58,7 +59,7 @@ export interface RawEnvironmentWasteContract {
 
 export interface RawEnvironmentRecord {
   TRTID: string;
-  "English Store Name": string;
+  "English Store Name"?: string | null;
   环境影响评价: RawEnvironmentImpactAssessment;
   排污许可: RawEnvironmentDischargePermit;
   排水许可: RawEnvironmentDrainagePermit;
@@ -71,8 +72,7 @@ export interface RawEnvironmentRecord {
 }
 
 export type StoreReference =
-  | { trtid: string; storeNameEn?: string }
-  | { storeNameCn: string }
+  | { trtid: string; storeNameEn?: string | null }
   | { storeNameEn: string };
 
 export interface SourceReference {
@@ -103,8 +103,6 @@ export interface TrainingRecord {
   trainingName: string;
   completionRate: number | null;
   incompletePeople: readonly string[] | null;
-  isRequired: boolean;
-  isFullyCompleted: boolean;
   sourceReference?: SourceReference | null;
 }
 
@@ -117,12 +115,11 @@ export interface DrillRecord {
 }
 
 export interface InspectionRecord {
+  inspectionNumber: string;
   storeReference: StoreReference;
-  month: Month;
   inspectionName: string;
   dueDate: IsoDate | null;
   inspector: string | null;
-  isRequired: boolean;
   status: string | null;
   sourceReference?: SourceReference | null;
 }
@@ -136,7 +133,7 @@ export interface ActionClosureRateRecord {
 }
 
 export interface TakeChargeRecord {
-  storeReference: { trtid: string };
+  storeReference: StoreReference;
   tchId: string;
   submittedBy: string;
   submittedAt: IsoDateTime;
@@ -160,7 +157,7 @@ export interface EventRecord {
   eventDate: IsoDateTime;
   EventDetail: EventDetail;
   Status: string;
-  ASTMInjuryIllness: string;
+  ASTMInjuryIllness: AstmInjuryIllnessSourceValue;
   sourceReference?: SourceReference | null;
 }
 
@@ -205,7 +202,7 @@ export type DefaultCertificateCategory =
 
 export interface RawCertificateRecord {
   TRTID: string;
-  "English Store Name": string;
+  "English Store Name"?: string | null;
   "Certificate Type": string;
   "Expiry Date": string | null;
   Person: string;

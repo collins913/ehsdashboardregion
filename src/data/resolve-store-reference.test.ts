@@ -33,6 +33,24 @@ describe("Store Reference Resolution", () => {
     });
   });
 
+  it("treats blank identity values as missing and falls back by English name", () => {
+    const result = resolveStoreReference(
+      { trtid: "   ", storeNameEn: mockStores[1].storeNameEn },
+      mockStores,
+    );
+
+    expect(result).toMatchObject({
+      kind: "RESOLVED",
+      store: { trtid: mockStores[1].trtid },
+    });
+  });
+
+  it("does not resolve a blank English name as a Store", () => {
+    expect(
+      resolveStoreReference({ trtid: "MISSING", storeNameEn: "  " }, mockStores),
+    ).toEqual({ kind: "UNRESOLVED" });
+  });
+
   it("keeps a unique TRTID resolved when the raw English name is historical", () => {
     const renamedStore = {
       ...mockStores[0],
@@ -72,7 +90,6 @@ describe("Store Reference Resolution", () => {
     const references = [
       { trtid: mockStores[0].trtid },
       { trtid: "MISSING", storeNameEn: mockStores[1].storeNameEn },
-      { storeNameCn: mockStores[2].storeNameCn },
       { storeNameEn: "Missing Store" },
       { trtid: mockStores[0].trtid, storeNameEn: mockStores[1].storeNameEn },
     ] as const;

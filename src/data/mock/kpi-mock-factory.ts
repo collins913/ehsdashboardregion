@@ -71,7 +71,7 @@ export function createKpiMockData(referenceDate: Date) {
     takeChargeRecords: createMockTakeChargeRecords(supportedMonths),
     takeChargeAnnualAggregateFixtures:
       createMockTakeChargeAnnualAggregateFixtures(
-        Number(supportedMonths[0].slice(0, 4)),
+        supportedMonths,
       ),
     takeChargeFieldDefinitions: mockTakeChargeFieldDefinitions,
   } as const satisfies MockDataset;

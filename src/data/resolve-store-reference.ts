@@ -36,20 +36,26 @@ export function createStoreReferenceResolver(
 ): StoreReferenceResolver {
   const storesByTrtid = new Map<string, StoreMasterData[]>();
   const storesByEnglishName = new Map<string, StoreMasterData[]>();
-  const storesByChineseName = new Map<string, StoreMasterData[]>();
 
   for (const store of stores) {
     addCandidate(storesByTrtid, store.trtid, store);
     addCandidate(storesByEnglishName, store.storeNameEn, store);
-    addCandidate(storesByChineseName, store.storeNameCn, store);
   }
 
   return (reference) => {
-    const storeNameEn =
+    const rawStoreNameEn =
       "storeNameEn" in reference ? reference.storeNameEn : undefined;
+    const storeNameEn =
+      typeof rawStoreNameEn === "string" && rawStoreNameEn.trim() !== ""
+        ? rawStoreNameEn
+        : undefined;
+    const trtid =
+      "trtid" in reference && reference.trtid.trim() !== ""
+        ? reference.trtid
+        : undefined;
 
-    if ("trtid" in reference) {
-      const trtidStore = uniqueStore(storesByTrtid, reference.trtid);
+    if (trtid !== undefined) {
+      const trtidStore = uniqueStore(storesByTrtid, trtid);
 
       if (trtidStore !== null) {
         if (storeNameEn === undefined) {
@@ -66,17 +72,6 @@ export function createStoreReferenceResolver(
           englishNameMatches[0].trtid === trtidStore.trtid
           ? { kind: "RESOLVED", store: trtidStore }
           : { kind: "CONFLICT" };
-      }
-    }
-
-    if ("storeNameCn" in reference) {
-      const chineseNameStore = uniqueStore(
-        storesByChineseName,
-        reference.storeNameCn,
-      );
-
-      if (chineseNameStore !== null) {
-        return { kind: "RESOLVED", store: chineseNameStore };
       }
     }
 

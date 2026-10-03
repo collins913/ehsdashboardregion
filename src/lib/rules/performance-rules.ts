@@ -1,6 +1,5 @@
 import type { PerformanceResult } from "./result-types";
 
-type CompletionState = boolean;
 type SourceCompletionState = boolean | null;
 
 export function sourceStatusCompletion(status: string | null): SourceCompletionState {
@@ -11,18 +10,6 @@ export function sourceStatusCompletion(status: string | null): SourceCompletionS
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-export function evaluateTrainingPerformance(
-  requiredTrainingCompletion: readonly CompletionState[] | null,
-): PerformanceResult {
-  if (requiredTrainingCompletion === null) {
-    return "UNDETERMINED";
-  }
-
-  return requiredTrainingCompletion.every(Boolean)
-    ? "ACHIEVED"
-    : "NOT_ACHIEVED";
 }
 
 export interface DrillMonthInput {
@@ -72,37 +59,6 @@ export function evaluateActionClosureRate(
   }
 
   return input.value >= ACTION_CLOSURE_RATE_TARGET
-    ? "ACHIEVED"
-    : "NOT_ACHIEVED";
-}
-
-export interface InspectionMonthInput {
-  requiredInspectionCompletion: readonly SourceCompletionState[];
-}
-
-export function evaluateInspectionPerformance(
-  includedMonths: readonly InspectionMonthInput[] | null,
-): PerformanceResult {
-  if (
-    includedMonths === null ||
-    includedMonths.length === 0
-  ) {
-    return "UNDETERMINED";
-  }
-
-  if (
-    includedMonths.some(({ requiredInspectionCompletion }) =>
-      requiredInspectionCompletion.includes(null),
-    )
-  ) {
-    return "UNDETERMINED";
-  }
-
-  return includedMonths.every(
-    ({ requiredInspectionCompletion }) =>
-      requiredInspectionCompletion.length > 0 &&
-      requiredInspectionCompletion.every(Boolean),
-  )
     ? "ACHIEVED"
     : "NOT_ACHIEVED";
 }

@@ -349,6 +349,17 @@ Important:
 
 Any non-empty source Status not equal to the three confirmed Closed values is considered Open. Missing or blank values remain Unknown.
 
+---
+
+# 9. ASTM Source Enum
+
+`ASTMInjuryIllness` accepts exactly:
+
+- `Yes` — ASTM Incident
+- `No` — not an ASTM Incident
+
+Unknown values are not treated as `No`; the scoped Events source is marked `INCOMPLETE`, and the ASTM KPI must not return an occurrence conclusion from incomplete coverage. The original source value remains available for diagnosis.
+
 This mapping is used only for Take Charge record lifecycle and drill-down filtering.
 
 Take Charge Close Rate is calculated from normalized Take Charge record counts using the confirmed terminal-status mapping.

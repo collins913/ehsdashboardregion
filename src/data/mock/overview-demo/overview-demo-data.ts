@@ -1,16 +1,16 @@
 import type {
-  OverviewDemoOperationalFacts,
-  OverviewDemoOutcome,
-  OverviewDemoScoredItemId,
-  OverviewDemoStoreSnapshot,
-} from "@/features/overview-demo/model/overview-demo-types";
-import { overviewDemoScoredItems } from "@/features/overview-demo/model/overview-demo-score";
+  PrototypeOverviewOperationalFacts,
+  PrototypeOverviewOutcome,
+  PrototypeOverviewScoredItemId,
+  PrototypeOverviewStoreSnapshot,
+} from "@/data/prototype/overview/model/prototype-overview-types";
+import { prototypeOverviewScoredItems } from "@/data/prototype/overview/model/prototype-overview-score";
 
-export const overviewDemoScoreRuleVersion = "overview-demo-v2";
-export const overviewDemoCurrentPeriodLabel = "Q2 2026";
-export const overviewDemoPreviousPeriodLabel = "Q1 2026";
+export const prototypeOverviewScoreRuleVersion = "prototype-overview-v2";
+export const prototypeOverviewCurrentPeriodLabel = "Q2 2026";
+export const prototypeOverviewPreviousPeriodLabel = "Q1 2026";
 
-export const overviewDemoAreaScenarioIndex: Readonly<Record<string, number>> = {
+export const prototypeOverviewAreaScenarioIndex: Readonly<Record<string, number>> = {
   北辰一部: 0,
   北辰二部: 1,
   南屿一部: 2,
@@ -19,35 +19,35 @@ export const overviewDemoAreaScenarioIndex: Readonly<Record<string, number>> = {
   西岭二部: 5,
 };
 
-export function createOverviewDemoOutcomes(
-  failed: readonly OverviewDemoScoredItemId[],
-  missing: readonly OverviewDemoScoredItemId[] = [],
-): Readonly<Record<OverviewDemoScoredItemId, OverviewDemoOutcome>> {
+export function createPrototypeOverviewOutcomes(
+  failed: readonly PrototypeOverviewScoredItemId[],
+  missing: readonly PrototypeOverviewScoredItemId[] = [],
+): Readonly<Record<PrototypeOverviewScoredItemId, PrototypeOverviewOutcome>> {
   const failedSet = new Set(failed);
   const missingSet = new Set(missing);
 
   return Object.fromEntries(
-    overviewDemoScoredItems.map(({ id }) => [
+    prototypeOverviewScoredItems.map(({ id }) => [
       id,
       missingSet.has(id) ? "MISSING" : failedSet.has(id) ? "FAIL" : "PASS",
     ]),
-  ) as Record<OverviewDemoScoredItemId, OverviewDemoOutcome>;
+  ) as Record<PrototypeOverviewScoredItemId, PrototypeOverviewOutcome>;
 }
 
 function store(
   storeId: string,
-  failed: readonly OverviewDemoScoredItemId[],
-  operationalFacts: OverviewDemoOperationalFacts,
-  missing: readonly OverviewDemoScoredItemId[] = [],
-): OverviewDemoStoreSnapshot {
+  failed: readonly PrototypeOverviewScoredItemId[],
+  operationalFacts: PrototypeOverviewOperationalFacts,
+  missing: readonly PrototypeOverviewScoredItemId[] = [],
+): PrototypeOverviewStoreSnapshot {
   return {
     storeId,
-    outcomes: createOverviewDemoOutcomes(failed, missing),
+    outcomes: createPrototypeOverviewOutcomes(failed, missing),
     operationalFacts,
   };
 }
 
-export const overviewDemoCurrentStores = [
+export const prototypeOverviewCurrentStores = [
   store("TEST-001", ["certificateSpecialWork"], { openActions: 1, openEvents: 0, submissionTotal: 18 }),
   store("TEST-002", ["events", "certificateSafeDriving"], { openActions: 2, openEvents: 1, submissionTotal: 15 }),
   store("TEST-003", ["training", "participationRateYtd", "certificateSafeDriving"], { openActions: 3, openEvents: 0, submissionTotal: 11 }),
@@ -60,4 +60,4 @@ export const overviewDemoCurrentStores = [
   store("TEST-010", ["actions", "events", "participationRateYtd", "certificateFirstAid"], { openActions: 6, openEvents: 2, submissionTotal: 10 }),
   store("TEST-011", ["actions", "certificateSafeDriving"], { openActions: 4, openEvents: 0, submissionTotal: 16 }),
   store("TEST-012", ["drill"], { openActions: 1, openEvents: 0, submissionTotal: 19 }),
-] as const satisfies readonly OverviewDemoStoreSnapshot[];
+] as const satisfies readonly PrototypeOverviewStoreSnapshot[];

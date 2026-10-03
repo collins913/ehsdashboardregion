@@ -1,4 +1,4 @@
-import type { MockTakeChargeAnnualAggregateFixture } from "@/data/mock/take-charge";
+import { createMockTakeChargeAnnualAggregateFixturesForStores } from "@/data/mock/take-charge";
 import { periodForMode } from "@/data/contracts/kpi-period";
 import { createMockAggregateScopes } from "@/data/mock/kpi-mock-factory";
 import type { MockDataset } from "@/data/mock/mock-dataset";
@@ -7,17 +7,17 @@ import { createEnvironmentMockRecords } from "@/data/mock/environment-v1";
 import { createMockCertificateRecords } from "@/data/mock/certificates";
 import { mockPersonAt } from "@/data/mock/people";
 import { mockStores } from "@/data/mock/stores";
+import { createMockInspectionRecordsForStores } from "@/data/mock/inspections";
+import { createMockTrainingRecordsForStores } from "@/data/mock/training";
 import type {
   ActionClosureRateRecord,
   DrillRecord,
   EventRecord,
-  InspectionRecord,
   IsoDateTime,
   Month,
   RawActionRecord,
   StoreMasterData,
   TakeChargeRecord,
-  TrainingRecord,
 } from "@/types/ehs";
 
 export const PERFORMANCE_STORE_COUNT = 500;
@@ -225,24 +225,6 @@ function performanceTakeCharge(
   });
 }
 
-function performanceTraining(
-  stores: readonly StoreMasterData[],
-  months: readonly [Month, ...Month[]],
-): readonly TrainingRecord[] {
-  return stores.flatMap((store, storeIndex) =>
-    months.map((month, monthIndex) => ({
-      storeReference: { trtid: store.trtid },
-      month,
-      trainingName: `月度必修培训 ${monthIndex + 1}`,
-      completionRate: (storeIndex + monthIndex) % 11 === 0 ? 82 : 100,
-      incompletePeople:
-        (storeIndex + monthIndex) % 11 === 0 ? [mockPersonAt(storeIndex)] : [],
-      isRequired: true,
-      isFullyCompleted: (storeIndex + monthIndex) % 11 !== 0,
-    })),
-  );
-}
-
 function performanceDrills(
   stores: readonly StoreMasterData[],
   months: readonly [Month, ...Month[]],
@@ -253,23 +235,6 @@ function performanceDrills(
       month,
       drillName: `月度应急演练 ${monthIndex + 1}`,
       status: (storeIndex + monthIndex) % 13 === 0 ? "未完成" : "已完成",
-    })),
-  );
-}
-
-function performanceInspections(
-  stores: readonly StoreMasterData[],
-  months: readonly [Month, ...Month[]],
-): readonly InspectionRecord[] {
-  return stores.flatMap((store, storeIndex) =>
-    months.map((month, monthIndex) => ({
-      storeReference: { trtid: store.trtid },
-      month,
-      inspectionName: `月度安全检查 ${monthIndex + 1}`,
-      dueDate: `${month}-20`,
-      inspector: mockPersonAt(storeIndex + monthIndex + 1),
-      isRequired: true,
-      status: (storeIndex + monthIndex) % 17 === 0 ? "未完成" : "已完成",
     })),
   );
 }
@@ -292,20 +257,6 @@ function performanceActionClosureRates(
   );
 }
 
-function performanceAnnualAggregateFixtures(
-  stores: readonly StoreMasterData[],
-  year: number,
-): readonly MockTakeChargeAnnualAggregateFixture[] {
-  return stores.map((store, index) => ({
-    storeId: store.trtid,
-    year,
-    submissionsNumerator: 30 + (index % 25),
-    submissionsDenominator: 8 + (index % 4),
-    participationNumerator: 5 + (index % 6),
-    participationDenominator: 12,
-  }));
-}
-
 export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
   const supportedPeriod = periodForMode("THIS_YEAR", referenceDate);
   const supportedMonths = supportedPeriod.includedMonths;
@@ -321,9 +272,9 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
       supportedPeriod,
       actionAggregateScopes,
     ),
-    trainingRecords: performanceTraining(stores, supportedMonths),
+    trainingRecords: createMockTrainingRecordsForStores(stores, supportedMonths),
     drillRecords: performanceDrills(stores, supportedMonths),
-    inspectionRecords: performanceInspections(stores, supportedMonths),
+    inspectionRecords: createMockInspectionRecordsForStores(stores, supportedMonths),
     actionClosureRates: performanceActionClosureRates(
       stores,
       actionAggregateScopes,
@@ -333,9 +284,9 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
     environmentRecords: createEnvironmentMockRecords(stores, stores.length),
     certificateRecords: createMockCertificateRecords(stores, referenceDate),
     takeChargeRecords: performanceTakeCharge(stores, supportedMonths),
-    takeChargeAnnualAggregateFixtures: performanceAnnualAggregateFixtures(
+    takeChargeAnnualAggregateFixtures: createMockTakeChargeAnnualAggregateFixturesForStores(
       stores,
-      Number(supportedMonths[0].slice(0, 4)),
+      supportedMonths,
     ),
     takeChargeFieldDefinitions: [],
   };

@@ -1,5 +1,6 @@
-import { PlaceholderPage } from "@/components/shared/placeholder-page";
+import { OverviewPage as OverviewFeaturePage } from "@/features/overview/overview-page";
+import { queryOverview } from "@/data/server/ehs-query-actions";
 
 export default function OverviewPage() {
-  return <PlaceholderPage />;
+  return <OverviewFeaturePage queryOverview={queryOverview} />;
 }

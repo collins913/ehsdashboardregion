@@ -8,6 +8,7 @@ import {
 } from "@/data/mock/performance";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { prepareOverviewResult } from "@/features/overview/prepare-overview-result";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 const sampleCount = 10;
@@ -106,6 +107,22 @@ describe("Performance V1 baseline", () => {
       };
       const kpiSnapshot = await repository.getKpiData(broadContext);
       buildKpiRows(broadContext, kpiSnapshot);
+      const overviewScope = {
+        region: broadContext.region,
+        area: broadContext.area,
+        store: broadContext.store,
+      };
+      const overviewData = await repository.getOverviewScoreData({ scope: overviewScope });
+      const overviewViewModel = prepareOverviewResult({
+        stores: overviewData.attentionStores,
+        selectedStores: overviewData.stores,
+        attentionStores: overviewData.attentionStores,
+        contributions: overviewData.contributions,
+        context: broadContext,
+        requestedScope: overviewScope,
+        availableMonths: overviewData.months,
+        sourceAvailability: overviewData.availability,
+      });
       const timings = [
         coldConstruction,
         coldRepositoryPreparation,
@@ -177,20 +194,52 @@ describe("Performance V1 baseline", () => {
           const snapshot = await repository.getKpiData(broadContext);
           buildKpiRows(broadContext, snapshot);
         }),
+        await measureAsync("Overview source + contribution pipeline", () =>
+          repository.getOverviewScoreData({ scope: overviewScope }),
+        ),
+        await measureAsync("Overview aggregation + view model", async () =>
+          prepareOverviewResult({
+            stores: overviewData.attentionStores,
+            selectedStores: overviewData.stores,
+            attentionStores: overviewData.attentionStores,
+            contributions: overviewData.contributions,
+            context: broadContext,
+            requestedScope: overviewScope,
+            availableMonths: overviewData.months,
+            sourceAvailability: overviewData.availability,
+          }),
+        ),
       ];
       const kpiRows = buildKpiRows(broadContext, kpiSnapshot);
       const kpiPayloadBytes = Buffer.byteLength(JSON.stringify(kpiRows));
+      const overviewPayloadBytes = Buffer.byteLength(JSON.stringify(overviewData));
+      const overviewViewModelBytes = Buffer.byteLength(JSON.stringify(overviewViewModel));
 
       console.log("\nDataset:");
       console.log(`Stores: ${dataset.stores.length}`);
       console.log(`Actions: ${dataset.actionRecords.length}`);
       console.log(`Events: ${dataset.eventRecords.length}`);
+      console.log(`Training records: ${dataset.trainingRecords.length}`);
+      console.log(`Inspection records: ${dataset.inspectionRecords.length}`);
       console.log(`Take Charge: ${dataset.takeChargeRecords.length}\n`);
       console.log(`KPI rows: ${kpiRows.length}`);
       console.log(`KPI serialized payload: ${kpiPayloadBytes} bytes\n`);
+      console.log(`Overview months: ${overviewData.months.length}`);
+      console.log(`Overview contributions: ${overviewData.contributions.length}`);
+      console.log(`Overview serialized source payload: ${overviewPayloadBytes} bytes\n`);
+      console.log(`Overview serialized prepared result: ${overviewViewModelBytes} bytes\n`);
       timings.forEach(printTiming);
 
       expect(dataset.stores).toHaveLength(500);
+      expect(overviewData.contributions).toHaveLength(dataset.stores.length * dataset.supportedMonths.length * 12);
+      const denominatorByStoreMonth = new Map<string, number>();
+      for (const row of overviewData.contributions) {
+        const key = `${row.storeId}\u0000${row.month}`;
+        denominatorByStoreMonth.set(key, (denominatorByStoreMonth.get(key) ?? 0) + row.availablePoints);
+      }
+      for (const store of overviewData.stores) for (const month of overviewData.months) {
+        expect(denominatorByStoreMonth.get(`${store.storeId}\u0000${month}`)).toBe(12);
+      }
       expect(timings.every((timing) => Number.isFinite(timing.median))).toBe(true);
     },
     120_000,

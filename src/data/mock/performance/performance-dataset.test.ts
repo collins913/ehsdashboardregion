@@ -40,6 +40,10 @@ function spotIds(dataset: ReturnType<typeof createPerformanceMockDataset>) {
       dataset.takeChargeRecords[middleTakeCharge].tchId,
       dataset.takeChargeRecords.at(-1)?.tchId,
     ],
+    inspections: [
+      dataset.inspectionRecords[0]?.inspectionNumber,
+      dataset.inspectionRecords.at(-1)?.inspectionNumber,
+    ],
   };
 }
 
@@ -62,9 +66,20 @@ describe("performance mock dataset", () => {
 
     expect(spotIds(first)).toEqual(spotIds(second));
     expect(first.environmentRecords).toEqual(second.environmentRecords);
+    expect(first.inspectionRecords).toEqual(second.inspectionRecords);
     expect(getPerformanceMockDataset(referenceDate)).toBe(
       getPerformanceMockDataset(referenceDate),
     );
+  });
+
+  it("uses deterministic unique Inspection numbers in the Standard dataset", () => {
+    const dataset = createKpiMockData(referenceDate);
+    const ids = dataset.inspectionRecords.map(({ inspectionNumber }) => inspectionNumber);
+
+    expect(dataset.inspectionRecords.every((record) => !("month" in record))).toBe(true);
+    expect(ids.every((id) => /^INP-\d{5}$/.test(id))).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(createKpiMockData(referenceDate).inspectionRecords.map(({ inspectionNumber }) => inspectionNumber));
   });
 
   it("keeps identifiers unique and Store references resolvable", () => {
@@ -88,6 +103,9 @@ describe("performance mock dataset", () => {
     expect(new Set(dataset.takeChargeRecords.map((record) => record.tchId)).size).toBe(
       PERFORMANCE_TAKE_CHARGE_COUNT,
     );
+    expect(new Set(dataset.inspectionRecords.map((record) => record.inspectionNumber)).size)
+      .toBe(dataset.inspectionRecords.length);
+    expect(dataset.inspectionRecords.every(({ inspectionNumber }) => /^INP-\d{5}$/.test(inspectionNumber))).toBe(true);
     expect(
       dataset.actionRecords.every(
         (record) =>
@@ -151,7 +169,7 @@ describe("performance mock dataset", () => {
       dataset.stores.length * dataset.coverage.actionAggregateScopes.length,
     );
     expect(dataset.takeChargeAnnualAggregateFixtures).toHaveLength(
-      PERFORMANCE_STORE_COUNT,
+      PERFORMANCE_STORE_COUNT * dataset.supportedMonths.length,
     );
   });
 

@@ -43,7 +43,7 @@ Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支�
 
 ### D-004 先定义底层业务，再定义 Overview
 
-Overview 只汇总前述模块的统一结果，不产生另一套业务事实或重复计算。健康度、评分和汇总规则待底层业务稳定后另行定义。
+Overview 只汇总前述模块的统一结果，不产生另一套业务事实或重复计算。Overview V1 scoring 与 aggregation contract 依 D-044 执行；各领域业务结果仍由对应 Domain Rule 负责。
 
 ## 3. 业务与技术边界
 
@@ -81,9 +81,9 @@ Store Detail 不承载 Performance 或 Risk & Compliance 内容，也不进行 K
 
 Stores 列表默认显示 Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表；Store Detail 另展示 Store Name EN 及四类管理联系人的姓名和邮箱。底层 `ehsAmbassador` 字段名保持稳定。未来允许扩展字段，但新增字段是否进入列表或详情必须另行确认。
 
-### D-011 TRTID 不是所有数据源的强制唯一关联键
+### D-011 统一 Store Resolution
 
-不同数据源可能通过 TRTID、Store Name CN 或 Store Name EN 关联门店。必须由数据层统一执行 Store Mapping / Resolution；页面不得自行匹配。Events、Actions、Environment V1 与 Certificates V1 共用 TRTID 精确唯一匹配优先、失败时 Store English Name 精确唯一 fallback 的策略。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时判定冲突。Take Charge 当前仅提供 TRTID，复用同一 resolver。其它生产数据源策略仍为 TBD。
+所有业务源使用 TRTID 作为正式门店主标识，English Store Name 为可选 fallback。所有领域复用同一 resolver：TRTID primary；缺失或不能唯一解析时 English Store Name 精确唯一 fallback；明确冲突、重复命中或未解析时不得静默匹配。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名。业务源不提供 canonical `storeId`，解析结果由 Repository / normalization 生成。Store Master 是 current snapshot；历史报表按当前组织归属解析，不引入 temporal Store Master。
 
 ### D-012 Stores 列表交互位置
 
@@ -97,9 +97,9 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 ### D-014 Training、Drill、Inspections 为达成型 KPI
 
-- Training：只评价 Period 内实际存在的必修培训；全部完成或完整数据源内无培训记录时达成，任一未完成时未达成。
+- Training Overview 月度 metric：当月 required Training set 中每项都有有效 source record 且 source `completionRate = 100` 才达成；任一项未完成、缺失、无效、格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续以 authoritative source/config 替换；不得从实际 Training records 推断。KPI 页现有 Domain Result 状态与此 Overview ScoreContribution 映射分层，详见 `metric-rules.md`。
 - Drill：纳入 Period 的每个月必须有 Drill 记录，且当月所有记录均完成；缺月或存在未完成时未达成。
-- Inspections：纳入 Period 的每个月必须有需要评价的 Inspection，且当月全部完成；缺月或存在未完成时未达成。
+- Inspection Overview 月度 metric：当月 formal required Inspection task set 全部存在且已完成才达成；任一未完成、缺记录、状态缺失/无效、source 格式错误或 required coverage 不完整均为未达成。现有 source/config 中没有 expected/required task set，下一阶段必须建立，不得从实际 Inspection records 推断。KPI 页现有 Domain Result 状态与 Overview ScoreContribution 映射分层，详见 `metric-rules.md`。
 
 不为这三项强行生成未经确认的百分比。
 
@@ -107,7 +107,7 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 Events KPI 展示“发生 / 未发生”，不展示事故数量。
 
-ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。值为 `Yes` 时表示 ASTM Incident，其它值均不表示 ASTM Incident。
+ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断输入。正式值为 `Yes` / `No`；未知值不映射为 `No`，相关数据集标记为 `INCOMPLETE`。
 
 ### D-016 Goals V1 指标范围、目标和精度
 
@@ -118,7 +118,7 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 | 今年平均提交数 | >= 4 | 1 位小数 |
 | 今年参与率 | >= 50% | 0 位小数 |
 
-提交总数与关闭率跟随 Global Period；关闭率由 Take Charge 明细的月度分子/分母汇总计算。两个“今年”指标固定为 reference year 年初至当前月，只跟随 Region / Area / Store，并使用数据源范围 aggregate；不得平均门店最终值。
+提交总数与关闭率跟随 Global Period；关闭率由 Take Charge 明细的月度分子/分母汇总计算。两个“今年”指标固定为 reference year 年初至当前月，只跟随 Region / Area / Store，并由 upstream 提供数据源范围 aggregate；Dashboard 不从明细重算，也不得平均门店最终值。只有完整明细与正式 denominator 定义后，才可评估迁移为 Dashboard-derived metric。
 
 ## 6. Events 与 Actions
 
@@ -212,7 +212,7 @@ KPI 数据使用 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE`、`UNAVAILABLE`�
 
 ### D-031 KPI 使用规范化 Store ID
 
-页面和 KPI Builder 只消费 `storeId`。TRTID、Store Name CN、Store Name EN 到 `storeId` 的解析属于 Adapter / Repository，UI 不假设 storeId 等于 TRTID；已确认源策略见 D-011，尚未确认的其它生产源策略保持 TBD。
+页面和 KPI Builder 只消费 `storeId`。TRTID 与可选 Store Name EN 到 `storeId` 的解析属于 Adapter / Repository，Store Name CN 不参与关联；UI 不假设 storeId 等于 TRTID。所有当前业务域复用 D-011 的 Store Resolution。
 
 ### D-032 Action KPI 汇总与明细边界
 
@@ -269,7 +269,6 @@ Environment Analytics 的危险废物与一般工业固体废物合同持有率�
 - 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
-- 尚未确认的其它生产数据源 Store Resolution 策略；当前 Environment / Certificates 复用 D-011，Take Charge 使用 TRTID
 - 数据库、API 物理结构、Production Identity Provider、刷新、持久化及视觉状态规范
 
 ### D-042 Access Management V1 权限真源
@@ -281,6 +280,17 @@ Base Grants 从组织联系人邮箱派生，不由管理员 CRUD；Manual Grant
 Dashboard 应用层 Effective Access 是业务数据范围权限的权威模型。普通用户未来无需直接读取受保护 SharePoint JSON；SharePoint source library ACL 只保护源文件，不是应用业务 scope 真源，也不与应用权限人工同步。Client 不直接访问受保护源文件。若未来采用静态 ASPX / JS / CSS 前端，仍须独立 Backend/API 承载身份、授权、受保护数据读取、Manual Grant mutation 与审计。具体 Azure / Backend 技术选型留给 Production Data Integration Pilot。本阶段未实现 SharePoint、生产身份或生产 Repository。
 
 Production Integration TBD：Entra tenantId + objectId、Production Identity Provider、Azure Function / App Service 等受保护 API、SharePoint secure data access、Grant / Audit 持久化存储、first-admin bootstrap、authorization-aware cache isolation，以及 ASPX / SPFx 部署安全验证。Demo 的 `EHS_MOCK_USER_EMAIL` 仅供开发和模拟身份使用。
+
+### D-044 Overview V1 ScoreContribution 与 pooled aggregation
+
+- 12 个 V1 scoring metrics 对每个 Store × Month 均适用并固定 `availablePoints = 1`，不按 Store 排除 N/A。只有可证明 `ACHIEVED` 得 `earnedPoints = 1`；未达成、缺失、无效、格式错误、不完整或其它无法证明达成的情况均得 0/1，不排除 denominator。每 Store × Month 的 available points 总数为 12；Overview 不计算 completeness，全部 Store 参加排名。
+- Score Rate 为 `sum(earnedPoints) / sum(availablePoints)`。Store、Area、Region 一律 pooled points；上层先汇总所有下级贡献再求比例，不平均下级 scoreRate。排名使用该 scoreRate 和 deterministic tie-break；变化为 current minus previous scoreRate。
+- ScoreContribution 必须携带结果与诊断 reason。诊断至少区分 `ACHIEVED`、`RULE_NOT_MET`、`SOURCE_MISSING`、`SOURCE_INVALID`、`SOURCE_INCOMPLETE`；显式 N/A 另记录为 `NOT_APPLICABLE` 但仍计 0/1，缺少 required set/configuration 使用 `RULE_CONFIGURATION_MISSING`。原因只诊断数据/规则来源，不改变 points。
+- V1 scoring catalog 在 `metric-rules.md` 冻结。Environment 当前不计分；未来可通过 Environment Domain Result 生成同一 ScoreContribution，不改 Overview 聚合。
+- 每个 Store × Metric × Month 必须有一条贡献，包括全无数据的月份；source missing 使用 `0/1 + SOURCE_MISSING`。历史优先由 Domain historical records 按月末 referenceDate 重算，不可靠时后续采用 production snapshot；本决策不建立 snapshot。
+- Mock V1 Training required item catalog 与 Inspection expected task set 由单一 provider 提供，Standard / Performance 共用；Production authoritative provider 后续替换。运行时缺少集合时输出 0/1 `RULE_CONFIGURATION_MISSING`，不得从实际记录反推。ASTM V1 方向已确认：`NOT_OCCURRED` 达成 1/1，`OCCURRED` 未达成 0/1；missing / invalid / incomplete 保留对应诊断原因。
+
+具体 TypeScript contract 见 `data-contract.md`，领域结果映射和目录见 `metric-rules.md`。本决策冻结计算边界；Phase 2 已实现 Mock V2 与正式 Overview 接线，未定义 API 或 snapshot。
 
 ## 10. 项目技术决策（既有）
 

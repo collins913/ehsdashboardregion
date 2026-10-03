@@ -123,6 +123,7 @@ export const queryDemoKpiDetails: KpiDetailQueries = {
     availability: "AVAILABLE",
     items: [
       {
+        inspectionNumber: "INP-00001",
         inspectionName: "月度安全检查",
         dueDate: "2026-09-20",
         inspector: "陈晨",

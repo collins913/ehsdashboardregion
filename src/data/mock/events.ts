@@ -18,6 +18,8 @@ const mockEventTypes = [
 export function createMockEventRecords(
   months: SupportedMonths,
 ): readonly EventRecord[] {
+  // Keep the original event scenarios attached to their existing stores.
+  const eventScenarioStores = mockStores.slice(0, 12);
   return months.flatMap((month, monthIndex) => {
     const monthlyRecords = Array.from(
       { length: eventsPerMonth[monthIndex] ?? 7 },
@@ -26,7 +28,7 @@ export function createMockEventRecords(
         // Analytics fixtures are added or adjusted.
         const sequence = monthIndex * 6 + index;
         const quarterSequence = (monthIndex % 3) * 6 + index;
-        const store = mockStores[sequence % mockStores.length];
+        const store = eventScenarioStores[sequence % eventScenarioStores.length];
         const eventType = mockEventTypes[sequence % mockEventTypes.length];
         const Status = quarterSequence % 5 === 4 ? "Closed" : "Open";
         const storeReference =

@@ -6,6 +6,7 @@ import {
   isInstantInKpiPeriod,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
+  shanghaiMonthForDate,
 } from "@/data/contracts/kpi-period";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
@@ -92,6 +93,13 @@ describe("KPI Period validation", () => {
     expect(parsed).not.toBeNull();
     expect(isIsoDateInKpiPeriod("2026-01-01", parsed!)).toBe(true);
     expect(isIsoDateInKpiPeriod("2026-02-01", parsed!)).toBe(false);
+  });
+
+  it("derives a Shanghai business month from a strict date-only value", () => {
+    expect(shanghaiMonthForDate("2026-03-31")).toBe("2026-03");
+    expect(shanghaiMonthForDate("2026-02-29")).toBeNull();
+    expect(shanghaiMonthForDate("2026-02-30")).toBeNull();
+    expect(shanghaiMonthForDate(null)).toBeNull();
   });
 
   it("rejects an includedMonths/date-range mismatch and degrades safely", async () => {

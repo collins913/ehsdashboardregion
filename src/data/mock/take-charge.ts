@@ -7,6 +7,7 @@ import type { Month, StoreId, TakeChargeRecord } from "@/types/ehs";
 export interface MockTakeChargeAnnualAggregateFixture {
   storeId: StoreId;
   year: number;
+  referenceMonth: Month;
   submissionsNumerator: number;
   submissionsDenominator: number;
   participationNumerator: number;
@@ -24,11 +25,14 @@ export function createMockTakeChargeAnnualAggregateReader(
   return (
     year: number,
     selectedStoreIds: readonly StoreId[],
+    referenceMonth?: Month,
   ): MockTakeChargeAnnualAggregate | null => {
     const selectedStoreIdSet = new Set(selectedStoreIds);
     const selected = fixtures.filter(
       (fixture) =>
-        fixture.year === year && selectedStoreIdSet.has(fixture.storeId),
+        fixture.year === year &&
+        (referenceMonth === undefined || fixture.referenceMonth === referenceMonth) &&
+        selectedStoreIdSet.has(fixture.storeId),
     );
     const covered =
       selectedStoreIds.length > 0 &&
@@ -160,14 +164,33 @@ export function createMockTakeChargeRecords(
 }
 
 export function createMockTakeChargeAnnualAggregateFixtures(
-  year: number,
+  months: readonly [Month, ...Month[]],
 ): readonly MockTakeChargeAnnualAggregateFixture[] {
-  return mockStores.map((store, index) => ({
-    storeId: store.trtid,
-    year,
-    submissionsNumerator: 32 + (index % 6) * 7,
-    submissionsDenominator: 8 + (index % 3),
-    participationNumerator: 5 + (index % 5),
-    participationDenominator: 10 + (index % 4),
+  return createMockTakeChargeAnnualAggregateFixturesForStores(mockStores, months);
+}
+
+export function createMockTakeChargeAnnualAggregateFixturesForStores(
+  stores: readonly { trtid: StoreId }[],
+  months: readonly [Month, ...Month[]],
+): readonly MockTakeChargeAnnualAggregateFixture[] {
+  return months.flatMap((referenceMonth, monthIndex) => stores.map((store, storeIndex) => {
+    const submissionsDenominatorPerMonth = 8 + (storeIndex % 4);
+    const participationDenominatorPerMonth = 10 + (storeIndex % 3);
+    const submissionsNumerator = Array.from({ length: monthIndex + 1 }, (_, monthOffset) =>
+      30 + (storeIndex % 17) * 3 + ((storeIndex * 3 + monthOffset * 5) % 9) - 4,
+    ).reduce((sum, count) => sum + count, 0);
+    const participationNumerator = Array.from({ length: monthIndex + 1 }, (_, monthOffset) =>
+      4 + (storeIndex % 5) + ((storeIndex + monthOffset * 2) % 3) - 1,
+    ).reduce((sum, count) => sum + count, 0);
+    return {
+      storeId: store.trtid,
+      year: Number(referenceMonth.slice(0, 4)),
+      referenceMonth,
+      // These are deterministic mock source aggregates, never derived from Take Charge records.
+      submissionsNumerator,
+      submissionsDenominator: submissionsDenominatorPerMonth * (monthIndex + 1),
+      participationNumerator,
+      participationDenominator: participationDenominatorPerMonth * (monthIndex + 1),
+    };
   }));
 }

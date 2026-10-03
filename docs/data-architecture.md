@@ -69,12 +69,11 @@ Performance Dataset 在相同 reference month 下保持 deterministic，用于�
 候选匹配信息：
 
 - TRTID
-- Store Name CN
-- Store Name EN
+- Store Name EN（optional fallback）
 
-TRTID 不保证是所有数据源的唯一关联键。Events、Actions、Environment V1 与 Certificates V1 使用同一已确认源级策略：TRTID 精确唯一匹配优先，失败时使用 Store English Name 精确唯一匹配；TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。无法唯一解析时返回不完整数据，不静默选择。其它数据源策略仍为 TBD。
+所有业务域使用同一 Store Resolution：TRTID 精确唯一匹配优先；缺失或无法唯一解析时使用 Store English Name 精确唯一 fallback。TRTID 唯一有效而英文名无匹配时接受 TRTID，以兼容历史改名；英文名明确匹配另一门店时返回冲突。Store Name CN 只用于展示，不参与关联。无法唯一解析时返回不完整数据，不静默选择。
 
-页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID、Store Name CN、Store Name EN 必须由 Adapter / Repository 解析为 `storeId`；当前 mock Repository 仅使用现有精确匹配，无法唯一匹配时将数据标记为不完整，不推测生产匹配策略。
+页面与 KPI 组装层只消费规范化 `storeId`。源数据中的 TRTID 与可选 Store Name EN 由 Adapter / Repository 解析为 `storeId`；Store Name CN 仅用于展示，不参与关联。当前 Mock Repository 在无法唯一匹配时将数据标记为不完整。
 
 ## KPI 数据组装
 
@@ -98,10 +97,28 @@ EhsFilterContext
 - Mock Repository 只在请求 Store × Period 落入已声明 source coverage 时确认数据完整；完整范围内没有业务记录是有效空集，不等同于 `INCOMPLETE`。
 - Mock Action Closure Rate 使用显式 `[startInclusive, endExclusive)` 标识源汇总周期；每个值均为源 fixture 直接提供，不从月度值或 Action 明细计算。
 
+## Overview score calculation boundary
+
+Overview scoring follows the existing server-side direction:
+
+```text
+Domain Repository / normalized result
+→ Domain Rule / Achievement Result
+→ per-Store × Metric × Month ScoreContribution
+→ Overview pooled aggregation and view model
+→ UI
+```
+
+Overview does not read raw source, call repositories from React, or reinterpret domain outcomes. Each V1 metric contributes one available point per Store and month; source or rule failures remain zero-point contributions with explicit diagnostic reasons. Store, Area, and Region aggregate by summing earned and available points before calculating scoreRate. All Stores remain eligible for ranking; completeness is not an Overview score or ranking gate.
+
+The contribution DTO and complete V1 metric mapping are defined in `data-contract.md` and `metric-rules.md`. The formal `/overview` route now uses `EhsRepository.getOverviewScoreData` → `ScoreContribution` → server-side `prepareOverviewResult` → typed `OverviewResult`. React receives prepared history, ranking, matrix, dimension, store-list, and detail data; it does not score, aggregate, sort business rankings, or fill historical months. Standard and Performance profiles use the same repository, domain rules, contribution producer, and aggregation path. The producer prepares one month at a time and the view model indexes contributions by Store × Month before aggregation. A new domain metric registers a domain-owned result-to-contribution mapping; the pooled aggregation remains unchanged. Environment is not scored in V1, but can later produce an Environment contribution through the same boundary. Prototype files remain separate and are not imported by the formal route.
+
+Training and Inspection requirement membership comes from an injected `OverviewRequiredSetProvider`, not observed records. Standard and Performance use the same Mock V1 provider and source generators. Production replaces that provider with authoritative Store × Month requirement sources; ScoreContribution and Overview aggregation remain unchanged. An absent runtime set remains a diagnostic 0/1 contribution.
+
 ## Goals / Take Charge scoped queries
 
 ```text
-Raw Take Charge (TRTID only)
+Raw Take Charge (TRTID + optional English Store Name)
 → existing Store Resolution
 → NormalizedTakeChargeRecord
 → store-month totalCount / closedCount aggregate

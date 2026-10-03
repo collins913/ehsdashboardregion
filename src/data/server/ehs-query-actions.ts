@@ -5,6 +5,7 @@ import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
 import type { EventAnalyticsQuery, EventAnalyticsResult } from "@/data/contracts/event-analytics";
 import type { ActionAnalyticsQuery, ActionAnalyticsResult } from "@/data/contracts/action-analytics";
 import type { EhsFilterContext, EhsStoreScope } from "@/data/contracts/kpi";
+import type { OverviewQuery, OverviewResult } from "@/data/contracts/overview";
 import type {
   KpiDetailQuery,
   KpiDetailRecords,
@@ -23,8 +24,9 @@ import type {
 } from "@/data/contracts/take-charge";
 import { createEhsRepository } from "@/data/repositories/create-ehs-repository.server";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { prepareOverviewResult } from "@/features/overview/prepare-overview-result";
 import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
-import { authorizeBusinessScope } from "@/lib/access/access-service.server";
+import { authorizeBusinessScope, getAuthorizedFilterStores } from "@/lib/access/access-service.server";
 import type { KpiRow } from "@/features/kpi/types";
 import {
   parseActionAnalyticsQuery,
@@ -49,6 +51,44 @@ export async function queryKpiRows(input: { referenceDateIso: string; query: Ehs
   const authorized = { ...context, ...await authorizeBusinessScope(context) };
   const snapshot = await repositoryFor(referenceDateIso).getKpiData(authorized);
   return buildKpiRows(authorized, snapshot);
+}
+
+function parseOverviewQuery(input: unknown): OverviewQuery | null {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) return null;
+  const value = input as Record<string, unknown>;
+  if (Object.keys(value).length !== 1 || !("context" in value)) return null;
+  const context = parseEhsFilterContext(value.context);
+  return context ? { context } : null;
+}
+
+export async function queryOverview(input: { referenceDateIso: string; query: OverviewQuery }): Promise<OverviewResult> {
+  const { referenceDateIso, query } = parseQueryEnvelope(input, parseOverviewQuery);
+  const authorizedScope = await authorizeBusinessScope(query.context);
+  const context = { ...query.context, ...authorizedScope };
+  let attentionScope = authorizedScope;
+  if (query.context.store.kind === "INCLUDE" && query.context.store.values.length === 1) {
+    const requestedStoreId = query.context.store.values[0];
+    const authorizedStores = await getAuthorizedFilterStores();
+    const selectedStore = authorizedStores.find((store) => store.storeId === requestedStoreId);
+    if (selectedStore) {
+      attentionScope = await authorizeBusinessScope({
+        region: { kind: "INCLUDE", values: [selectedStore.region] },
+        area: { kind: "INCLUDE", values: [selectedStore.area] },
+        store: { kind: "ALL" },
+      });
+    }
+  }
+  const data = await repositoryFor(referenceDateIso).getOverviewScoreData({ scope: authorizedScope, attentionScope });
+  return prepareOverviewResult({
+    stores: data.attentionStores,
+    selectedStores: data.stores,
+    attentionStores: data.attentionStores,
+    contributions: data.contributions,
+    context,
+    requestedScope: query.context,
+    availableMonths: data.months,
+    sourceAvailability: data.availability,
+  });
 }
 
 async function authorizeKpiDetailQuery(

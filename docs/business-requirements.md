@@ -76,13 +76,13 @@ V1 已确认：
 | 术语 | 统一含义 |
 |---|---|
 | Store | 门店业务实体 |
-| TRTID | 内部门店标识；不称为 Store ID，也不保证是所有数据源的唯一关联键 |
+| TRTID | 所有业务源统一使用的正式门店主标识；不称为 canonical Store ID |
 | Source Reference | 原文 `Source / Link` 的统一名称；可选包含 sourceSystem、sourceRecordId、sourceUrl |
 | Source Status | 数据源提供的原始状态 |
 | Display Status | 页面显示的状态或文案 |
 | Business Result | 供汇总或业务判断使用的结果 |
 | Required Slot | 某证件类别必须满足的人员、岗位或证件要求 |
-| ASTMInjuryIllness | Event 数据源提供的 ASTM 标识；`Yes` 表示 ASTM Incident，其它值均表示非 ASTM Incident |
+| ASTMInjuryIllness | Event 数据源闭合 enum：`Yes` / `No`；`Yes` 表示 ASTM Incident，未知值不按 `No` 处理 |
 
 ## 4. Performance → KPI
 
@@ -124,7 +124,8 @@ Training、Drill、Inspections 与 ASTM 事件的结果单元格可打开门店�
 
 - Training 明细显示培训名称、月份、数据源直接提供的完成率和未完成人员，按 Month 倒序。
 - Drill 明细显示演练名称、月份和 Source Status 原文，按 Month 倒序。
-- Inspection 明细显示检查名称、截止日期、检查人和 Source Status 原文；有效截止日期倒序，缺失或无效日期置后。
+- Inspection 明细按截止日期匹配当前 Global Period；检查记录无 source month。明细显示检查名称、截止日期、检查人和 Source Status 原文；有效截止日期倒序，缺失或无效日期置后并使相关 Period 数据不完整。
+- Inspection 明细同时显示 source-provided 检查编号；编号在 Inspection domain 内唯一，不由 Dashboard 生成。
 - ASTM 明细使用当前 Event records 中 `ASTMInjuryIllness = "Yes"` 的记录，按事件时间倒序，并复用 Event Detail 内容。
 - Actions 沿用现有未关闭行动项详情。
 
@@ -159,7 +160,7 @@ Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area�
 - 目标值：`>= 50%`，展示 0 位小数。
 - 不受 Global Period 影响。
 
-Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“全部”包含 OPEN、CLOSED 与 UNKNOWN；选择“未关闭”只显示 `RecordState = OPEN`。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；TRTID 仅用于 Store Resolution，不向用户展示。
+Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“全部”包含 OPEN、CLOSED 与 UNKNOWN；选择“未关闭”只显示 `RecordState = OPEN`。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；门店关联使用统一 TRTID primary / English Store Name optional fallback，不向用户展示源门店标识。
 
 ## 6. Risk & Compliance → Events
 
@@ -323,10 +324,10 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 
 ### 10.5 门店关联
 
-- TRTID 是重要门店标识，但不保证是所有数据源的唯一关联键。
-- 数据源可能使用 TRTID、Store Name CN 或 Store Name EN 关联门店。
-- 关联必须由数据层统一完成，页面和业务组件不得临时匹配。
-- Events、Actions、Environment V1 与 Certificates V1 复用 TRTID 优先、Store English Name fallback、冲突不静默匹配的 Store Resolution；其它数据源策略仍为 TBD。
+- 所有业务源统一使用 TRTID 正式门店主标识；English Store Name 是可选 fallback，不使用 Store Name CN 作为业务源关联列。Store Master 当前按 current snapshot 解释。
+- TRTID 缺失或不能唯一解析时，English Store Name 精确唯一 fallback。明确冲突、重复命中或未解析时不得静默选择。
+- 关联必须由同一个数据层 Store Resolution 完成；canonical `storeId` 是系统生成字段，不要求业务源提供。
+- Store Master 是 current snapshot；历史报表按当前组织归属解析，不维护历史组织版本。
 
 ## 11. 本次不定义
 

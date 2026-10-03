@@ -63,8 +63,9 @@ export interface KpiStore {
 export interface KpiTrainingRecord {
   storeId: StoreId;
   month: Month;
-  isRequired: boolean;
-  isFullyCompleted: boolean;
+  trainingName: string;
+  completionRate: number | null;
+  incompletePeople: readonly string[] | null;
 }
 
 export interface KpiDrillRecord {
@@ -75,9 +76,10 @@ export interface KpiDrillRecord {
 
 export interface KpiInspectionRecord {
   storeId: StoreId;
-  month: Month;
-  isRequired: boolean;
+  inspectionNumber: string;
+  inspectionName: string;
   status: string | null;
+  sourceStatusInvalid?: boolean;
 }
 
 export interface KpiActionClosureRateRecord {

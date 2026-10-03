@@ -2,8 +2,6 @@ import { evaluateAstmOccurrence } from "@/lib/rules/event-rules";
 import {
   evaluateActionClosureRate,
   evaluateDrillPerformance,
-  evaluateInspectionPerformance,
-  evaluateTrainingPerformance,
   sourceStatusCompletion,
 } from "@/lib/rules/performance-rules";
 import type {
@@ -71,14 +69,9 @@ function buildTraining(
     return { availability, result: "UNDETERMINED" };
   }
 
-  return {
-    availability,
-    result: evaluateTrainingPerformance(
-      records
-        .filter((record) => record.isRequired)
-        .map((record) => record.isFullyCompleted),
-    ),
-  };
+  // The source contract no longer marks required Training or full completion.
+  // Keep availability visible, but do not infer a result without a confirmed rule.
+  return { availability, result: "UNDETERMINED" };
 }
 
 function buildDrill(
@@ -108,7 +101,6 @@ function buildDrill(
 }
 
 function buildInspections(
-  context: EhsFilterContext,
   data: KpiDataSnapshot["inspections"],
   recordsByStore: StoreRecordIndex<KpiInspectionRecord>,
   storeId: StoreId,
@@ -120,18 +112,9 @@ function buildInspections(
     return { availability, result: "UNDETERMINED" };
   }
 
-  const result = evaluateInspectionPerformance(
-    context.period.includedMonths.map((month) => ({
-      requiredInspectionCompletion: records
-        .filter((record) => record.month === month && record.isRequired)
-        .map((record) => sourceStatusCompletion(record.status)),
-    })),
-  );
-
-  return {
-    availability: result === "UNDETERMINED" ? "INCOMPLETE" : availability,
-    result,
-  };
+  // Requirement membership is not a source field. Do not infer it from names,
+  // due dates, or status until the requirement rule is confirmed.
+  return { availability, result: "UNDETERMINED" };
 }
 
 function buildActions(
@@ -212,7 +195,6 @@ export function buildKpiRows(
       store.storeId,
     ),
     inspections: buildInspections(
-      context,
       snapshot.inspections,
       inspectionsByStore,
       store.storeId,

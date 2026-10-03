@@ -14,6 +14,12 @@
 - 可用通用语义色：`background`、`foreground`、`card`、`popover`、`primary`、`secondary`、`muted`、`accent`、`destructive`、`border`、`input`、`ring`。
 - `destructive` 只表达破坏性操作，不代表业务状态。
 
+## Score rate change presentation
+
+- 得分率变化数值按实际正负统一着色：正数 `text-green-700 dark:text-green-400`；负数 `text-red-600 dark:text-red-400`；零 `text-foreground`；缺失 `text-muted-foreground` 并显示 `—`，不得当作零。
+- 标题摘要、排名、比较、图表浮层与详情复用同一变化值 presentation，不按排名位置或提升/退步分区决定颜色；标签保持普通文字颜色。Overview 复用 feature-local `ScoreChange`。
+- 比较标签必须与所用数据周期一致；“较上月”使用已准备的月度差值，不把季度或其它周期差值仅改名为月度差值。
+
 ## Typography
 
 - 页面标题：`text-2xl font-semibold`。

@@ -208,6 +208,14 @@ export function shanghaiMonthForInstant(value: string): Month | null {
   return milliseconds === null ? null : monthForShanghaiInstant(milliseconds);
 }
 
+export function shanghaiMonthForDate(value: string | null | undefined): Month | null {
+  if (value == null) return null;
+
+  const milliseconds = parseTimezoneAwareInstant(`${value}T00:00:00${SHANGHAI_OFFSET}`);
+
+  return milliseconds === null ? null : monthForShanghaiInstant(milliseconds);
+}
+
 function hasConsistentIncludedMonths(
   period: KpiPeriod,
   startMilliseconds: number,

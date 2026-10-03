@@ -1,7 +1,7 @@
 import type { StoreMasterData } from "@/types/ehs";
 import { mockPersonAt } from "@/data/mock/people";
 
-export const mockStores = [
+const standardStoreSeeds = [
   {
     region: "北辰区",
     area: "北辰一部",
@@ -183,3 +183,20 @@ export const mockStores = [
     ehsAmbassador: mockPersonAt(5),
   },
 ] satisfies readonly StoreMasterData[];
+
+// Preserve the original scenarios and extend Standard with stable store identities.
+export const mockStores: readonly StoreMasterData[] = [
+  ...standardStoreSeeds,
+  ...Array.from({ length: 50 - standardStoreSeeds.length }, (_, index) => {
+    const seed = standardStoreSeeds[index % standardStoreSeeds.length];
+    const sequence = standardStoreSeeds.length + index + 1;
+    return {
+      ...seed,
+      trtid: `TEST-${String(sequence).padStart(3, "0")}`,
+      storeNameCn: `${seed.storeNameCn}（${sequence}号）`,
+      storeNameEn: `${seed.storeNameEn} ${sequence}`,
+      managerEmail: seed.managerEmail === null ? null : `manager.${sequence}@example.test`,
+      ehsAmbassadorEmail: seed.ehsAmbassadorEmail === null ? null : `ehss.${sequence}@example.test`,
+    };
+  }),
+];

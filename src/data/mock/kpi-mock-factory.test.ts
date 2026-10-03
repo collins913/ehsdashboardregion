@@ -48,6 +48,18 @@ describe("current-year KPI mock factory", () => {
     );
   });
 
+  it("provides deterministic month-specific YTD source aggregates", () => {
+    const data = createKpiMockData(new Date("2026-09-11T00:00:00+08:00"));
+    const firstStoreId = data.stores[0].trtid;
+    const storeMonths = data.takeChargeAnnualAggregateFixtures.filter(({ storeId }) => storeId === firstStoreId);
+
+    expect(storeMonths).toHaveLength(data.supportedMonths.length);
+    expect(storeMonths[0].referenceMonth).toBe("2026-01");
+    expect(storeMonths.at(-1)?.referenceMonth).toBe("2026-09");
+    expect(new Set(storeMonths.map(({ submissionsNumerator, submissionsDenominator }) => submissionsNumerator / submissionsDenominator)).size).toBeGreaterThan(1);
+    expect(new Set(storeMonths.map(({ participationNumerator, participationDenominator }) => participationNumerator / participationDenominator)).size).toBeGreaterThan(1);
+  });
+
   it("generates deterministic source-like Take Charge identifiers and datetimes", () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const first = createKpiMockData(referenceDate).takeChargeRecords;
@@ -168,7 +180,7 @@ describe("current-year KPI mock factory", () => {
     ).toBe(true);
   });
 
-  it("provides varied KPI results for the supported Period", async () => {
+  it("preserves Training and Inspection availability without inferring achievement", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const context = contextFor(referenceDate);
@@ -176,17 +188,17 @@ describe("current-year KPI mock factory", () => {
     const byStore = new Map(rows.map((row) => [row.store.storeId, row]));
 
     expect(byStore.get("TEST-001")).toMatchObject({
-      training: { availability: "AVAILABLE", result: "ACHIEVED" },
+      training: { availability: "AVAILABLE", result: "UNDETERMINED" },
       drill: { availability: "AVAILABLE", result: "ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 92, result: "ACHIEVED" },
-      inspections: { availability: "AVAILABLE", result: "ACHIEVED" },
+      inspections: { availability: "AVAILABLE", result: "UNDETERMINED" },
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-002")).toMatchObject({
-      training: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
+      training: { availability: "AVAILABLE", result: "UNDETERMINED" },
       drill: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 86, result: "NOT_ACHIEVED" },
-      inspections: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
+      inspections: { availability: "AVAILABLE", result: "UNDETERMINED" },
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-003")?.astmEvents).toEqual({
@@ -195,7 +207,7 @@ describe("current-year KPI mock factory", () => {
     });
     expect(byStore.get("TEST-012")?.training).toEqual({
       availability: "AVAILABLE",
-      result: "ACHIEVED",
+      result: "UNDETERMINED",
     });
   });
 

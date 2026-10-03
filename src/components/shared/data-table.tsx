@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
-import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, createSortedRowModel, rowPaginationFeature, rowSortingFeature, sortFn_text, tableFeatures as defineTableFeatures, useTable, type PaginationState, type SortingState } from "@tanstack/react-table";
+import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, createSortedRowModel, rowPaginationFeature, rowSortingFeature, sortFn_basic, sortFn_text, tableFeatures as defineTableFeatures, useTable, type PaginationState, type SortingState } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { dataTableClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, dataTableRowClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
@@ -11,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { clampTablePageIndex, paginationForPageSize, useAdaptiveTablePageSize, type AdaptivePagination, type AdaptiveTablePageSize } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
 
-const features = defineTableFeatures({ columnVisibilityFeature, rowPaginationFeature, rowSortingFeature, paginatedRowModel: createPaginatedRowModel(), sortedRowModel: createSortedRowModel(), sortFns: { text: sortFn_text } });
+const features = defineTableFeatures({ columnVisibilityFeature, rowPaginationFeature, rowSortingFeature, paginatedRowModel: createPaginatedRowModel(), sortedRowModel: createSortedRowModel(), sortFns: { text: sortFn_text, numeric: sortFn_basic } });
 
-export type DataTableColumn<T> = { id: string; title: string; value: (row: T) => string; render?: (row: T) => ReactNode; sortable?: boolean; sizeRole: DataTableColumnSizeRole };
+export type DataTableColumn<T> = { id: string; title: string; value: (row: T) => string; sortValue?: (row: T) => number | null; render?: (row: T) => ReactNode; sortable?: boolean; sizeRole: DataTableColumnSizeRole };
 export type DataTableInteractionState = { sorting: SortingState; pagination: AdaptivePagination | null };
 
 export function DataTable<T extends { id: string }>({ rows, columns, emptyMessage, status = "READY", semanticKey = "", active = true, interactionState, onInteractionStateChange }: { rows: readonly T[]; columns: readonly DataTableColumn<T>[]; emptyMessage: string; status?: "READY" | "LOADING" | "ERROR"; semanticKey?: string; active?: boolean; interactionState?: DataTableInteractionState; onInteractionStateChange?: Dispatch<SetStateAction<DataTableInteractionState>> }) {
@@ -63,12 +63,13 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
   }, [displayedRows.length]);
   const definitions = useMemo(() => {
     const helper = createColumnHelper<typeof features, T>();
-    return helper.columns(columns.map((item) => helper.accessor(item.value, {
+    return helper.columns(columns.map((item) => helper.accessor((row) => item.sortValue ? item.sortValue(row) ?? undefined : item.value(row), {
       id: item.id,
       header: ({ column }) => <DataTableColumnHeader column={column} title={item.title} />,
-      cell: ({ row, getValue }) => item.render ? item.render(row.original) : getValue(),
+      cell: ({ row }) => item.render ? item.render(row.original) : item.value(row.original),
       enableSorting: item.sortable !== false,
-      sortFn: "text",
+      sortFn: item.sortValue ? "numeric" : "text",
+      ...(item.sortValue ? { sortUndefined: "last" as const } : {}),
     })));
   }, [columns]);
   const table = useTable({ features, columns: definitions, data: displayedRows, getRowId: (row) => row.id, onSortingChange: (updater) => { setInteractionState((current) => ({ sorting: typeof updater === "function" ? updater(current.sorting) : updater, pagination: current.pagination ? { ...current.pagination, pageIndex: 0 } : null })); }, onPaginationChange, state: { sorting, pagination } });

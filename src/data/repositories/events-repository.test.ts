@@ -87,6 +87,26 @@ describe("scoped Events repository query", () => {
     ]);
   });
 
+  it("keeps an unknown ASTM enum value visible but marks source coverage incomplete", async () => {
+    const invalidEvent = {
+      ...event({ eventId: "UNKNOWN-ASTM" }),
+      ASTMInjuryIllness: "Unconfirmed",
+    } as unknown as EventRecord;
+    const repository = createMockEhsRepository(referenceDate, {
+      eventRecords: [invalidEvent],
+    });
+    const result = await repository.getEvents({
+      context: context(),
+      viewMode: "ALL",
+      pageIndex: 0,
+      pageSize: 100,
+    });
+
+    expect(result.availability).toBe("INCOMPLETE");
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.astmInjuryIllness).toBe("Unconfirmed");
+  });
+
   it("applies Region, Area and canonical Store scopes", async () => {
     const base = context();
     const region = await query("ALL", {

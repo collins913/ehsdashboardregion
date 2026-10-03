@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ActionRecord, EventRecord, TakeChargeRecord } from "@/types/ehs";
+import type {
+  ActionRecord,
+  AstmInjuryIllnessSourceValue,
+  EventRecord,
+  TakeChargeRecord,
+} from "@/types/ehs";
 import { classifyActionRecordState } from "./action-rules";
 import {
   classifyEventRecordState,
@@ -23,7 +28,7 @@ function action(Status: ActionRecord["Status"]): ActionRecord {
   };
 }
 
-function event(astm: string, Status = "Open"): EventRecord {
+function event(astm: AstmInjuryIllnessSourceValue, Status = "Open"): EventRecord {
   return {
     eventId: "E-1",
     storeReference: { trtid: "TEST-001" },
