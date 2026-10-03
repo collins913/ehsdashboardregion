@@ -139,3 +139,8 @@ User Identity
 5. Unit Tests 不默认使用 500 Store 大数据集。
 6. Production Repository 与 Mock Profile 分离。
 7. 每完成一个正式阶段后更新 Roadmap 状态。
+
+
+## Architecture Hardening V1（2026-10-03）
+
+已统一 KPI / Overview Domain Result、隔离 Store source quality、解耦 Goals YTD 与 Global Period、保留具体 diagnostic reason，并抽离 repository-independent contribution orchestration。规范化与 Store × Month / exact Period 索引复用；无结果缓存、API 或 Snapshot 实现。Production 前仍需 authoritative Training/Inspection requirements、Store/Period source coverage 与无法定位行的处理契约；API 物理结构、Production clock 与历史快照来源仍未冻结。性能复测与 regression evidence 见当前 `performance:v1` 和 Architecture Hardening tests。

@@ -62,6 +62,7 @@ describe("Take Charge Goals repository", () => {
     expect(summary.annual.averageSubmissionsYtd).toEqual({
       value: submissionsNumerator / submissionsDenominator,
       result: submissionsNumerator / submissionsDenominator >= 4 ? "ACHIEVED" : "NOT_ACHIEVED",
+      reason: submissionsNumerator / submissionsDenominator >= 4 ? "ACHIEVED" : "RULE_NOT_MET",
     });
     expect(summary.annual.participationRateYtd.value).toBeCloseTo(
       (participationNumerator / participationDenominator) * 100,

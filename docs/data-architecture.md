@@ -80,16 +80,17 @@ Performance Dataset 在相同 reference month 下保持 deterministic，用于�
 ```text
 EhsFilterContext
 → Repository scoped snapshot
-→ KPI View Model Builder
-→ Centralized Rule Engine
-→ KpiRow[]
+→ normalized Store × Period sources
+→ centralized KpiDomainResult
+→ KPI presentation builder / ScoreContribution producer
+→ KpiRow[] / Overview pooled aggregation
 ```
 
 - `EhsFilterContext` 显式提供 `[startInclusive, endExclusive)` 与 `includedMonths`；时间戳必须包含 `Z` 或 UTC offset，契约不一致时 Repository 安全降级为 `INCOMPLETE`。
 - Repository 返回带 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE` 或 `UNAVAILABLE` 的数据集。
 - 只有数据源或 fixture 明确保证请求范围完整时，零记录才可表示 `CONFIRMED_EMPTY`。
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
-- Builder 只分组规范化输入并调用现有规则，不实现第二套业务判定。
+- `src/lib/rules/kpi-domain.ts` 统一评价五项 KPI；snapshot 必须携带 `domainResults`。`buildKpiRows` 只映射结果，不调用规则。Training / Inspection 共用注入的 required-set provider，不再保留 KPI 与 Overview 两套解释。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI 初始汇总查询不携带 Action 明细。用户打开 Action 下钻后，再复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 获取目标门店明细。Store Resolution、Status 解析、RecordState 和 OPEN 过滤仍只由 Repository 执行。
 - KPI feature 读取 Dashboard 共享 Filter Context，经 Server Action 调用 Repository 与 Builder；Client 不读取 mock、不创建 Repository、不执行业务计算。
@@ -111,9 +112,17 @@ Domain Repository / normalized result
 
 Overview does not read raw source, call repositories from React, or reinterpret domain outcomes. Each V1 metric contributes one available point per Store and month; source or rule failures remain zero-point contributions with explicit diagnostic reasons. Store, Area, and Region aggregate by summing earned and available points before calculating scoreRate. All Stores remain eligible for ranking; completeness is not an Overview score or ranking gate.
 
-The contribution DTO and complete V1 metric mapping are defined in `data-contract.md` and `metric-rules.md`. The formal `/overview` route now uses `EhsRepository.getOverviewScoreData` → `ScoreContribution` → server-side `prepareOverviewResult` → typed `OverviewResult`. React receives prepared history, ranking, matrix, dimension, store-list, and detail data; it does not score, aggregate, sort business rankings, or fill historical months. Standard and Performance profiles use the same repository, domain rules, contribution producer, and aggregation path. The producer prepares one month at a time and the view model indexes contributions by Store × Month before aggregation. A new domain metric registers a domain-owned result-to-contribution mapping; the pooled aggregation remains unchanged. Environment is not scored in V1, but can later produce an Environment contribution through the same boundary. Prototype files remain separate and are not imported by the formal route.
+The contribution DTO and complete V1 metric mapping are defined in `data-contract.md` and `metric-rules.md`. The formal `/overview` route now uses `EhsRepository.getOverviewScoreData` → `ScoreContribution` → server-side `prepareOverviewResult` → typed `OverviewResult`. React receives prepared history, ranking, matrix, dimension, store-list, and detail data; it does not score, aggregate, sort business rankings, or fill historical months. Standard and Performance profiles use the same repository, domain rules, contribution producer, and aggregation path. `src/lib/rules/overview-production.ts` prepares one month at a time through typed Domain Readers; it depends on domain contracts, never on Mock fixtures, a Repository implementation, or a Feature builder. It maps authoritative results and reasons to points without reevaluating domain rules. The view model indexes contributions by Store × Month before aggregation. A new domain metric registers a domain-owned result-to-contribution mapping; the pooled aggregation remains unchanged. Environment is not scored in V1, but can later produce an Environment contribution through the same boundary. Prototype files remain separate and are not imported by the formal route.
 
 Training and Inspection requirement membership comes from an injected `OverviewRequiredSetProvider`, not observed records. Standard and Performance use the same Mock V1 provider and source generators. Production replaces that provider with authoritative Store × Month requirement sources; ScoreContribution and Overview aggregation remain unchanged. An absent runtime set remains a diagnostic 0/1 contribution.
+
+## Architecture Hardening V1
+
+- KPI / Event / Inspection source normalization and Store × Month indexes are prepared once per immutable Dataset instance. Action aggregates use exact parsed Period keys. Certificate identity/category normalization is also reused; expiry evaluation still uses each injected referenceDate.
+- Coverage bounds, month sets and Store membership are prepared outside scoring loops. Query Period is validated once per domain reader; reference dates are computed once per month. The Shanghai formatter is module-scoped. No contribution/result cache was added.
+- Store × metric × known period owns source diagnostics; Dataset-level availability is a query summary and never overwrites another Store's Domain Result or contribution. Conflicting identity rows remain rejected; an identifiable primary TRTID owns their diagnostic rather than contaminating the English-name target.
+- If a date cannot establish Period membership, its defect remains limited to that Store/domain but conservatively affects its requested periods. If no Store can be identified, the orphan remains a query-level incomplete-source diagnostic and is not assigned to arbitrary Stores. Production must provide authoritative source scope/coverage to resolve these cases; no fabricated date, Store or historical fact is introduced.
+- `goal-domain.ts` evaluates normalized Goal inputs; the Mock annual adapter alone knows fixture numerator/denominator fields and pools them before division. Consumers share Goal Results with independent metric reasons. Certificate category Results include their reason; Overview never reconstructs it from records.
 
 ## Goals / Take Charge scoped queries
 

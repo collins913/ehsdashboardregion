@@ -1,4 +1,4 @@
-import type { TakeChargeFieldDefinition } from "@/data/contracts/take-charge";
+import type { TakeChargeAnnualSource, TakeChargeFieldDefinition } from "@/data/contracts/take-charge";
 import { mockStores } from "@/data/mock/stores";
 import { mockPersonAt } from "@/data/mock/people";
 import type { Month, StoreId, TakeChargeRecord } from "@/types/ehs";
@@ -14,62 +14,31 @@ export interface MockTakeChargeAnnualAggregateFixture {
   participationDenominator: number;
 }
 
-export interface MockTakeChargeAnnualAggregate {
-  averageSubmissionsYtd: number;
-  participationRateYtd: number;
-}
-
 export function createMockTakeChargeAnnualAggregateReader(
   fixtures: readonly MockTakeChargeAnnualAggregateFixture[],
 ) {
-  return (
-    year: number,
-    selectedStoreIds: readonly StoreId[],
-    referenceMonth?: Month,
-  ): MockTakeChargeAnnualAggregate | null => {
-    const selectedStoreIdSet = new Set(selectedStoreIds);
-    const selected = fixtures.filter(
-      (fixture) =>
-        fixture.year === year &&
-        (referenceMonth === undefined || fixture.referenceMonth === referenceMonth) &&
-        selectedStoreIdSet.has(fixture.storeId),
-    );
-    const covered =
-      selectedStoreIds.length > 0 &&
-      selectedStoreIds.every((storeId) =>
-        selected.some((fixture) => fixture.storeId === storeId),
-      );
-    const submissionsNumerator = selected.reduce(
-      (sum, fixture) => sum + fixture.submissionsNumerator,
-      0,
-    );
-    const submissionsDenominator = selected.reduce(
-      (sum, fixture) => sum + fixture.submissionsDenominator,
-      0,
-    );
-    const participationNumerator = selected.reduce(
-      (sum, fixture) => sum + fixture.participationNumerator,
-      0,
-    );
-    const participationDenominator = selected.reduce(
-      (sum, fixture) => sum + fixture.participationDenominator,
-      0,
-    );
-
-    if (
-      !covered ||
-      submissionsDenominator <= 0 ||
-      participationDenominator <= 0
-    ) {
-      return null;
-    }
-
-    return {
-      averageSubmissionsYtd:
-        submissionsNumerator / submissionsDenominator,
-      participationRateYtd:
-        (participationNumerator / participationDenominator) * 100,
+  const index = new Map<string, MockTakeChargeAnnualAggregateFixture[]>();
+  for (const fixture of fixtures) {
+    const key = `${fixture.year}\u0000${fixture.referenceMonth}\u0000${fixture.storeId}`;
+    const items = index.get(key) ?? [];
+    items.push(fixture);
+    index.set(key, items);
+  }
+  return (year: number, selectedStoreIds: readonly StoreId[], referenceMonth: Month): TakeChargeAnnualSource => {
+    const selected = selectedStoreIds.map((storeId) => index.get(`${year}\u0000${referenceMonth}\u0000${storeId}`) ?? []);
+    const metric = (numerator: "submissionsNumerator" | "participationNumerator", denominator: "submissionsDenominator" | "participationDenominator", scale: number) => {
+      if (selected.some((items) => items.length > 1)) return { value: null, reason: "SOURCE_INVALID" as const };
+      const records = selected.flat();
+      if (records.some((row) => !Number.isFinite(row[numerator]) || row[numerator] < 0 ||
+        !Number.isFinite(row[denominator]) || row[denominator] <= 0 || (scale === 100 && row[numerator] > row[denominator]))) {
+        return { value: null, reason: "SOURCE_INVALID" as const };
+      }
+      if (selectedStoreIds.length === 0 || selected.some((items) => items.length === 0)) return { value: null, reason: "SOURCE_MISSING" as const };
+      return { value: records.reduce((sum, row) => sum + row[numerator], 0) /
+        records.reduce((sum, row) => sum + row[denominator], 0) * scale };
     };
+    return { averageSubmissionsYtd: metric("submissionsNumerator", "submissionsDenominator", 1),
+      participationRateYtd: metric("participationNumerator", "participationDenominator", 100) };
   };
 }
 

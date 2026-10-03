@@ -1,3 +1,4 @@
+import type { DomainReason } from "./domain-result";
 import type { EhsFilterContext, KpiPeriod, DataAvailability } from "@/data/contracts/kpi";
 import type { PerformanceResult, RecordState } from "@/lib/rules/result-types";
 import type { SourceReference, StoreId, TimezoneAwareIsoDateTime } from "@/types/ehs";
@@ -60,6 +61,7 @@ export interface TakeChargeRecordsResult {
 }
 
 export interface TakeChargeMetricValue {
+  reason: DomainReason;
   value: number | null;
   result: PerformanceResult;
 }
@@ -93,4 +95,10 @@ export interface TakeChargeMonthlyAggregate {
   month: `${number}-${number}`;
   totalCount: number;
   closedCount: number;
+}
+
+/** Normalized upstream values; physical numerator/denominator fields remain adapter-owned. */
+export interface TakeChargeAnnualSource {
+  averageSubmissionsYtd: { value: number | null; reason?: DomainReason };
+  participationRateYtd: { value: number | null; reason?: DomainReason };
 }

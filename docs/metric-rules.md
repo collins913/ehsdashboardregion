@@ -151,7 +151,7 @@ This does not prevent deterministic testing because tests can inject a reference
 
 ### V1 achievement rule
 
-For each Store × Month, every item in the formal required Training set must have a present, valid source record and source-provided `completionRate = 100` for the metric to be `ACHIEVED`. Any required item that is below 100%, absent, invalid, malformed, or covered by an incomplete source makes the monthly Training metric `NOT_ACHIEVED`.
+For each Store × Month, every item in the formal required Training set must have a present, valid source record and source-provided `completionRate = 100` for the metric to be `ACHIEVED`. A below-target item yields Domain `NOT_ACHIEVED`; absent, invalid, malformed or incomplete sources yield Domain `UNDETERMINED` with the specific diagnostic. Both map to a zero-point `NOT_ACHIEVED` contribution. KPI and Overview consume that same Domain Result.
 
 The current Mock V1 provider centrally declares two synthetic required items in `src/data/mock/overview-required-sets.ts`; these labels validate calculation behavior and are not authoritative business names. Both Standard and Performance source generators use this same catalog. The rule receives the provider's set independently from observed records. Production must replace the Mock provider with an authoritative Store × Month catalog source without changing ScoreContribution or Overview aggregation. A missing provider/set at runtime produces 0/1 with `RULE_CONFIGURATION_MISSING`.
 
@@ -265,7 +265,7 @@ Display boundary:
 
 ### V1 achievement rule
 
-For each Store × Month, the metric is `ACHIEVED` only when every task in the formal required Inspection set has a present valid record and a completed status. A required task that is unfinished, missing, has missing/invalid status, malformed source, or incomplete required coverage makes the monthly metric `NOT_ACHIEVED`.
+For each Store × Month, the metric is `ACHIEVED` only when every task in the formal required Inspection set has a present valid record and a completed status. An unfinished required task yields Domain `NOT_ACHIEVED`; missing/invalid records or status and incomplete required coverage yield Domain `UNDETERMINED` with the specific diagnostic. Both map to a zero-point `NOT_ACHIEVED` contribution. KPI and Overview consume that same Domain Result.
 
 The current Mock V1 provider centrally declares two synthetic expected tasks in `src/data/mock/overview-required-sets.ts`; these labels validate calculation behavior and are not authoritative business names. Both Standard and Performance source generators use this same task set. The rule receives the provider's set independently from observed records. Production must replace the Mock provider with an authoritative Store × Month expected-task source/config without changing ScoreContribution or Overview aggregation. A missing provider/set at runtime produces 0/1 with `RULE_CONFIGURATION_MISSING`.
 
@@ -762,7 +762,7 @@ Each of the 12 catalog entries applies to every Store and contributes exactly `a
 
 `scoreRate = sum(earnedPoints) / sum(availablePoints)`. Store, Area, and Region all use pooled points. Area / Region first sum all descendant contributions and then calculate the rate; never average descendant score rates. All Stores participate in ranking. Ranking uses formal `scoreRate`, with a deterministic tie-break. Change is `currentScoreRate - previousScoreRate`; no completeness gate is applied.
 
-Data-quality cause remains attached to each contribution and does not alter its points. The diagnostic reason values are `ACHIEVED`, `RULE_NOT_MET`, `SOURCE_MISSING`, `SOURCE_INVALID`, `SOURCE_INCOMPLETE`, `NOT_APPLICABLE`, and `RULE_CONFIGURATION_MISSING`. `NOT_APPLICABLE` records an explicit domain applicability result but still contributes 0/1 in V1. `RULE_CONFIGURATION_MISSING` distinguishes an absent required-set/configuration from a missing source record. Domain/repository preparation classifies the cause; Overview UI does not inspect raw data to derive it.
+Data-quality cause remains attached to each contribution and does not alter its points. The diagnostic reason values are `ACHIEVED`, `RULE_NOT_MET`, `SOURCE_MISSING`, `SOURCE_INVALID`, `SOURCE_INCOMPLETE`, `NOT_APPLICABLE`, and `RULE_CONFIGURATION_MISSING`. `NOT_APPLICABLE` records an explicit domain applicability result but still contributes 0/1 in V1. `RULE_CONFIGURATION_MISSING` distinguishes an absent required-set/configuration from a missing source record. Domain preparation classifies the cause; contribution production preserves it and Overview UI does not derive it. Concrete source defects take precedence over generic coverage/threshold failures: SOURCE_INVALID > SOURCE_MISSING > SOURCE_INCOMPLETE > RULE_CONFIGURATION_MISSING > RULE_NOT_MET. Required-set evaluation checks the entire configured set before selecting a reason, so input order or an earlier below-target record cannot hide a later invalid record.
 
 ## 10.2 V1 scoring metric catalog
 
@@ -784,6 +784,8 @@ Each row below has one available point per Store × Month. Existing domain rules
 | Safe Driving Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
 
 Environment is not in the V1 catalog. Current Environment V1 has no compliance or score result. A future Environment metric must first have a confirmed domain result and then emit the same contribution contract; the Overview aggregation formula does not change.
+
+KPI range evaluation combines the monthly Training / Inspection Domain Results: all months achieved → ACHIEVED; an inconclusive month → UNDETERMINED; otherwise → NOT_ACHIEVED. Monthly Overview uses the same evaluator with one month; no separate Overview rule exists.
 
 Mock V1 required sets are explicitly declared in one provider at `src/data/mock/overview-required-sets.ts`; observed records never define their membership. Standard and Performance use the same provider and generators. Production must inject an authoritative provider. `RULE_CONFIGURATION_MISSING` remains reserved for an absent/invalid runtime set; source-unavailable or incomplete coverage keeps its own reason.
 

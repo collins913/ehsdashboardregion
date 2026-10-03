@@ -34,6 +34,7 @@ function store(storeId: string, records: readonly NormalizedCertificateRecord[] 
     categories: ["安全健康", "急救员", "特种作业", "安全驾驶"].map((certificateCategory) => ({
       certificateCategory: certificateCategory as CertificatesStoreRow["categories"][number]["certificateCategory"],
       status: records.some((item) => item.certificateCategory === certificateCategory && item.certificateStatus === "ABNORMAL") ? "ABNORMAL" : "NORMAL",
+      reason: "RULE_NOT_MET",
       records: records.filter((item) => item.certificateCategory === certificateCategory),
     })),
   };

@@ -17,14 +17,7 @@ export type OverviewMetricId =
   | "CERTIFICATE_SAFE_DRIVING";
 
 export type ScoreContributionOutcome = "ACHIEVED" | "NOT_ACHIEVED";
-export type ScoreContributionReason =
-  | "ACHIEVED"
-  | "RULE_NOT_MET"
-  | "SOURCE_MISSING"
-  | "SOURCE_INVALID"
-  | "SOURCE_INCOMPLETE"
-  | "NOT_APPLICABLE"
-  | "RULE_CONFIGURATION_MISSING";
+export type ScoreContributionReason = import("./domain-result").DomainReason;
 
 export interface ScoreContribution {
   metricId: OverviewMetricId;

@@ -1,3 +1,4 @@
+import type { DomainReason } from "./domain-result";
 import type { DataSet, EhsStoreScope } from "@/data/contracts/kpi";
 import type { DefaultCertificateCategory, StoreId } from "@/types/ehs";
 
@@ -17,6 +18,7 @@ export interface NormalizedCertificateRecord {
   certificateReason: CertificateReason;
 }
 export interface CertificateCategorySummary {
+  reason: DomainReason;
   certificateCategory: DefaultCertificateCategory;
   status: CertificateStatus;
   records: readonly NormalizedCertificateRecord[];

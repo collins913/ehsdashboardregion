@@ -180,35 +180,38 @@ describe("current-year KPI mock factory", () => {
     ).toBe(true);
   });
 
-  it("preserves Training and Inspection availability without inferring achievement", async () => {
+  it("uses authoritative required-set Domain Results for Training and Inspection", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const context = contextFor(referenceDate);
-    const rows = buildKpiRows(context, await repository.getKpiData(context));
+    const snapshot = await repository.getKpiData(context);
+    const rows = buildKpiRows(context, snapshot);
+    for (const row of rows) {
+      const domain = snapshot.domainResults.find((result) => result.store.storeId === row.store.storeId)!;
+      expect(row.training.result).toBe(domain.training.result);
+      expect(row.inspections.result).toBe(domain.inspections.result);
+    }
     const byStore = new Map(rows.map((row) => [row.store.storeId, row]));
 
     expect(byStore.get("TEST-001")).toMatchObject({
-      training: { availability: "AVAILABLE", result: "UNDETERMINED" },
+      training: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       drill: { availability: "AVAILABLE", result: "ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 92, result: "ACHIEVED" },
-      inspections: { availability: "AVAILABLE", result: "UNDETERMINED" },
+      inspections: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-002")).toMatchObject({
-      training: { availability: "AVAILABLE", result: "UNDETERMINED" },
+      training: { availability: "INCOMPLETE", result: "UNDETERMINED" },
       drill: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 86, result: "NOT_ACHIEVED" },
-      inspections: { availability: "AVAILABLE", result: "UNDETERMINED" },
+      inspections: { availability: "INCOMPLETE", result: "UNDETERMINED" },
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-003")?.astmEvents).toEqual({
       availability: "AVAILABLE",
       result: "OCCURRED",
     });
-    expect(byStore.get("TEST-012")?.training).toEqual({
-      availability: "AVAILABLE",
-      result: "UNDETERMINED",
-    });
+    expect(byStore.get("TEST-012")?.training.result).toBe(snapshot.domainResults.find((row) => row.store.storeId === "TEST-012")?.training.result);
   });
 
   it("supports month, current quarter, YTD and custom Action aggregates", async () => {

@@ -1,12 +1,10 @@
-import type { ScoreContributionReason } from "@/data/contracts/overview";
+import type { AchievementResult, DomainReason } from "@/data/contracts/domain-result";
+import { mostSpecificReason } from "./domain-diagnostics";
 import type { DataAvailability, KpiInspectionRecord, KpiTrainingRecord } from "@/data/contracts/kpi";
 import { sourceStatusCompletion } from "@/lib/rules/performance-rules";
-import type { PerformanceResult } from "@/lib/rules/result-types";
 
-export interface RequiredSetEvaluation {
-  result: PerformanceResult;
-  reason: ScoreContributionReason;
-}
+
+export type RequiredSetEvaluation = AchievementResult;
 
 function availabilityFailure(availability: DataAvailability): RequiredSetEvaluation | null {
   if (availability === "UNAVAILABLE") return { result: "UNDETERMINED", reason: "SOURCE_MISSING" };
@@ -18,26 +16,27 @@ function validRequiredSet(requiredItems: readonly string[] | null): requiredItem
   return requiredItems !== null && requiredItems.length > 0 && requiredItems.every((item) => typeof item === "string" && item.trim().length > 0) && new Set(requiredItems).size === requiredItems.length;
 }
 
+function requiredSetResult(reasons: readonly DomainReason[], availability: DataAvailability): RequiredSetEvaluation {
+  const reason = mostSpecificReason([...reasons, availabilityFailure(availability)?.reason]);
+  return { result: reason === "ACHIEVED" ? "ACHIEVED" : reason === "RULE_NOT_MET" ? "NOT_ACHIEVED" : "UNDETERMINED", reason };
+}
+
 export function evaluateRequiredTraining(
   requiredItems: readonly string[] | null,
   records: readonly KpiTrainingRecord[],
   availability: DataAvailability,
 ): RequiredSetEvaluation {
-  const sourceFailure = availabilityFailure(availability);
-  if (sourceFailure) return sourceFailure;
   if (!validRequiredSet(requiredItems)) return { result: "UNDETERMINED", reason: "RULE_CONFIGURATION_MISSING" };
-
-  for (const item of requiredItems) {
+  const reasons = requiredItems.map((item): DomainReason => {
     const matching = records.filter((record) => record.trainingName === item);
-    if (matching.length === 0) return { result: "UNDETERMINED", reason: "SOURCE_MISSING" };
-    if (matching.length !== 1) return { result: "UNDETERMINED", reason: "SOURCE_INVALID" };
+    if (matching.length === 0) return "SOURCE_MISSING";
+    if (matching.length !== 1) return "SOURCE_INVALID";
     const rate = matching[0].completionRate;
-    if (rate === null) return { result: "UNDETERMINED", reason: "SOURCE_INCOMPLETE" };
-    if (!Number.isFinite(rate) || rate < 0 || rate > 100) return { result: "UNDETERMINED", reason: "SOURCE_INVALID" };
-    if (rate !== 100) return { result: "NOT_ACHIEVED", reason: "RULE_NOT_MET" };
-  }
-
-  return { result: "ACHIEVED", reason: "ACHIEVED" };
+    if (rate === null) return "SOURCE_INCOMPLETE";
+    if (typeof rate !== "number" || !Number.isFinite(rate) || rate < 0 || rate > 100) return "SOURCE_INVALID";
+    return rate === 100 ? "ACHIEVED" : "RULE_NOT_MET";
+  });
+  return requiredSetResult(reasons, availability);
 }
 
 export function evaluateExpectedInspections(
@@ -45,21 +44,16 @@ export function evaluateExpectedInspections(
   records: readonly KpiInspectionRecord[],
   availability: DataAvailability,
 ): RequiredSetEvaluation {
-  const sourceFailure = availabilityFailure(availability);
-  if (sourceFailure) return sourceFailure;
   if (!validRequiredSet(expectedTasks)) return { result: "UNDETERMINED", reason: "RULE_CONFIGURATION_MISSING" };
-
-  for (const task of expectedTasks) {
+  const reasons = expectedTasks.map((task): DomainReason => {
     const matching = records.filter((record) => record.inspectionName === task);
-    if (matching.length === 0) return { result: "UNDETERMINED", reason: "SOURCE_MISSING" };
-    if (matching.length !== 1) return { result: "UNDETERMINED", reason: "SOURCE_INVALID" };
+    if (matching.length === 0) return "SOURCE_MISSING";
+    if (matching.length !== 1) return "SOURCE_INVALID";
     const record = matching[0];
-    if (record.sourceStatusInvalid) return { result: "UNDETERMINED", reason: "SOURCE_INVALID" };
-    if (record.status === null) return { result: "UNDETERMINED", reason: "SOURCE_INCOMPLETE" };
+    if (record.sourceStatusInvalid) return "SOURCE_INVALID";
     const complete = sourceStatusCompletion(record.status);
-    if (complete === null) return { result: "UNDETERMINED", reason: "SOURCE_INCOMPLETE" };
-    if (!complete) return { result: "NOT_ACHIEVED", reason: "RULE_NOT_MET" };
-  }
-
-  return { result: "ACHIEVED", reason: "ACHIEVED" };
+    if (complete === null) return "SOURCE_INCOMPLETE";
+    return complete ? "ACHIEVED" : "RULE_NOT_MET";
+  });
+  return requiredSetResult(reasons, availability);
 }

@@ -33,6 +33,7 @@ describe("Overview required-set rules", () => {
   it("evaluates configured Inspection tasks and preserves existing exact Completed mapping", () => {
     const records = MOCK_V1_EXPECTED_INSPECTION_TASKS.map((inspectionName, index) => ({
       storeId: scope.storeId,
+      month: scope.month,
       inspectionNumber: `INP-${index}`,
       inspectionName,
       status: "已完成",
@@ -57,5 +58,24 @@ describe("Overview required-set rules", () => {
     expect(tasks(standard.inspectionRecords)).toEqual(tasks(performance.inspectionRecords));
     expect(names(standard.trainingRecords)).toEqual(new Set(MOCK_V1_REQUIRED_TRAINING_ITEMS));
     expect(tasks(standard.inspectionRecords)).toEqual(new Set(MOCK_V1_EXPECTED_INSPECTION_TASKS));
+  });
+});
+
+describe("required-set diagnostic specificity", () => {
+  it("does not let an earlier threshold failure hide a later invalid Training item", () => {
+    const records = MOCK_V1_REQUIRED_TRAINING_ITEMS.map((trainingName, index) => ({
+      storeId: scope.storeId, month: scope.month, trainingName, incompletePeople: [], completionRate: index === 0 ? 20 : Number.NaN,
+    }));
+    expect(evaluateRequiredTraining(MOCK_V1_REQUIRED_TRAINING_ITEMS, records, "INCOMPLETE"))
+      .toEqual({ result: "UNDETERMINED", reason: "SOURCE_INVALID" });
+    expect(evaluateRequiredTraining(MOCK_V1_REQUIRED_TRAINING_ITEMS, [...records].reverse(), "AVAILABLE").reason).toBe("SOURCE_INVALID");
+  });
+  it("does not let an earlier unfinished Inspection task hide a malformed later status", () => {
+    const records = MOCK_V1_EXPECTED_INSPECTION_TASKS.map((inspectionName, index) => ({
+      storeId: scope.storeId, month: scope.month, inspectionNumber: `TASK-${index}`, inspectionName,
+      status: index === 0 ? "未完成" : null, sourceStatusInvalid: index === 1,
+    }));
+    expect(evaluateExpectedInspections(MOCK_V1_EXPECTED_INSPECTION_TASKS, records, "INCOMPLETE"))
+      .toEqual({ result: "UNDETERMINED", reason: "SOURCE_INVALID" });
   });
 });

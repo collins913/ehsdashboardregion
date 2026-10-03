@@ -198,7 +198,7 @@ Source fields：`inspectionNumber`、TRTID、English Store Name（optional fallb
 
 Source 不包含 `isRequired` 或等价必检标记。Dashboard 不根据实际记录推断必检资格。Status 为开放文本；保留原文，仅精确规范化为 `已完成` 才表示完成；status 可空。当前 Mock V1 使用集中 provider `src/data/mock/overview-required-sets.ts` 声明合成 expected task identity；Standard / Performance 共用。Production 必须以 authoritative Store × Month task source/config 替换 provider，并与 source record identity 对齐；Overview / ScoreContribution contract 不依赖任务名单。运行时配置缺失时仍输出 0/1 `RULE_CONFIGURATION_MISSING`。
 
-Mock V1 按该 expected set 评估月度 Overview contribution；KPI 页当前独立 Domain Result 不据此推导 requirement membership。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
+Mock V1 的 KPI 与 Overview 共用 required-set Domain Result；KPI 按纳入月份评价，月度 contribution 直接映射该月结果。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
 
 ### 4.5 ASTM Incident 输入
 
@@ -441,7 +441,7 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI 页面使用集中 Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
+KPI Repository snapshot 必须包含集中 `KpiDomainResult[]`（`src/data/contracts/domain-result.ts`），各 Store 的 result、availability 与 reason 一起返回；Training / Inspection 输入中的月份来自规范化数据，Inspection 月份仅由合法 dueDate 派生。KPI 页面使用纯 presentation Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
 
 ## 11. Overview ScoreContribution
 
@@ -488,8 +488,17 @@ type OverviewMetricId =
 
 Runtime types live in `src/data/contracts/overview.ts`. The repository returns scoped canonical Stores, supported months, and domain-produced contributions. The server query authorizes scope, reads this result, and passes it to Overview preparation; the browser receives only the prepared `OverviewResult`.
 
-V1 invariant: all 12 catalog metrics apply to every Store and produce one row per Store × Month; each has `availablePoints = 1`, and `earnedPoints` is exactly `1` for `ACHIEVED` or `0` for `NOT_ACHIEVED`. Every Store therefore has 12 available points per month. N/A, missing, invalid and incomplete source results remain rows with their diagnostic reason; no Store or metric is removed from the denominator. `referenceDate` is the month-end business date used for as-of rules. Contribution reason is prepared by the domain/repository boundary, never inferred by Overview UI from raw data.
+V1 invariant: all 12 catalog metrics apply to every Store and produce one row per Store × Month; each has `availablePoints = 1`, and `earnedPoints` is exactly `1` for `ACHIEVED` or `0` for `NOT_ACHIEVED`. Every Store therefore has 12 available points per month. N/A, missing, invalid and incomplete source results remain rows with their diagnostic reason; no Store or metric is removed from the denominator. `referenceDate` is the month-end business date for completed months and the injected Dashboard reference day for the current month. Domain Result owns the diagnostic reason; the producer copies it without inferring from DataSet-level availability or UI state.
 
 Metric catalog and achievement mapping are owned by `metric-rules.md`; this contract does not define a generic rule engine. A future metric adds its own domain result and contribution producer, then registers its `metricId` / `dimensionId`. A future approved weight changes the contribution point values consistently for every Store and month; pooled aggregation remains unchanged. Environment can later add a domain result and contribution under `ENVIRONMENT` without changing aggregation. Environment is excluded from the V1 metric catalog.
 
 Historical data from 2026-01 through the current business month produces one contribution for each Store × Metric × Month, including source-missing months. Prior supported months use month-end `referenceDate`; the current month uses the injected current business date. Recompute from reliable historical domain records using that reference date where possible; otherwise use a future production snapshot. Snapshot schema and implementation remain out of scope.
+
+
+## 12. Hardening V1 normalized boundaries
+
+- `DomainSource<T>` 表达单个 Store × Period 的 normalized records、availability 与可选 source reason；不能用全 Dataset 的坏数据覆盖其它 Store 的贡献。
+- `KpiDataSnapshot.domainResults` 是 KPI / ScoreContribution 的共同真源；KPI Builder 不评价业务。`KpiInspectionRecord.month` 是 Adapter 派生值，Raw Inspection 仍不提供 month。
+- `TakeChargeAnnualSource` 仅含两个 source-provided normalized values 及独立原因，不规定 Production numerator/denominator schema。Goals 使用 reference year/month；Global Period 不参与 YTD 查询。Mock fixture adapter 保留 pooled source numerator/denominator 口径，不平均 Store 百分比。
+- `TakeChargeMetricValue` 与 `CertificateCategorySummary` 保留领域 reason；12 个 scoring producer 消费真实领域诊断。非法 NaN 不得降为通用 SOURCE_INCOMPLETE。
+- 缺失/非法日期无法确定 Period membership 时不补日期；仅保守标记可定位 Store/domain。不能解析到 Store 的行保持 orphan diagnostic，不任意分配。Production authoritative scope/coverage 的物理表示仍为 TBD。

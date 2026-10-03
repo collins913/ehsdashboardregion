@@ -24,6 +24,7 @@ function summary(closeRate: number | null): TakeChargeGoalsSummary {
       submissionTotal: closeRate === null ? 0 : 48,
       closedCount: closeRate === null ? 0 : 24,
       closeRate: {
+        reason: closeRate !== null && closeRate >= 90 ? "ACHIEVED" : "RULE_NOT_MET",
         value: closeRate,
         result:
           closeRate === null
@@ -36,8 +37,8 @@ function summary(closeRate: number | null): TakeChargeGoalsSummary {
     annual: {
       availability: "AVAILABLE",
       currentYear: 2026,
-      averageSubmissionsYtd: { value: 5.5, result: "ACHIEVED" },
-      participationRateYtd: { value: 58.7, result: "ACHIEVED" },
+      averageSubmissionsYtd: { value: 5.5, result: "ACHIEVED", reason: "ACHIEVED" },
+      participationRateYtd: { value: 58.7, result: "ACHIEVED", reason: "ACHIEVED" },
     },
   };
 }

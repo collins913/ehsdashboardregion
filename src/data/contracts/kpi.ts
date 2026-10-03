@@ -1,3 +1,4 @@
+import type { KpiDomainResult } from "./domain-result";
 import type {
   Month,
   StoreId,
@@ -80,6 +81,7 @@ export interface KpiInspectionRecord {
   inspectionName: string;
   status: string | null;
   sourceStatusInvalid?: boolean;
+  month: Month;
 }
 
 export interface KpiActionClosureRateRecord {
@@ -88,6 +90,7 @@ export interface KpiActionClosureRateRecord {
 }
 
 export interface KpiDataSnapshot {
+  domainResults: readonly KpiDomainResult[];
   stores: readonly KpiStore[];
   training: DataSet<KpiTrainingRecord>;
   drills: DataSet<KpiDrillRecord>;

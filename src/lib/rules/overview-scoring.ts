@@ -51,6 +51,7 @@ export function buildOverviewScoreContributions(
   observations: OverviewObservationMap,
 ): readonly ScoreContribution[] {
   const contributions: ScoreContribution[] = [];
+  const referenceDates = new Map(months.map((month) => [month, referenceDateForMonth(month)]));
   for (const store of stores) {
     for (const month of months) {
       for (const metric of OVERVIEW_V1_METRIC_CATALOG) {
@@ -58,7 +59,7 @@ export function buildOverviewScoreContributions(
           ...metric,
           storeId: store.storeId,
           month,
-          referenceDate: referenceDateForMonth(month),
+          referenceDate: referenceDates.get(month)!,
         };
         const observation = observations.get(overviewObservationKey(store.storeId, month, metric.metricId));
         if (!observation) {

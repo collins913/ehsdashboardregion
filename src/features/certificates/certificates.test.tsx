@@ -16,7 +16,7 @@ const certificate: NormalizedCertificateRecord = {
   businessTitle: "测试岗位", expiryDate: "2026-09-10", daysUntilExpiry: -5, certificateStatus: "ABNORMAL", certificateReason: "EXPIRED",
 };
 const row: CertificatesStoreRow = { storeId: certificate.storeId, storeDisplayName: certificate.storeDisplayName,
-  categories: CERTIFICATES_ITEMS.map(({ label }) => ({ certificateCategory: label, status: "ABNORMAL", records: label === "安全健康" ? [certificate] : [] })) };
+  categories: CERTIFICATES_ITEMS.map(({ label }) => ({ certificateCategory: label, status: "ABNORMAL", reason: "RULE_NOT_MET", records: label === "安全健康" ? [certificate] : [] })) };
 const tableRow = toCertificatesTableRows([row])[0];
 const context: EhsFilterContext = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" }, period: periodFromMonthRange("2026-07", "2026-09")! };
 

@@ -1,5 +1,11 @@
 import { BUSINESS_TIME_ZONE } from "@/data/contracts/kpi-period";
 
+const businessDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: BUSINESS_TIME_ZONE,
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+});
+
 export function formatBusinessMonth(value: string | null): string {
   if (value === null || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return "—";
   const [year, month] = value.split("-");
@@ -13,15 +19,7 @@ function businessDateTimeParts(value: string) {
     return null;
   }
 
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
+  const parts = businessDateTimeFormatter.formatToParts(date);
   const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value;
   const year = valueFor("year");

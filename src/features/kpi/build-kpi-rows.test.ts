@@ -1,3 +1,4 @@
+import { evaluateKpiDomain } from "@/lib/rules/kpi-domain";
 import { describe, expect, it } from "vitest";
 import {
   mockStores,
@@ -65,15 +66,24 @@ function incomplete<T>(...items: T[]): DataSet<T> {
 function snapshot(
   overrides: Partial<KpiDataSnapshot> = {},
 ): KpiDataSnapshot {
-  return {
+  const source = {
     stores,
-    training: confirmedEmpty(),
-    drills: confirmedEmpty(),
-    inspections: confirmedEmpty(),
-    actionClosureRates: confirmedEmpty(),
-    events: confirmedEmpty(),
+    training: confirmedEmpty<KpiTrainingRecord>(),
+    drills: confirmedEmpty<KpiDrillRecord>(),
+    inspections: confirmedEmpty<import("@/data/contracts/kpi").KpiInspectionRecord>(),
+    actionClosureRates: confirmedEmpty<KpiActionClosureRateRecord>(),
+    events: confirmedEmpty<NormalizedEventRecord>(),
     ...overrides,
   };
+  return { ...source, domainResults: source.stores.map((store) => {
+    const scoped = <T extends { storeId: string }>(data: DataSet<T>) => ({
+      availability: data.availability === "AVAILABLE" && !data.items.some((item) => item.storeId === store.storeId) ? "CONFIRMED_EMPTY" as const : data.availability,
+      items: data.items.filter((item) => item.storeId === store.storeId),
+    });
+    return evaluateKpiDomain({ store, months: q1Context.period.includedMonths,
+      training: scoped(source.training), drills: scoped(source.drills), inspections: scoped(source.inspections),
+      actionClosureRates: scoped(source.actionClosureRates), events: scoped(source.events) }, null);
+  }) };
 }
 
 function event(

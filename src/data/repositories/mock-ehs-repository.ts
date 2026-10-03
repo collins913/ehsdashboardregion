@@ -15,8 +15,8 @@ import type {
   KpiDrillDetailRecord,
   KpiInspectionDetailRecord,
 } from "@/data/contracts/kpi-details";
-import { CERTIFICATE_CATEGORIES, certificateCategoryForType } from "@/lib/rules/certificate-types";
-import { evaluateCertificateCategory, evaluateCertificateRecord } from "@/lib/rules/certificate-rules";
+import { CERTIFICATE_CATEGORIES } from "@/lib/rules/certificate-types";
+import { evaluateCertificateCategoryResult, evaluateCertificateRecord } from "@/lib/rules/certificate-rules";
 import { formatBusinessDate } from "@/lib/format-business-date-time";
 import { parseActionStatus } from "@/data/parse-action-status";
 import {
@@ -29,9 +29,7 @@ import {
   interpretShanghaiSourceDateTime,
   parseKpiPeriod,
   parseTimezoneAwareInstant,
-  shanghaiMonthForDate,
   shanghaiMonthForInstant,
-  periodFromMonthRange,
   type ParsedKpiPeriod,
 } from "@/data/contracts/kpi-period";
 import type {
@@ -40,12 +38,9 @@ import type {
   FilterScope,
   KpiActionClosureRateRecord,
   KpiDataSnapshot,
-  KpiDrillRecord,
   EhsFilterContext,
   EhsStoreScope,
-  KpiInspectionRecord,
   KpiStore,
-  KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type {
   ActionSortKey,
@@ -79,10 +74,8 @@ import type {
   StoresQueryResult,
 } from "@/data/contracts/stores";
 import type {
-  ActionClosureRateRecord,
   ActionRecord,
   EventRecord,
-  InspectionRecord,
   RawActionRecord,
   RawEnvironmentRecord,
   RawCertificateRecord,
@@ -93,24 +86,24 @@ import type {
   TakeChargeRecord,
 } from "@/types/ehs";
 import { classifyActionRecordState } from "@/lib/rules/action-rules";
-import { classifyEventRecordState } from "@/lib/rules/event-rules";
-import {
-  calculateTakeChargeCloseRate,
-  evaluateTakeChargeCloseRate,
-  evaluateTakeChargeParticipateRate,
-  evaluateTakeChargeSubmissionsPerCapita,
-} from "@/lib/rules/goal-rules";
 import { classifyTakeChargeRecordState } from "@/lib/rules/take-charge-rules";
 import { buildTakeChargeMonthlyAggregates } from "@/data/take-charge-monthly-aggregate";
 import { buildEventAnalytics } from "@/lib/rules/event-analytics";
 import { buildActionAnalytics } from "@/lib/rules/action-analytics";
 import { buildEnvironmentAnalytics } from "@/lib/rules/environment-analytics";
-import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
-import { buildOverviewScoreContributions, overviewObservationKey } from "@/lib/rules/overview-scoring";
-import { evaluateExpectedInspections, evaluateRequiredTraining } from "@/lib/rules/overview-required-set-rules";
+import { evaluateKpiDomain } from "@/lib/rules/kpi-domain";
+import { prepareCertificateSources } from "@/data/normalize-certificate-sources";
+import { prepareKpiSources, sourceIssueStoreIds } from "@/data/normalize-kpi-sources";
+import { StorePeriodIndex } from "@/data/store-period-index";
+import type { DomainSource } from "@/data/contracts/domain-result";
+import { produceOverviewScoreData } from "@/lib/rules/overview-production";
+import { evaluateTakeChargeAnnual, evaluateTakeChargePeriod } from "@/lib/rules/goal-domain";
+import { mostSpecificReason } from "@/lib/rules/domain-diagnostics";
 
-function scopeIncludes<T>(scope: FilterScope<T>, value: T): boolean {
-  return scope.kind === "ALL" || scope.values.includes(value);
+function scopePredicate<T>(scope: FilterScope<T>): (value: T) => boolean {
+  if (scope.kind === "ALL") return () => true;
+  const values = new Set(scope.values);
+  return (value) => values.has(value);
 }
 
 function toNormalizedStoreRecord(
@@ -138,12 +131,10 @@ function scopedStoreMaster(
   context: EhsStoreScope,
   stores: readonly StoreMasterData[],
 ) {
-  return stores.filter(
-    (store) =>
-      scopeIncludes(context.region, store.region) &&
-      scopeIncludes(context.area, store.area) &&
-      scopeIncludes(context.store, store.trtid),
-  );
+  const regionIncludes = scopePredicate(context.region);
+  const areaIncludes = scopePredicate(context.area);
+  const storeIncludes = scopePredicate(context.store);
+  return stores.filter((store) => regionIncludes(store.region) && areaIncludes(store.area) && storeIncludes(store.trtid));
 }
 
 function requestedStores(
@@ -242,36 +233,6 @@ function normalizeRecords<T extends { storeReference: StoreReference }, U>(
   return { items, resolutionComplete };
 }
 
-function inspectionRecordsForPeriod(
-  records: readonly InspectionRecord[],
-  selectedStoreIds: ReadonlySet<StoreId>,
-  includedMonths: ReadonlySet<Month>,
-  resolveReference: StoreReferenceResolver,
-): { items: readonly InspectionRecord[]; dateCoverageComplete: boolean } {
-  const items: InspectionRecord[] = [];
-  let dateCoverageComplete = true;
-
-  for (const record of records) {
-    const resolution = resolveReference(record.storeReference);
-    if (
-      resolution.kind === "RESOLVED" &&
-      !selectedStoreIds.has(resolution.store.trtid)
-    ) {
-      continue;
-    }
-
-    const month = shanghaiMonthForDate(record.dueDate);
-    if (month === null) {
-      dateCoverageComplete = false;
-      continue;
-    }
-
-    if (includedMonths.has(month)) items.push(record);
-  }
-
-  return { items, dateCoverageComplete };
-}
-
 function withCoverage<T>(
   items: readonly T[],
   scopeCovered: boolean,
@@ -294,36 +255,6 @@ function preserveDataSetAvailability<T>(
   if (source.availability === "INCOMPLETE") return incompleteDataSet(items);
   if (source.availability === "UNAVAILABLE") return { availability: "UNAVAILABLE", items: [] };
   return completeDataSet(items);
-}
-
-function periodMatches(
-  startInclusive: string,
-  endExclusive: string,
-  parsedPeriod: ParsedKpiPeriod | null,
-): boolean {
-  return (
-    parsedPeriod !== null &&
-    parseTimezoneAwareInstant(startInclusive) === parsedPeriod.startMilliseconds &&
-    parseTimezoneAwareInstant(endExclusive) === parsedPeriod.endMilliseconds
-  );
-}
-
-function matchingActionAggregates(
-  records: readonly ActionClosureRateRecord[],
-  parsedPeriod: ParsedKpiPeriod | null,
-): readonly ActionClosureRateRecord[] {
-  return records.filter((record) =>
-    periodMatches(record.startInclusive, record.endExclusive, parsedPeriod),
-  );
-}
-
-function isActionAggregateScopeCovered(
-  coverage: KpiMockCoverage,
-  parsedPeriod: ParsedKpiPeriod | null,
-): boolean {
-  return coverage.actionAggregateScopes.some((scope) =>
-    periodMatches(scope.startInclusive, scope.endExclusive, parsedPeriod),
-  );
 }
 
 type MockEhsRepositoryOptions = {
@@ -442,15 +373,14 @@ function eventSortValue(
 type PreparedMockDataset = {
   resolveStoreReference: StoreReferenceResolver;
   parsedActionRecords: readonly ActionRecord[];
-  eventRecords: readonly EventRecord[];
   normalizedTakeChargeRecords: readonly NormalizedTakeChargeRecord[];
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[];
   readTakeChargeAnnualAggregate: ReturnType<
     typeof createMockTakeChargeAnnualAggregateReader
   >;
-  takeChargeResolutionComplete: boolean;
-  takeChargeDateCoverageComplete: boolean;
-  takeChargeStatusCoverageComplete: boolean;
+  kpiSources: ReturnType<typeof prepareKpiSources>;
+  certificateSources: ReturnType<typeof prepareCertificateSources>;
+  takeChargeIndex: StorePeriodIndex<NormalizedTakeChargeRecord>;
   takeChargeMonthlyAggregates: ReturnType<
     typeof buildTakeChargeMonthlyAggregates
   >;
@@ -461,10 +391,11 @@ const preparedDatasetCache = new WeakMap<MockDataset, PreparedMockDataset>();
 function prepareMockDataset(
   stores: readonly StoreMasterData[],
   rawActionRecords: readonly RawActionRecord[],
-  eventRecords: readonly EventRecord[],
   takeChargeRecords: readonly TakeChargeRecord[],
   takeChargeFieldDefinitions: readonly TakeChargeFieldDefinition[],
   takeChargeAnnualAggregateFixtures: readonly MockTakeChargeAnnualAggregateFixture[],
+  kpiRawSources: Parameters<typeof prepareKpiSources>[0],
+  certificateRecords: readonly RawCertificateRecord[],
 ): PreparedMockDataset {
   const resolveStoreReference = createStoreReferenceResolver(stores);
   const parsedActionRecords: readonly ActionRecord[] = rawActionRecords.map(
@@ -474,9 +405,7 @@ function prepareMockDataset(
     }),
   );
   const normalizedTakeChargeRecords: NormalizedTakeChargeRecord[] = [];
-  let takeChargeResolutionComplete = true;
-  let takeChargeDateCoverageComplete = true;
-  let takeChargeStatusCoverageComplete = true;
+  const takeChargeIndex = new StorePeriodIndex<NormalizedTakeChargeRecord>();
 
   for (const record of takeChargeRecords) {
     const resolution = resolveStoreReference(record.storeReference);
@@ -489,17 +418,17 @@ function prepareMockDataset(
         : shanghaiMonthForInstant(normalizedSubmittedAt);
 
     if (resolution.kind !== "RESOLVED") {
-      takeChargeResolutionComplete = false;
+      takeChargeIndex.issue(sourceIssueStoreIds(record.storeReference, stores), submittedMonth, "SOURCE_INVALID");
       continue;
     }
 
     if (normalizedSubmittedAt === null || submittedMonth === null) {
-      takeChargeDateCoverageComplete = false;
+      takeChargeIndex.issue([resolution.store.trtid], null, record.submittedAt ? "SOURCE_INVALID" : "SOURCE_MISSING");
       continue;
     }
 
-    if (record.Status.trim().length === 0) {
-      takeChargeStatusCoverageComplete = false;
+    if (typeof record.Status !== "string" || record.Status.trim().length === 0) {
+      takeChargeIndex.issue([resolution.store.trtid], submittedMonth, typeof record.Status === "string" ? "SOURCE_INCOMPLETE" : "SOURCE_INVALID");
     }
 
     const extraFields = Object.fromEntries(
@@ -509,33 +438,35 @@ function prepareMockDataset(
       ]),
     );
 
-    normalizedTakeChargeRecords.push({
+    const sourceStatus = normalizedSourceStatus(record.Status) ?? "";
+    const normalized: NormalizedTakeChargeRecord = {
       storeId: resolution.store.trtid,
       storeDisplayName: resolution.store.storeNameCn,
       tchId: record.tchId,
       submittedBy: record.submittedBy,
       submittedAt: normalizedSubmittedAt,
       summary: record.summary,
-      sourceStatus: record.Status.trim(),
-      recordState: classifyTakeChargeRecordState(record.Status),
+      sourceStatus,
+      recordState: classifyTakeChargeRecordState(sourceStatus),
       extraFields,
       sourceReference: record.sourceReference,
-    });
+    };
+    normalizedTakeChargeRecords.push(normalized);
+    takeChargeIndex.add(normalized.storeId, submittedMonth, normalized);
   }
 
   return {
     resolveStoreReference,
     parsedActionRecords,
-    eventRecords,
     normalizedTakeChargeRecords,
     takeChargeFieldDefinitions,
     readTakeChargeAnnualAggregate:
       createMockTakeChargeAnnualAggregateReader(
         takeChargeAnnualAggregateFixtures,
       ),
-    takeChargeResolutionComplete,
-    takeChargeDateCoverageComplete,
-    takeChargeStatusCoverageComplete,
+    kpiSources: prepareKpiSources(kpiRawSources, stores, resolveStoreReference),
+    certificateSources: prepareCertificateSources(certificateRecords, stores, resolveStoreReference),
+    takeChargeIndex,
     takeChargeMonthlyAggregates: buildTakeChargeMonthlyAggregates(
       normalizedTakeChargeRecords,
     ),
@@ -562,6 +493,7 @@ export function createMockEhsRepository(
     options.takeChargeAnnualAggregateFixtures ??
     mockData.takeChargeAnnualAggregateFixtures;
   const hasOverrides =
+    options.certificateRecords !== undefined ||
     options.actionRecords !== undefined ||
     options.eventRecords !== undefined ||
     options.takeChargeRecords !== undefined ||
@@ -576,10 +508,11 @@ export function createMockEhsRepository(
     prepareMockDataset(
       stores,
       rawActionRecords,
-      rawEventRecords,
       takeChargeRecords,
       rawTakeChargeFieldDefinitions,
       rawTakeChargeAnnualAggregateFixtures,
+      { ...mockData, eventRecords: rawEventRecords },
+      options.certificateRecords ?? mockData.certificateRecords,
     );
 
   if (options.dataset !== undefined && !hasOverrides && cachedPrepared === undefined) {
@@ -590,131 +523,66 @@ export function createMockEhsRepository(
     resolveStoreReference,
     parsedActionRecords,
     normalizedTakeChargeRecords,
-    takeChargeResolutionComplete,
-    takeChargeDateCoverageComplete,
-    takeChargeStatusCoverageComplete,
+    kpiSources,
+    certificateSources,
+    takeChargeIndex,
     takeChargeMonthlyAggregates,
-    eventRecords,
     takeChargeFieldDefinitions,
     readTakeChargeAnnualAggregate,
   } = prepared;
 
-  async function getKpiData(
-    context: EhsFilterContext,
-  ): Promise<KpiDataSnapshot> {
+  // Coverage is prepared once, then checked independently for each Store.
+  const coverageStoreIds = new Set(mockData.coverage.storeIds);
+  const coverageMonths = new Set(mockData.coverage.period.includedMonths);
+  const coverageStart = parseTimezoneAwareInstant(mockData.coverage.period.startInclusive);
+  const coverageEnd = parseTimezoneAwareInstant(mockData.coverage.period.endExclusive);
+  const actionAggregateScopes = new Set(mockData.coverage.actionAggregateScopes.map((period) =>
+    `${parseTimezoneAwareInstant(period.startInclusive)}\u0000${parseTimezoneAwareInstant(period.endExclusive)}`));
+  function coverageForPeriod(context: EhsFilterContext, parsed: ParsedKpiPeriod | null) {
+    const periodCovered = parsed !== null && coverageStart !== null && coverageEnd !== null &&
+      parsed.startMilliseconds >= coverageStart && parsed.endMilliseconds <= coverageEnd &&
+      context.period.includedMonths.every((month) => coverageMonths.has(month));
+    return (storeId: StoreId, source: keyof KpiMockCoverage["sourceCoverage"]) =>
+      periodCovered && coverageStoreIds.has(storeId) && mockData.coverage.sourceCoverage[source] === "COMPLETE";
+  }
+  function mergeSources<T>(sources: readonly DomainSource<T>[], unattributedIssues = 0): DataSet<T> {
+    const items = sources.flatMap((source) => source.items);
+    return sources.some((source) => source.availability === "INCOMPLETE") || unattributedIssues > 0
+      ? incompleteDataSet(items) : completeDataSet(items);
+  }
+  function kpiDomainInputs(context: EhsFilterContext) {
     const requestedStoreList = requestedStores(context, stores);
-    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
-    const selectedStoreIds = new Set(selectedStoreIdList);
-    const includedMonths = new Set(context.period.includedMonths);
-    const parsedPeriod = parseKpiPeriod(context.period);
-    const coverage = mockData.coverage;
-    const scopedInspectionRecords = inspectionRecordsForPeriod(
-      mockData.inspectionRecords,
-      selectedStoreIds,
-      includedMonths,
-      resolveStoreReference,
-    );
-
-    const training = normalizeRecords(
-      mockData.trainingRecords.filter((record) =>
-        includedMonths.has(record.month),
-      ),
-      selectedStoreIds,
-      (record, storeId): KpiTrainingRecord => ({
-        storeId,
-        month: record.month,
-        trainingName: record.trainingName,
-        completionRate: record.completionRate,
-        incompletePeople: record.incompletePeople,
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-    const drills = normalizeRecords(
-      mockData.drillRecords.filter((record) =>
-        includedMonths.has(record.month),
-      ),
-      selectedStoreIds,
-      (record, storeId): KpiDrillRecord => ({
-        storeId,
-        month: record.month,
-        status: normalizedSourceStatus(record.status),
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-    const inspections = normalizeRecords(
-      scopedInspectionRecords.items,
-      selectedStoreIds,
-      (record, storeId): KpiInspectionRecord => ({
-        storeId,
-        inspectionNumber: record.inspectionNumber,
-        inspectionName: record.inspectionName,
-        status: normalizedSourceStatus(record.status),
-        sourceStatusInvalid: record.status !== null && typeof record.status !== "string",
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-
-    const aggregateScopeCovered = isActionAggregateScopeCovered(
-      coverage,
-      parsedPeriod,
-    );
-    const actionClosureRates = normalizeRecords(
-      matchingActionAggregates(mockData.actionClosureRates, parsedPeriod),
-      selectedStoreIds,
-      (record, storeId): KpiActionClosureRateRecord => ({
-        storeId,
-        value: record.value,
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-
+    const months = context.period.includedMonths;
+    const parsed = parseKpiPeriod(context.period);
+    const covered = coverageForPeriod(context, parsed);
+    const aggregateKey = `${parsed?.startMilliseconds}\u0000${parsed?.endMilliseconds}`;
+    const actionIndex = kpiSources.actions.get(aggregateKey) ?? new StorePeriodIndex<KpiActionClosureRateRecord>();
+    return requestedStoreList.map((store) => ({
+      store, months,
+      training: kpiSources.training.read(store.storeId, months, covered(store.storeId, "training")),
+      drills: kpiSources.drills.read(store.storeId, months, covered(store.storeId, "drills")),
+      inspections: kpiSources.inspections.read(store.storeId, months, covered(store.storeId, "inspections")),
+      actionClosureRates: (() => {
+        const source = actionIndex.read(store.storeId, ["AGGREGATE" as Month], covered(store.storeId, "actionClosureRates") && actionAggregateScopes.has(aggregateKey));
+        const defect = kpiSources.actionIssues.read(store.storeId, months, true);
+        return defect.reason ? { ...source, availability: "INCOMPLETE" as const, reason: defect.reason } : source;
+      })(),
+      events: kpiSources.events.read(store.storeId, months, covered(store.storeId, "events")),
+    }));
+  }
+  async function getKpiDomainResults(context: EhsFilterContext) {
+    return kpiDomainInputs(context).map((input) => evaluateKpiDomain(input, overviewRequiredSetProvider));
+  }
+  async function getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot> {
+    const sources = kpiDomainInputs(context);
     return {
-      stores: requestedStoreList,
-      training: withCoverage(
-        training.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "training",
-        ),
-        training.resolutionComplete,
-      ),
-      drills: withCoverage(
-        drills.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "drills",
-        ),
-        drills.resolutionComplete,
-      ),
-      inspections: withCoverage(
-        inspections.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "inspections",
-        ) && scopedInspectionRecords.dateCoverageComplete,
-        inspections.resolutionComplete,
-      ),
-      actionClosureRates: withCoverage(
-        actionClosureRates.items,
-        isSourceCovered(
-          context,
-          selectedStoreIdList,
-          parsedPeriod,
-          coverage,
-          "actionClosureRates",
-        ) && aggregateScopeCovered,
-        actionClosureRates.resolutionComplete,
-      ),
-      events: eventDataSet(context, "ALL"),
+      stores: sources.map((source) => source.store),
+      domainResults: sources.map((input) => evaluateKpiDomain(input, overviewRequiredSetProvider)),
+      training: mergeSources(sources.map((source) => source.training), kpiSources.training.unattributedIssueCountFor(context.period.includedMonths)),
+      drills: mergeSources(sources.map((source) => source.drills), kpiSources.drills.unattributedIssueCountFor(context.period.includedMonths)),
+      inspections: mergeSources(sources.map((source) => source.inspections), kpiSources.inspections.unattributedIssueCountFor(context.period.includedMonths)),
+      actionClosureRates: mergeSources(sources.map((source) => source.actionClosureRates), (kpiSources.actions.get(`${parseTimezoneAwareInstant(context.period.startInclusive)}\u0000${parseTimezoneAwareInstant(context.period.endExclusive)}`)?.unattributedIssueCountFor(["AGGREGATE" as Month]) ?? 0) + kpiSources.actionIssues.unattributedIssueCountFor(context.period.includedMonths)),
+      events: mergeSources(sources.map((source) => source.events), kpiSources.events.unattributedIssueCountFor(context.period.includedMonths)),
     };
   }
 
@@ -736,124 +604,36 @@ export function createMockEhsRepository(
   async function getKpiTrainingDetails(query: KpiDetailQuery) {
     const scope = detailScope(query);
     if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
-    const normalized = normalizeRecords(
-      mockData.trainingRecords.filter((record) =>
-        scope.includedMonths.has(record.month),
-      ),
-      scope.selectedStoreIds,
-      (record): KpiTrainingDetailRecord => ({
-        trainingName: record.trainingName,
-        month: record.month,
-        completionRate: record.completionRate,
-        incompletePeople: record.incompletePeople,
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-    const items = [...normalized.items].sort(
-      (left, right) =>
-        right.month.localeCompare(left.month) ||
-        left.trainingName.localeCompare(right.trainingName),
-    );
-
-    return withCoverage(
-      items,
-      isSourceCovered(
-        query.context,
-        scope.storeIds,
-        scope.parsedPeriod,
-        mockData.coverage,
-        "training",
-      ),
-      normalized.resolutionComplete,
-    );
+    const source = kpiSources.training.read(query.storeId, query.context.period.includedMonths,
+      coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "training"));
+    const items: KpiTrainingDetailRecord[] = source.items.map(({ trainingName, month, completionRate, incompletePeople }) =>
+      ({ trainingName, month, completionRate, incompletePeople })).sort((a, b) => b.month.localeCompare(a.month) || a.trainingName.localeCompare(b.trainingName));
+    return source.reason ? incompleteDataSet(items) : completeDataSet(items);
   }
-
   async function getKpiDrillDetails(query: KpiDetailQuery) {
     const scope = detailScope(query);
     if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
-    const normalized = normalizeRecords(
-      mockData.drillRecords.filter((record) =>
-        scope.includedMonths.has(record.month),
-      ),
-      scope.selectedStoreIds,
-      (record): KpiDrillDetailRecord => ({
-        drillName: record.drillName,
-        month: record.month,
-        status: normalizedSourceStatus(record.status),
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-    const items = [...normalized.items].sort(
-      (left, right) =>
-        right.month.localeCompare(left.month) ||
-        left.drillName.localeCompare(right.drillName),
-    );
-
-    return withCoverage(
-      items,
-      isSourceCovered(
-        query.context,
-        scope.storeIds,
-        scope.parsedPeriod,
-        mockData.coverage,
-        "drills",
-      ) && items.every((record) => record.status !== null),
-      normalized.resolutionComplete,
-    );
+    const source = kpiSources.drills.read(query.storeId, query.context.period.includedMonths,
+      coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "drills"));
+    const items: KpiDrillDetailRecord[] = source.items.map(({ drillName, month, status }) =>
+      ({ drillName, month, status })).sort((a, b) => b.month.localeCompare(a.month) || a.drillName.localeCompare(b.drillName));
+    return source.reason || items.some((item) => item.status === null) ? incompleteDataSet(items) : completeDataSet(items);
   }
-
   async function getKpiInspectionDetails(query: KpiDetailQuery) {
     const scope = detailScope(query);
     if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
-    const scopedRecords = inspectionRecordsForPeriod(
-      mockData.inspectionRecords,
-      scope.selectedStoreIds,
-      scope.includedMonths,
-      resolveStoreReference,
-    );
-    const normalized = normalizeRecords(
-      scopedRecords.items,
-      scope.selectedStoreIds,
-      (record): KpiInspectionDetailRecord => ({
-        inspectionNumber: record.inspectionNumber,
-        inspectionName: record.inspectionName,
-        dueDate: record.dueDate,
-        inspector: record.inspector,
-        status: normalizedSourceStatus(record.status),
-      }),
-      (reference) => resolveStoreId(reference, resolveStoreReference),
-    );
-    const validDate = (value: string | null) =>
-      value !== null && shanghaiMonthForDate(value) !== null ? value : null;
-    const items = [...normalized.items].sort((left, right) => {
-      const leftDate = validDate(left.dueDate);
-      const rightDate = validDate(right.dueDate);
-      if (leftDate === null && rightDate !== null) return 1;
-      if (leftDate !== null && rightDate === null) return -1;
-      if (leftDate !== null && rightDate !== null) {
-        const comparison = rightDate.localeCompare(leftDate);
-        if (comparison !== 0) return comparison;
-      }
-      return left.inspectionName.localeCompare(right.inspectionName);
-    });
-
-    return withCoverage(
-      items,
-      isSourceCovered(
-        query.context,
-        scope.storeIds,
-        scope.parsedPeriod,
-        mockData.coverage,
-        "inspections",
-      ) && scopedRecords.dateCoverageComplete,
-      normalized.resolutionComplete,
-    );
+    const source = kpiSources.inspections.read(query.storeId, query.context.period.includedMonths,
+      coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "inspections"));
+    const items: KpiInspectionDetailRecord[] = source.items.map(({ inspectionNumber, inspectionName, dueDate, inspector, status }) =>
+      ({ inspectionNumber, inspectionName, dueDate, inspector, status })).sort((a, b) =>
+        (b.dueDate ?? "").localeCompare(a.dueDate ?? "") || a.inspectionName.localeCompare(b.inspectionName));
+    return source.reason ? incompleteDataSet(items) : completeDataSet(items);
   }
 
   async function getKpiAstmDetails(query: KpiDetailQuery) {
     const scope = detailScope(query);
     if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
-    const source = eventDataSet(query.context, "ALL");
+    const source = eventDataSet({ ...query.context, store: { kind: "INCLUDE", values: [query.storeId] } }, "ALL");
     const items = source.items
       .filter(
         (record) =>
@@ -1010,89 +790,15 @@ export function createMockEhsRepository(
     };
   }
 
-  function eventDataSet(
-    context: EhsFilterContext,
-    viewMode: EventsQuery["viewMode"],
-  ): DataSet<NormalizedEventRecord> {
-    const requestedStoreList = requestedStores(context, stores);
-    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
-    const selectedStoreIds = new Set(selectedStoreIdList);
-    const parsedPeriod = parseKpiPeriod(context.period);
-    const normalizedEvents: NormalizedEventRecord[] = [];
-    let resolutionComplete = true;
-    let dateCoverageComplete = parsedPeriod !== null;
-    let enumCoverageComplete = true;
-
-    if (parsedPeriod !== null) {
-      for (const record of eventRecords) {
-        const eventDate = interpretShanghaiSourceDateTime(record.eventDate);
-
-        if (eventDate === null) {
-          dateCoverageComplete = false;
-          continue;
-        }
-
-        const isIncluded = isInstantInKpiPeriod(eventDate, parsedPeriod);
-
-        if (isIncluded === null) {
-          dateCoverageComplete = false;
-          continue;
-        }
-
-        if (!isIncluded) {
-          continue;
-        }
-
-        const resolution = resolveStoreReference(record.storeReference);
-
-        if (resolution.kind !== "RESOLVED") {
-          resolutionComplete = false;
-          continue;
-        }
-
-        const storeId = resolution.store.trtid;
-
-        if (!selectedStoreIds.has(storeId)) {
-          continue;
-        }
-
-        if (record.ASTMInjuryIllness !== "Yes" && record.ASTMInjuryIllness !== "No") {
-          enumCoverageComplete = false;
-        }
-
-        const recordState = classifyEventRecordState(record.Status);
-
-        if (viewMode === "OPEN_ONLY" && recordState !== "OPEN") {
-          continue;
-        }
-
-        normalizedEvents.push({
-          storeId,
-          storeDisplayName: resolution.store.storeNameCn,
-          eventId: record.eventId,
-          eventType: record.eventType,
-          submittedBy: record.submittedBy,
-          eventDate,
-          description: record.EventDetail.Description,
-          sourceStatus: record.Status,
-          recordState,
-          astmInjuryIllness: record.ASTMInjuryIllness,
-          sourceReference: record.sourceReference,
-        });
-      }
-    }
-
-    return withCoverage(
-      normalizedEvents,
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        mockData.coverage,
-        "events",
-      ),
-      resolutionComplete && dateCoverageComplete && enumCoverageComplete,
-    );
+  function eventDataSet(context: EhsFilterContext, viewMode: EventsQuery["viewMode"]): DataSet<NormalizedEventRecord> {
+    const parsed = parseKpiPeriod(context.period);
+    if (parsed === null) return incompleteDataSet();
+    const covered = coverageForPeriod(context, parsed);
+    const sources = requestedStores(context, stores).map((store) => {
+      const source = kpiSources.events.read(store.storeId, context.period.includedMonths, covered(store.storeId, "events"));
+      return { ...source, items: source.items.filter((record) => viewMode === "ALL" || record.recordState === "OPEN") };
+    });
+    return mergeSources(sources, kpiSources.events.unattributedIssueCountFor(context.period.includedMonths));
   }
 
   async function getEvents({
@@ -1154,86 +860,42 @@ export function createMockEhsRepository(
     };
   }
 
-  async function getTakeChargeGoals({
-    context,
-  }: TakeChargeGoalsQuery): Promise<TakeChargeGoalsSummary> {
-    const requestedStoreList = requestedStores(context, stores);
-    const selectedStoreIdList = requestedStoreList.map(({ storeId }) => storeId);
-    const selectedStoreIds = new Set(selectedStoreIdList);
-    const includedMonths = new Set(context.period.includedMonths);
-    const parsedPeriod = parseKpiPeriod(context.period);
-    const periodCovered = isSourceCovered(
-      context,
-      selectedStoreIdList,
-      parsedPeriod,
-      mockData.coverage,
-      "takeCharge",
-    );
-    const periodAggregates = takeChargeMonthlyAggregates.filter(
-      (record) =>
-        selectedStoreIds.has(record.storeId) &&
-        includedMonths.has(record.month),
-    );
-    const submissionTotal = periodAggregates.reduce(
-      (sum, record) => sum + record.totalCount,
-      0,
-    );
-    const closedCount = periodAggregates.reduce(
-      (sum, record) => sum + record.closedCount,
-      0,
-    );
-    const periodAvailability =
-      periodCovered &&
-      takeChargeResolutionComplete &&
-      takeChargeDateCoverageComplete &&
-      takeChargeStatusCoverageComplete
-        ? submissionTotal === 0
-          ? "CONFIRMED_EMPTY"
-          : "AVAILABLE"
-        : "INCOMPLETE";
-    const closeRateValue =
-      periodAvailability === "AVAILABLE"
-        ? calculateTakeChargeCloseRate(closedCount, submissionTotal)
-        : null;
-    const currentYear = Number(mockData.supportedMonths[0].slice(0, 4));
-    const annualAggregate = readTakeChargeAnnualAggregate(
-      currentYear,
-      selectedStoreIdList,
-      context.period.includedMonths.at(-1),
-    );
-    const averageSubmissionsYtd =
-      annualAggregate?.averageSubmissionsYtd ?? null;
-    const participationRateYtd =
-      annualAggregate?.participationRateYtd ?? null;
-
+  const takeChargeMonthlyByKey = new Map(takeChargeMonthlyAggregates.map((row) => [`${row.storeId}\u0000${row.month}`, row]));
+  function takeChargePeriodSource(storeIds: readonly StoreId[], context: EhsFilterContext, covered: ReturnType<typeof coverageForPeriod>) {
+    const sourceSlices = storeIds.map((storeId) => takeChargeIndex.read(storeId, context.period.includedMonths, covered(storeId, "takeCharge")));
+    const reason = mostSpecificReason(sourceSlices.map((source) => source.reason));
+    let totalCount = 0, closedCount = 0;
+    for (const storeId of storeIds) for (const month of context.period.includedMonths) {
+      const aggregate = takeChargeMonthlyByKey.get(`${storeId}\u0000${month}`);
+      totalCount += aggregate?.totalCount ?? 0;
+      closedCount += aggregate?.closedCount ?? 0;
+    }
+    const availability: DataAvailability = reason !== "ACHIEVED" ? "INCOMPLETE" : totalCount ? "AVAILABLE" : "CONFIRMED_EMPTY";
+    return { totalCount, closedCount, availability, reason: reason === "ACHIEVED" ? undefined : reason };
+  }
+  function annualGoalResult(storeIds: readonly StoreId[], referenceMonth: Month) {
+    return evaluateTakeChargeAnnual(readTakeChargeAnnualAggregate(Number(referenceMonth.slice(0, 4)), storeIds, referenceMonth));
+  }
+  async function getTakeChargeGoals({ context }: TakeChargeGoalsQuery): Promise<TakeChargeGoalsSummary> {
+    const storeIds = requestedStores(context, stores).map((store) => store.storeId);
+    const source = takeChargePeriodSource(storeIds, context, coverageForPeriod(context, parseKpiPeriod(context.period)));
+    const referenceMonth = shanghaiMonthForInstant(referenceDate.toISOString())!;
     return {
-      period: {
-        availability: periodAvailability,
-        period: context.period,
-        submissionTotal:
-          periodAvailability === "INCOMPLETE" ? null : submissionTotal,
-        closedCount:
-          periodAvailability === "INCOMPLETE" ? null : closedCount,
-        closeRate: {
-          value: closeRateValue,
-          result: evaluateTakeChargeCloseRate(closeRateValue),
-        },
-      },
-      annual: {
-        availability: annualAggregate === null ? "INCOMPLETE" : "AVAILABLE",
-        currentYear,
-        averageSubmissionsYtd: {
-          value: averageSubmissionsYtd,
-          result: evaluateTakeChargeSubmissionsPerCapita(
-            averageSubmissionsYtd,
-          ),
-        },
-        participationRateYtd: {
-          value: participationRateYtd,
-          result: evaluateTakeChargeParticipateRate(participationRateYtd),
-        },
-      },
+      period: { availability: source.availability, period: context.period,
+        submissionTotal: source.reason ? null : source.totalCount, closedCount: source.reason ? null : source.closedCount,
+        closeRate: evaluateTakeChargePeriod(source.totalCount, source.closedCount, source.availability, source.reason) },
+      annual: { ...annualGoalResult(storeIds, referenceMonth), currentYear: Number(referenceMonth.slice(0, 4)) },
     };
+  }
+  async function getStoreGoalDomainResults(context: EhsFilterContext, referenceDay: string) {
+    const covered = coverageForPeriod(context, parseKpiPeriod(context.period));
+    const referenceMonth = referenceDay.slice(0, 7) as Month;
+    return requestedStores(context, stores).map(({ storeId }) => {
+      const source = takeChargePeriodSource([storeId], context, covered);
+      const annual = annualGoalResult([storeId], referenceMonth);
+      return { storeId, closeRate: evaluateTakeChargePeriod(source.totalCount, source.closedCount, source.availability, source.reason),
+        averageSubmissionsYtd: annual.averageSubmissionsYtd, participationRateYtd: annual.participationRateYtd };
+    });
   }
 
   async function getTakeChargeRecords({
@@ -1300,9 +962,8 @@ export function createMockEhsRepository(
         mockData.coverage,
         "takeCharge",
       ) &&
-      takeChargeResolutionComplete &&
-      takeChargeDateCoverageComplete &&
-      takeChargeStatusCoverageComplete;
+      takeChargeIndex.unattributedIssueCountFor(context.period.includedMonths) === 0 &&
+      selectedStoreIdList.every((storeId) => takeChargeIndex.read(storeId, context.period.includedMonths, true).reason === undefined);
     const pageIndex = pageIndexForResult(
       requestedPageIndex,
       records.length,
@@ -1436,30 +1097,21 @@ export function createMockEhsRepository(
     const selectedStores = requestedStores(context, stores);
     const selectedIds = new Set(selectedStores.map((store) => store.storeId));
     const records: NormalizedCertificateRecord[] = [];
+    const issues = new Map<string, import("@/data/contracts/domain-result").DomainReason>();
     let complete = true;
     const referenceDay = requestedReferenceDate ?? formatBusinessDate(referenceDate.toISOString());
-    for (const raw of options.certificateRecords ?? mockData.certificateRecords) {
-      const resolution = resolveStoreReference({ trtid: raw.TRTID, storeNameEn: raw["English Store Name"] });
-      if (resolution.kind !== "RESOLVED") {
-        complete = false;
-        continue;
-      }
-      const store = toKpiStore(resolution.store);
-      if (!selectedIds.has(store.storeId)) continue;
-      records.push({
-        storeId: store.storeId, storeDisplayName: store.displayName,
-        certificateCategory: certificateCategoryForType(raw["Certificate Type"]),
-        certificateType: raw["Certificate Type"], person: raw.Person,
-        personEmail: raw["Person Email"], businessTitle: raw["Business Title"],
-        expiryDate: raw["Expiry Date"],
-        ...evaluateCertificateRecord(raw["Expiry Date"], referenceDay),
-      });
+    for (const issue of certificateSources.issues) {
+      if (issue.storeIds.length === 0 || issue.storeIds.some((id) => selectedIds.has(id))) complete = false;
+      for (const storeId of issue.storeIds) if (issue.category) issues.set(`${storeId}\u0000${issue.category}`, "SOURCE_INVALID");
+    }
+    for (const store of selectedStores) for (const record of certificateSources.byStore.get(store.storeId) ?? []) {
+      records.push({ ...record, ...evaluateCertificateRecord(record.expiryDate, referenceDay) });
     }
     const items = selectedStores.map((store) => ({
       storeId: store.storeId, storeDisplayName: store.displayName,
       categories: CERTIFICATE_CATEGORIES.map((certificateCategory) => {
         const categoryRecords = records.filter((record) => record.storeId === store.storeId && record.certificateCategory === certificateCategory);
-        return { certificateCategory, status: evaluateCertificateCategory(categoryRecords), records: categoryRecords };
+        return { certificateCategory, ...evaluateCertificateCategoryResult(categoryRecords, issues.get(`${store.storeId}\u0000${certificateCategory}`)), records: categoryRecords };
       }),
     }));
     return {
@@ -1469,128 +1121,17 @@ export function createMockEhsRepository(
   }
 
   async function getOverviewScoreData({ scope, attentionScope }: OverviewScoreDataQuery): Promise<OverviewScoreData> {
-    const selectedStores = requestedStores(scope, stores);
-    const attentionStores = requestedStores(attentionScope ?? scope, stores);
-    const calculationStores = [...new Map([...selectedStores, ...attentionStores].map((store) => [store.storeId, store])).values()];
-    const observations = new Map<string, import("@/lib/rules/overview-scoring").OverviewDomainObservation>();
-    const put = (storeId: StoreId, month: Month, metricId: import("@/data/contracts/overview").OverviewMetricId, value: import("@/lib/rules/overview-scoring").OverviewDomainObservation) => {
-      observations.set(overviewObservationKey(storeId, month, metricId), value);
-    };
-    const monthEnd = (month: Month) => {
-      const [year, number] = month.split("-").map(Number);
-      if (month === mockData.supportedMonths.at(-1)) return formatBusinessDate(referenceDate.toISOString());
-      return new Date(Date.UTC(year, number, 0)).toISOString().slice(0, 10);
-    };
-    const annualByKey = new Map(rawTakeChargeAnnualAggregateFixtures.map((fixture) => [`${fixture.storeId}\u0000${fixture.referenceMonth}`, fixture]));
-    const monthlyByKey = new Map(takeChargeMonthlyAggregates.map((aggregate) => [`${aggregate.storeId}\u0000${aggregate.month}`, aggregate]));
-    const selectedStoreIds = calculationStores.map(({ storeId }) => storeId);
-
-    for (const month of mockData.supportedMonths) {
-      const period = periodFromMonthRange(month, month);
-      if (!period) continue;
-      const context: EhsFilterContext = { ...(attentionScope ?? scope), period };
-      const snapshot = await getKpiData(context);
-      const kpiRows = buildKpiRows(context, snapshot);
-      const sourceReason = (availability: DataAvailability) => availability === "UNAVAILABLE" ? "SOURCE_MISSING" as const : "SOURCE_INCOMPLETE" as const;
-
-      for (const row of kpiRows) {
-        const { storeId } = row.store;
-        const trainingEvaluation = evaluateRequiredTraining(
-          overviewRequiredSetProvider?.getRequiredTrainingItems({ storeId, month }) ?? null,
-          snapshot.training.items.filter((record) => record.storeId === storeId && record.month === month),
-          snapshot.training.availability,
-        );
-        put(storeId, month, "TRAINING", { kind: "DOMAIN_ACHIEVEMENT", ...trainingEvaluation });
-
-        const inspectionEvaluation = evaluateExpectedInspections(
-          overviewRequiredSetProvider?.getExpectedInspectionTasks({ storeId, month }) ?? null,
-          snapshot.inspections.items.filter((record) => record.storeId === storeId),
-          snapshot.inspections.availability,
-        );
-        put(storeId, month, "INSPECTION", { kind: "DOMAIN_ACHIEVEMENT", ...inspectionEvaluation });
-
-        const drillAvailability = row.drill.availability;
-        put(storeId, month, "DRILL", drillAvailability === "INCOMPLETE" || drillAvailability === "UNAVAILABLE"
-          ? { kind: drillAvailability === "UNAVAILABLE" ? "SOURCE_MISSING" : "SOURCE_INCOMPLETE" }
-          : { kind: "PERFORMANCE_RESULT", result: row.drill.result, undeterminedReason: "SOURCE_INVALID" });
-
-        const actionAvailability = row.actions.availability;
-        put(storeId, month, "ACTION_CLOSURE_RATE", actionAvailability === "INCOMPLETE" || actionAvailability === "UNAVAILABLE"
-          ? { kind: sourceReason(actionAvailability) }
-          : row.actions.value === null && row.actions.result === "UNDETERMINED"
-            ? { kind: "SOURCE_INVALID" }
-            : { kind: "PERFORMANCE_RESULT", result: row.actions.result, undeterminedReason: "SOURCE_INVALID" });
-
-        const astmAvailability = row.astmEvents.availability;
-        put(storeId, month, "ASTM_INCIDENT", astmAvailability === "INCOMPLETE" || astmAvailability === "UNAVAILABLE"
-          ? { kind: sourceReason(astmAvailability) }
-          : { kind: "ASTM_RESULT", result: row.astmEvents.result, unavailableReason: "SOURCE_INVALID" });
-
-        const aggregate = monthlyByKey.get(`${storeId}\u0000${month}`);
-        const takeChargeCovered = isSourceCovered(context, selectedStoreIds, parseKpiPeriod(period), mockData.coverage, "takeCharge") &&
-          takeChargeResolutionComplete && takeChargeDateCoverageComplete && takeChargeStatusCoverageComplete;
-        if (!takeChargeCovered) {
-          put(storeId, month, "TAKE_CHARGE_CLOSE_RATE", { kind: "SOURCE_INCOMPLETE" });
-        } else if (!aggregate || aggregate.totalCount === 0) {
-          put(storeId, month, "TAKE_CHARGE_CLOSE_RATE", { kind: "PERFORMANCE_RESULT", result: "UNDETERMINED", undeterminedReason: "RULE_NOT_MET" });
-        } else {
-          const closeRate = calculateTakeChargeCloseRate(aggregate.closedCount, aggregate.totalCount);
-          put(storeId, month, "TAKE_CHARGE_CLOSE_RATE", { kind: "PERFORMANCE_RESULT", result: evaluateTakeChargeCloseRate(closeRate), undeterminedReason: "SOURCE_INVALID" });
-        }
-
-        const annual = annualByKey.get(`${storeId}\u0000${month}`);
-        if (!annual) {
-          put(storeId, month, "AVERAGE_SUBMISSIONS_YTD", { kind: "SOURCE_MISSING" });
-          put(storeId, month, "PARTICIPATION_RATE_YTD", { kind: "SOURCE_MISSING" });
-        } else {
-          const averageSubmissions = annual.submissionsDenominator > 0 ? annual.submissionsNumerator / annual.submissionsDenominator : null;
-          const participationRate = annual.participationDenominator > 0 ? annual.participationNumerator / annual.participationDenominator * 100 : null;
-          put(storeId, month, "AVERAGE_SUBMISSIONS_YTD", averageSubmissions === null ? { kind: "SOURCE_INVALID" } : { kind: "PERFORMANCE_RESULT", result: evaluateTakeChargeSubmissionsPerCapita(averageSubmissions), undeterminedReason: "SOURCE_INVALID" });
-          put(storeId, month, "PARTICIPATION_RATE_YTD", participationRate === null ? { kind: "SOURCE_INVALID" } : { kind: "PERFORMANCE_RESULT", result: evaluateTakeChargeParticipateRate(participationRate), undeterminedReason: "SOURCE_INVALID" });
-        }
-      }
-
-      const certificates = await getCertificates({ context: attentionScope ?? scope, referenceDate: monthEnd(month) });
-      const certificateMetricIds = {
-        "安全健康": "CERTIFICATE_SAFETY_HEALTH",
-        "急救员": "CERTIFICATE_FIRST_AID",
-        "特种作业": "CERTIFICATE_SPECIAL_WORK",
-        "安全驾驶": "CERTIFICATE_SAFE_DRIVING",
-      } as const;
-      if (certificates.availability === "INCOMPLETE" || certificates.availability === "UNAVAILABLE") {
-        for (const store of calculationStores) {
-          for (const metricId of Object.values(certificateMetricIds)) {
-            put(store.storeId, month, metricId, { kind: sourceReason(certificates.availability) });
-          }
-        }
-      } else {
-        for (const store of certificates.items) {
-          for (const category of store.categories) {
-            const metricId = certificateMetricIds[category.certificateCategory];
-            const reason = category.records.some((record) => record.certificateReason === "INVALID_EXPIRY_DATE")
-              ? "SOURCE_INVALID"
-              : category.records.some((record) => record.certificateReason === "MISSING_EXPIRY_DATE")
-                ? "SOURCE_MISSING"
-                : "RULE_NOT_MET";
-            put(store.storeId, month, metricId, { kind: "CERTIFICATE_RESULT", normal: category.status === "NORMAL", reason });
-          }
-        }
-      }
-    }
-
-    const contributions = buildOverviewScoreContributions(
-      calculationStores,
-      mockData.supportedMonths,
-      monthEnd,
-      observations,
-    );
-    return {
-      stores: selectedStores,
-      attentionStores,
-      months: mockData.supportedMonths,
-      contributions,
-      availability: selectedStores.length > 0 ? "AVAILABLE" : "UNAVAILABLE",
-    };
+    const referenceDay = formatBusinessDate(referenceDate.toISOString());
+    return produceOverviewScoreData(requestedStores(scope, stores), requestedStores(attentionScope ?? scope, stores),
+      mockData.supportedMonths, (month) => {
+        if (month === mockData.supportedMonths.at(-1)) return referenceDay;
+        const [year, number] = month.split("-").map(Number);
+        return new Date(Date.UTC(year, number, 0)).toISOString().slice(0, 10);
+      }, {
+        performance: getKpiDomainResults,
+        goals: getStoreGoalDomainResults,
+        certificates: async (context, referenceDate) => (await getCertificates({ context, referenceDate })).items,
+      });
   }
 
   return {

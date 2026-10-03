@@ -6,6 +6,12 @@ import type { IsoDate, Month } from "@/types/ehs";
 
 export const BUSINESS_TIME_ZONE = "Asia/Shanghai";
 
+const yearMonthFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: BUSINESS_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+});
+
 const TIMEZONE_AWARE_ISO_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/;
 const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
@@ -87,11 +93,7 @@ export function shanghaiYearMonth(now: Date): {
   year: number;
   month: number;
 } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: BUSINESS_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(now);
+  const parts = yearMonthFormatter.formatToParts(now);
   const year = Number(parts.find((part) => part.type === "year")?.value);
   const month = Number(parts.find((part) => part.type === "month")?.value);
 

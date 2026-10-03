@@ -97,9 +97,9 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 ### D-014 Training、Drill、Inspections 为达成型 KPI
 
-- Training Overview 月度 metric：当月 required Training set 中每项都有有效 source record 且 source `completionRate = 100` 才达成；任一项未完成、缺失、无效、格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续以 authoritative source/config 替换；不得从实际 Training records 推断。KPI 页现有 Domain Result 状态与此 Overview ScoreContribution 映射分层，详见 `metric-rules.md`。
+- Training Overview 月度 metric：当月 required Training set 中每项都有有效 source record 且 source `completionRate = 100` 才达成；任一项未完成、缺失、无效、格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续以 authoritative source/config 替换；不得从实际 Training records 推断。KPI 与 Overview 共用同一 required-set Domain Result，后者仅映射 points；缺失/非法/不完整保留 UNDETERMINED 与具体原因。
 - Drill：纳入 Period 的每个月必须有 Drill 记录，且当月所有记录均完成；缺月或存在未完成时未达成。
-- Inspection Overview 月度 metric：当月 formal required Inspection task set 全部存在且已完成才达成；任一未完成、缺记录、状态缺失/无效、source 格式错误或 required coverage 不完整均为未达成。现有 source/config 中没有 expected/required task set，下一阶段必须建立，不得从实际 Inspection records 推断。KPI 页现有 Domain Result 状态与 Overview ScoreContribution 映射分层，详见 `metric-rules.md`。
+- Inspection Overview 月度 metric：当月 formal required Inspection task set 全部存在且已完成才达成；任一未完成、缺记录、状态缺失/无效、source 格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续替换 authoritative source/config，不得从实际 Inspection records 推断。KPI 与 Overview 共用同一 required-set Domain Result，后者仅映射 points。
 
 不为这三项强行生成未经确认的百分比。
 
@@ -204,7 +204,7 @@ Environment 主表保持门店维度，仅提供设施信息、环保证照、�
 
 ### D-029 KPI 使用集中数据组装契约
 
-KPI 页面只消费 `KpiRow[]`。Repository 根据 `EhsFilterContext` 返回规范化 scoped snapshot，KPI Builder 分组输入并调用现有 Rule Engine。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
+KPI 页面只消费 `KpiRow[]`。Repository 根据 `EhsFilterContext` 返回规范化 scoped snapshot，集中 KPI Domain service 评价 Store × Period normalized sources 并返回带 reason 的 Domain Results；KPI Builder 仅映射 presentation，ScoreContribution producer 消费同一结果。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
 
 ### D-030 数据可用性必须显式表达
 
@@ -302,3 +302,10 @@ Production Integration TBD：Entra tenantId + objectId、Production Identity Pro
 - UI 仅通过 repository 抽象访问数据。
 - 设计令牌只表达通用界面语义，不表达 EHS 业务状态。
 - 真实数据库仍为 TBD。
+
+
+### D-045 Architecture Hardening V1
+
+Source → Normalize → Domain Result → KPI presentation / ScoreContribution → Overview pooled aggregation。Repository 不依赖 Feature/UI builder；`overview-production.ts` 通过 domain readers 编排，不读取 Mock fixture 或重算领域规则。source diagnostics 按可定位 Store × metric × Period 隔离；全 Dataset availability 不能覆盖其它门店贡献。Goals YTD 仅按注入的 reference year/month 与 Store scope 查询。保留 12 metrics / 12 available points、全部门店 ranking、pooled aggregation、Environment 不评分及 Standard/Performance 同规则。不新增结果缓存、API、Snapshot 或 Generic Rule Engine。
+
+无法定位日期所属期间或 canonical Store 的 source defect 不得猜测；Production source scope / coverage 必须提供足够信息后才能消除保守诊断。
