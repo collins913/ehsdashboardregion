@@ -53,19 +53,20 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
               </button>
             </HoverCardTrigger>
             <HoverCardContent align="start" className="space-y-2">
-              <p>每店均分 = 当前范围总得分 ÷ 门店数，分母为每店指标数量。当前范围共 {storeCount} 家门店。得分和变化保留一位小数，整数不补零；得分率显示整数百分比。未确定结果不计入已获分，仍保留其指标数量，全部未知时显示 —。</p>
-              <div>{scores.map((dimension) => <p key={dimension.id}>{dimensionLabels[dimension.id]}总分：{currentPoints(dimension)}</p>)}</div>
-              <p>变化仍为{comparisonLabel}得分率差值，单位为百分点。</p>
+              <p>每店均分 = 当前范围总得分 ÷ 门店数，分母为每店指标数量。当前范围共 {storeCount} 家门店。得分和变化保留一位小数，整数不补零；得分率显示整数百分比。缺失、无效或不完整数据计 0 分，仍保留其指标数量；环境未纳入评分。</p>
+              <div>{scores.map((dimension) => <p key={dimension.id}>{dimensionLabels[dimension.id]}：{dimension.id === "ENVIRONMENT" ? "未纳入评分" : `总分 ${currentPoints(dimension)}`}</p>)}</div>
+              <p>变化为得分率差值，{comparisonLabel}，单位为百分点。</p>
             </HoverCardContent>
           </HoverCard> : "维度得分"}
         </h3>
         <div className="flex items-center justify-between gap-2 pr-8 text-xs text-muted-foreground">
-          <span>维度</span><span className="grid grid-cols-[5rem_3rem] gap-2 text-center"><span>{showAverage ? "每店均分" : "当前得分"}</span><span>变化</span></span>
+          <span>维度</span><span className="grid grid-cols-[5rem_5rem] gap-2 text-center"><span>{showAverage ? "每店均分" : "当前得分"}</span><span>变化（pp）</span></span>
         </div>
+        <p className="mt-1 text-xs text-muted-foreground">{comparisonLabel}</p>
         <DetailAccordion key={identity}>
           {scores.map((dimension) => <DetailAccordionItem key={dimension.id} value={dimension.id} title={dimensionLabels[dimension.id]}
             disabled={dimension.items.length === 0}
-            summary={<span className="grid shrink-0 grid-cols-[5rem_3rem] gap-2 text-center"><span className="tabular-nums">{currentPoints(dimension, showAverage)}</span><ScoreChange value={dimension.delta} /></span>}
+            summary={<span className="grid shrink-0 grid-cols-[5rem_5rem] gap-2 text-center">{dimension.id === "ENVIRONMENT" ? <span className="col-span-2 text-xs text-muted-foreground">未纳入评分</span> : <><span className="tabular-nums">{currentPoints(dimension, showAverage)}</span><ScoreChange value={dimension.delta} /></>}</span>}
           >
             <div className="pr-8">
             <Table className="table-fixed" aria-label={`${dimensionLabels[dimension.id]}小维度得分`}>
@@ -73,9 +74,9 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
                 <col />
                 {/* 5rem score column plus the same gap-2 used by the summary. */}
                 <col className="w-22" />
-                <col className="w-12" />
+                <col className="w-20" />
               </colgroup>
-              <TableHeader className="sr-only"><TableRow><TableHead>指标</TableHead><TableHead className="text-center">{showAverage ? "每店均分" : "当前得分"}</TableHead><TableHead className="text-center">变化</TableHead></TableRow></TableHeader>
+              <TableHeader className="sr-only"><TableRow><TableHead>指标</TableHead><TableHead className="text-center">{showAverage ? "每店均分" : "当前得分"}</TableHead><TableHead className="text-center">变化（pp）</TableHead></TableRow></TableHeader>
               <TableBody>{dimension.items.map((item) => <TableRow key={item.id}>
                 <TableCell className="whitespace-normal font-medium">{itemLabels[item.id]}</TableCell>
                 <TableCell className="pl-0 pr-2 text-center tabular-nums"><ItemPoints score={item} average={showAverage} label={itemLabels[item.id]} /></TableCell>

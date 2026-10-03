@@ -11,7 +11,7 @@ export function formatOverviewRate(value: number | null) {
   return value === null ? "—" : rateFormatter.format(value)
 }
 
-export function ScoreChange({ value, suffix = "", className }: { value: number | null; suffix?: string; className?: string }) {
+export function ScoreChange({ value, suffix = " pp", className }: { value: number | null; suffix?: string; className?: string }) {
   const tone = value === null ? "text-muted-foreground"
     : value > 0 ? "text-green-700 dark:text-green-400"
     : value < 0 ? "text-red-600 dark:text-red-400"

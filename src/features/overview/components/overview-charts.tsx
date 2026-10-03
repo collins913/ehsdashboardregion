@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { memo, useRef, useState } from "react"
 import { useAnalyticsChartAnimationEnabled } from "@/components/shared/use-analytics-motion"
 import { ANALYTICS_CHART_ANIMATION_DURATION } from "@/components/shared/analytics-layout"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatOverviewRate, formatOverviewScore, ScoreChange } from "./score-change"
 import {
   CartesianGrid,
@@ -28,10 +27,10 @@ import type {
 const primary = "var(--primary)"
 const monthlyTrendConfig = { score: { label: "综合得分", color: "var(--primary)" } } satisfies ChartConfig
 
-export function selectOverviewAttentionPoint(entry: unknown, onSelect: (id: string) => void) {
+export function selectOverviewAttentionPoint(entry: unknown, onSelect: (id: string, trigger?: HTMLElement | null) => void, trigger?: HTMLElement | null) {
   const value = entry as { id?: string; payload?: { id?: string } }
   const id = value.payload?.id ?? value.id
-  if (id) onSelect(id)
+  if (id) { if (trigger) onSelect(id, trigger); else onSelect(id) }
 }
 
 export function overviewScoreDomain(history: readonly OverviewHistoryPoint[]): [number, number] | null {
@@ -61,39 +60,43 @@ export function OverviewMonthlyTrendChart({ history, showSparseTicks = false, sh
   </div>
 }
 
-function AttentionPointGroup({ cx, cy, payload, onSelect }: {
+export function AttentionPointGroup({ cx, cy, payload, onSelect }: {
   cx?: number
   cy?: number
   payload?: OverviewAttentionGroup
-  onSelect: (id: string) => void
+  onSelect: (id: string, trigger?: HTMLElement | null) => void
 }) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const selectedRef = useRef(false)
   if (cx === undefined || cy === undefined || !payload) return null
   const unit = payload.level === "STORE" ? "家门店" : payload.level === "AREA" ? "个小区" : "个区域"
-  return <foreignObject x={cx - 6} y={cy - 6} width={12} height={12} overflow="visible">
-    <HoverCard open={open} onOpenChange={setOpen} openDelay={125} closeDelay={100}>
-      <HoverCardTrigger asChild>
-          <button type="button" aria-label={`得分 ${formatOverviewScore(payload.score)}，变化 ${formatOverviewScore(payload.delta)}，共 ${payload.count} ${unit}`} onClick={() => { if (payload.count === 1) { setOpen(false); selectOverviewAttentionPoint(payload.members[0], onSelect) } else { setOpen(true) } }} className="relative h-3 w-3 cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span aria-hidden="true" className="absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
-          {payload.count > 1 ? <span aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs font-medium tabular-nums text-foreground">×{payload.count}</span> : null}
-        </button>
-      </HoverCardTrigger>
-      <HoverCardContent side="top" align="center" className="max-w-[calc(100vw-2rem)] motion-reduce:animate-none">
-        <ul aria-label="同坐标对象" className="max-h-60 space-y-1 overflow-y-auto">
-          {payload.members.map((member) => <li key={member.id}>
-            <Button variant="link" className="h-auto w-full justify-start whitespace-normal p-0 text-left text-foreground" onClick={() => { setOpen(false); selectOverviewAttentionPoint(member, onSelect) }}>
-              <span className="min-w-0 break-words">{member.label}</span>
-            </Button>
-          </li>)}
-        </ul>
-        <p className="mt-2 text-xs text-muted-foreground">当前得分 <span className="tabular-nums text-foreground">{formatOverviewScore(payload.score)}</span></p>
-        <p className="mt-1 text-xs text-muted-foreground">变化 <ScoreChange value={payload.delta} /></p>
-      </HoverCardContent>
-    </HoverCard>
+  const description = `当前得分率 ${formatOverviewScore(payload.score)}%，变化 ${formatOverviewScore(payload.delta)} pp，共 ${payload.count} ${unit}`
+  const trigger = <button ref={triggerRef} type="button" aria-label={`${payload.count === 1 ? `查看${payload.members[0].label}详情` : `选择同坐标${unit.slice(1)}`}，${description}`} title={description}
+    onClick={payload.count === 1 ? () => selectOverviewAttentionPoint(payload.members[0], onSelect, triggerRef.current) : undefined}
+    className="relative h-5 w-5 cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <span aria-hidden="true" className="absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
+    {payload.count > 1 ? <span aria-hidden="true" className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-xs font-medium tabular-nums text-foreground">×{payload.count}</span> : null}
+  </button>
+  return <foreignObject x={cx - 10} y={cy - 10} width={20} height={20} overflow="visible">
+    {payload.count === 1 ? trigger : <DropdownMenu open={open} onOpenChange={(value) => { if (value) selectedRef.current = false; setOpen(value) }}>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="center" className="w-64 max-w-[calc(100vw-2rem)]" aria-label={`同坐标${unit.slice(1)}`}
+        onCloseAutoFocus={(event) => { if (selectedRef.current) event.preventDefault() }}>
+        <DropdownMenuLabel>共 {payload.count} {unit} · 选择查看详情</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">得分率 {formatOverviewScore(payload.score)}% · 变化 <ScoreChange value={payload.delta} /></DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {payload.members.map((member) => <DropdownMenuItem key={member.id} className="whitespace-normal break-words" onSelect={() => {
+          selectedRef.current = true
+          setOpen(false)
+          selectOverviewAttentionPoint(member, onSelect, triggerRef.current)
+        }}>{member.label}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>}
   </foreignObject>
 }
 
-export function OverviewAttentionChart({ groups, xDomain, yDomain, averageScore, onSelect }: { groups: readonly OverviewAttentionGroup[]; xDomain: OverviewChartDomain; yDomain: OverviewChartDomain; averageScore: number | null; onSelect: (id: string) => void }) {
+export const OverviewAttentionChart = memo(function OverviewAttentionChart({ groups, xDomain, yDomain, averageScore, onSelect }: { groups: readonly OverviewAttentionGroup[]; xDomain: OverviewChartDomain; yDomain: OverviewChartDomain; averageScore: number | null; onSelect: (id: string, trigger?: HTMLElement | null) => void }) {
   return <div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%">
     <ScatterChart margin={{ top: 28, right: 30, bottom: 18, left: 8 }}>
       {averageScore !== null ? <>
@@ -101,11 +104,11 @@ export function OverviewAttentionChart({ groups, xDomain, yDomain, averageScore,
         <ReferenceArea x1={xDomain[0]} x2={averageScore} y1={yDomain[0]} y2={0} fill="currentColor" fillOpacity={0.06} stroke="none" className="text-red-500" />
       </> : null}
       <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-      <XAxis type="number" dataKey="score" domain={[...xDomain]} tickFormatter={formatOverviewScore} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDataOverflow />
-      <YAxis type="number" dataKey="delta" domain={[...yDomain]} tickFormatter={formatOverviewScore} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={48} allowDataOverflow />
+      <XAxis type="number" dataKey="score" domain={[...xDomain]} tickFormatter={(value: number) => `${formatOverviewScore(value)}%`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} allowDataOverflow />
+      <YAxis type="number" dataKey="delta" domain={[...yDomain]} tickFormatter={(value: number) => `${formatOverviewScore(value)} pp`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={48} allowDataOverflow />
       {averageScore !== null ? <ReferenceLine x={averageScore} stroke="var(--muted-foreground)" strokeDasharray="4 4" /> : null}
       <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
       <Scatter data={groups} isAnimationActive={false} shape={<AttentionPointGroup onSelect={onSelect} />} />
     </ScatterChart>
   </ResponsiveContainer></div>
-}
+})

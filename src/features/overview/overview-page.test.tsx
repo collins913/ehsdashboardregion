@@ -32,7 +32,7 @@ const result = prepareOverviewResult({ stores, selectedStores: stores, attention
 describe("formal Overview V1", () => {
   it("renders the formal data result without Prototype output", () => {
     expect(routes.overview).toMatchObject({ href: "/overview" });
-    const markup = renderToStaticMarkup(createElement(TooltipProvider, null, createElement(ManagementSummary, { hero: result.hero })));
+    const markup = renderToStaticMarkup(createElement(TooltipProvider, null, createElement(ManagementSummary, { hero: result.hero, comparisonLabel: `比较期：${result.previousPeriodLabel}` })));
     expect(markup).toContain("综合得分率");
     expect(markup).toContain("小区变化排名");
     expect(markup).toContain("门店变化排名");

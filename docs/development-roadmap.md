@@ -144,3 +144,11 @@ User Identity
 ## Architecture Hardening V1（2026-10-03）
 
 已统一 KPI / Overview Domain Result、隔离 Store source quality、解耦 Goals YTD 与 Global Period、保留具体 diagnostic reason，并抽离 repository-independent contribution orchestration。规范化与 Store × Month / exact Period 索引复用；无结果缓存、API 或 Snapshot 实现。Production 前仍需 authoritative Training/Inspection requirements、Store/Period source coverage 与无法定位行的处理契约；API 物理结构、Production clock 与历史快照来源仍未冻结。性能复测与 regression evidence 见当前 `performance:v1` 和 Architecture Hardening tests。
+
+## Overview UX Hardening（2026-10-03）
+
+- 正式 Overview Detail 由当前 result 按实体 ID 解析；requested scope / Period 变化或 refresh 开始即关闭，不保留旧 DTO。复用 `useLatestAsyncQuery`，首次加载才显示 Skeleton；刷新保留 resolved presentation 与 `AnalyticsRefreshIndicator`，旧结果暂不可交互，无整页 fade。
+- Matrix 点表示真实 Store / Area / Region；同级同坐标对象合并，成员数与名称对应对象而非其下属门店。单对象直接进入该对象详情；重叠对象复用 shadcn DropdownMenu，支持方向键、Enter / Space、Escape；Detail 关闭回到原触发器。图表保留实例，避免详情状态变化造成触发器丢失。
+- 得分率为 `%`；得分率变化为百分点（`pp`）；门店总得分变化仍为原始分数。周期比较显示 `previousPeriodLabel`；最新月变化明确标注实际月份，不把周期维度变化标成“较上月”。
+- 无可比较数据时显示现有文字空态，不绘制空 podium / matrix；缺少当前值或历史值的变化保留 null。Environment 明确显示“未纳入评分”。
+- 仅修改 Overview presentation / View Model 与回归测试；未改变 Repository、Domain Result、ScoreContribution、12-point scoring 或生产接入边界。Final UI Polish 的视觉细节仍待后续处理。

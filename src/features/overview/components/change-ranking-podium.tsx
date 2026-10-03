@@ -17,6 +17,7 @@ export function ChangeRankingPodium({ improving, declining, onSelect }: {
   declining: readonly Entry[]
   onSelect?: (id: string) => void
 }) {
+  if (improving.length === 0 && declining.length === 0) return <p className="text-sm text-muted-foreground">无可比较数据</p>
   const half = (entries: readonly Entry[], inverted: boolean) => <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-3" aria-label={inverted ? "退步 Top 3" : "提升 Top 3"}>
     {levels.map(({ rank, accent, height, column }) => {
       const item = entries[rank - 1]
@@ -36,6 +37,5 @@ export function ChangeRankingPodium({ improving, declining, onSelect }: {
     {half(improving, false)}
     <div role="separator" aria-label="独立排名基准线" className="my-2 border-t border-border" />
     {half(declining, true)}
-    {improving.length === 0 && declining.length === 0 && <p className="mt-2 text-sm text-muted-foreground">无可比较数据</p>}
   </div>
 }

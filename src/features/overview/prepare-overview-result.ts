@@ -17,6 +17,10 @@ function rate(points: Points): number | null {
   return points.available > 0 ? (points.earned / points.available) * PERCENT : null;
 }
 
+function difference(current: number | null, previous: number | null): number | null {
+  return current === null || previous === null ? null : current - previous;
+}
+
 function monthOffset(month: Month, offset: number): Month {
   const [year, monthNumber] = month.split("-").map(Number);
   const index = year * 12 + monthNumber - 1 + offset;
@@ -143,7 +147,7 @@ export function prepareOverviewResult(input: {
   const lastMonth = visibleMonths.at(-1);
   const priorMonth = lastMonth ? monthOffset(lastMonth, -1) : null;
   const monthlyDelta = lastMonth && priorMonth && availableMonthSet.has(priorMonth)
-    ? (rate(aggregate(contributions, selectedStores, [lastMonth])) ?? 0) - (rate(aggregate(contributions, selectedStores, [priorMonth])) ?? 0)
+    ? difference(rate(aggregate(contributions, selectedStores, [lastMonth])), rate(aggregate(contributions, selectedStores, [priorMonth])))
     : null;
 
   const items: OverviewDimensionItemScore[] = OVERVIEW_V1_METRIC_CATALOG.map((metric) => {
@@ -194,7 +198,7 @@ export function prepareOverviewResult(input: {
       delta: score === null || previousScore === null ? null : score - previousScore,
       earnedPoints: points.available > 0 ? points.earned : null,
       totalPoints: points.available,
-      pointDelta: previousAvailable ? points.earned - previousPoints.earned : null,
+      pointDelta: previousAvailable && points.available > 0 && previousPoints.available > 0 ? points.earned - previousPoints.earned : null,
       storeCount: 1,
     };
   }));
@@ -208,12 +212,12 @@ export function prepareOverviewResult(input: {
   }
   const areas = [...areaGroups.entries()];
   const scopeDetails: OverviewScopeDetail[] = [];
-  for (const store of attentionStores) {
+  for (const store of new Map([...selectedStores, ...attentionStores].map((store) => [store.storeId, store])).values()) {
     const currentPoints = aggregate(contributions, [store], selectedMonths);
     const historical = visibleMonths.map((month) => ({ periodLabel: month, score: rate(aggregate(contributions, [store], [month])) }));
     const previousOne = lastMonth ? monthOffset(lastMonth, -1) : null;
     const delta = lastMonth && previousOne && availableMonthSet.has(previousOne)
-      ? (rate(aggregate(contributions, [store], [lastMonth])) ?? 0) - (rate(aggregate(contributions, [store], [previousOne])) ?? 0)
+      ? difference(rate(aggregate(contributions, [store], [lastMonth])), rate(aggregate(contributions, [store], [previousOne])))
       : null;
     const storeDimensions = DIMENSIONS.map((dimensionId) => {
       const points = aggregate(contributions, [store], selectedMonths, dimensionId);
@@ -221,31 +225,11 @@ export function prepareOverviewResult(input: {
       const dimensionItems = OVERVIEW_V1_METRIC_CATALOG.filter((metric) => metric.dimensionId === dimensionId).map((metric) => {
         const itemPoints = aggregate(contributions, [store], selectedMonths, dimensionId, metric.metricId);
         const previousItemPoints = previousAvailable ? aggregate(contributions, [store], previousMonths, dimensionId, metric.metricId) : { earned: 0, available: 0 };
-        return { id: metric.metricId, earnedPoints: itemPoints.available ? itemPoints.earned : null, totalPoints: itemPoints.available, averageEarnedPoints: itemPoints.available ? itemPoints.earned : null, averageTotalPoints: itemPoints.available ? itemPoints.available : null, delta: previousAvailable ? (rate(itemPoints) ?? 0) - (rate(previousItemPoints) ?? 0) : null };
+        return { id: metric.metricId, earnedPoints: itemPoints.available ? itemPoints.earned : null, totalPoints: itemPoints.available, averageEarnedPoints: itemPoints.available ? itemPoints.earned : null, averageTotalPoints: itemPoints.available ? itemPoints.available : null, delta: previousAvailable ? difference(rate(itemPoints), rate(previousItemPoints)) : null };
       });
-      return { dimensionId, id: dimensionId, earnedPoints: points.available ? points.earned : null, totalPoints: points.available, averageEarnedPoints: points.available ? points.earned : null, averageTotalPoints: points.available ? points.available : null, delta: previousAvailable ? (rate(points) ?? 0) - (rate(previousPoints) ?? 0) : null, items: dimensionItems };
+      return { dimensionId, id: dimensionId, earnedPoints: points.available ? points.earned : null, totalPoints: points.available, averageEarnedPoints: points.available ? points.earned : null, averageTotalPoints: points.available ? points.available : null, delta: previousAvailable ? difference(rate(points), rate(previousPoints)) : null, items: dimensionItems };
     });
     scopeDetails.push({ id: store.storeId, label: store.displayName, level: "STORE", storeCount: 1, score: rate(currentPoints), monthlyDelta: delta, monthlyHistory: historical, dimensionScores: storeDimensions });
-  }
-  for (const [key, members] of areas) {
-    const currentPoints = aggregate(contributions, members, selectedMonths);
-    const previousPoints = previousAvailable ? aggregate(contributions, members, previousMonths) : { earned: 0, available: 0 };
-    const id = key.replace("\u0000", ":");
-    const label = members[0]?.area ?? key;
-    const areaDimensions = DIMENSIONS.map((dimensionId) => {
-      const points = aggregate(contributions, members, selectedMonths, dimensionId);
-      const old = previousAvailable ? aggregate(contributions, members, previousMonths, dimensionId) : { earned: 0, available: 0 };
-      const dimensionItems = OVERVIEW_V1_METRIC_CATALOG.filter((metric) => metric.dimensionId === dimensionId).map((metric) => {
-        const itemPoints = aggregate(contributions, members, selectedMonths, dimensionId, metric.metricId);
-        const oldItem = previousAvailable ? aggregate(contributions, members, previousMonths, dimensionId, metric.metricId) : { earned: 0, available: 0 };
-        return { id: metric.metricId, earnedPoints: itemPoints.available ? itemPoints.earned : null, totalPoints: itemPoints.available, averageEarnedPoints: members.length && itemPoints.available ? itemPoints.earned / members.length : null, averageTotalPoints: members.length && itemPoints.available ? itemPoints.available / members.length : null, delta: previousAvailable ? (rate(itemPoints) ?? 0) - (rate(oldItem) ?? 0) : null };
-      });
-      return { dimensionId, id: dimensionId, earnedPoints: points.available ? points.earned : null, totalPoints: points.available, averageEarnedPoints: members.length && points.available ? points.earned / members.length : null, averageTotalPoints: members.length && points.available ? points.available / members.length : null, delta: previousAvailable ? (rate(points) ?? 0) - (rate(old) ?? 0) : null, items: dimensionItems };
-    });
-    const history = visibleMonths.map((month) => ({ periodLabel: month, score: rate(aggregate(contributions, members, [month])) }));
-    const prior = lastMonth ? monthOffset(lastMonth, -1) : null;
-    const delta = lastMonth && prior && availableMonthSet.has(prior) ? (rate(aggregate(contributions, members, [lastMonth])) ?? 0) - (rate(aggregate(contributions, members, [prior])) ?? 0) : null;
-    scopeDetails.push({ id, label, level: "AREA", storeCount: members.length, score: rate(currentPoints), monthlyDelta: delta, monthlyHistory: history, dimensionScores: areaDimensions });
   }
 
   let matrixGroups: { id: string; label: string; level: OverviewScopeLevel; members: readonly KpiStore[] }[];
@@ -277,17 +261,46 @@ export function prepareOverviewResult(input: {
       members,
     }));
   }
-  const attentionGroups = matrixGroups.flatMap((group) => {
+  const detailGroups = new Map<string, { id: string; label: string; level: OverviewScopeLevel; members: readonly KpiStore[] }>(areas.map(([key, members]) => [key.replace("\u0000", ":"), {
+    id: key.replace("\u0000", ":"), label: members[0]?.area ?? key, level: "AREA" as OverviewScopeLevel, members,
+  }]));
+  for (const group of matrixGroups) if (group.level !== "STORE") detailGroups.set(group.id, group);
+  for (const { id, label, level, members } of detailGroups.values()) {
+    const currentPoints = aggregate(contributions, members, selectedMonths);
+    const areaDimensions = DIMENSIONS.map((dimensionId) => {
+      const points = aggregate(contributions, members, selectedMonths, dimensionId);
+      const old = previousAvailable ? aggregate(contributions, members, previousMonths, dimensionId) : { earned: 0, available: 0 };
+      const dimensionItems = OVERVIEW_V1_METRIC_CATALOG.filter((metric) => metric.dimensionId === dimensionId).map((metric) => {
+        const itemPoints = aggregate(contributions, members, selectedMonths, dimensionId, metric.metricId);
+        const oldItem = previousAvailable ? aggregate(contributions, members, previousMonths, dimensionId, metric.metricId) : { earned: 0, available: 0 };
+        return { id: metric.metricId, earnedPoints: itemPoints.available ? itemPoints.earned : null, totalPoints: itemPoints.available, averageEarnedPoints: members.length && itemPoints.available ? itemPoints.earned / members.length : null, averageTotalPoints: members.length && itemPoints.available ? itemPoints.available / members.length : null, delta: previousAvailable ? difference(rate(itemPoints), rate(oldItem)) : null };
+      });
+      return { dimensionId, id: dimensionId, earnedPoints: points.available ? points.earned : null, totalPoints: points.available, averageEarnedPoints: members.length && points.available ? points.earned / members.length : null, averageTotalPoints: members.length && points.available ? points.available / members.length : null, delta: previousAvailable ? difference(rate(points), rate(old)) : null, items: dimensionItems };
+    });
+    const history = visibleMonths.map((month) => ({ periodLabel: month, score: rate(aggregate(contributions, members, [month])) }));
+    const prior = lastMonth ? monthOffset(lastMonth, -1) : null;
+    const delta = lastMonth && prior && availableMonthSet.has(prior) ? difference(rate(aggregate(contributions, members, [lastMonth])), rate(aggregate(contributions, members, [prior]))) : null;
+    scopeDetails.push({ id, label, level, storeCount: members.length, score: rate(currentPoints), monthlyDelta: delta, monthlyHistory: history, dimensionScores: areaDimensions });
+  }
+
+  // Each matrix member is an actual plotted object, not that object's underlying stores.
+  const coordinates = new Map<string, { id: string; score: number; delta: number; level: OverviewScopeLevel; count: number; members: { id: string; label: string }[] }>();
+  for (const group of matrixGroups) {
     const now = aggregate(contributions, group.members, selectedMonths);
     const old = previousAvailable ? aggregate(contributions, group.members, previousMonths) : { earned: 0, available: 0 };
     const score = rate(now);
-    const previousScore = previousAvailable ? rate(old) : null;
-    if (score === null || previousScore === null) return [];
-    return [{ id: group.id, score, delta: score - previousScore, level: group.level, count: group.members.length, members: group.members.map((member) => ({ id: member.storeId, label: member.displayName })) }];
-  });
+    const delta = difference(score, previousAvailable ? rate(old) : null);
+    if (score === null || delta === null) continue;
+    const key = `${group.level}\u0000${score}\u0000${delta}`;
+    const point = coordinates.get(key) ?? { id: group.id, score, delta, level: group.level, count: 0, members: [] };
+    point.members.push({ id: group.id, label: group.label });
+    point.count = point.members.length;
+    coordinates.set(key, point);
+  }
+  const attentionGroups = [...coordinates.values()];
   const scores = attentionGroups.map(({ score }) => score);
   const deltas = attentionGroups.map(({ delta }) => delta);
-  const averageScore = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : null;
+  const averageScore = scores.length ? attentionGroups.reduce((sum, group) => sum + group.score * group.count, 0) / attentionGroups.reduce((sum, group) => sum + group.count, 0) : null;
   const xDomain: readonly [number, number] = scores.length ? [Math.max(0, Math.floor(Math.min(...scores) - 8)), Math.min(100, Math.ceil(Math.max(...scores) + 8))] : [0, 100];
   const deltaMin = deltas.length ? Math.min(0, ...deltas) : -2;
   const deltaMax = deltas.length ? Math.max(0, ...deltas) : 2;
