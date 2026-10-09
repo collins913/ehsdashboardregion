@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 
 const { repositoryFactory, getActions, getEvents, getTakeChargeGoals, getEnvironmentAnalytics, getOverviewScoreData, authorize } = vi.hoisted(() => {
   const getActions = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", items: [], totalCount: 0, pageIndex: 0, pageSize: 5 }));

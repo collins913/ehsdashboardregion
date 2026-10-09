@@ -329,3 +329,9 @@ Access 持续使用既有 Region / Area / Store 授权语义。企业 Access Rep
 Import Batch 使用单调 `revision`。Repository/数据库 Adapter 必须通过原子 compare-and-swap 确认预期 revision 和状态；验证仅能从当前 `RECEIVED` / `REJECTED` 转移，发布仅从当前 `VALIDATED + VERIFIED_COMPLETE` 转移。发布数据、指针、批次终态和成功审计必须在同一事务；回滚失败时维持旧发布。相同已发布 batch 的重复发布返回原发布结果。企业适配器必须落实唯一约束、CAS、事务隔离及失败回滚，不能以先读后无条件写入实现。
 
 Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`sourceSystem` 仅为来源描述。批次保留 source/configuration version、business/effective period、extraction/publication 时间与 request ID。Snapshot `referenceDate` 的历史冻结语义仍 TBD。Training 技术重复检查暂用 Store × Month × trainingName 复合键，不代表企业确认的自然键；企业接入需补充稳定 source record ID/自然键决策。
+
+### D-049 System Monitoring & Alerting V1 边界
+
+Operational Event / Incident 与 EHS 业务 Events 分离，错误分组使用稳定 source + component + code + impact scope fingerprint；每次发生保留单独 Event。Incident 状态写入采用 revision CAS；自动恢复只能由正向验证信号触发，GLOBAL_ADMIN 可手动将 RESOLVED Incident 重新打开为 OPEN。重新打开必须清除处理与确认字段，并原子确保同一 fingerprint 没有其他活动 Incident；冲突时拒绝操作。通知通过同事务 Outbox 入队，生产存储 Adapter 必须提供跨 Worker 原子 claim、幂等、有限重试及审计事务；没有外部独立通道时，监控存储不可用只能 best-effort 输出脱敏结构化服务端日志，不能声称错误已持久化或告警已送达。
+
+开发/测试可以使用内存 Monitoring Repository 和测试通知 Provider；Production 不允许回退到内存存储。Email Provider、企业持久化 Adapter、独立 Watchdog / Scheduler、监控存储故障外部信号及日志保留均为 `INTEGRATION REQUIRED`。未配置任务计划不产生失联告警；没有确认送达回执时 `SENT` 仅代表通知服务接受请求。系统监控仅由服务端验证的 `GLOBAL_ADMIN` 操作，浏览器错误采用身份验证、字段白名单、大小限制及跨 Worker 限流。

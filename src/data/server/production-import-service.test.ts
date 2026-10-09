@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 import type { TimezoneAwareIsoDateTime, StoreMasterData } from "@/types/ehs";
 import type { ImportDiagnostic, MachinePrincipal } from "@/data/contracts/production-import";
 import { MemoryImportBatchStore } from "./testing/memory-import-batch-store";

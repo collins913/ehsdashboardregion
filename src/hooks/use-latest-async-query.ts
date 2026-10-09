@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { reportClientOperationalError } from "@/features/monitoring/report-client-error";
 
 export type ResolvedAsyncQuery<T> = {
   key: string;
@@ -92,6 +93,7 @@ export function useLatestAsyncQuery<T>(
 
     const settleError = () => {
       if (active && guard.isLatest(requestId)) {
+        reportClientOperationalError("DATA_REQUEST_FAILED");
         setStored((current) => ({
           key: queryKey,
           state: { status: "ERROR", resolved: current.resolved },
@@ -149,6 +151,7 @@ export function useLatestAsyncQuery<T>(
         guard.isLatest(requestId) &&
         requestedKeyRef.current === queryKey
       ) {
+        reportClientOperationalError("DATA_REQUEST_FAILED");
         setStored((current) => ({
           key: queryKey,
           state: { status: "ERROR", resolved: current.resolved },

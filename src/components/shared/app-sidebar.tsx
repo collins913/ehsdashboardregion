@@ -86,11 +86,16 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
       </SidebarContent>
       {account?.canManageAccess ? (
         <SidebarGroup>
-          <SidebarGroupContent><SidebarMenu><SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith(routes.accessManagement.href)} tooltip={routes.accessManagement.title}>
-              <Link href={routes.accessManagement.href} onClick={() => setOpenMobile(false)}><routes.accessManagement.icon aria-hidden="true" /><span>{routes.accessManagement.title}</span></Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem></SidebarMenu></SidebarGroupContent>
+          <SidebarGroupContent><SidebarMenu>
+            {[routes.accessManagement, routes.systemMonitoring].map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                  <Link href={item.href} onClick={() => setOpenMobile(false)}><item.icon aria-hidden="true" /><span>{item.title}</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>;
+            })}
+          </SidebarMenu></SidebarGroupContent>
         </SidebarGroup>
       ) : null}
       {account ? (

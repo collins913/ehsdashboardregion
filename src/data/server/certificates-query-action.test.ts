@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
 
 const { getCertificates, factory } = vi.hoisted(() => {
   const getCertificates = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", items: [], unknownTypeRecords: [] }));

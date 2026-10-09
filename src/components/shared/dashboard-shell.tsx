@@ -41,6 +41,7 @@ export function DashboardShell({
             <PageHeader
               title={route.title}
               description={route.description}
+              showGlobalFilters={route.showGlobalFilters}
               showPeriodFilter={route.showPeriodFilter}
               breadcrumbs={route.section
                 ? [{ label: route.section }, { label: route.title }]

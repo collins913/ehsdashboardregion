@@ -27,6 +27,7 @@
 | Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
 | Input | `src/components/ui/input.tsx` | Access email and grant form fields |
 | Sonner | `src/components/ui/sonner.tsx` | Access mutation feedback |
+| Switch | `src/components/ui/switch.tsx` | System Monitoring row-level 未处理 / 已处理 toggle |
 
 ## Shared
 
@@ -59,7 +60,7 @@
 | AnimatedNumber | Interpolates already-computed display values in 325ms; respects `prefers-reduced-motion` |
 | TableCellTrigger | Provides compact native-button interaction, focus, pressed and a shared named group for clickable table content |
 | DataTableColumnHeader | Reusable sortable column header bound to table state |
-| DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists and the Overview store score list; Features provide columns, rows and column size roles; optional numeric sortValue separates sorting from display and keeps missing numbers last. Opt-in `stickyFirstColumn` fixes the first header, body and placeholder cells using shared opaque backgrounds; callers put the identity column first. Independent opt-in `compactPrimaryColumn` gives narrow containers more room for values; opt-in `onRowClick` adds whole-row pointer and keyboard activation without changing default tables, ignores nested interactive targets, and preserves row semantics. |
+| DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists and the Overview store score list; Features provide columns, rows and column size roles; optional numeric sortValue separates sorting from display and keeps missing numbers last. Opt-in `stickyFirstColumn` fixes the first header, body and placeholder cells using shared opaque backgrounds; callers put the identity column first. Independent opt-ins `compactPrimaryColumn` and `compactOnMobile` adapt narrow containers or mobile column widths. Opt-in `onRowClick` adds whole-row pointer and keyboard activation without changing default tables, ignores nested interactive targets, and preserves row semantics. |
 | SheetContent | Shared shadcn Sheet primitive; opt-in `mobileWidth="full"` uses the full viewport for left/right sheets below 640px. The default 75% mobile width and desktop maximum width remain unchanged. Overview scope details opt in; mobile Sidebar and other callers retain their defaults. |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
@@ -114,3 +115,9 @@
 | ChangeRankingList | Replaces the decorative podium with aligned visible positions, names, current rates and signed deltas. Keeps prepared order and complete supplied entries; each direction reserves three equal-height positions, with non-interactive dashes for absent entries (never zero values). Uses TableCellTrigger and measured OverflowTooltip. |
 | AttentionMatrix | Same-level comparison offers existing Tabs for detail rows and the matrix. The matrix is always the first/default tab. Average score rate appears as muted text beneath the title; repeated scope/count captions are omitted. Panels flex within the shared Card row, while detail rows scroll inside their viewport. Scatter hover uses shared ChartTooltip with prepared names, score and delta; point buttons retain single-object drill-down and overlapping-object DropdownMenu selection. No Top N filter is applied. Detail rows preserve every member and reuse its group's prepared values; the matrix retains prepared grouping, domains and reference lines. Semantic scope changes reset the view. |
 | OverviewMonthlyTrendChart | Shared by the Overview hero and scope detail Sheet. Both use a fixed 0–100% vertical domain with 0 / 25 / 50 / 75 / 100% ticks, visible month labels, shadcn chart color token, 3px dots and a 6px active dot. Hover / keyboard interaction reports the prepared month and value. Only available history months are passed to the chart; gaps are not interpolated. The hero chart fills available card height with a 160px minimum, matching the detail chart's 160px plot viewport without forcing equal parent heights. Existing animation duration and reduced-motion behavior are preserved. |
+
+### System Monitoring
+
+| Component | Responsibility |
+| --- | --- |
+| MonitoringPageContent | GLOBAL_ADMIN-only incident list using the shared DataTable and Sheet. The table shows latest error time, error code and a rightmost per-row shadcn Switch between 未处理 / 已处理; two status buttons filter the rows. Selecting a row shows error code, processing status / time, the same status switch, then “复制诊断信息” above one JSON code block of linked diagnostic details. Development in-memory storage is explicitly labelled and seeds two clearly marked demo Incidents; an unconfigured production adapter shows “监控服务尚未配置” without an empty table implying no errors. Collection, incident correlation, notifications, retries, job monitoring, watchdog, recovery records and audit remain backend capabilities and are not exposed as separate tables. |

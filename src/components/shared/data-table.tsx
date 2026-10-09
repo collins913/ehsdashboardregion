@@ -17,7 +17,7 @@ const ROW_CLICK_IGNORED_TARGETS = "a,button,input,select,textarea,[role='button'
 export type DataTableColumn<T> = { id: string; title: string; value: (row: T) => string; sortValue?: (row: T) => number | null; render?: (row: T) => ReactNode; sortable?: boolean; sizeRole: DataTableColumnSizeRole };
 export type DataTableInteractionState = { sorting: SortingState; pagination: AdaptivePagination | null };
 
-export function DataTable<T extends { id: string }>({ rows, columns, emptyMessage, status = "READY", semanticKey = "", active = true, stickyFirstColumn = false, compactPrimaryColumn = false, interactionState, onInteractionStateChange, onRowClick, rowAriaLabel }: { rows: readonly T[]; columns: readonly DataTableColumn<T>[]; emptyMessage: string; status?: "READY" | "LOADING" | "ERROR"; semanticKey?: string; active?: boolean; stickyFirstColumn?: boolean; compactPrimaryColumn?: boolean; interactionState?: DataTableInteractionState; onInteractionStateChange?: Dispatch<SetStateAction<DataTableInteractionState>>; onRowClick?: (row: T, trigger: HTMLTableRowElement) => void; rowAriaLabel?: (row: T) => string }) {
+export function DataTable<T extends { id: string }>({ rows, columns, emptyMessage, status = "READY", semanticKey = "", active = true, stickyFirstColumn = false, compactPrimaryColumn = false, compactOnMobile = false, interactionState, onInteractionStateChange, onRowClick, rowAriaLabel }: { rows: readonly T[]; columns: readonly DataTableColumn<T>[]; emptyMessage: string; status?: "READY" | "LOADING" | "ERROR"; semanticKey?: string; active?: boolean; stickyFirstColumn?: boolean; compactPrimaryColumn?: boolean; compactOnMobile?: boolean; interactionState?: DataTableInteractionState; onInteractionStateChange?: Dispatch<SetStateAction<DataTableInteractionState>>; onRowClick?: (row: T, trigger: HTMLTableRowElement) => void; rowAriaLabel?: (row: T) => string }) {
   const { snapshot, pendingMode, isResolvedMetadataPending } = useResolvedDataTableSnapshot({ snapshot: status === "READY" ? rows : null, status, metadataKey: semanticKey });
   const displayedRows = snapshot ?? [];
   const [internalInteractionState, setInternalInteractionState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
@@ -75,10 +75,17 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
   }, [columns]);
   const table = useTable({ features, columns: definitions, data: displayedRows, getRowId: (row) => row.id, onSortingChange: (updater) => { setInteractionState((current) => ({ sorting: typeof updater === "function" ? updater(current.sorting) : updater, pagination: current.pagination ? { ...current.pagination, pageIndex: 0 } : null })); }, onPaginationChange, state: { sorting, pagination } });
   const renderedRows = table.getRowModel().rows;
-  const columnClassName = (role: DataTableColumnSizeRole) => cn(dataTableColumnSizeClassNames[role], compactPrimaryColumn && role === "primary" && dataTableCompactPrimaryClassName);
+  const columnClassName = (role: DataTableColumnSizeRole) => cn(
+    dataTableColumnSizeClassNames[role],
+    compactPrimaryColumn && role === "primary" && dataTableCompactPrimaryClassName,
+    compactOnMobile && role === "standard" && "max-sm:w-28 max-sm:min-w-0",
+    compactOnMobile && role === "content" && "max-sm:w-auto max-sm:min-w-0",
+    compactOnMobile && role === "compact" && "max-sm:w-20 max-sm:min-w-0",
+    compactOnMobile && role === "primary" && "max-sm:min-w-0",
+  );
   const placeholderColumns = columns.map((item, index) => ({ id: item.id, className: cn(columnClassName(item.sizeRole), stickyFirstColumn && index === 0 && stickyStoreCellClassName) }));
   return <>
-    <div ref={tableFrameRef} className={cn(dataTableFrameClassName, "@container/data-table")} aria-busy={status === "LOADING"} inert={status === "LOADING" ? true : undefined}><Table className={dataTableClassName}>
+    <div ref={tableFrameRef} className={cn(dataTableFrameClassName, "@container/data-table")} aria-busy={status === "LOADING"} inert={status === "LOADING" ? true : undefined}><Table className={cn(dataTableClassName, compactOnMobile && "max-sm:min-w-0")}>
       <TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header, index) => <TableHead key={header.id} className={cn(columnClassName(columns.find((item) => item.id === header.column.id)?.sizeRole ?? "standard"), stickyFirstColumn && index === 0 && stickyStoreHeaderClassName)}>{header.isPlaceholder ? null : <table.FlexRender header={header} />}</TableHead>)}</TableRow>)}</TableHeader>
       <TableBody ref={tableBodyRef}>{!adaptivePagination ? <TableRow ref={rowMeasurementRef} aria-hidden="true" data-adaptive-table-measurement-row className="pointer-events-none invisible hover:bg-transparent"><TableCell colSpan={columns.length}><div className="h-8" /></TableCell></TableRow> : status === "ERROR" || (status === "LOADING" && renderedRows.length === 0) ? <DataTablePlaceholderRows columns={placeholderColumns} rowCount={pagination.pageSize} hidden={status === "ERROR"} /> : renderedRows.map((row, index) => {
         const rowInteractive = status === "READY" && onRowClick !== undefined;

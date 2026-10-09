@@ -31,6 +31,7 @@ type PageHeaderProps = {
   breadcrumbs?: BreadcrumbEntry[];
   actions?: ReactNode;
   showPeriodFilter?: boolean;
+  showGlobalFilters?: boolean;
 };
 
 export function PageHeader({
@@ -39,6 +40,7 @@ export function PageHeader({
   breadcrumbs = [],
   actions,
   showPeriodFilter,
+  showGlobalFilters = true,
 }: PageHeaderProps) {
   return (
     <>
@@ -99,7 +101,7 @@ export function PageHeader({
           </div>
         </PageContainer>
       </header>
-      <GlobalFilters showPeriodFilter={showPeriodFilter} />
+      {showGlobalFilters ? <GlobalFilters showPeriodFilter={showPeriodFilter} /> : null}
     </>
   );
 }

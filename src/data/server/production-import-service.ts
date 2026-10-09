@@ -1,10 +1,12 @@
-import type { ImportActor, ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionImportBatch } from "@/data/contracts/production-import";
+import type { ImportActor, ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionDomain, ProductionImportBatch } from "@/data/contracts/production-import";
 import { parseProductionImportBatch } from "@/data/contracts/production-import-validation";
 import { BatchIdConflictError, BatchNotFoundError, BatchStateConflictError, IdempotencyConflictError, type ImportBatchStore } from "@/data/repositories/production-import-batch-store";
 import type { StoreMasterData } from "@/types/ehs";
 import { createStoreReferenceResolver } from "@/data/resolve-store-reference";
 import { validateProductionBatchStoreLinks } from "@/data/contracts/production-import-validation";
 import type { TimezoneAwareIsoDateTime } from "@/types/ehs";
+import { recordOperationalEvent, importDiagnosticsToOperationalDiagnostics } from "@/data/server/monitoring/monitoring-service.server";
+import { severityForFailure } from "@/data/server/monitoring/notification-policy";
 
 export class ImportRequestError extends Error {
   constructor(readonly status: number, readonly code: string, readonly diagnostics: readonly ImportDiagnostic[] = []) { super(code); }
@@ -74,7 +76,22 @@ export class ProductionImportService {
       : batch.coverage.completeness === "PARTIAL"
         ? "INCOMPLETE"
         : verifiedCoverage && valid ? "VERIFIED_COMPLETE" : "DECLARED_COMPLETE";
-    try { return await this.store.recordValidation(batchId, batch.revision, diagnostics, valid, coverageAssessment, audit); }
+    try {
+      const updated = await this.store.recordValidation(batchId, batch.revision, diagnostics, valid, coverageAssessment, audit);
+      if (!valid) {
+        await recordOperationalEvent({
+          environment: process.env.NODE_ENV ?? "unknown", source: "Production Import", component: "Batch Validation",
+          severity: "WARNING", errorCode: "IMPORT_BATCH_VALIDATION_REJECTED", safeMessage: "导入批次未通过验证。",
+          phenomenon: "批次结构、门店关联或覆盖证明校验未通过。", causeStatus: diagnostics.length > 0 ? "KNOWN" : "UNKNOWN",
+          knownCause: diagnostics.length > 0 ? "详见经过脱敏的结构化 ImportDiagnostic。" : null,
+          impact: { kind: "BATCH", id: batchId, summary: `批次 ${batchId} 未发布；现有正式数据不受影响。` },
+          actionTaken: "批次保持隔离，未发布为正式数据。", nextStep: "修正来源数据或提供有效覆盖证明后重新提交。",
+          correlationId: requestId, relatedBatchId: batchId, relatedJobId: null, relatedDomain: batch.domain,
+          diagnostics: importDiagnosticsToOperationalDiagnostics(diagnostics),
+        });
+      }
+      return updated;
+    }
     catch (error) { if (error instanceof BatchStateConflictError) throw new ImportRequestError(409, "BATCH_CHANGED_DURING_VALIDATION"); throw error; }
   }
 
@@ -133,11 +150,15 @@ export async function handleImportApiRequest(
   principalResolver: ImportPrincipalResolver,
   operation: { kind: "submit" } | { kind: "get" | "validate" | "publish"; batchId: string },
 ): Promise<Response> {
+  let correlationId = crypto.randomUUID();
+  let domain: ProductionDomain | null = null;
+  let submittedBatchId: string | null = null;
   try {
     const principal = await principalResolver(request);
     if (!principal || !principal.principalId.trim()) throw new ImportRequestError(401, "MACHINE_AUTHENTICATION_REQUIRED");
     const requestIdHeader = request.headers.get("x-request-id") ?? request.headers.get("traceparent");
-    const requestId = requestIdHeader && requestIdHeader.length <= 200 && /^[\w.:-]+$/.test(requestIdHeader) ? requestIdHeader : crypto.randomUUID();
+    const requestId = requestIdHeader && requestIdHeader.length <= 200 && /^[\w.:-]+$/.test(requestIdHeader) ? requestIdHeader : correlationId;
+    correlationId = requestId;
     const requiredOperation = operation.kind === "submit" ? "SUBMIT" : operation.kind === "get" ? "READ" : operation.kind === "validate" ? "VALIDATE" : "PUBLISH";
     if (!principal.allowedOperations.includes(requiredOperation)) throw new ImportRequestError(403, "OPERATION_NOT_AUTHORIZED");
     let body: unknown;
@@ -145,6 +166,8 @@ export async function handleImportApiRequest(
       body = await readBoundedJson(request);
       const parsed = parseProductionImportBatch(body);
       if (!parsed.value) throw new ImportRequestError(422, "BATCH_VALIDATION_FAILED", parsed.diagnostics);
+      domain = parsed.value.domain;
+      submittedBatchId = parsed.value.batchId;
       if (!principal.allowedDomains.includes(parsed.value.domain)) throw new ImportRequestError(403, "DOMAIN_NOT_AUTHORIZED");
     } else if (principal.allowedDomains.length === 0) {
       throw new ImportRequestError(403, "DOMAIN_NOT_AUTHORIZED");
@@ -159,14 +182,29 @@ export async function handleImportApiRequest(
           : await service.publish(principal, operation.batchId, requestId);
     return Response.json(result, { status: operation.kind === "submit" ? 202 : 200 });
   } catch (error) {
-    if (error instanceof SyntaxError) return Response.json({ error: { code: "MALFORMED_JSON", message: "请求体不是有效 JSON。", diagnostics: [] } }, { status: 400 });
-    const known = error instanceof ImportRequestError;
-    const status = known ? error.status : 503;
-    const code = known ? error.code : error instanceof Error && error.message === "PRODUCTION_IMPORT_RUNTIME_NOT_CONFIGURED"
+    const normalizedError = error instanceof SyntaxError ? new ImportRequestError(400, "MALFORMED_JSON") : error;
+    const known = normalizedError instanceof ImportRequestError;
+    const status = known ? normalizedError.status : 503;
+    const code = known ? normalizedError.code : normalizedError instanceof Error && normalizedError.message === "PRODUCTION_IMPORT_RUNTIME_NOT_CONFIGURED"
       ? "PRODUCTION_IMPORT_NOT_CONFIGURED"
       : "IMPORT_SERVICE_UNAVAILABLE";
-    const diagnostics = known ? error.diagnostics : [];
-    const message = known ? error.message : code === "PRODUCTION_IMPORT_NOT_CONFIGURED" ? "生产导入依赖未配置。" : "生产导入服务暂不可用。";
+    const diagnostics = known ? normalizedError.diagnostics : [];
+    const message = known ? normalizedError.code === "MALFORMED_JSON" ? "请求体不是有效 JSON。" : normalizedError.message : code === "PRODUCTION_IMPORT_NOT_CONFIGURED" ? "生产导入依赖未配置。" : "生产导入服务暂不可用。";
+    const relatedBatchId = submittedBatchId ?? (operation.kind === "submit" ? null : operation.batchId);
+    await recordOperationalEvent({
+      environment: process.env.NODE_ENV ?? "unknown", source: "Production API",
+      component: operation.kind === "submit" ? "Import Batch Submit" : `Import Batch ${operation.kind}`,
+      severity: severityForFailure(status), errorCode: code,
+      safeMessage: status >= 500 ? "生产数据导入接口执行失败。" : "生产数据导入请求未通过接口校验或授权。",
+      phenomenon: status >= 500 ? "导入 API 未能完成请求。" : "导入 API 按契约拒绝了请求。",
+      causeStatus: status < 500 ? "KNOWN" : "UNKNOWN",
+      knownCause: status < 500 ? "请求参数、批次状态或调用权限不符合接口要求。" : null,
+      impact: { kind: relatedBatchId ? "BATCH" : domain ? "DOMAIN" : "SYSTEM", id: relatedBatchId ?? domain, summary: relatedBatchId ? `批次 ${relatedBatchId} 操作失败。` : "生产导入接口请求失败。" },
+      actionTaken: "接口返回稳定错误码；未向调用方暴露异常堆栈。",
+      nextStep: status >= 500 ? "检查生产 Adapter、身份服务及存储状态。" : "按返回错误码修正请求或权限。",
+      correlationId, relatedBatchId, relatedJobId: null, relatedDomain: domain ?? diagnostics[0]?.domain ?? null,
+      diagnostics: importDiagnosticsToOperationalDiagnostics(diagnostics),
+    });
     return Response.json({ error: { code, message, diagnostics } }, { status });
   }
 }

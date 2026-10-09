@@ -7,6 +7,7 @@ import {
   Leaf,
   ListChecks,
   Shield,
+  ShieldAlert,
   Store,
   Target,
 } from "lucide-react";
@@ -18,6 +19,7 @@ export type NavigationItem = {
   section?: string;
   description?: string;
   showDashboardHeader?: boolean;
+  showGlobalFilters?: boolean;
   showPeriodFilter?: boolean;
 };
 
@@ -81,6 +83,7 @@ export const routes = {
   },
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据", showPeriodFilter: false },
   accessManagement: { title: "权限管理", href: "/access", icon: Shield, description: "管理手动权限与查看操作日志" },
+  systemMonitoring: { title: "系统监控", href: "/monitoring", icon: ShieldAlert, description: "查看系统异常、通知投递与任务状态", showGlobalFilters: false, showPeriodFilter: false },
   devOverview: {
     title: "总览 Demo",
     href: "/dev/overview",
