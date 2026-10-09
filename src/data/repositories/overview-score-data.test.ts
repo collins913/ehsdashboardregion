@@ -32,7 +32,17 @@ describe("Overview score data repository", () => {
     }
     expect(result.contributions.some((row) => row.metricId === "ASTM_INCIDENT" && row.reason === "ACHIEVED" && row.earnedPoints === 1)).toBe(true);
     expect(result.contributions.some((row) => row.metricId === "ASTM_INCIDENT" && row.reason === "RULE_NOT_MET" && row.earnedPoints === 0)).toBe(true);
-    expect(result.contributions.some((row) => row.metricId.startsWith("CERTIFICATE_") && row.reason === "SOURCE_INVALID")).toBe(true);
+    for (const metricId of ["CERTIFICATE_SAFETY_HEALTH", "CERTIFICATE_FIRST_AID", "CERTIFICATE_SPECIAL_WORK", "CERTIFICATE_SAFE_DRIVING"] as const) {
+      const rows = result.contributions.filter((row) => row.metricId === metricId);
+      expect(rows.some((row) => row.reason === "ACHIEVED" && row.earnedPoints === 1)).toBe(true);
+      expect(rows.some((row) => row.reason === "RULE_NOT_MET" && row.earnedPoints === 0)).toBe(true);
+      expect(rows.some((row) => row.reason === "SOURCE_MISSING" && row.earnedPoints === 0)).toBe(true);
+      expect(rows.some((row) => row.reason === "SOURCE_INVALID" && row.earnedPoints === 0)).toBe(true);
+    }
+    const certificateRows = result.contributions.filter((row) => row.metricId.startsWith("CERTIFICATE_"));
+    expect(certificateRows.some((row) => row.reason === "ACHIEVED" && row.earnedPoints === 1)).toBe(true);
+    expect(certificateRows.some((row) => row.reason === "RULE_NOT_MET" && row.earnedPoints === 0)).toBe(true);
+    expect(certificateRows.every((row) => row.availablePoints === 1)).toBe(true);
   });
 
   it("uses RULE_CONFIGURATION_MISSING only when the runtime required-set provider is absent", async () => {

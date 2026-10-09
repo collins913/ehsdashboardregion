@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { repositoryFactory, getActions, getEvents, getTakeChargeGoals, authorize } = vi.hoisted(() => {
+const { repositoryFactory, getActions, getEvents, getTakeChargeGoals, getEnvironmentAnalytics, getOverviewScoreData, authorize } = vi.hoisted(() => {
   const getActions = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", items: [], totalCount: 0, pageIndex: 0, pageSize: 5 }));
   const getEvents = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", items: [], totalCount: 0, pageIndex: 0, pageSize: 5, availableEventTypes: [] }));
   const getTakeChargeGoals = vi.fn(async () => ({ period: {}, annual: {} }));
-  const repositoryFactory = vi.fn(() => ({ getActions, getEvents, getTakeChargeGoals }));
+  const getEnvironmentAnalytics = vi.fn(async () => ({ availability: "CONFIRMED_EMPTY", periodMonths: ["2026-09"], hazardousWasteContractHolding: {}, solidWasteContractHolding: {}, expiringContractCount: 0, excludedContractMissingOrInvalidExpiryDateCount: 0 }));
+  const getOverviewScoreData = vi.fn(async () => ({ stores: [], attentionStores: [], months: ["2026-09"], contributions: [], availability: "UNAVAILABLE" }));
+  const repositoryFactory = vi.fn(() => ({ getActions, getEvents, getTakeChargeGoals, getEnvironmentAnalytics, getOverviewScoreData }));
   const authorize = vi.fn(async (scope: unknown) => scope);
-  return { repositoryFactory, getActions, getEvents, getTakeChargeGoals, authorize };
+  return { repositoryFactory, getActions, getEvents, getTakeChargeGoals, getEnvironmentAnalytics, getOverviewScoreData, authorize };
 });
 
 vi.mock("@/data/repositories/create-ehs-repository.server", () => ({ createEhsRepository: repositoryFactory }));
 vi.mock("@/lib/access/access-service.server", () => ({ authorizeBusinessScope: authorize }));
 
-import { queryActions, queryEvents, queryTakeChargeGoals } from "@/data/server/ehs-query-actions";
+import { queryActions, queryEnvironmentAnalytics, queryEvents, queryOverview, queryTakeChargeGoals } from "@/data/server/ehs-query-actions";
 import { InvalidQueryInputError } from "@/data/server/query-input-validation";
 
 const validContext = {
@@ -90,6 +92,12 @@ describe("read-only Server Action input validation", () => {
     });
   });
 
+  it("does not initialize the business Repository when scope authorization fails", async () => {
+    authorize.mockRejectedValueOnce(new Error("NOT_AUTHORIZED"));
+    await expect(queryActions(actionInput(validActionQuery))).rejects.toThrow("NOT_AUTHORIZED");
+    expect(repositoryFactory).not.toHaveBeenCalled();
+  });
+
   it("preserves valid dynamic Event Type filters", async () => {
     await queryEvents(actionInput({ ...validActionQuery, eventType: "Non-Agency Event" }));
     expect(getEvents).toHaveBeenCalledWith(expect.objectContaining({ eventType: "Non-Agency Event" }));
@@ -99,5 +107,23 @@ describe("read-only Server Action input validation", () => {
     await queryTakeChargeGoals(actionInput(validContext));
     expect(authorize).toHaveBeenCalledWith(validContext);
     expect(getTakeChargeGoals).toHaveBeenCalledWith({ context: validContext });
+  });
+
+  it("Overview accepts only organization scope and prepares its month from referenceDate", async () => {
+    const scope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
+    await queryOverview(actionInput({ context: scope }));
+    expect(getOverviewScoreData).toHaveBeenCalledWith({ scope, attentionScope: scope });
+    await expect(queryOverview(actionInput({ context: validContext }))).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+  });
+
+  it("Environment Analytics derives the reference month and rejects client Period", async () => {
+    const scope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
+    await queryEnvironmentAnalytics(actionInput({ context: scope }, "2026-09-10T00:00:00+08:00"));
+    expect(getEnvironmentAnalytics).toHaveBeenCalledWith({ context: scope, period: {
+      startInclusive: "2026-09-01T00:00:00+08:00",
+      endExclusive: "2026-10-01T00:00:00+08:00",
+      includedMonths: ["2026-09"],
+    } });
+    await expect(queryEnvironmentAnalytics(actionInput({ context: scope, period: validContext.period }))).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
   });
 });

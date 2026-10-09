@@ -19,7 +19,7 @@ export async function loadEnvironmentPageData(context: EhsStoreScope | null, ref
 }
 
 export function EnvironmentPageContent({ queryEnvironment, queryEnvironmentAnalytics }: { queryEnvironment: EnvironmentQueryAction; queryEnvironmentAnalytics: EnvironmentAnalyticsQueryAction }) {
-  const { storeScope, filterContext, referenceDateIso } = useGlobalFilters();
+  const { storeScope, referenceDateIso } = useGlobalFilters();
   const queryKey = environmentQueryKey(storeScope);
   const load = useCallback(() => loadEnvironmentPageData(storeScope, referenceDateIso, queryEnvironment), [storeScope, referenceDateIso, queryEnvironment]);
   const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
@@ -32,7 +32,6 @@ export function EnvironmentPageContent({ queryEnvironment, queryEnvironmentAnaly
         <div className="space-y-6">
           <EnvironmentAnalytics
             storeScope={storeScope}
-            period={filterContext?.period ?? null}
             referenceDateIso={referenceDateIso}
             queryEnvironmentAnalytics={queryEnvironmentAnalytics}
           />

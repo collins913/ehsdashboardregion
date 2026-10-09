@@ -58,6 +58,10 @@ describe("performance mock dataset", () => {
       PERFORMANCE_TAKE_CHARGE_COUNT,
     );
     expect(dataset.environmentRecords).toHaveLength(PERFORMANCE_STORE_COUNT);
+    expect(new Set(dataset.certificateRecords.map((record) => record.TRTID)).size).toBeGreaterThan(PERFORMANCE_STORE_COUNT * 0.9);
+    expect(dataset.certificateRecords.some((record) => record["Expiry Date"] === null)).toBe(true);
+    expect(dataset.certificateRecords.some((record) => record["Expiry Date"] === "invalid-date")).toBe(true);
+    expect(dataset.certificateRecords.some((record) => record["Expiry Date"] && record["Expiry Date"] < "2026-09-11")).toBe(true);
   });
 
   it("is deterministic and cached by reference month", () => {

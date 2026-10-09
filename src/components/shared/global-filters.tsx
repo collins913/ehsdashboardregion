@@ -102,7 +102,7 @@ function FilterField({ label, children }: FilterFieldProps) {
   );
 }
 
-export function GlobalFilters() {
+export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: boolean }) {
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
   const [storeKeyword, setStoreKeyword] = useState("");
   const {
@@ -157,7 +157,7 @@ export function GlobalFilters() {
             <span>全局筛选</span>
           </div>
 
-          <div className="grid max-w-5xl min-w-0 grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-4">
+          <div className={`grid max-w-5xl min-w-0 grid-cols-1 gap-2 md:grid-cols-2 ${showPeriodFilter ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
             <FilterField label={globalFilterLabels.region}>
               <Select
                 value={singleScopeValue(state.region)}
@@ -291,7 +291,7 @@ export function GlobalFilters() {
               </Popover>
             </FilterField>
 
-            <FilterField label={globalFilterLabels.period}>
+            {showPeriodFilter ? <FilterField label={globalFilterLabels.period}>
               <Select
                 value={state.period.mode}
                 onValueChange={(value) =>
@@ -309,11 +309,11 @@ export function GlobalFilters() {
                   ))}
                 </SelectContent>
               </Select>
-            </FilterField>
+            </FilterField> : null}
           </div>
         </div>
 
-        {state.period.mode === "CUSTOM" ? (
+        {showPeriodFilter && state.period.mode === "CUSTOM" ? (
           <div className="mt-1.5 grid max-w-xl grid-cols-1 gap-2 border-t pt-1.5 md:grid-cols-2">
             <FilterField label="开始月份">
               <MonthPicker

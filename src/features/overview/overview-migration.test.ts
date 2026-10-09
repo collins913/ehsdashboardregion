@@ -12,7 +12,8 @@ describe("formal Overview migration boundary", () => {
     expect(formalRoute).toContain("queryOverview");
     expect(formalRoute).not.toContain("PlaceholderPage");
     expect(feature).toContain("useGlobalFilters");
-    expect(feature).toContain("filterContext");
+    expect(feature).toContain("storeScope");
+    expect(feature).not.toContain("state.period");
   });
 
   it("keeps formal scoring behind the authorized domain contribution boundary", () => {

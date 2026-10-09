@@ -5,6 +5,8 @@ import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
 import type { EventAnalyticsQuery, EventAnalyticsResult } from "@/data/contracts/event-analytics";
 import type { ActionAnalyticsQuery, ActionAnalyticsResult } from "@/data/contracts/action-analytics";
 import type { EhsFilterContext, EhsStoreScope } from "@/data/contracts/kpi";
+import { periodForMode, shanghaiYearMonth } from "@/data/contracts/kpi-period";
+import type { Month } from "@/types/ehs";
 import type { OverviewQuery, OverviewResult } from "@/data/contracts/overview";
 import type {
   KpiDetailQuery,
@@ -15,7 +17,7 @@ import type {
   KpiAstmDetailRecord,
 } from "@/data/contracts/kpi-details";
 import type { StoresQueryResult } from "@/data/contracts/stores";
-import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsRepositoryQuery, EnvironmentAnalyticsResult, EnvironmentQueryResult } from "@/data/contracts/environment";
 import type { CertificatesPageQueryResult } from "@/data/contracts/certificates";
 import type {
   TakeChargeGoalsSummary,
@@ -57,7 +59,7 @@ function parseOverviewQuery(input: unknown): OverviewQuery | null {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return null;
   const value = input as Record<string, unknown>;
   if (Object.keys(value).length !== 1 || !("context" in value)) return null;
-  const context = parseEhsFilterContext(value.context);
+  const context = parseEhsStoreScope(value.context);
   return context ? { context } : null;
 }
 
@@ -79,7 +81,9 @@ export async function queryOverview(input: { referenceDateIso: string; query: Ov
     }
   }
   const data = await repositoryFor(referenceDateIso).getOverviewScoreData({ scope: authorizedScope, attentionScope });
+  const { year, month } = shanghaiYearMonth(new Date(referenceDateIso));
   return prepareOverviewResult({
+    referenceMonth: `${year}-${String(month).padStart(2, "0")}` as Month,
     stores: data.attentionStores,
     selectedStores: data.stores,
     attentionStores: data.attentionStores,
@@ -187,7 +191,11 @@ export async function queryEnvironmentAnalytics(input: { referenceDateIso: strin
     ...query,
     context: await authorizeBusinessScope(query.context),
   };
-  return repositoryFor(referenceDateIso).getEnvironmentAnalytics(authorizedQuery);
+  const repositoryQuery: EnvironmentAnalyticsRepositoryQuery = {
+    ...authorizedQuery,
+    period: periodForMode("THIS_MONTH", new Date(referenceDateIso)),
+  };
+  return repositoryFor(referenceDateIso).getEnvironmentAnalytics(repositoryQuery);
 }
 
 export async function queryCertificates(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<CertificatesPageQueryResult> {

@@ -18,6 +18,7 @@ export type NavigationItem = {
   section?: string;
   description?: string;
   showDashboardHeader?: boolean;
+  showPeriodFilter?: boolean;
 };
 
 export type NavigationGroup = {
@@ -33,7 +34,7 @@ export const navigationLabels = {
 } as const;
 
 export const routes = {
-  overview: { title: "总览", href: "/overview", icon: LayoutDashboard },
+  overview: { title: "总览", href: "/overview", icon: LayoutDashboard, showPeriodFilter: false },
   performanceKpi: {
     title: "KPI",
     href: "/performance/kpi",
@@ -68,6 +69,7 @@ export const routes = {
     icon: Award,
     section: navigationLabels.riskAndCompliance,
     description: "查看各门店当前证件分类状态与证件明细",
+    showPeriodFilter: false,
   },
   riskEnvironment: {
     title: "环境",
@@ -75,8 +77,9 @@ export const routes = {
     icon: Leaf,
     section: navigationLabels.riskAndCompliance,
     description: "查看当前筛选范围内各门店的环境项目现状",
+    showPeriodFilter: false,
   },
-  stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据" },
+  stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据", showPeriodFilter: false },
   accessManagement: { title: "权限管理", href: "/access", icon: Shield, description: "管理手动权限与查看操作日志" },
   devOverview: {
     title: "总览 Demo",

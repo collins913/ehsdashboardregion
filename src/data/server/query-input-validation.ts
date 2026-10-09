@@ -251,12 +251,11 @@ export function parseTakeChargeRecordsQuery(input: unknown): TakeChargeRecordsQu
 export function parseEnvironmentAnalyticsQuery(input: unknown): EnvironmentAnalyticsQuery | null {
   if (
     !isRecord(input) ||
-    !hasOnlyKeys(input, ["context", "period"]) ||
-    !hasKeys(input, ["context", "period"])
+    !hasOnlyKeys(input, ["context"]) ||
+    !hasKeys(input, ["context"])
   ) return null;
   const context = parseStoreScope(input.context);
-  const period = input.period === null ? null : parsePeriod(input.period);
-  return context && (input.period === null || period !== null) ? { context, period } : null;
+  return context ? { context } : null;
 }
 
 export function parseAccessQuery(input: unknown): (AccessQuery & { accessType?: string }) | null {

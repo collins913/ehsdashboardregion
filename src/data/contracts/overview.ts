@@ -32,7 +32,7 @@ export interface ScoreContribution {
 }
 
 export interface OverviewQuery {
-  context: EhsFilterContext;
+  context: EhsStoreScope;
 }
 
 export interface OverviewScoreDataQuery { scope: EhsStoreScope; attentionScope?: EhsStoreScope }
@@ -115,6 +115,8 @@ export interface OverviewResult {
   periodNotice: string;
   scoreRuleVersion: "V1";
   hero: {
+    /** Injected current business month; hero score/delta/history do not follow Global Period. */
+    scoreMonth: Month;
     overallScore: number | null;
     monthlyDelta: number | null;
     monthlyScoreHistory: readonly OverviewHistoryPoint[];

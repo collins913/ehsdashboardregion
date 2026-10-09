@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -12,6 +12,8 @@ type OverflowTooltipProps = {
   text: string;
   className?: string;
   focusable?: boolean;
+  // Return the existing interactive element; the supplied label owns measurement, not focus.
+  renderTrigger?: (label: ReactElement) => ReactElement;
 };
 
 type TextOverflowElement = {
@@ -88,19 +90,23 @@ export function OverflowTooltip({
   text,
   className,
   focusable = true,
+  renderTrigger,
 }: OverflowTooltipProps) {
   const [textElement, setTextElement] = useState<HTMLSpanElement | null>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   useEffect(() => {
     if (!textElement) return;
 
     return startTextOverflowMeasurement({
       element: textElement,
-      onChange: (nextResult) =>
+      onChange: (nextResult) => {
         setIsOverflowing((current) =>
           current === nextResult ? current : nextResult,
-        ),
+        );
+        if (!nextResult) setTooltipOpen(false);
+      },
       requestFrame: requestAnimationFrame,
       cancelFrame: cancelAnimationFrame,
       createObserver: (callback) => new ResizeObserver(callback),
@@ -115,11 +121,21 @@ export function OverflowTooltip({
     <span
       ref={setTextElement}
       className={cn("block min-w-0 truncate", className)}
-      tabIndex={focusable && isOverflowing ? 0 : undefined}
+      tabIndex={!renderTrigger && focusable && isOverflowing ? 0 : undefined}
     >
       {text}
     </span>
   );
+
+  if (renderTrigger) {
+    // Keep the real trigger mounted as text starts or stops overflowing.
+    return (
+      <Tooltip open={isOverflowing && tooltipOpen} onOpenChange={(open) => setTooltipOpen(isOverflowing && open)}>
+        <TooltipTrigger asChild>{renderTrigger(label)}</TooltipTrigger>
+        <TooltipContent>{text}</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   if (!isOverflowing) return label;
 

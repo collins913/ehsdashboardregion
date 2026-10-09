@@ -45,7 +45,7 @@ function healthy(): MockDataset {
 }
 const overview = (dataset: MockDataset) => createMockEhsRepository(referenceDate, { dataset }).getOverviewScoreData({ scope: all });
 function score(data: OverviewScoreData, storeId: string) {
-  return prepareOverviewResult({ stores: data.stores, selectedStores: data.stores, attentionStores: data.attentionStores,
+  return prepareOverviewResult({ referenceMonth: "2026-09", stores: data.stores, selectedStores: data.stores, attentionStores: data.attentionStores,
     contributions: data.contributions, context, requestedScope: all, availableMonths: data.months, sourceAvailability: data.availability })
     .scopeDetails.find((store) => store.id === storeId)?.score;
 }

@@ -6,6 +6,7 @@ import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh
 import { PageContainer } from "@/components/shared/page-container"
 import type { OverviewQuery, OverviewResult } from "@/data/contracts/overview"
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider"
+import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state"
 import { useLatestAsyncQuery, type AsyncQueryState } from "@/hooks/use-latest-async-query"
 import { AttentionMatrix } from "./components/attention-matrix"
 import { DimensionAnalysis } from "./components/dimension-analysis"
@@ -42,32 +43,35 @@ export function OverviewContent({ result, semanticKey = "", requestedKey = seman
   return (
     <>
       <PageContainer className="py-5 lg:py-6">
-        <div className="relative space-y-5" aria-busy={refreshing || undefined}>
+        <div className="relative space-y-6" aria-busy={refreshing || undefined}>
           <AnalyticsRefreshIndicator refreshing={refreshing} />
-          <div inert={refreshing || undefined} className="space-y-5">
+          <div inert={refreshing || undefined} className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2"><span className="text-sm text-muted-foreground">{result.scopeLabel}</span><span className="text-xs text-muted-foreground" title={result.periodNotice}>{result.periodNotice}</span></div>
-          <p className="text-xs text-muted-foreground">当前期：{result.currentPeriodLabel} · {comparisonLabel} · {result.scoreRuleVersion}</p>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>{result.scopeLabel}</span>{result.scopeLabel !== `已选 ${result.storeCount} 家门店` ? <span>· {result.storeCount} 家门店</span> : null}<span>· 当前期：{result.currentPeriodLabel}</span><span>· 比较期：{result.previousPeriodLabel}</span></div>
+          <p className="text-xs text-muted-foreground">{result.scoreRuleVersion}</p>
           </div>
+          {!result.periodNotice.startsWith("分析周期：") ? <p className="text-xs text-muted-foreground">{result.periodNotice}</p> : null}
 
-        <ManagementSummary hero={result.hero} comparisonLabel={comparisonLabel} onSelect={openScope} />
-        <AttentionMatrix matrix={result.attentionMatrix} comparisonLabel={comparisonLabel} onSelect={openScope} />
-        <DimensionAnalysis scores={result.dimensionScores} storeCount={result.storeCount} identity={semanticKey} comparisonLabel={comparisonLabel} />
+        <ManagementSummary hero={result.hero} comparisonLabel={comparisonLabel} onSelect={openScope}
+          scoreDetail={<DimensionAnalysis scores={result.dimensionScores} storeCount={result.storeCount} identity={semanticKey} />}
+          comparison={<AttentionMatrix key={semanticKey} matrix={result.attentionMatrix} comparisonLabel={comparisonLabel} onSelect={openScope} selectedScopeId={result.storeCount === 1 ? result.stores[0]?.storeId : undefined} />}
+        />
         <ScopeComparison comparisons={result.comparisons} onSelect={openScope} semanticKey={semanticKey} comparisonLabel={comparisonLabel} />
         </div>
         </div>
       </PageContainer>
-      <ScopeDetailSheet detail={selectedDetail ? { kind: "scope", value: selectedDetail } : null} onClose={() => setSelectedScope(null)} returnFocusTarget={returnFocusRef.current} currentPeriodLabel={result.currentPeriodLabel} comparisonLabel={comparisonLabel} />
+      <ScopeDetailSheet detail={selectedDetail ? { kind: "scope", value: selectedDetail } : null} onClose={() => setSelectedScope(null)} returnFocusTarget={returnFocusRef.current}
+        currentPeriodLabel={result.currentPeriodLabel} comparisonPeriodLabel={result.previousPeriodLabel} />
     </>
   )
 }
 
 export function OverviewPage({ queryOverview }: { queryOverview: OverviewQueryAction }) {
-  const { filterContext, referenceDateIso, state } = useGlobalFilters()
-  const queryKey = filterContext ? JSON.stringify([referenceDateIso, filterContext, state.period.mode]) : null
-  const load = useCallback(() => queryOverview({ referenceDateIso, query: { context: filterContext! } }),
-  [filterContext, queryOverview, referenceDateIso, state.period.mode])
-  const query = useLatestAsyncQuery(queryKey, filterContext ? load : null)
+  const { storeScope, referenceDateIso } = useGlobalFilters()
+  const queryKey = storeScope ? JSON.stringify([referenceDateIso, storeScopeQueryKey(storeScope)]) : null
+  const load = useCallback(() => queryOverview({ referenceDateIso, query: { context: storeScope! } }),
+  [storeScope, queryOverview, referenceDateIso])
+  const query = useLatestAsyncQuery(queryKey, storeScope ? load : null)
 
   if (query.status === "IDLE") return <PageContainer><div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">当前筛选条件尚不能生成 Overview 数据。</div></PageContainer>
   if (query.status === "ERROR") return <PageContainer><AsyncQueryFeedback status="ERROR" /></PageContainer>

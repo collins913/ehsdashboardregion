@@ -12,16 +12,23 @@ export function createMockCertificateRecords(stores: readonly StoreMasterData[],
   const today = formatBusinessDate(referenceDate.toISOString());
   const dateAt = (days: number) => new Date(Date.parse(today + "T00:00:00Z") + days * 86_400_000).toISOString().slice(0, 10);
   const records: RawCertificateRecord[] = [];
-  stores.slice(0, 12).forEach((store, index) => {
-    // One store is explicitly empty; others cover single/multiple records per category.
+  const categoryForType = (typeIndex: number) => typeIndex < 4 ? 0 : typeIndex === 4 ? 1 : typeIndex === 5 ? 2 : 3;
+  stores.forEach((store, index) => {
+    // Keep a small confirmed-empty sample while covering every other Store in both profiles.
     if (index === 11) return;
-    const selectedTypes = index === 1 ? [types[0], types[4]] : [...types];
-    selectedTypes.forEach((type, typeIndex) => {
-      const caseIndex = (index + typeIndex) % 6;
+    types.forEach((type, typeIndex) => {
+      const categoryIndex = categoryForType(typeIndex);
+      if ((index + categoryIndex * 7) % 29 === 0) return;
+      // A category shares one deterministic case so the fixture contains both achieved and failed categories.
+      const caseIndex = (index * 7 + categoryIndex * 3) % 10;
+      const expiryDate = caseIndex <= 6 ? dateAt(30 + (index % 180))
+        : caseIndex === 7 ? today
+        : caseIndex === 8 ? dateAt(-5)
+        : Math.floor(index / 10) % 2 === 0 ? null : "invalid-date";
       records.push({
         TRTID: store.trtid, "English Store Name": store.storeNameEn,
         "Certificate Type": type,
-        "Expiry Date": caseIndex === 0 ? dateAt(30) : caseIndex === 1 ? today : caseIndex === 2 ? dateAt(-5) : caseIndex === 3 ? null : caseIndex === 4 ? "invalid-date" : dateAt(365),
+        "Expiry Date": expiryDate,
         Person: mockPersonAt(index + typeIndex),
         "Person Email": `person.${index + typeIndex + 1}@example.test`,
         "Business Title": index % 2 === 0 ? "门店员工" : "门店管理人员",

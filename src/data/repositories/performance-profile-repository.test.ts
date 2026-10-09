@@ -82,7 +82,7 @@ describe("performance profile Repository behavior", () => {
         area: { kind: "ALL" },
         store: { kind: "ALL" },
       },
-      period: context().period,
+      period: periodForMode("THIS_MONTH", referenceDate),
     });
     const certificates = await repository.getCertificates({
       context: {

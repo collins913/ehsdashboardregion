@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { useEffect, useState } from "react";
-import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import { createElement, useEffect, useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   OverflowTooltip,
   isTextOverflowing,
@@ -92,6 +92,7 @@ describe("OverflowTooltip measurement", () => {
     const render = () => {
       vi.mocked(useState).mockReturnValueOnce([null, vi.fn()]);
       vi.mocked(useState).mockReturnValueOnce([overflowing, vi.fn()]);
+      vi.mocked(useState).mockReturnValueOnce([false, vi.fn()]);
       vi.mocked(useEffect).mockImplementationOnce(() => undefined);
       return OverflowTooltip({ text: "超长门店名称" });
     };
@@ -232,5 +233,52 @@ describe("OverflowTooltip measurement", () => {
     expect(changes).toEqual([true, false, true]);
     cleanupBackToShort();
     expect(frames.size).toBe(0);
+  });
+});
+
+describe("OverflowTooltip composed trigger", () => {
+  const onClick = vi.fn();
+  function render(overflowing: boolean, open: boolean, setOpen = vi.fn()) {
+    vi.mocked(useState).mockReturnValueOnce([null, vi.fn()]);
+    vi.mocked(useState).mockReturnValueOnce([overflowing, vi.fn()]);
+    vi.mocked(useState).mockReturnValueOnce([open, setOpen]);
+    vi.mocked(useEffect).mockImplementationOnce(() => undefined);
+    return OverflowTooltip({
+      text: "需要完整显示的长门店名称",
+      renderTrigger: (label) => createElement("button", { type: "button", onClick }, label),
+    });
+  }
+
+  it("keeps the actual button under a stable TooltipTrigger across overflow changes without a second tab stop", () => {
+    for (const overflowing of [false, true, false]) {
+      const tooltip = render(overflowing, false);
+      expect(tooltip.type).toBe(Tooltip);
+      const trigger = tooltip.props.children[0];
+      expect(trigger.type).toBe(TooltipTrigger);
+      expect(trigger.props.asChild).toBe(true);
+      const button = trigger.props.children;
+      expect(button.type).toBe("button");
+      expect(button.props.onClick).toBe(onClick);
+      expect(button.props.children.type).toBe("span");
+      expect(button.props.children.props.tabIndex).toBeUndefined();
+      expect(tooltip.props.children[1].type).toBe(TooltipContent);
+      expect(tooltip.props.children[1].props.children).toBe("需要完整显示的长门店名称");
+    }
+  });
+
+  it("opens on the trigger request only while text actually overflows and closes on blur or dismissal", () => {
+    const setOpen = vi.fn();
+    const fitting = render(false, true, setOpen);
+    expect(fitting.props.open).toBe(false);
+    fitting.props.onOpenChange(true);
+    expect(setOpen).toHaveBeenLastCalledWith(false);
+
+    const overflowing = render(true, false, setOpen);
+    overflowing.props.onOpenChange(true);
+    expect(setOpen).toHaveBeenLastCalledWith(true);
+    const open = render(true, true, setOpen);
+    expect(open.props.open).toBe(true);
+    open.props.onOpenChange(false);
+    expect(setOpen).toHaveBeenLastCalledWith(false);
   });
 });

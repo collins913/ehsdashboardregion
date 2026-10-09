@@ -6,7 +6,7 @@ import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult } from "@/data/contracts/environment";
-import type { EhsStoreScope, KpiPeriod } from "@/data/contracts/kpi";
+import type { EhsStoreScope } from "@/data/contracts/kpi";
 import { formatBusinessMonth } from "@/lib/format-business-date-time";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
@@ -24,28 +24,26 @@ function formatPeriod(months: readonly string[] | null): string {
 
 export function EnvironmentAnalytics({
   storeScope,
-  period,
   referenceDateIso,
   queryEnvironmentAnalytics,
 }: {
   storeScope: EhsStoreScope | null;
-  period: KpiPeriod | null;
   referenceDateIso: string;
   queryEnvironmentAnalytics: EnvironmentAnalyticsQueryAction;
 }) {
   const queryKey = storeScope
-    ? JSON.stringify([referenceDateIso, storeScope, period])
+    ? JSON.stringify([referenceDateIso, storeScope])
     : null;
   const load = useCallback(
     async (): Promise<EnvironmentAnalyticsResult> => {
       if (storeScope === null) throw new Error("Environment scope is unavailable.");
-      return queryEnvironmentAnalytics({ referenceDateIso, query: { context: storeScope, period } });
+      return queryEnvironmentAnalytics({ referenceDateIso, query: { context: storeScope } });
     },
-    [period, queryEnvironmentAnalytics, referenceDateIso, storeScope],
+    [queryEnvironmentAnalytics, referenceDateIso, storeScope],
   );
   const state = useLatestAsyncQuery(queryKey, storeScope ? load : null);
   const result = state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
-  const displayedMonths = result?.periodMonths ?? period?.includedMonths ?? null;
+  const displayedMonths = result?.periodMonths ?? null;
   const initialLoading = state.status === "LOADING" && result === null;
   const unavailable = result?.availability === "UNAVAILABLE";
   const expiringCount = unavailable ? null : result?.expiringContractCount ?? null;

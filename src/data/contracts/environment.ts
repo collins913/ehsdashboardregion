@@ -80,6 +80,9 @@ export type EnvironmentQueryResult = DataSet<NormalizedEnvironmentRecord>;
 
 export interface EnvironmentAnalyticsQuery {
   context: EhsStoreScope;
+}
+
+export interface EnvironmentAnalyticsRepositoryQuery extends EnvironmentAnalyticsQuery {
   period: KpiPeriod | null;
 }
 

@@ -4,7 +4,7 @@ import {
   type KpiMockCoverage,
 } from "@/data/mock";
 import type { MockDataset } from "@/data/mock/mock-dataset";
-import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
+import type { EnvironmentAnalyticsRepositoryQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult, NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult, NormalizedCertificateRecord } from "@/data/contracts/certificates";
 import type { OverviewScoreData, OverviewScoreDataQuery } from "@/data/contracts/overview";
 import type { OverviewRequiredSetProvider } from "@/data/contracts/overview-requirements";
@@ -1081,7 +1081,7 @@ export function createMockEhsRepository(
       : incompleteDataSet(items);
   }
 
-  async function getEnvironmentAnalytics({ context, period }: EnvironmentAnalyticsQuery): Promise<EnvironmentAnalyticsResult> {
+  async function getEnvironmentAnalytics({ context, period }: EnvironmentAnalyticsRepositoryQuery): Promise<EnvironmentAnalyticsResult> {
     const environment = await getEnvironment({ context });
     const eligibleStoreCount = requestedStores(context, stores).length;
     return buildEnvironmentAnalytics(

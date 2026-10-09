@@ -48,7 +48,7 @@ function props(tree: ReactElement, type: unknown) {
 const detail = { id: "a", label: "甲门店", level: "STORE" as const, storeCount: 1, score: 50, monthlyDelta: null, monthlyHistory: [], dimensionScores: [] }
 const result: OverviewResult = {
   availability: "AVAILABLE", stores: [], storeCount: 1, scopeLabel: "甲门店", currentPeriodLabel: "2026-01", previousPeriodLabel: "无可比较历史", periodNotice: "2026-01", scoreRuleVersion: "V1",
-  hero: { overallScore: 50, monthlyDelta: null, monthlyScoreHistory: [], improvingRanking: { areas: [], stores: [] }, decliningRanking: { areas: [], stores: [] } },
+  hero: { scoreMonth: "2026-10", overallScore: 50, monthlyDelta: null, monthlyScoreHistory: [], improvingRanking: { areas: [], stores: [] }, decliningRanking: { areas: [], stores: [] } },
   attentionMatrix: { groups: [], xDomain: [0, 100], yDomain: [-2, 2], averageScore: null }, dimensionScores: [], comparisons: [], scopeDetails: [detail],
 }
 class Trigger {
@@ -111,7 +111,7 @@ describe("Matrix member interaction", () => {
     const tree = render(() => AttentionPointGroup({ cx: 10, cy: 10, payload: { ...group, level }, onSelect: vi.fn() })!)
     expect(props(tree, "button")["aria-label"]).toContain(`共 2 ${unit}`)
     expect(props(tree, "button")["aria-label"]).toContain("50%")
-    expect(props(tree, "button")["aria-label"]).toContain("5 pp")
+    expect(props(tree, "button")["aria-label"]).toContain("5%")
   })
 
   it("opens a single entity through a native button", () => {
@@ -142,7 +142,7 @@ describe("Matrix member interaction", () => {
 
 describe("Detail focus lifecycle", () => {
   it("focuses the Sheet and returns to the original connected trigger on close", () => {
-    const tree = render(() => ScopeDetailSheet({ detail: { kind: "scope", value: detail }, onClose: vi.fn(), currentPeriodLabel: "2026-01", comparisonLabel: "无可比较历史", returnFocusTarget: trigger as unknown as HTMLElement }))
+    const tree = render(() => ScopeDetailSheet({ detail: { kind: "scope", value: detail }, onClose: vi.fn(), returnFocusTarget: trigger as unknown as HTMLElement }))
     const content = props(tree, SheetContent)
     const focus = vi.fn()
     ;(content.ref as { current: unknown }).current = { focus }

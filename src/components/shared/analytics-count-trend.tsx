@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { type ReactNode } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ANALYTICS_CARD_HEIGHT_CLASS_NAME,
@@ -21,6 +21,24 @@ export interface AnalyticsCountTrendRow {
   count: number;
 }
 
+export interface AnalyticsCountTrendScale {
+  domain: readonly [number, number];
+  ticks: readonly number[];
+}
+
+export function analyticsCountTrendScale(data: readonly AnalyticsCountTrendRow[]): AnalyticsCountTrendScale {
+  const dataMax = data.reduce((max, row) => Number.isFinite(row.count) ? Math.max(max, row.count) : max, 0);
+  const paddedMax = dataMax > 0 ? dataMax + Math.max(dataMax * 0.05, 1) : 1;
+  const boundedMax = Number.isFinite(paddedMax) ? Math.ceil(paddedMax) : dataMax;
+  const tickStep = Math.max(1, Math.ceil(boundedMax / 4));
+  const domainMax = Math.ceil(boundedMax / tickStep) * tickStep;
+  const tickCount = Math.floor(domainMax / tickStep);
+  return {
+    domain: [0, domainMax],
+    ticks: Array.from({ length: tickCount + 1 }, (_, index) => index * tickStep),
+  };
+}
+
 export function AnalyticsCountTrend({
   title,
   data,
@@ -32,11 +50,11 @@ export function AnalyticsCountTrend({
   valueLabel: string;
   toolbar?: ReactNode;
 }) {
-  const gradientId = `analytics-count-fill-${useId().replace(/:/g, "")}`;
   const config = {
     count: { label: valueLabel, color: "var(--analytics-primary)" },
   } satisfies ChartConfig;
   const chartAnimationEnabled = useAnalyticsChartAnimationEnabled();
+  const scale = analyticsCountTrendScale(data);
 
   return (
     <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4`}>
@@ -47,22 +65,16 @@ export function AnalyticsCountTrend({
       <CardContent className="flex min-h-0 flex-1 flex-col px-4 pt-4">
         <div className="relative min-h-0 flex-1 w-full">
           <ChartContainer config={config} className="absolute inset-0 aspect-auto">
-            <AreaChart data={data} margin={{ left: 12, right: 12 }}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-count)" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="var(--color-count)" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
+            <LineChart data={data} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
-              <YAxis hide width={0} domain={[0, (dataMax: number) => dataMax + Math.max(dataMax * 0.05, 0.1)]} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} interval={0} tickFormatter={(month: string) => `${Number(month.slice(5))}月`} />
+              <YAxis type="number" width={34} domain={scale.domain} ticks={scale.ticks} allowDataOverflow tickLine={false} axisLine={false} tickMargin={6} tick={{ fontSize: 10 }} tickFormatter={(value: number) => String(Math.round(value))} />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" minTickGap={8} tick={{ fontSize: 10 }} tickFormatter={(month: string) => `${Number(month.slice(5))}月`} />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent labelFormatter={(month) => formatBusinessMonth(String(month ?? ""))} indicator="dot" />}
               />
-              <Area dataKey="count" type="natural" baseValue={0} fill={`url(#${gradientId})`} stroke="var(--color-count)" isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
-            </AreaChart>
+              <Line dataKey="count" type="monotone" stroke="var(--color-count)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
+            </LineChart>
           </ChartContainer>
         </div>
       </CardContent>

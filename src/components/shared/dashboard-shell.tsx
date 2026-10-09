@@ -11,6 +11,7 @@ import type { Month } from "@/types/ehs";
 import type { AccountSummary } from "@/data/contracts/access";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import type { GlobalFilterState } from "@/features/global-filters/global-filter-state";
+import { GLifeContextProvider } from "@/features/enterprise/glife-context-provider";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -34,16 +35,13 @@ export function DashboardShell({
     <SidebarProvider>
       <AppSidebar account={account} />
       <SidebarInset className="min-w-0">
-        <GlobalFilterProvider
-          stores={stores}
-          initialState={initialFilterState}
-          nowIso={nowIso}
-          referenceMonth={referenceMonth}
-        >
+        <GLifeContextProvider>
+        <GlobalFilterProvider stores={stores} initialState={initialFilterState} nowIso={nowIso} referenceMonth={referenceMonth}>
           {route && route.showDashboardHeader !== false ? (
             <PageHeader
               title={route.title}
               description={route.description}
+              showPeriodFilter={route.showPeriodFilter}
               breadcrumbs={route.section
                 ? [{ label: route.section }, { label: route.title }]
                 : [{ label: route.title }]}
@@ -51,6 +49,7 @@ export function DashboardShell({
           ) : null}
           {children}
         </GlobalFilterProvider>
+        </GLifeContextProvider>
       </SidebarInset>
     </SidebarProvider>
   );

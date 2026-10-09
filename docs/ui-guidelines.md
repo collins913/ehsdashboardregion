@@ -19,6 +19,7 @@
 - 得分率变化数值按实际正负统一着色：正数 `text-green-700 dark:text-green-400`；负数 `text-red-600 dark:text-red-400`；零 `text-foreground`；缺失 `text-muted-foreground` 并显示 `—`，不得当作零。
 - 标题摘要、排名、比较、图表浮层与详情复用同一变化值 presentation，不按排名位置或提升/退步分区决定颜色；标签保持普通文字颜色。Overview 复用 feature-local `ScoreChange`。
 - 比较标签必须与所用数据周期一致；“较上月”使用已准备的月度差值，不把季度或其它周期差值仅改名为月度差值。
+- Overview 得分率变化显示 `%`，语义为当前得分率减上一个自然月得分率，不是相对增长率；原始得分变化使用“分”并与得分率变化分列。
 
 ## Typography
 
@@ -73,6 +74,7 @@
 - 业务表格正文行以 Actions 行为基准：shared DataTable presentation 统一单元格 22px 行盒，TableCellTrigger 与 placeholder 行遵循同一几何。
 - Sticky 首列维持不透明背景，并通过 shared row state 跟随整行 hover 与 selected 背景。
 - 可下钻单元格复用 `TableCellTrigger`，详情复用已有 Sheet；同一领域的类别共用详情结构，不创建 Generic Detail framework。
+- Shared `DataTable` 的整行点击是 opt-in：保持原生 table / row 语义，为可点击行提供 Tab、Enter / Space 和 focus ring；按钮、链接、表单控件及菜单项内部交互不得冒泡触发行操作。
 
 ## Motion
 

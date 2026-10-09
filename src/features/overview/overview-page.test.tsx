@@ -9,7 +9,7 @@ import type { Month, StoreId } from "@/types/ehs";
 import { OVERVIEW_V1_METRIC_CATALOG, createScoreContribution, missingSourceContribution } from "@/lib/rules/overview-scoring";
 import { prepareOverviewResult } from "@/features/overview/prepare-overview-result";
 import { ManagementSummary } from "@/features/overview/components/management-summary";
-import { overviewScoreDomain, selectOverviewAttentionPoint } from "@/features/overview/components/overview-charts";
+import { OVERVIEW_SCORE_DOMAIN, selectOverviewAttentionPoint } from "@/features/overview/components/overview-charts";
 
 const stores: readonly KpiStore[] = [
   { storeId: "store-a" as StoreId, displayName: "甲门店", region: "东区", area: "甲小区" },
@@ -27,7 +27,7 @@ function contributions() {
   })));
 }
 
-const result = prepareOverviewResult({ stores, selectedStores: stores, attentionStores: stores, contributions: contributions(), context, requestedScope: scope, availableMonths: months, sourceAvailability: "AVAILABLE" });
+const result = prepareOverviewResult({ referenceMonth: "2026-04" as Month, stores, selectedStores: stores, attentionStores: stores, contributions: contributions(), context, requestedScope: scope, availableMonths: months, sourceAvailability: "AVAILABLE" });
 
 describe("formal Overview V1", () => {
   it("renders the formal data result without Prototype output", () => {
@@ -42,10 +42,12 @@ describe("formal Overview V1", () => {
 
   it("keeps the V1 denominator fixed at 12 per Store × Month and pools points", () => {
     expect(result.comparisons).toHaveLength(2);
-    expect(result.comparisons[0]).toMatchObject({ earnedPoints: 24, totalPoints: 24, score: 100 });
-    expect(result.dimensionScores.reduce((sum, dimension) => sum + dimension.totalPoints, 0)).toBe(48);
+    expect(result.comparisons[0]).toMatchObject({ earnedPoints: 12, totalPoints: 12, score: 100 });
+    expect(result.dimensionScores.reduce((sum, dimension) => sum + dimension.totalPoints, 0)).toBe(24);
     expect(result.scopeDetails).toHaveLength(3);
-    expect(result.hero.monthlyScoreHistory.map((point) => point.score)).toEqual([50, 50]);
+    expect(result.hero.monthlyScoreHistory).toHaveLength(4);
+    expect(result.hero.monthlyScoreHistory.map((point) => point.periodLabel)).toEqual(months);
+    expect(result.hero.monthlyScoreHistory.map((point) => point.score)).toEqual([50, 50, 50, 50]);
   });
 
   it("keeps all stores ranked and gives ties a deterministic order", () => {
@@ -60,7 +62,7 @@ describe("formal Overview V1", () => {
   it("keeps the store list scoped while the single-store matrix shows its authorized area peers", () => {
     const requestedScope = { ...scope, store: { kind: "INCLUDE" as const, values: [stores[0].storeId] as [StoreId] } };
     const selectedContext: EhsFilterContext = { ...context, store: requestedScope.store };
-    const selected = prepareOverviewResult({
+    const selected = prepareOverviewResult({ referenceMonth: "2026-04" as Month,
       stores,
       selectedStores: [stores[0]],
       attentionStores: stores,
@@ -81,6 +83,6 @@ describe("formal Overview V1", () => {
     const selected: string[] = [];
     selectOverviewAttentionPoint({ payload: { id: "store-a" } }, (id) => selected.push(id));
     expect(selected).toEqual(["store-a"]);
-    expect(overviewScoreDomain([{ periodLabel: "2026-01", score: 75 }, { periodLabel: "2026-02", score: 75 }])).toEqual([74, 76]);
+    expect(OVERVIEW_SCORE_DOMAIN).toEqual([0, 100]);
   });
 });

@@ -143,13 +143,13 @@ function DemoSurface({
   );
 }
 
-function DetailSheetDemo() {
+function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" | "full" }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline">查看详情示例</Button>
+        <Button variant="outline">{mobileWidth === "full" ? "查看手机全宽详情" : "查看详情示例"}</Button>
       </SheetTrigger>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent mobileWidth={mobileWidth} className="overflow-y-auto">
         <DetailHeader
           title="特种作业"
           subtitle="示例星河店"
@@ -243,6 +243,7 @@ function ColumnSizingRolePreview() {
 export default function UiLabPage() {
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
+  const [selectedSampleRow, setSelectedSampleRow] = useState<string | null>(null);
   const [filterPreview, setFilterPreview] = useState("ALL");
   const [animatedNumberPreview, setAnimatedNumberPreview] = useState(52);
 
@@ -388,7 +389,7 @@ export default function UiLabPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <DemoSurface
               title="OverflowTooltip"
-              description="短文本不启用 Tooltip；真实溢出时才启用。"
+              description="短文本不启用 Tooltip；真实溢出时支持悬停或键盘聚焦，按钮内不增加 Tab 停靠点。"
             >
               <div className="space-y-3">
                 <div className="w-48 rounded-md border px-3 py-2 text-sm">
@@ -400,6 +401,11 @@ export default function UiLabPage() {
                     className="w-full"
                   />
                 </div>
+                {["短按钮文本", "用于验证按钮聚焦时可见完整内容的超长门店名称"].map((text) => (
+                  <OverflowTooltip key={text} text={text} className="w-full" renderTrigger={(label) => (
+                    <Button variant="outline" className="w-48 justify-start" aria-label={text}>{label}</Button>
+                  )} />
+                ))}
               </div>
             </DemoSurface>
             <DemoSurface
@@ -509,8 +515,10 @@ export default function UiLabPage() {
             <div className="mt-3 space-y-4">
               <ColumnSizingRolePreview />
               <section aria-label="共享表格数值排序">
-                <h4 className="mb-2 text-sm font-medium">共享表格数值排序</h4>
-                <DataTable rows={numericSortRows} columns={numericSortColumns} emptyMessage="无样例数据" />
+                <h4 className="mb-2 text-sm font-medium">共享表格数值排序与固定首列</h4>
+                <p className="mb-2 text-xs text-muted-foreground" aria-live="polite">{selectedSampleRow ? `已选择：${selectedSampleRow}` : "支持可选整行点击；键盘聚焦后按 Enter 或空格打开。"}</p>
+                <DataTable rows={numericSortRows} columns={numericSortColumns} stickyFirstColumn compactPrimaryColumn emptyMessage="无样例数据"
+                  onRowClick={(row) => setSelectedSampleRow(row.label)} rowAriaLabel={(row) => `选择${row.label}`} />
               </section>
               <Button
                 variant="outline"
@@ -535,7 +543,10 @@ export default function UiLabPage() {
             title="Detail Sheet"
             description="最小验证 trigger、Header、字段排布、长文本与空值。"
           >
-            <DetailSheetDemo />
+            <div className="flex flex-wrap gap-2">
+              <DetailSheetDemo />
+              <DetailSheetDemo mobileWidth="full" />
+            </div>
           </DemoSurface>
         </PageContainer>
       </section>

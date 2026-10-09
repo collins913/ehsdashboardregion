@@ -28,3 +28,7 @@ export const stickyStoreHeaderClassName =
 
 export const stickyStoreCellClassName =
   "sticky left-0 z-10 border-r bg-background";
+
+// Opt-in primary sizing for narrow table containers; independent of sticky positioning.
+export const dataTableCompactPrimaryClassName =
+  "@max-[480px]/data-table:w-[18%] @max-[480px]/data-table:min-w-32";

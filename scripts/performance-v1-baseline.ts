@@ -113,7 +113,7 @@ describe("Performance V1 baseline", () => {
         store: broadContext.store,
       };
       const overviewData = await repository.getOverviewScoreData({ scope: overviewScope });
-      const overviewViewModel = prepareOverviewResult({
+      const overviewViewModel = prepareOverviewResult({ referenceMonth: "2026-09",
         stores: overviewData.attentionStores,
         selectedStores: overviewData.stores,
         attentionStores: overviewData.attentionStores,
@@ -198,7 +198,7 @@ describe("Performance V1 baseline", () => {
           repository.getOverviewScoreData({ scope: overviewScope }),
         ),
         await measureAsync("Overview aggregation + view model", async () =>
-          prepareOverviewResult({
+          prepareOverviewResult({ referenceMonth: "2026-09",
             stores: overviewData.attentionStores,
             selectedStores: overviewData.stores,
             attentionStores: overviewData.attentionStores,

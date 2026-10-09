@@ -17,7 +17,7 @@ import type {
   TakeChargeRecordsResult,
 } from "@/data/contracts/take-charge";
 import type { StoresQuery, StoresQueryResult } from "@/data/contracts/stores";
-import type { EnvironmentAnalyticsQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
+import type { EnvironmentAnalyticsRepositoryQuery, EnvironmentAnalyticsResult, EnvironmentQuery, EnvironmentQueryResult } from "@/data/contracts/environment";
 import type { CertificatesQuery, CertificatesQueryResult } from "@/data/contracts/certificates";
 import type {
   KpiDetailQuery,
@@ -74,7 +74,7 @@ export interface StoresQueries {
 
 export interface EnvironmentQueries {
   getEnvironment(query: EnvironmentQuery): Promise<EnvironmentQueryResult>;
-  getEnvironmentAnalytics(query: EnvironmentAnalyticsQuery): Promise<EnvironmentAnalyticsResult>;
+  getEnvironmentAnalytics(query: EnvironmentAnalyticsRepositoryQuery): Promise<EnvironmentAnalyticsResult>;
 }
 
 export interface GlobalFilterQueries {
