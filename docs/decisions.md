@@ -335,3 +335,7 @@ Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`so
 Operational Event / Incident 与 EHS 业务 Events 分离，错误分组使用稳定 source + component + code + impact scope fingerprint；每次发生保留单独 Event。Incident 状态写入采用 revision CAS；自动恢复只能由正向验证信号触发，GLOBAL_ADMIN 可手动将 RESOLVED Incident 重新打开为 OPEN。重新打开必须清除处理与确认字段，并原子确保同一 fingerprint 没有其他活动 Incident；冲突时拒绝操作。通知通过同事务 Outbox 入队，生产存储 Adapter 必须提供跨 Worker 原子 claim、幂等、有限重试及审计事务；没有外部独立通道时，监控存储不可用只能 best-effort 输出脱敏结构化服务端日志，不能声称错误已持久化或告警已送达。
 
 开发/测试可以使用内存 Monitoring Repository 和测试通知 Provider；Production 不允许回退到内存存储。Email Provider、企业持久化 Adapter、独立 Watchdog / Scheduler、监控存储故障外部信号及日志保留均为 `INTEGRATION REQUIRED`。未配置任务计划不产生失联告警；没有确认送达回执时 `SENT` 仅代表通知服务接受请求。系统监控仅由服务端验证的 `GLOBAL_ADMIN` 操作，浏览器错误采用身份验证、字段白名单、大小限制及跨 Worker 限流。
+
+### D-050 System Monitoring 管理界面与导航
+
+全局管理员侧栏将“系统监控”和“权限管理”归入“系统管理”。系统监控页面使用单张错误表，仅列最近报错时间、报错内容与累计发生次数，默认按最近发生时间倒序；顶部保留独立时间范围和刷新。整行进入详情 Sheet，复制诊断信息位于诊断明细代码块之前。处理状态操作保留在详情内，不扩展错误列表列数；开发存储和生产未配置状态必须显式区分。

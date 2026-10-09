@@ -171,6 +171,8 @@ Snapshot V1 and history compaction are not implemented. Current batch contract s
 
 **BLOCKED / TBD:** company database schema/isolation guarantees, SSO principal and GLOBAL_ADMIN grants, email service and recipient ownership, scheduler platform, approved job names/frequencies/thresholds, log retention, independent failure channel and operational response ownership are not defined here. Test adapters demonstrate contract behavior only and are never Production adapters.
 
+The implemented `POST /api/monitoring/client-error` is an authenticated browser telemetry endpoint, not a diagnostic read API. Its request and error contract is documented in [`../api/monitoring-client-error.md`](../api/monitoring-client-error.md). Company AI must not query the Monitoring database directly or use browser telemetry to retrieve incidents. A machine-readable diagnostic read path remains **BLOCKED / TBD** until the company establishes a stable machine principal, explicit least-privilege authorization, audited access, response redaction and retention rules; it must be a protected read-only server API. The current notification provider deliberately throws `EMAIL_NOTIFICATION_PROVIDER_NOT_CONFIGURED` until a company transport is injected. `EHS_MONITORING_CLIENT_REPORT_LIMIT_PER_MINUTE` controls the per-principal report limit (default 20, valid 1–100); `EHS_MONITORING_MODE=disabled` explicitly disables local Monitoring storage. Identity still depends on the production server Identity Provider.
+
 ### Monitoring failure injection checklist
 
 1. Remove the Production Monitoring adapter and verify an explicit unavailable state plus redacted fallback diagnostic; confirm no memory fallback and no success response.

@@ -33,6 +33,7 @@ export const applicationName = "EHS 管理看板";
 export const navigationLabels = {
   performance: "绩效",
   riskAndCompliance: "风险与合规",
+  systemManagement: "系统管理",
 } as const;
 
 export const routes = {
@@ -83,7 +84,7 @@ export const routes = {
   },
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据", showPeriodFilter: false },
   accessManagement: { title: "权限管理", href: "/access", icon: Shield, description: "管理手动权限与查看操作日志" },
-  systemMonitoring: { title: "系统监控", href: "/monitoring", icon: ShieldAlert, description: "查看系统异常、通知投递与任务状态", showGlobalFilters: false, showPeriodFilter: false },
+  systemMonitoring: { title: "系统监控", href: "/monitoring", icon: ShieldAlert, description: "查看系统错误及诊断信息", showGlobalFilters: false, showPeriodFilter: false },
   devOverview: {
     title: "总览 Demo",
     href: "/dev/overview",

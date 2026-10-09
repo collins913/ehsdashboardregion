@@ -27,7 +27,7 @@
 | Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
 | Input | `src/components/ui/input.tsx` | Access email and grant form fields |
 | Sonner | `src/components/ui/sonner.tsx` | Access mutation feedback |
-| Switch | `src/components/ui/switch.tsx` | System Monitoring row-level 未处理 / 已处理 toggle |
+| Switch | `src/components/ui/switch.tsx` | System Monitoring Detail Sheet 未处理 / 已处理 toggle |
 
 ## Shared
 
@@ -120,4 +120,4 @@
 
 | Component | Responsibility |
 | --- | --- |
-| MonitoringPageContent | GLOBAL_ADMIN-only incident list using the shared DataTable and Sheet. The table shows latest error time, error code and a rightmost per-row shadcn Switch between 未处理 / 已处理; two status buttons filter the rows. Selecting a row shows error code, processing status / time, the same status switch, then “复制诊断信息” above one JSON code block of linked diagnostic details. Development in-memory storage is explicitly labelled and seeds two clearly marked demo Incidents; an unconfigured production adapter shows “监控服务尚未配置” without an empty table implying no errors. Collection, incident correlation, notifications, retries, job monitoring, watchdog, recovery records and audit remain backend capabilities and are not exposed as separate tables. |
+| MonitoringPageContent | GLOBAL_ADMIN-only incident list using the shared DataTable and Sheet. The table shows latest error time, incident summary and aggregated occurrence count, sorted by latest occurrence descending; an independent time filter and refresh remain above it. Selecting a row shows error code, processing status / time, a shadcn Switch for status changes, then “复制诊断信息” above one JSON code block of linked diagnostic details. Development in-memory storage is explicitly labelled and seeds two clearly marked demo Incidents; an unconfigured production adapter shows “监控服务尚未配置” without an empty table implying no errors. Collection, incident correlation, notifications, retries, job monitoring, watchdog, recovery records and audit remain backend capabilities and are not exposed as separate tables. |

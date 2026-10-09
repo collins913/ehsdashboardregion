@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/data/server/monitoring-actions", () => ({ loadMonitoringSnapshot: vi.fn(), resolveMonitoringIncident: vi.fn() }));
 
 import type { OperationalEvent, OperationalIncident } from "@/data/contracts/monitoring";
-import { buildIncidentDiagnostics, filterMonitoringIncidents } from "./monitoring-page-content";
+import { buildIncidentDiagnostics } from "./monitoring-page-content";
 
 describe("monitoring incident diagnostics presentation", () => {
   it("copies the selected incident and only its linked safe event diagnostics", () => {
@@ -32,16 +32,5 @@ describe("monitoring incident diagnostics presentation", () => {
     expect(result.diagnosticDetails).toHaveLength(1);
     expect(result.diagnosticDetails[0]).toMatchObject({ eventId: "event-1", occurredAt: "2026-10-09T00:00:00.000Z", diagnostics: [{ code: "DB_TIMEOUT" }] });
     expect(JSON.stringify(result)).not.toContain("event-2");
-  });
-
-  it("filters processed and unprocessed incidents", () => {
-    const incidents = [
-      { incidentId: "open", status: "OPEN" },
-      { incidentId: "acknowledged", status: "ACKNOWLEDGED" },
-      { incidentId: "resolved", status: "RESOLVED" },
-    ] as unknown as OperationalIncident[];
-
-    expect(filterMonitoringIncidents(incidents, "UNPROCESSED").map(({ incidentId }) => incidentId)).toEqual(["open", "acknowledged"]);
-    expect(filterMonitoringIncidents(incidents, "PROCESSED").map(({ incidentId }) => incidentId)).toEqual(["resolved"]);
   });
 });

@@ -10,7 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import { applicationName, navigationGroups, routes } from "@/config/navigation";
+import { applicationName, navigationGroups, navigationLabels, routes } from "@/config/navigation";
 import type { AccountSummary } from "@/data/contracts/access";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -86,8 +86,9 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
       </SidebarContent>
       {account?.canManageAccess ? (
         <SidebarGroup>
+          <SidebarGroupLabel>{navigationLabels.systemManagement}</SidebarGroupLabel>
           <SidebarGroupContent><SidebarMenu>
-            {[routes.accessManagement, routes.systemMonitoring].map((item) => {
+            {[routes.systemMonitoring, routes.accessManagement].map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>

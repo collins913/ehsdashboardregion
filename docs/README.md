@@ -34,6 +34,7 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 | [`ui-guidelines.md`](ui-guidelines.md) | 定义主题、密度、布局、交互和可访问性等通用 UI 原则。 |
 | [`ui-registry.md`](ui-registry.md) | 登记已采用的 shadcn、shared、hook 和 feature pattern，防止重复实现。 |
 | [`development-roadmap.md`](development-roadmap.md) | 记录已完成阶段、开发顺序和未来 Performance / Production / Permissions 阶段。 |
+| [`api/monitoring-client-error.md`](api/monitoring-client-error.md) | 记录受认证的浏览器监控错误上报契约；不提供诊断读取接口。 |
 | [`business-conflict-review.md`](business-conflict-review.md) | 保存 2026-09-10 业务文档迁移审查快照；当前规则仍以专项文档和后续决策为准。 |
 
 ## Architecture at a Glance
