@@ -512,7 +512,9 @@ daysUntilExpiry 为两个业务日期的自然日差；到期当天为 0 且有�
 - 任一单证 ABNORMAL → ABNORMAL。
 - 至少一张且全部 NORMAL → NORMAL。
 
-仅评价已上传记录，不检查 S / M / H1 / H2 或安全驾驶两种 Type 是否齐全。类别状态不执行 Required Slot 完整性判断，不产生人数要求结论、UNDETERMINED、即将到期或提醒规则。输出仅业务语义，不返回 UI 样式。
+仅评价已上传记录，不检查 S / M / H1 / H2 或安全驾驶两种 Type 是否齐全。类别状态不执行 Required Slot 完整性判断，不产生人数要求结论、UNDETERMINED、即将到期或提醒规则。Overview 的四个证件 scoring metrics 分别映射四类该 Domain Result，仍各占 1/1；缺记录或任一异常记录均为 0/1。Certificate Overview 的类型数量要求不参与该类别评分。输出仅业务语义，不返回 UI 样式。
+
+Standard 与 Performance Mock 共用 `createMockCertificateRecords`。生成器需覆盖整个 Store 集合，并稳定包含有效（含到期日当天）、过期、缺少日期、非法日期、类别缺失及少量空门店样本。只有前 11 家有记录会使其余 Store 的四类指标全部依据正式零记录规则得 0/1；这不是评分实现缺陷。
 
 ## 7.4 Certificate Overview counts
 
@@ -720,9 +722,10 @@ The rule layer must not infer these conditions.
 
 ## 8.9 Environment Analytics V1
 
+- 查询不接收 Global Period；到期合同数量使用 Dashboard `referenceDate` 所在自然月，持有率继续按该 referenceDate 判断有效性。
 - 危险废物合同持有率 = 当前 Global Filters 范围内至少有一条在 Dashboard `referenceDate` 当天有效的危险废物合同的门店数 ÷ 当前范围内全部门店数；一般工业固体废物合同持有率按对应合同类型使用同一口径。有效定义为 `validTo` 是合法 date-only 值且 `validTo >= referenceDate`；截止日期缺失、无效或早于 referenceDate 均不计为有效合同。每店每类只计一次，多份合同中任一条有效即计入。Environment 数据不完整或范围内没有门店时，比例为 null。
-- 到期合同数量仅统计危险废物与一般工业固体废物合同记录。`validTo` 为合法 date-only 值，且其自然月属于 Global Period `includedMonths` 时计 1 条。缺失或无效日期不计入，并保留排除记录数。Period 无效、或 scoped Environment 数据为 `INCOMPLETE` / `UNAVAILABLE` 时，总数为 null，不能显示部分计数为完整结论。
-- 持有率只响应 Region / Area / Store，并以 referenceDate 判断合同有效性；Global Period 不影响持有率。到期合同数量仍仅响应 Global Period。所有筛选和聚合均由 Environment Repository 与本规则层完成；React 不过滤合同、不计数、不比较日期。
+- 到期合同数量仅统计危险废物与一般工业固体废物合同记录。`validTo` 为合法 date-only 值，且其自然月等于 Dashboard `referenceDate` 所在自然月时计 1 条。缺失或无效日期不计入，并保留排除记录数。scoped Environment 数据为 `INCOMPLETE` / `UNAVAILABLE` 时，总数为 null，不能显示部分计数为完整结论。
+- 持有率和到期合同数量只响应 Region / Area / Store 与 referenceDate；到期数的当月范围由 referenceDate 导出，不响应 Global Period。所有筛选和聚合均由 Environment Repository 与本规则层完成；React 不过滤合同、不计数、不比较日期。
 
 # 9. Rule Output Contract
 
@@ -760,7 +763,7 @@ Overview consumes domain results and records a per-Store, per-metric, per-month 
 
 Each of the 12 catalog entries applies to every Store and contributes exactly `availablePoints = 1` per month. V1 has no per-Store N/A denominator exclusion. An existing domain `ACHIEVED` result contributes `outcome = ACHIEVED`, `earnedPoints = 1`; `NOT_ACHIEVED`, `UNDETERMINED`, or any other result that cannot prove achievement contributes `outcome = NOT_ACHIEVED`, `earnedPoints = 0`. The reason preserves whether this was a valid rule failure, missing source, invalid source, incomplete coverage, explicit N/A, or missing scoring configuration. None removes the metric from the denominator. V1 therefore has `12` total available points per Store × Month, the same for every Store, and does not calculate Overview completeness.
 
-`scoreRate = sum(earnedPoints) / sum(availablePoints)`. Store, Area, and Region all use pooled points. Area / Region first sum all descendant contributions and then calculate the rate; never average descendant score rates. All Stores participate in ranking. Ranking uses formal `scoreRate`, with a deterministic tie-break. Change is `currentScoreRate - previousScoreRate`; no completeness gate is applied.
+`scoreRate = sum(earnedPoints) / sum(availablePoints)`. Store, Area, and Region all use pooled points. Area / Region first sum all descendant contributions and then calculate the rate; never average descendant score rates. All Stores participate in ranking. Ranking uses formal `scoreRate`, with a deterministic tie-break. Overview 始终取 reference month 的 scoreRate，并与上一个自然月比较。Change is `currentScoreRate - previousScoreRate`; UI 显示 `%` 但数值是得分率差值，不是相对增长率；no completeness gate is applied.
 
 Data-quality cause remains attached to each contribution and does not alter its points. The diagnostic reason values are `ACHIEVED`, `RULE_NOT_MET`, `SOURCE_MISSING`, `SOURCE_INVALID`, `SOURCE_INCOMPLETE`, `NOT_APPLICABLE`, and `RULE_CONFIGURATION_MISSING`. `NOT_APPLICABLE` records an explicit domain applicability result but still contributes 0/1 in V1. `RULE_CONFIGURATION_MISSING` distinguishes an absent required-set/configuration from a missing source record. Domain preparation classifies the cause; contribution production preserves it and Overview UI does not derive it. Concrete source defects take precedence over generic coverage/threshold failures: SOURCE_INVALID > SOURCE_MISSING > SOURCE_INCOMPLETE > RULE_CONFIGURATION_MISSING > RULE_NOT_MET. Required-set evaluation checks the entire configured set before selecting a reason, so input order or an earlier below-target record cannot hide a later invalid record.
 

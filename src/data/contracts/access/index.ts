@@ -16,7 +16,7 @@ export type EffectiveAccess = {
 export type AccountSummary = { email: string; summary: string; scopes: readonly string[]; canManageAccess: boolean };
 export type AuditAction = "CREATE" | "UPDATE" | "DELETE";
 export type AuditEvent = {
-  id: string; timestamp: string; action: AuditAction; actorEmail: string;
+  id: string; timestamp: string; action: AuditAction; actorEmail: string; actorPrincipalId: string;
   targetEmail: string; grantId: string; scopeType: AccessType; scopeId: string | null;
   scopeDisplayName: string; before: ManualGrant | null; after: ManualGrant | null; note: string | null;
 };

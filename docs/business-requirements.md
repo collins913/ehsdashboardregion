@@ -131,6 +131,8 @@ Training、Drill、Inspections 与 ASTM 事件的结果单元格可打开门店�
 
 明细筛选、排序、Source Status 完成判定及 KPI 评价由 Repository / 集中业务逻辑执行。React 仅渲染查询结果，不重算 KPI、不解释状态、不对业务记录排序。
 
+Training 和 Inspection 当前 source contract 不含必修 / 必检标记或对应 requirement 集合。不得从完成率、人员、名称、截止日期或状态推断 requirement membership；对应 KPI 规则标记 `BUSINESS_RULE_TBD`，在正式规则确认前返回未确定。
+
 ## 5. Performance → Goals
 
 Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年平均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。
@@ -279,13 +281,13 @@ Region / Area / Store 生效；Period ignored，变化不查询、不 loading，
 
 固定默认六列：门店、设施信息、环保证照、应急预案、监测、废弃物合同。门店只显示 Store Master 的中文名称；其余五列仅提供统一“查看”入口，不在主表展示状态、日期、编号或数量。
 
-Environment 当前仍不产生正常、异常、评分或其它环境合规 Business Result。页面在 Global Filters 下方展示危险废物合同持有率、固体废物合同持有率、到期合同数量三张指标卡。两类持有率均以 Global Filters 范围内全部门店为分母；每家门店至少有一条 `validTo` 合法且不早于 Dashboard `referenceDate` 的对应类型合同才计入分子，每店每类最多计一次，多份合同中任一条有效即计入。缺失、无效或已过期的截止日期不构成有效合同。到期合同数量统计两类废弃物合同中有效期止落入 Global Period 的合同记录。持有率只跟随 Region / Area / Store scope 与 referenceDate；Period 只影响到期数量。主表仍只展示 normalized source data，不根据自由文本推断合规结论，并支持 scoped 集合排序、列显示控制与 adaptive pagination。
+适用门店的业务要求是至少持有一份当前有效危废合同及一份当前有效一般工业固废合同。每类 source collection 仍允许 0..N；完整 coverage 下零条是已确认业务缺口，不完整 / 不可用数据不能解释为没有合同。Environment 当前仍不产生正常、异常、评分或其它环境合规 Business Result。页面展示两类合同持有率与到期合同数量：持有率以 Global Filters 范围内全部门店为分母；每店每类只计一次，多份合同中任一条 `validTo` 合法且不早于 Dashboard `referenceDate` 即计入。缺失、无效或已过期截止日期不构成有效合同。到期合同数量统计有效期止落入 Dashboard `referenceDate` 所在自然月的合同记录；该月由服务端统一准备，Global Period 不影响 Environment。持有率只跟随 Region / Area / Store scope 与 referenceDate。业务源不提供 holdingStatus、正常 / 异常或 `hasContract`；原始环境数值和文本按 source value 展示，不统一单位或转换。
 
 ### 9.2 数据与筛选边界
 
 Raw Source 使用 TRTID、English Store Name 与显式 typed Environment detail fields，不保存中文门店名。完全复用已有 TRTID 优先、英文名辅助的 Store Resolution，保留 fallback、conflict 与历史名称语义；UI 只消费 canonical Store。
 
-Environment detail 仅由 Region / Area / Store 决定，Period 与 referenceDate 不参与详情查询。Analytics 持有率按当前 scope 与 referenceDate 计算；Period 只参与到期合同数量。到期数仅纳入有效 date-only 有效期止位于所选完整月份区间内的危险废物和一般工业固体废物合同记录；缺失或无效日期排除并保留排除计数，不推断到期状态。
+Environment detail 仅由 Region / Area / Store 决定，Period 与 referenceDate 不参与详情查询。Analytics 持有率按当前 scope 与 referenceDate 计算；Period 不参与 Environment。到期合同数的统计月份固定为 Dashboard `referenceDate` 所在自然月，仅纳入有效 date-only `validTo` 位于该月的危险废物和一般工业固体废物合同记录；缺失或无效日期排除并保留排除计数，不推断到期状态。
 
 ### 9.3 Detail Expansion
 

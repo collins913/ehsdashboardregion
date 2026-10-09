@@ -31,11 +31,7 @@ Access Management（仅全局管理员）
 
 ### D-003 Global Filters 属于全局框架
 
-全局筛选预留 Region、Area、Store、Period。它们不属于 Overview 私有页面。
-
-Store Master Data 不使用 Period；Environment detail 与持有率 snapshot 不使用 Period，Environment Analytics 到期合同数量使用 Period；其它筛选关系仍按各模块需求执行。
-
-Query readiness / identity 只依赖该业务查询真正使用的 filter dimensions。Stores、Environment detail、Certificates 从同一 Global Filter State 消费有效 Store scope，不依赖 Period 有效性，不补造默认 Period；Environment Analytics 到期合同数量依赖有效 Period，持有率 snapshot 不依赖 Period。保持一份 Provider 和现有 Repository / async 边界。
+Global Filters 共享 Region、Area、Store 与 Period 状态，但 Period 控件按 route metadata 显示。Overview、Certificates、Environment、Stores 不显示或消费 Period；其它明确依赖日期范围的页面继续显示。Environment 到期合同数量使用 referenceDate 所在自然月，由 Server Action 在数据层准备。Query readiness / identity 只依赖业务查询真正使用的维度，不建立第二套 Provider 或默认 Period workaround。
 
 Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
 
@@ -160,7 +156,7 @@ V1 不设置“即将到期”状态，不定义提前提醒天数，也不实�
 
 Environment 主表保持门店维度，仅提供设施信息、环保证照、应急预案、监测、废弃物合同五个详情入口。详情使用显式 typed contract；自由文本和日期仅展示，废弃物合同保留全部记录。Region / Area / Store 生效，Period 与 referenceDate ignored；无正常 / 异常计算，不根据缺失、文本或日期推断结果。Monitoring 暂时保留“有 / 无 / 不适用”源值。
 
-以下 D-023–D-027 保留历史环境合规需求，**不属于当前 Environment Detail Expansion**；后续真实输入与适用关系需另行确认，不可作为 Overview 当前环境健康度的依据。
+当前业务要求适用门店至少有一份当前有效危险废物合同和一份当前有效一般工业固体废物合同。Source multiplicity 仍为每类 0..N；完整 coverage 下 0 条是已确认业务缺口，缺失 / 不完整 coverage 不能解释为无合同。当前 Environment V1 只计算持有率与到期数量，不输出合规状态。以下 D-023–D-027 保留历史环境合规判定规则，**不属于当前 Environment Detail / Analytics V1**，不可据此产生 NORMAL / ABNORMAL 或 Overview 环境健康度。
 
 ### D-023 危废与一般固废合同共同满足才正常
 
@@ -260,7 +256,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 
 ## 9. 明确未决事项
 
-Environment Analytics 的危险废物与一般工业固体废物合同持有率均以 Global Filters 范围内全部门店为分母；每店至少一条对应合同记录计入分子。Period 只影响合同到期数量。
+Environment Analytics 的危险废物与一般工业固体废物合同持有率均以 Global Filters 组织范围内全部门店为分母；每店至少一条对应合同记录计入分子。合同到期数量固定统计 referenceDate 所在自然月，不受 Global Period 影响。
 
 以下内容没有默认答案：
 
@@ -309,3 +305,27 @@ Production Integration TBD：Entra tenantId + objectId、Production Identity Pro
 Source → Normalize → Domain Result → KPI presentation / ScoreContribution → Overview pooled aggregation。Repository 不依赖 Feature/UI builder；`overview-production.ts` 通过 domain readers 编排，不读取 Mock fixture 或重算领域规则。source diagnostics 按可定位 Store × metric × Period 隔离；全 Dataset availability 不能覆盖其它门店贡献。Goals YTD 仅按注入的 reference year/month 与 Store scope 查询。保留 12 metrics / 12 available points、全部门店 ranking、pooled aggregation、Environment 不评分及 Standard/Performance 同规则。不新增结果缓存、API、Snapshot 或 Generic Rule Engine。
 
 无法定位日期所属期间或 canonical Store 的 source defect 不得猜测；Production source scope / coverage 必须提供足够信息后才能消除保守诊断。
+
+
+### D-046 Overview UI Polish V2
+
+Overview、Certificates、Environment、Stores 的正式页面隐藏 Global Period，并且查询 DTO / identity 不接受 Period。Overview 的当前值为 reference month，与上一个自然月比较；趋势只含可用历史月。Environment 到期合同数固定统计 referenceDate 所在自然月，保持现有“按月份统计到期合同”的度量口径。维度变化显示实际得分差（分），得分率变化仍为 `currentScoreRate - previousScoreRate`，显示 `%`，不改成相对增长率。Overview Matrix 的 X/Y domain 在 preparation 层按真实 score / delta 与 padding 生成；重叠对象仍按精确原始坐标合并。Certificate Type mapping、Store × Category rule、Required Type configuration 与 12-point catalog 不变；Mock generator 覆盖完整 Store 集合并提供明确数据质量场景。
+
+
+### D-047 Production API V1 与 Enterprise Access V1 接入边界
+
+生产数据源是独立的 server-only Repository，不是 Mock Profile；`EHS_DATA_SOURCE=production` 必须显式选择，生产未配置 Repository、身份、导入存储或授权存储时失败关闭，不回退 Mock。Standard / Performance Mock 保留用于测试。
+
+Production API 只接收原始业务事实及导入元数据，不接收 Dashboard 计算结果。批次须完成结构校验、Store Resolution、覆盖范围验证和请求记录数自洽校验后才能进入覆盖证明判定；请求内计数相等不证明来源完整。生产持久层须将批次发布与已发布数据指针原子提交。此决策不改变任何 Domain Rule、ScoreContribution 或 12-point invariant。
+
+`GLIFE_CONTEXT` 是父页面经 origin/source 校验后提供的显示资料，不构成服务端认证凭据。Server Identity Provider 与 Machine Identity Provider 分离；受保护查询只接受服务端验证的身份，数据导入机器身份按 Domain 授权。生产身份协议、数据库、token 验证方式仍由公司集成确定。
+
+Access 持续使用既有 Region / Area / Store 授权语义。企业 Access Repository 必须原子写入 Manual Grant 和 Audit，并在同一事务保证最后一名有效管理员约束。初始管理员必须绑定服务端验证的稳定 principalId，不能用客户端邮箱字符串触发；实际企业存储未配置前 Bootstrap 关闭。
+
+### D-048 Production Import CAS、审计与覆盖证明
+
+来源的 `COMPLETE` 只代表上传方声明；只有独立来源证明经企业配置的校验器验证后才是 `VERIFIED_COMPLETE`，可用于正式发布。记录数与请求内 `expectedRecordCount` 相等只校验请求自洽。没有可验证证明时批次保留 `DECLARED_COMPLETE` 并 fail closed，不发布；Pilot 启用也需由部署方明确设置可信验证器与环境策略。
+
+Import Batch 使用单调 `revision`。Repository/数据库 Adapter 必须通过原子 compare-and-swap 确认预期 revision 和状态；验证仅能从当前 `RECEIVED` / `REJECTED` 转移，发布仅从当前 `VALIDATED + VERIFIED_COMPLETE` 转移。发布数据、指针、批次终态和成功审计必须在同一事务；回滚失败时维持旧发布。相同已发布 batch 的重复发布返回原发布结果。企业适配器必须落实唯一约束、CAS、事务隔离及失败回滚，不能以先读后无条件写入实现。
+
+Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`sourceSystem` 仅为来源描述。批次保留 source/configuration version、business/effective period、extraction/publication 时间与 request ID。Snapshot `referenceDate` 的历史冻结语义仍 TBD。Training 技术重复检查暂用 Store × Month × trainingName 复合键，不代表企业确认的自然键；企业接入需补充稳定 source record ID/自然键决策。

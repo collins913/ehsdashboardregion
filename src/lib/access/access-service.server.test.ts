@@ -41,6 +41,7 @@ describe("Access server service", () => {
     expect((await deleteManualGrant(created.value)).ok).toBe(true);
     const events = (await queryAuditLog(email)).filter((e) => e.grantId === created.value);
     expect(events.map((e) => e.action)).toEqual(["DELETE", "UPDATE", "CREATE"]);
+    expect(events.every((event) => event.actorPrincipalId === "mock:admin@example.test")).toBe(true);
     expect(events.find((e) => e.action === "UPDATE")?.before?.accessType).toBe("STORE");
     expect(events.find((e) => e.action === "UPDATE")?.after?.accessType).toBe("AREA");
   });

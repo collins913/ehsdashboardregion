@@ -1,22 +1,20 @@
 import "server-only";
 import type { AccessCatalog, AccessQuery, AccountSummary, AuditEvent, GrantInput, GrantUpdate, ManualGrant, MutationResult } from "@/data/contracts/access";
 import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
-import { getMockDataset } from "@/data/mock/mock-dataset";
-import { resolveMockProfile } from "@/data/mock/mock-profile.server";
 import { toKpiStore } from "@/data/normalize-store-master";
-import { getCurrentIdentity } from "@/data/repositories/access/mock-identity.server";
-import { mockAccessRepository } from "@/data/repositories/access/mock-access-repository.server";
+import { getAccessRuntime } from "@/data/repositories/access/access-runtime.server";
+import { requireVerifiedServerPrincipal } from "@/data/server/identity-provider.server";
 import { accountSummary, areaScopeId, authorizedScope, canonicalEmail, deriveBaseGrants, grantMatchesScope, isValidEmail, resolveEffectiveAccess } from "@/lib/access/access-domain";
 
-function catalog(now: Date) {
-  const source = getMockDataset(resolveMockProfile(), now).stores;
-  return { source, stores: source.map(toKpiStore) };
-}
 export async function currentAccess(now = new Date()) {
-  const { source, stores } = catalog(now);
-  const manuals = await mockAccessRepository.listManualGrants();
-  const identity = getCurrentIdentity();
-  return { identity, stores, bases: deriveBaseGrants(source), manuals, effective: resolveEffectiveAccess(identity.email, deriveBaseGrants(source), manuals, stores) };
+  const principal = await requireVerifiedServerPrincipal();
+  if (!principal.verifiedEmail) throw new Error("VERIFIED_EMAIL_REQUIRED_FOR_ACCESS_MAPPING");
+  const identity = { email: canonicalEmail(principal.verifiedEmail) };
+  const runtime = getAccessRuntime(now);
+  const stores = runtime.stores.map(toKpiStore);
+  const manuals = await runtime.repository.listManualGrants();
+  const bases = deriveBaseGrants(runtime.stores);
+  return { identity, principal, stores, bases, manuals, effective: resolveEffectiveAccess(identity.email, bases, manuals, stores), repository: runtime.repository };
 }
 export async function requireAdmin() {
   const context = await currentAccess();
@@ -58,20 +56,20 @@ function removesLastGlobalAdmin(before: ManualGrant, nextType: GrantUpdate["acce
 }
 export async function createManualGrant(input: GrantInput): Promise<MutationResult<string>> {
   try {
-    const { identity, stores, manuals } = await requireAdmin();
+    const { identity, principal, stores, manuals, repository } = await requireAdmin();
     const email = canonicalEmail(input.email);
     if (!email) return failure("EMAIL_REQUIRED");
     if (!isValidEmail(email)) return failure("INVALID_EMAIL");
     const name = validInput(input, stores);
     if (!name) return failure("INVALID_SCOPE");
     if (manuals.some((grant) => grant.email === email && grant.accessType === input.accessType && grant.scopeId === input.scopeId)) return failure("DUPLICATE_GRANT");
-    const created = await mockAccessRepository.createManualGrant({ ...input, email }, identity.email, name);
+    const created = await repository.createManualGrant({ ...input, email }, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return { ok: true, value: created.id };
   } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function updateManualGrant(id: string, input: GrantUpdate): Promise<MutationResult<string>> {
   try {
-    const { identity, stores, manuals } = await requireAdmin();
+    const { identity, principal, stores, manuals, repository } = await requireAdmin();
     const before = manuals.find((grant) => grant.id === id);
     if (!before) return failure("GRANT_NOT_FOUND");
     if (removesLastGlobalAdmin(before, input.accessType, manuals)) return failure("LAST_GLOBAL_ADMIN");
@@ -79,23 +77,23 @@ export async function updateManualGrant(id: string, input: GrantUpdate): Promise
     if (!name) return failure("INVALID_SCOPE");
     if (manuals.some((grant) => grant.id !== id && grant.email === before.email && grant.accessType === input.accessType && grant.scopeId === input.scopeId)) return failure("DUPLICATE_GRANT");
     const safeUpdate: GrantUpdate = { accessType: input.accessType, scopeId: input.scopeId, note: input.note };
-    const updated = await mockAccessRepository.updateManualGrant(id, safeUpdate, identity.email, name);
+    const updated = await repository.updateManualGrant(id, safeUpdate, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return updated ? { ok: true, value: updated.id } : failure("GRANT_NOT_FOUND");
   } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function deleteManualGrant(id: string): Promise<MutationResult<string>> {
   try {
-    const { identity, manuals } = await requireAdmin();
+    const { identity, principal, manuals, repository } = await requireAdmin();
     const before = manuals.find((grant) => grant.id === id);
     if (!before) return failure("GRANT_NOT_FOUND");
     if (removesLastGlobalAdmin(before, null, manuals)) return failure("LAST_GLOBAL_ADMIN");
-    return await mockAccessRepository.deleteManualGrant(id, identity.email) ? { ok: true, value: id } : failure("GRANT_NOT_FOUND");
+    return await repository.deleteManualGrant(id, { principalId: principal.principalId, verifiedEmail: identity.email }) ? { ok: true, value: id } : failure("GRANT_NOT_FOUND");
   } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function queryAuditLog(email = ""): Promise<readonly AuditEvent[]> {
-  await requireAdmin();
+  const { repository } = await requireAdmin();
   const normalized = canonicalEmail(email);
-  return (await mockAccessRepository.listAuditEvents()).filter((event) => !normalized || event.actorEmail.includes(normalized) || event.targetEmail.includes(normalized));
+  return (await repository.listAuditEvents()).filter((event) => !normalized || event.actorEmail.includes(normalized) || event.targetEmail.includes(normalized));
 }
 export async function getAccessCatalog(): Promise<AccessCatalog> {
   const { stores } = await requireAdmin();

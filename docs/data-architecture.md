@@ -181,7 +181,7 @@ Raw Event
 ## Global Filters
 
 - Dashboard route layout 持有一份共享筛选状态，页面切换时不重置。
-- 同一筛选状态派生有效 Store scope 与完整 period-aware context；query readiness / identity 仅依赖实际使用的维度。Stores、Environment detail、Certificates 使用无 Period 的 typed scope，经既有 Server Action / Repository 查询；Environment Analytics 的废弃物合同到期数量另依赖 Global Period，持有率 snapshot 不依赖 Period。自定义 Period 未完整不阻断 detail 查询，不建立第二套 Provider 或默认 Period workaround。
+- 同一筛选状态派生有效 Store scope 与完整 period-aware context；query readiness / identity 仅依赖实际使用的维度。Overview、Stores、Environment、Certificates 使用无 Period 的 typed scope，经既有 Server Action / Repository 查询。Environment 合同到期数量的统计月份由 Server Action 从 referenceDate 派生，不读取 Global Period。KPI、Goals、Events、Actions 继续使用 Global Period。
 - Region、Area、Store 沿用 `EhsFilterContext` 的 `ALL` / `INCLUDE` 契约；Store 仅保存 Repository 输出的 canonical `storeId`。
 - Repository 向筛选 UI 提供 `storeId`、`displayName`、Region、Area，不允许 UI 使用名称或 TRTID 自行关联。
 - Period V1 仅生成 Asia/Shanghai 时区下的完整自然月范围，统一输出 `[startInclusive, endExclusive)` 与连续 `includedMonths`。
@@ -198,7 +198,21 @@ Environment Raw Source (TRTID / English Store Name + typed detail fields)
 → Environment Feature / Table / shared Detail Sheet
 ```
 
-Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同记录计分子；到期记录数则按 normalized 合同记录与 Period 计算。设施信息和 Monitoring 新字段保持 TBD。
+## Production API V1 and Enterprise Access V1
+
+Production and Mock are separate server-only modes. `EHS_DATA_SOURCE=production` selects the Production Repository seam; missing production configuration throws and never falls back to Mock. In non-production development/test, absent mode keeps the existing Mock profile path. `EHS_MOCK_PROFILE` remains limited to Standard / Performance.
+
+Production query implementations compose the existing `EhsRepository` domain interfaces. The database-neutral `ProductionStorageAdapter` reads only published source batches and owns transactional staging/publish operations. Its actual enterprise adapter is not configured in this repository. The test-only memory implementation is located under `src/data/server/testing/` and must not be imported by production routes.
+
+The import API is Contract First at `docs/api/production-api-v1.yaml`; route handlers are `/api/v1/import/batches`, `/api/v1/import/batches/{batchId}`, `/validate`, and `/publish`. Identity is verified before resolving the protected Import Service; submit requests are also checked for Domain scope before runtime initialization. They return `PRODUCTION_IMPORT_NOT_CONFIGURED` until the machine identity verifier and persistent import adapter are supplied. `COMPLETE` is only an uploader declaration; publication requires an independently verified proof and records `VERIFIED_COMPLETE`. A configured proof verifier is not installed here, so the current default fails closed. The persistent adapter must implement revision/state compare-and-swap for validation and publication, persist creator/operator audit, and atomically replace only the declared scope, active pointer and batch state in one transaction. Validation cannot overwrite `PUBLISHED`; stale revisions conflict; a repeated publish of the same published batch is idempotent. The database adapter must preserve the prior publication and audit atomicity on failure.
+
+`GLIFE_CONTEXT` is accepted only by the client-side display profile adapter after exact parent-origin and `window.parent` source checks. `publicMediaToken` is discarded. This browser value is never used by `authorizeBusinessScope`. Protected Server Actions resolve a server-trusted principal; Production without a configured `ServerIdentityProvider` fails closed. Production Access requires a company-provided Store/organization and persistent `AccessRepository` runtime. The provider must verify the principal and supply a verified email because the existing Access Domain is email-keyed; stable `principalId` is retained for bootstrap and audit integration, but grant-key migration is not implemented.
+
+`/api/v1/access/bootstrap` checks the trusted stable principal against `EHS_BOOTSTRAP_PRINCIPAL_ID` before resolving the bootstrap store; the configured persistence transaction must atomically create the first administrator grant and its audit/bootstrap record. No bootstrap store is configured by default. Machine import identity is separate and must authorize specific domains; it confers no Dashboard user or administrator rights. Production Access persistence must atomically write each grant mutation and audit event and enforce the last-effective-admin invariant inside the same database transaction; service preflight checks alone are insufficient.
+
+Status boundary: API routes, DTO validation, lifecycle service, adapter interfaces, GLIFE display adapter, server identity seam, and test doubles are implemented. Enterprise database, persistent transaction adapter, trusted SSO verification, M2M credentials, access persistence and initial-admin storage remain integration-required. Take Charge annual aggregate ingestion remains blocked until its source scope/schema is frozen. See `docs/integration/corporate-ai-integration.md` before enabling any production mode.
+
+Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同记录计分子；到期记录数按 normalized 合同记录与 referenceDate 所在自然月计算，不接收 Global Period。设施信息和 Monitoring 新字段保持 TBD。
 
 Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，并复用一个 Detail Sheet；不创建独立 Repository runtime、Table 或 Detail framework。废弃物合同数组保留所有源记录及顺序，不去重、不截断。Standard Mock 使用既有 Store Master 为每家门店生成 deterministic detail record；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
 

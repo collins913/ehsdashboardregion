@@ -352,13 +352,15 @@ Raw Source 顶层保留：`TRTID`、可选 `English Store Name`、`环境影响�
 - 排水许可：洗车、许可自由文本、有效期起止、备注。
 - 环境预案：备案情况、备案编号、有效期起止、备注；不含其它未定义字段。
 - 监测：暂时保留当前“有 / 无 / 不适用”源值，其余字段 TBD。
-- 废弃物合同：危险废物、一般工业固体废物两个数组；每条记录含供应商名称、种类、有效期起止。数组保持全部源记录及顺序，不去重、不限数量。
+- 废弃物合同：危险废物、一般工业固体废物两个数组，各为 0..N；每条记录含供应商名称、种类、有效期起止。数组保持全部源记录及顺序，不去重、不限数量。业务 requirement 是适用门店各至少有一份当前有效合同；这不改变 source multiplicity。
 
 Normalized output：canonical `storeId`、Store Master 中文 `storeDisplayName`、`facilityInformation`、`environmentalLicenses`（环境影响评价 / 排污许可 / 排水许可）、`emergencyPlan`、`monitoring`、`wasteContracts`。设施信息当前为 TBD 空结构；不向 UI 暴露 Raw Store Reference。使用已有 `resolveStoreReference` 的 TRTID primary、English Store Name fallback、conflict 与 historical-name 规则，不假设源 TRTID 等于 canonical storeId。
 
 Environment query 接收 typed Store scope，仅使用 Region / Area / canonical Store，不要求 Period。结果使用现有 Data Availability 表达数据完整性；缺失记录或无法解析的源记录不得补成“无”。
 
-Environment Analytics 查询接收 canonical Store scope 与可空 Global Period。危险废物与一般工业固体废物合同持有率分别以当前 Global Filters 范围内全部门店为分母，以至少有一条对应类型合同记录的门店数为分子；每家门店每类最多计一次。只有 Environment 数据完整且分母大于 0 时返回比例，否则比例为 null。到期合同数量按两类合同记录的 `validTo` 统计，只有 Period 有效且 Environment 数据完整时返回数值；缺失或无效 `validTo` 不计入，并由 `excludedContractMissingOrInvalidExpiryDateCount` 保留审计信息。结果包含所用 `periodMonths`，供 stale result 展示匹配周期标签。
+覆盖完整且合同数组为空代表已确认零份合同，是可用于持有率的业务缺口；Store 的 Environment snapshot 缺失或 source coverage 不完整时结果为 `INCOMPLETE` / `UNAVAILABLE`，不得用空数组伪装成无合同。合同当前有效是 derived rule：`validTo` 为合法 date-only 且 `validTo >= referenceDate`；同一门店同类有任一份有效合同即计入一次。source 不提供 holdingStatus、normal、abnormal 或 `hasContract`。
+
+Environment Analytics 的 Client DTO 只接收 canonical Store scope，不接受 Global Period。Server Action 从注入的 `referenceDate` 派生当月自然月并传入 Repository。危险废物与一般工业固体废物合同持有率分别以当前 Global Filters 范围内全部门店为分母，以至少有一条对应类型合同记录的门店数为分子；每家门店每类最多计一次。只有 Environment 数据完整且分母大于 0 时返回比例，否则比例为 null。到期合同数量按两类合同记录的 `validTo` 统计当月记录；缺失或无效 `validTo` 不计入，并由 `excludedContractMissingOrInvalidExpiryDateCount` 保留审计信息。结果包含所用 `periodMonths`，供 stale result 展示匹配月份。
 
 主表仅提供门店与五个详情入口。一个 Detail Sheet 按明确 typed contract 展示设施信息、环保证照、应急预案、监测或废弃物合同；日期仅展示，不计算过期。Environment 不输出 Business Result，也不套用既有合规规则。
 
@@ -488,6 +490,8 @@ type OverviewMetricId =
 
 Runtime types live in `src/data/contracts/overview.ts`. The repository returns scoped canonical Stores, supported months, and domain-produced contributions. The server query authorizes scope, reads this result, and passes it to Overview preparation; the browser receives only the prepared `OverviewResult`.
 
+正式 Overview query DTO 只携带 canonical `EhsStoreScope`，不接受 Global Period。Preparation 使用注入 `referenceMonth`，当前结果为该月，与上一个自然月比较。历史序列只包含 Repository 已支持且可用的月份，不生成缺失月份占位。Matrix 的 score / delta 数据和自适应 xDomain / yDomain 均由 preparation 提供；图表不得偏移或重算坐标。
+
 V1 invariant: all 12 catalog metrics apply to every Store and produce one row per Store × Month; each has `availablePoints = 1`, and `earnedPoints` is exactly `1` for `ACHIEVED` or `0` for `NOT_ACHIEVED`. Every Store therefore has 12 available points per month. N/A, missing, invalid and incomplete source results remain rows with their diagnostic reason; no Store or metric is removed from the denominator. `referenceDate` is the month-end business date for completed months and the injected Dashboard reference day for the current month. Domain Result owns the diagnostic reason; the producer copies it without inferring from DataSet-level availability or UI state.
 
 Metric catalog and achievement mapping are owned by `metric-rules.md`; this contract does not define a generic rule engine. A future metric adds its own domain result and contribution producer, then registers its `metricId` / `dimensionId`. A future approved weight changes the contribution point values consistently for every Store and month; pooled aggregation remains unchanged. Environment can later add a domain result and contribution under `ENVIRONMENT` without changing aggregation. Environment is excluded from the V1 metric catalog.
@@ -502,3 +506,19 @@ Historical data from 2026-01 through the current business month produces one con
 - `TakeChargeAnnualSource` 仅含两个 source-provided normalized values 及独立原因，不规定 Production numerator/denominator schema。Goals 使用 reference year/month；Global Period 不参与 YTD 查询。Mock fixture adapter 保留 pooled source numerator/denominator 口径，不平均 Store 百分比。
 - `TakeChargeMetricValue` 与 `CertificateCategorySummary` 保留领域 reason；12 个 scoring producer 消费真实领域诊断。非法 NaN 不得降为通用 SOURCE_INCOMPLETE。
 - 缺失/非法日期无法确定 Period membership 时不补日期；仅保守标记可定位 Store/domain。不能解析到 Store 的行保持 orphan diagnostic，不任意分配。Production authoritative scope/coverage 的物理表示仍为 TBD。
+
+## 13. Production Import API V1
+
+`docs/api/production-api-v1.yaml` is the versioned HTTP contract. The API accepts raw source records from the existing Domain contracts plus import metadata; it rejects dashboard-derived score, rank, ScoreContribution and presentation aggregates. The OpenAPI documents `POST /api/v1/import/batches`, `GET /api/v1/import/batches/{batchId}`, `POST .../{batchId}/validate` and `POST .../{batchId}/publish`.
+
+An import batch carries `schemaVersion`, `sourceSystem`, optional `sourceVersion` / `configurationVersion`, `domain`, `batchId`, `extractionTime`, optional `businessPeriod` / `effectiveTime`, coverage declaration and optional source proof, `expectedRecordCount`, `idempotencyKey` and domain-specific records. Date-times require an explicit UTC offset; periods are half-open. Training, Drill, Inspection, Action Closure Rate, Events, Actions and Take Charge require business-period coverage. Store Master, Certificates, Environment and required-set configuration require an effective-time range. `sourceSystem` is business provenance, never caller identity.
+
+Lifecycle: `RECEIVED → VALIDATED | REJECTED → PUBLISHED`. Identical retries use `(sourceSystem, domain, idempotencyKey)` and return the prior batch; reusing that key for a different body is a conflict. Source `COMPLETE` means `DECLARED_COMPLETE`; only an independently checked proof permits `VERIFIED_COMPLETE` and formal publication. `PARTIAL` is `INCOMPLETE`; unknown source completeness remains `UNKNOWN`; both are unpublishable. Expected count versus request count checks self-consistency only. Proof kinds are control total, export manifest, scope digest, or authoritative empty declaration; no proof is fabricated by this service. A production adapter must atomically CAS the batch revision/state, persist audit, publish records and switch the active pointer in one transaction. Validation must never update `PUBLISHED`; stale validation/publish revisions conflict; same-batch repeat publish returns its published result. Failure must leave the prior active data and pointer queryable. Test memory stores are contract test doubles only.
+
+The trusted `MachinePrincipal` contains stable `principalId`, authorized Domain IDs and authorized operations (`SUBMIT`, `READ`, `VALIDATE`, `PUBLISH`). Each batch records trusted `createdByPrincipalId`, monotonically increasing `revision`, coverage assessment, and append-only submit/validate/publish audit events with actor principal, timestamp, outcome, request ID, and diagnostics. Principal IDs come only from the server Machine Identity Provider; request payload identity fields are rejected. Never persist credentials or tokens. Source version, configuration version, business/effective periods, extraction and publication times support traceability. Snapshot `referenceDate` and historical replay semantics remain TBD.
+
+Store Master `trtid` is rejected when empty or whitespace-only; this does not define Store lifecycle policy. The current Training duplicate guard uses provisional Store × Month × `trainingName` solely to flag within-batch duplicates; it is not a confirmed enterprise natural key. Required-set duplicate identity includes set kind, so Training and Inspection configurations for the same Store × Month do not collide. Company source identity and required-set authority remain integration decisions.
+
+Diagnostics identify Domain, batch, row index or source record ID where available, field, stable error code, message and severity. Schema errors reject a batch; unresolved Store references and coverage mismatch block publication. Invalid Certificate expiry text is retained with a warning so the existing Certificate Rule can produce its current invalid-date reason. Unresolved Take Charge annual aggregate scope/schema is intentionally rejected as `CONTRACT_TBD`.
+
+Current implementation status is explicitly not equivalent to production service readiness: route handlers and generic contract validation exist, while the machine verifier and durable storage are unconfigured. The OpenAPI marks those endpoints `INTEGRATION_REQUIRED`; runtime responds 503 until adapters are installed.

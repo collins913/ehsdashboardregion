@@ -1,0 +1,617 @@
+openapi: 3.1.0
+info:
+  title: EHS Dashboard Production Import API
+  version: 1.0.0
+  description: >-
+    Contract-first machine import API. Routes exist, but require company-managed machine identity
+    and persistent transactional adapters before they accept production traffic. No business result
+    or Overview score is accepted. This specification covers the machine import API; the separate
+    Enterprise Access bootstrap route is documented in the corporate AI integration guide.
+servers:
+  - url: /api/v1
+    description: Same-origin Next.js server deployment; host is deployment-configured.
+security:
+  - MachineBearer: []
+paths:
+  /import/batches:
+    post:
+      operationId: submitImportBatch
+      summary: Create or idempotently retrieve a staged import batch
+      x-required-machine-operation: SUBMIT
+      x-implementation-status: INTEGRATION_REQUIRED
+      description: Requires M2M identity with SUBMIT operation and permission for the declared Domain. COMPLETE is a source declaration only; its proof is independently checked during validation. Staged records are not queryable.
+      parameters:
+        - { $ref: '#/components/parameters/RequestId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportBatchInput' }
+            examples:
+              events:
+                value:
+                  schemaVersion: v1
+                  sourceSystem: corporate-ehs
+                  domain: events
+                  batchId: events-2026-10-09-001
+                  extractionTime: '2026-10-09T10:00:00+08:00'
+                  coverage:
+                    completeness: COMPLETE
+                    proof: { kind: SOURCE_CONTROL_TOTAL, reference: example-source-control, controlRecordCount: 1 }
+                    stores: [{ trtid: 'S-001' }]
+                    businessPeriod: { startInclusive: '2026-10-01T00:00:00+08:00', endExclusive: '2026-11-01T00:00:00+08:00' }
+                  expectedRecordCount: 1
+                  idempotencyKey: events-2026-10-09-001
+                  records:
+                    - eventId: EVT-001
+                      storeReference: { trtid: 'S-001' }
+                      eventType: Agency
+                      submittedBy: User
+                      eventDate: '2026-10-08T15:00:00+08:00'
+                      EventDetail: { Description: Example }
+                      Status: Open
+                      ASTMInjuryIllness: 'No'
+      responses:
+        '202':
+          description: Batch staged; response is ImportBatch
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportBatch' }
+              examples:
+                received:
+                  value:
+                    schemaVersion: v1
+                    sourceSystem: corporate-ehs
+                    domain: events
+                    batchId: events-2026-10-09-001
+                    extractionTime: '2026-10-09T10:00:00+08:00'
+                    coverage:
+                      completeness: COMPLETE
+                      proof: { kind: SOURCE_CONTROL_TOTAL, reference: example-source-control, controlRecordCount: 1 }
+                      stores: [{ trtid: 'S-001' }]
+                      businessPeriod: { startInclusive: '2026-10-01T00:00:00+08:00', endExclusive: '2026-11-01T00:00:00+08:00' }
+                    expectedRecordCount: 1
+                    idempotencyKey: events-2026-10-09-001
+                    records:
+                      - eventId: EVT-001
+                        storeReference: { trtid: 'S-001' }
+                        eventType: Agency
+                        submittedBy: User
+                        eventDate: '2026-10-08T15:00:00+08:00'
+                        EventDetail: { Description: Example }
+                        Status: Open
+                        ASTMInjuryIllness: 'No'
+                    state: RECEIVED
+                    receivedAt: '2026-10-09T10:00:01+08:00'
+                    publishedAt: null
+                    createdByPrincipalId: integration-machine-1
+                    revision: 1
+                    coverageAssessment: DECLARED_COMPLETE
+                    audit:
+                      - operation: SUBMIT
+                        actorPrincipalId: integration-machine-1
+                        occurredAt: '2026-10-09T10:00:01+08:00'
+                        outcome: ACCEPTED
+                        requestId: req-example-1
+                        diagnostics: []
+                    diagnostics: []
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/IntegrationUnavailable' }
+  /import/batches/{batchId}:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    get:
+      operationId: getImportBatch
+      summary: Read batch lifecycle state and diagnostics
+      x-required-machine-operation: READ
+      x-implementation-status: INTEGRATION_REQUIRED
+      responses:
+        '200':
+          description: Batch status
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/IntegrationUnavailable' }
+  /import/batches/{batchId}/validate:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: validateImportBatch
+      summary: Validate records, Store links, and declared coverage
+      x-required-machine-operation: VALIDATE
+      x-implementation-status: INTEGRATION_REQUIRED
+      parameters:
+        - { $ref: '#/components/parameters/RequestId' }
+      responses:
+        '200':
+          description: Batch state becomes VALIDATED or REJECTED
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/IntegrationUnavailable' }
+  /import/batches/{batchId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/BatchId'
+    post:
+      operationId: publishImportBatch
+      summary: Atomically publish a validated independently verified complete-coverage batch
+      x-required-machine-operation: PUBLISH
+      x-implementation-status: INTEGRATION_REQUIRED
+      parameters:
+        - { $ref: '#/components/parameters/RequestId' }
+      description: Requires M2M identity with PUBLISH operation for the batch Domain and VERIFIED_COMPLETE coverage. Persistent adapter must atomically compare-and-swap revision/state, switch the published dataset pointer, batch state and audit in one transaction; on failure previous published data remains active. Repeating publish for the same published batch is idempotent.
+      responses:
+        '200':
+          description: Batch published
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/IntegrationUnavailable' }
+components:
+  securitySchemes:
+    MachineBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Company managed token (mechanism TBD)
+      description: Contract placeholder only; the company verifier must resolve stable principal ID plus Domain and operation allowlists. No bearer-token verifier is implemented.
+  parameters:
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 160, pattern: '.*\S.*' }
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: Optional request correlation identifier, max 200 characters. W3C traceparent is accepted as fallback.
+      schema: { type: string, minLength: 1, maxLength: 200, pattern: '^[\w.:-]+$' }
+  responses:
+    BadRequest:
+      description: Malformed JSON or missing request body
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    PayloadTooLarge:
+      description: Request exceeds the 10 MiB limit
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    UnsupportedMediaType:
+      description: JSON content type required
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    Conflict:
+      description: Batch identity, idempotency key, or lifecycle state conflict
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    NotFound:
+      description: Batch not found
+      content:
+        application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+    Unauthorized:
+      description: Trusted machine identity is missing or invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Machine principal is not authorized for this Domain
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ValidationError:
+      description: Contract or record validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    IntegrationUnavailable:
+      description: Machine identity, persistence or transactional publication adapter is not configured
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    Domain:
+      type: string
+      enum: [store-master, training, drill, inspection, action-closure-rate, events, actions, take-charge, take-charge-annual-aggregates, certificates, environment, required-sets]
+    DateTime:
+      type: string
+      format: date-time
+      description: ISO 8601 timestamp including Z or explicit UTC offset; all period intervals are half-open.
+    StoreReference:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [trtid]
+          properties:
+            trtid: { type: string, minLength: 1, pattern: '.*\S.*' }
+            storeNameEn: { type: [string, 'null'], pattern: '.*\S.*' }
+        - type: object
+          additionalProperties: false
+          required: [storeNameEn]
+          properties:
+            storeNameEn: { type: string, minLength: 1, pattern: '.*\S.*' }
+      description: TRTID primary; exact unique English name fallback. No fuzzy matching.
+    TimeRange:
+      type: object
+      additionalProperties: false
+      required: [startInclusive, endExclusive]
+      properties:
+        startInclusive: { $ref: '#/components/schemas/DateTime' }
+        endExclusive: { $ref: '#/components/schemas/DateTime' }
+    Coverage:
+      type: object
+      additionalProperties: false
+      required: [completeness, stores]
+      properties:
+        completeness: { type: string, enum: [COMPLETE, PARTIAL, UNKNOWN], description: COMPLETE is a source declaration only; it is not independently verified. UNKNOWN is retained as unverified and cannot publish. }
+        stores: { type: array, maxItems: 10000, items: { $ref: '#/components/schemas/StoreReference' } }
+        businessPeriod: { $ref: '#/components/schemas/TimeRange' }
+        proof: { $ref: '#/components/schemas/CoverageProof' }
+    CoverageProof:
+      type: object
+      additionalProperties: false
+      required: [kind, reference]
+      if:
+        properties: { kind: { const: SOURCE_CONTROL_TOTAL } }
+      then: { required: [controlRecordCount] }
+      allOf:
+        - if:
+            properties: { kind: { const: SCOPE_DIGEST } }
+          then: { required: [scope, digest] }
+        - if:
+            properties: { kind: { const: AUTHORITATIVE_EMPTY } }
+          then:
+            required: [controlRecordCount]
+            properties: { controlRecordCount: { const: 0 } }
+      properties:
+        kind: { type: string, enum: [SOURCE_CONTROL_TOTAL, EXPORT_MANIFEST, SCOPE_DIGEST, AUTHORITATIVE_EMPTY] }
+        reference: { type: string, minLength: 1, maxLength: 500, pattern: '.*\S.*' }
+        controlRecordCount: { type: integer, minimum: 0, maximum: 9007199254740991 }
+        scope: { type: string, minLength: 1, maxLength: 500, pattern: '.*\S.*' }
+        digest: { type: string, minLength: 1, maxLength: 256, pattern: '.*\S.*' }
+    SourceReference:
+      type: [object, 'null']
+      additionalProperties: false
+      properties:
+        sourceSystem: { type: string }
+        sourceRecordId: { type: string }
+        sourceUrl: { type: string, format: uri }
+    ImportBatchInput:
+      oneOf:
+        - { $ref: '#/components/schemas/StoreMasterBatchInput' }
+        - { $ref: '#/components/schemas/TrainingBatchInput' }
+        - { $ref: '#/components/schemas/DrillBatchInput' }
+        - { $ref: '#/components/schemas/InspectionBatchInput' }
+        - { $ref: '#/components/schemas/ActionClosureRateBatchInput' }
+        - { $ref: '#/components/schemas/EventsBatchInput' }
+        - { $ref: '#/components/schemas/ActionsBatchInput' }
+        - { $ref: '#/components/schemas/TakeChargeBatchInput' }
+        - { $ref: '#/components/schemas/TakeChargeAnnualAggregatesBatchInput' }
+        - { $ref: '#/components/schemas/CertificatesBatchInput' }
+        - { $ref: '#/components/schemas/EnvironmentBatchInput' }
+        - { $ref: '#/components/schemas/RequiredSetsBatchInput' }
+      discriminator:
+        propertyName: domain
+        mapping:
+          store-master: '#/components/schemas/StoreMasterBatchInput'
+          training: '#/components/schemas/TrainingBatchInput'
+          drill: '#/components/schemas/DrillBatchInput'
+          inspection: '#/components/schemas/InspectionBatchInput'
+          action-closure-rate: '#/components/schemas/ActionClosureRateBatchInput'
+          events: '#/components/schemas/EventsBatchInput'
+          actions: '#/components/schemas/ActionsBatchInput'
+          take-charge: '#/components/schemas/TakeChargeBatchInput'
+          take-charge-annual-aggregates: '#/components/schemas/TakeChargeAnnualAggregatesBatchInput'
+          certificates: '#/components/schemas/CertificatesBatchInput'
+          environment: '#/components/schemas/EnvironmentBatchInput'
+          required-sets: '#/components/schemas/RequiredSetsBatchInput'
+    ImportBatchBase:
+      type: object
+      x-max-body-bytes: 10485760
+      required: [schemaVersion, sourceSystem, batchId, extractionTime, coverage, expectedRecordCount, idempotencyKey]
+      properties:
+        schemaVersion: { const: v1 }
+        sourceSystem: { type: string, minLength: 1, maxLength: 120, pattern: '.*\S.*' }
+        sourceVersion: { type: string, minLength: 1, maxLength: 120, pattern: '.*\S.*' }
+        configurationVersion: { type: string, minLength: 1, maxLength: 120, pattern: '.*\S.*' }
+        batchId: { type: string, minLength: 1, maxLength: 160, pattern: '.*\S.*' }
+        extractionTime: { $ref: '#/components/schemas/DateTime' }
+        businessPeriod: { $ref: '#/components/schemas/TimeRange' }
+        effectiveTime: { $ref: '#/components/schemas/TimeRange' }
+        coverage: { $ref: '#/components/schemas/Coverage' }
+        expectedRecordCount: { type: integer, minimum: 0, maximum: 9007199254740991, description: Must equal records.length for request self-consistency only; this is not source completeness proof. }
+        idempotencyKey: { type: string, minLength: 1, maxLength: 200, pattern: '.*\S.*' }
+    StoreMasterBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: store-master }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/StoreMasterRecord' }
+          unevaluatedProperties: false
+    TrainingBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: training }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/TrainingRecord' }
+          unevaluatedProperties: false
+    DrillBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: drill }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/DrillRecord' }
+          unevaluatedProperties: false
+    InspectionBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: inspection }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/InspectionRecord' }
+          unevaluatedProperties: false
+    ActionClosureRateBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: action-closure-rate }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/ActionClosureRateRecord' }
+          unevaluatedProperties: false
+    EventsBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: events }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/EventRecord' }
+          unevaluatedProperties: false
+    ActionsBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: actions }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/ActionRecord' }
+          unevaluatedProperties: false
+    TakeChargeBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: take-charge }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/TakeChargeRecord' }
+          unevaluatedProperties: false
+    TakeChargeAnnualAggregatesBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: take-charge-annual-aggregates }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/UnresolvedAnnualAggregateRecord' }
+          unevaluatedProperties: false
+    CertificatesBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: certificates }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/CertificateRecord' }
+          unevaluatedProperties: false
+    EnvironmentBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: environment }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/EnvironmentRecord' }
+          unevaluatedProperties: false
+    RequiredSetsBatchInput:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchBase' }
+        - type: object
+          required: [domain, records]
+          properties:
+            domain: { const: required-sets }
+            records:
+              type: array
+              maxItems: 10000
+              items: { $ref: '#/components/schemas/RequiredSetRecord' }
+          unevaluatedProperties: false
+    ImportBatch:
+      allOf:
+        - { $ref: '#/components/schemas/ImportBatchInput' }
+        - type: object
+          required: [state, receivedAt, publishedAt, diagnostics, createdByPrincipalId, revision, coverageAssessment, audit]
+          properties:
+            state: { type: string, enum: [RECEIVED, VALIDATED, REJECTED, PUBLISHED] }
+            receivedAt: { $ref: '#/components/schemas/DateTime' }
+            publishedAt: { oneOf: [{ $ref: '#/components/schemas/DateTime' }, { type: 'null' }] }
+            diagnostics: { type: array, items: { $ref: '#/components/schemas/Diagnostic' } }
+            createdByPrincipalId: { type: string, minLength: 1 }
+            revision: { type: integer, minimum: 1 }
+            coverageAssessment: { type: string, enum: [DECLARED_COMPLETE, VERIFIED_COMPLETE, INCOMPLETE, UNKNOWN] }
+            audit: { type: array, items: { $ref: '#/components/schemas/ImportAuditEvent' } }
+    ImportAuditEvent:
+      type: object
+      additionalProperties: false
+      required: [operation, actorPrincipalId, occurredAt, outcome, requestId, diagnostics]
+      properties:
+        operation: { type: string, enum: [SUBMIT, VALIDATE, PUBLISH] }
+        actorPrincipalId: { type: string, minLength: 1 }
+        occurredAt: { $ref: '#/components/schemas/DateTime' }
+        outcome: { type: string, enum: [ACCEPTED, VALIDATED, REJECTED, PUBLISHED, FAILED, CONFLICT] }
+        requestId: { type: string, minLength: 1, maxLength: 200 }
+        diagnostics: { type: array, items: { $ref: '#/components/schemas/Diagnostic' } }
+    StoreMasterRecord:
+      type: object
+      additionalProperties: false
+      required: [region, area, storeNameCn, storeNameEn, trtid]
+      properties: { region: { type: string }, area: { type: string }, storeNameCn: { type: string }, storeNameEn: { type: string }, trtid: { type: string, minLength: 1, pattern: '.*\S.*' }, regionOwner: { type: [string, 'null'] }, regionOwnerEmail: { type: [string, 'null'] }, areaOwner: { type: [string, 'null'] }, areaOwnerEmail: { type: [string, 'null'] }, manager: { type: [string, 'null'] }, managerEmail: { type: [string, 'null'] }, ehsAmbassador: { type: [string, 'null'] }, ehsAmbassadorEmail: { type: [string, 'null'] } }
+    TrainingRecord:
+      type: object
+      additionalProperties: false
+      required: [storeReference, month, trainingName, completionRate, incompletePeople]
+      properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, trainingName: { type: string }, completionRate: { type: [number, 'null'], minimum: 0, maximum: 100 }, incompletePeople: { type: [array, 'null'], items: { type: string } }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    DrillRecord:
+      type: object
+      additionalProperties: false
+      required: [storeReference, month, drillName, status]
+      properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, drillName: { type: string }, status: { type: [string, 'null'] }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    InspectionRecord:
+      type: object
+      additionalProperties: false
+      required: [inspectionNumber, storeReference, inspectionName, dueDate, inspector, status]
+      properties: { inspectionNumber: { type: string }, storeReference: { $ref: '#/components/schemas/StoreReference' }, inspectionName: { type: string }, dueDate: { type: [string, 'null'], format: date }, inspector: { type: [string, 'null'] }, status: { type: [string, 'null'] }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    ActionClosureRateRecord:
+      type: object
+      additionalProperties: false
+      required: [storeReference, startInclusive, endExclusive, value]
+      properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, startInclusive: { $ref: '#/components/schemas/DateTime' }, endExclusive: { $ref: '#/components/schemas/DateTime' }, value: { type: [number, 'null'], minimum: 0, maximum: 100 }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    EventRecord:
+      type: object
+      additionalProperties: false
+      required: [eventId, storeReference, eventType, submittedBy, eventDate, EventDetail, Status, ASTMInjuryIllness]
+      properties: { eventId: { type: string }, storeReference: { $ref: '#/components/schemas/StoreReference' }, eventType: { type: string }, submittedBy: { type: string }, eventDate: { $ref: '#/components/schemas/DateTime' }, EventDetail: { type: object, additionalProperties: false, required: [Description], properties: { Description: { type: string } } }, Status: { type: string }, ASTMInjuryIllness: { type: string, enum: [Yes, No] }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    ActionRecord:
+      type: object
+      additionalProperties: false
+      required: [actionId, storeReference, problem, action, submittedBy, owner, submittedDate, dueDate, closedDate, Status]
+      properties: { actionId: { type: string }, storeReference: { $ref: '#/components/schemas/StoreReference' }, problem: { type: string }, action: { type: string }, submittedBy: { type: string }, owner: { type: string }, submittedDate: { $ref: '#/components/schemas/DateTime' }, dueDate: { $ref: '#/components/schemas/DateTime' }, closedDate: { oneOf: [{ $ref: '#/components/schemas/DateTime' }, { type: 'null' }] }, Status: { type: string }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    TakeChargeRecord:
+      type: object
+      additionalProperties: false
+      required: [storeReference, tchId, submittedBy, submittedAt, summary, Status]
+      properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, tchId: { type: string }, submittedBy: { type: string }, submittedAt: { $ref: '#/components/schemas/DateTime' }, summary: { type: string }, Status: { type: string }, extraFields: { type: object, additionalProperties: { type: [string, number, boolean, 'null'] } }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
+    TakeChargeAnnualAggregateRecord:
+      type: object
+      description: 'BLOCKED/TBD: the authoritative scope and upstream physical aggregation contract are not frozen.'
+      additionalProperties: false
+      properties: { scope: { type: object }, currentYear: { type: integer }, asOfMonth: { type: string }, averageSubmissionsYtd: { type: object }, participationRateYtd: { type: object } }
+    UnresolvedAnnualAggregateRecord:
+      allOf: [{ $ref: '#/components/schemas/TakeChargeAnnualAggregateRecord' }]
+      x-implementation-status: BLOCKED-TBD
+    CertificateRecord:
+      type: object
+      additionalProperties: false
+      required: [TRTID, Certificate Type, Expiry Date, Person, Person Email, Business Title]
+      properties: { TRTID: { type: string, minLength: 1, pattern: '.*\S.*' }, English Store Name: { type: [string, 'null'] }, Certificate Type: { type: string }, Expiry Date: { type: [string, 'null'], description: 'Invalid date text is retained for existing Certificate Rule diagnostics.' }, Person: { type: string }, Person Email: { type: string }, Business Title: { type: string } }
+    EnvironmentRecord:
+      type: object
+      description: Existing typed environment V1 source shape; nested source fields follow data-contract.md.
+      additionalProperties: false
+      required: [TRTID, 环境影响评价, 排污许可, 排水许可, 环境预案, 监测, 废弃物合同]
+      properties: { TRTID: { type: string, minLength: 1, pattern: '.*\S.*' }, English Store Name: { type: [string, 'null'] }, 环境影响评价: { $ref: '#/components/schemas/EnvironmentImpactAssessment' }, 排污许可: { $ref: '#/components/schemas/EnvironmentDischargePermit' }, 排水许可: { $ref: '#/components/schemas/EnvironmentDrainagePermit' }, 环境预案: { $ref: '#/components/schemas/EnvironmentEmergencyPlan' }, 监测: { type: string, enum: [有, 无, 不适用] }, 废弃物合同: { $ref: '#/components/schemas/EnvironmentWasteContracts' } }
+    EnvironmentImpactAssessment:
+      type: object
+      additionalProperties: false
+      required: [环境影响评价, 总量要求]
+      properties: { 环境影响评价: { type: [string, 'null'] }, 总量要求: { type: object, additionalProperties: false, required: [气-颗粒物, 气-VOCs, 水-氨氮, 水-总氮, 水-总磷, 水-CODcr], properties: { 气-颗粒物: { type: [number, 'null'] }, 气-VOCs: { type: [number, 'null'] }, 水-氨氮: { type: [number, 'null'] }, 水-总氮: { type: [number, 'null'] }, 水-总磷: { type: [number, 'null'] }, 水-CODcr: { type: [number, 'null'] } } } }
+    EnvironmentDischargePermit:
+      type: object
+      additionalProperties: false
+      required: [排污许可, 执行报告, 编号, 有效期起, 有效期止, 总量要求, 备注]
+      properties: { 排污许可: { type: [string, 'null'] }, 执行报告: { type: [string, 'null'] }, 编号: { type: [string, 'null'] }, 有效期起: { type: [string, 'null'], format: date }, 有效期止: { type: [string, 'null'], format: date }, 总量要求: { type: object, additionalProperties: false, required: [产能, 涂料批复用量], properties: { 产能: { type: [string, number, 'null'] }, 涂料批复用量: { type: [string, number, 'null'] } } }, 备注: { type: [string, 'null'] } }
+    EnvironmentDrainagePermit:
+      type: object
+      additionalProperties: false
+      required: [洗车, 排水许可, 有效期起, 有效期止, 备注]
+      properties: { 洗车: { type: [string, 'null'] }, 排水许可: { type: [string, 'null'] }, 有效期起: { type: [string, 'null'], format: date }, 有效期止: { type: [string, 'null'], format: date }, 备注: { type: [string, 'null'] } }
+    EnvironmentEmergencyPlan:
+      type: object
+      additionalProperties: false
+      required: [突发环境事件应急预案备案情况, 备案编号, 有效期起, 有效期止, 备注]
+      properties: { 突发环境事件应急预案备案情况: { type: [string, 'null'] }, 备案编号: { type: [string, 'null'] }, 有效期起: { type: [string, 'null'], format: date }, 有效期止: { type: [string, 'null'], format: date }, 备注: { type: [string, 'null'] } }
+    EnvironmentWasteContracts:
+      type: object
+      additionalProperties: false
+      required: [危险废物处置合同, 一般工业固体废物处置合同]
+      properties: { 危险废物处置合同: { type: array, items: { $ref: '#/components/schemas/EnvironmentWasteContract' } }, 一般工业固体废物处置合同: { type: array, items: { $ref: '#/components/schemas/EnvironmentWasteContract' } } }
+    EnvironmentWasteContract:
+      type: object
+      additionalProperties: false
+      required: [供应商名称, 种类, 有效期起, 有效期止]
+      properties: { 供应商名称: { type: string }, 种类: { type: string }, 有效期起: { type: [string, 'null'], format: date }, 有效期止: { type: [string, 'null'], format: date } }
+    RequiredSetRecord:
+      type: object
+      additionalProperties: false
+      required: [storeReference, month]
+      properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, month: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }, requiredTrainingItems: { type: array, minItems: 1, uniqueItems: true, items: { type: string, minLength: 1 } }, expectedInspectionTasks: { type: array, minItems: 1, uniqueItems: true, items: { type: string, minLength: 1 } } }
+      oneOf:
+        - required: [requiredTrainingItems]
+          not: { required: [expectedInspectionTasks] }
+        - required: [expectedInspectionTasks]
+          not: { required: [requiredTrainingItems] }
+    Diagnostic:
+      type: object
+      additionalProperties: false
+      required: [domain, batchId, recordIndex, recordId, field, code, message, severity]
+      properties: { domain: { $ref: '#/components/schemas/Domain' }, batchId: { type: string }, recordIndex: { type: [integer, 'null'] }, recordId: { type: [string, 'null'] }, field: { type: [string, 'null'] }, code: { type: string }, message: { type: string }, severity: { type: string, enum: [ERROR, WARNING] } }
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, diagnostics]
+          properties: { code: { type: string }, message: { type: string }, diagnostics: { type: array, items: { $ref: '#/components/schemas/Diagnostic' } } }
