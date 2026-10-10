@@ -9,6 +9,10 @@ const bases = deriveBaseGrants(mockStores);
 const all: EhsStoreScope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
 function access(email: string) { return resolveEffectiveAccess(email, bases, mockManualGrants, stores); }
 describe("Access domain", () => {
+  it("creates collision-free Area scope identifiers", () => {
+    expect(areaScopeId("north::east", "team")).not.toBe(areaScopeId("north", "east::team"));
+  });
+
   it("canonicalizes email and deduplicates repeated Region and Area owners", () => {
     expect(canonicalEmail("  A@EXAMPLE.TEST ")).toBe("a@example.test");
     expect(deriveBaseGrants([{ ...mockStores[0], regionOwnerEmail: "  REGION.NORTH@EXAMPLE.TEST " }])[0].email).toBe("region.north@example.test");

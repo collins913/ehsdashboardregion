@@ -14,14 +14,15 @@ export async function POST(request: Request) {
   try { principal = await requireVerifiedServerPrincipal(); }
   catch (error) { return json(error instanceof Error && error.message === "NOT_AUTHENTICATED" ? "AUTHENTICATION_REQUIRED" : "IDENTITY_PROVIDER_UNAVAILABLE", error instanceof Error && error.message === "NOT_AUTHENTICATED" ? 401 : 503); }
   if (!principal) return json("AUTHENTICATION_REQUIRED", 401);
-  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) return json("JSON_CONTENT_TYPE_REQUIRED", 415);
+  if (request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") return json("JSON_CONTENT_TYPE_REQUIRED", 415);
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
   if (Number.isFinite(declaredLength) && declaredLength > 8_192) return json("REQUEST_TOO_LARGE", 413);
-  let bytes: string | null;
-  try { bytes = await readBody(request); } catch { return json("INVALID_REQUEST_BODY", 400); }
-  if (!bytes) return json("REQUEST_TOO_LARGE", 413);
+  let body: Awaited<ReturnType<typeof readBody>>;
+  try { body = await readBody(request); } catch { return json("INVALID_REQUEST_BODY", 400); }
+  if (body.kind === "TOO_LARGE") return json("REQUEST_TOO_LARGE", 413);
+  if (!body.text) return json("INVALID_REQUEST_BODY", 400);
   let input: unknown;
-  try { input = JSON.parse(bytes); } catch { return json("MALFORMED_JSON", 400); }
+  try { input = JSON.parse(body.text); } catch { return json("MALFORMED_JSON", 400); }
   const report = parseClientOperationalErrorReport(input);
   if (!report) return json("INVALID_ERROR_REPORT", 422);
   const requestHeader = request.headers.get("x-request-id") ?? request.headers.get("traceparent");
@@ -49,8 +50,8 @@ export async function POST(request: Request) {
   }
 }
 
-async function readBody(request: Request): Promise<string | null> {
-  if (!request.body) return null;
+async function readBody(request: Request): Promise<{ kind: "OK"; text: string } | { kind: "TOO_LARGE" }> {
+  if (!request.body) return { kind: "OK", text: "" };
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -58,11 +59,11 @@ async function readBody(request: Request): Promise<string | null> {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > 8_192) { await reader.cancel(); return null; }
+    if (size > 8_192) { await reader.cancel(); return { kind: "TOO_LARGE" }; }
     chunks.push(value);
   }
   const bytes = new Uint8Array(size);
   let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return new TextDecoder().decode(bytes);
+  return { kind: "OK", text: new TextDecoder().decode(bytes) };
 }

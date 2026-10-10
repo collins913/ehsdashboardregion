@@ -1,4 +1,4 @@
-import type { ImportActor, ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionDomain, ProductionImportBatch } from "@/data/contracts/production-import";
+import type { ImportActor, ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionDomain, ProductionImportBatch, ProductionImportBatchStatus } from "@/data/contracts/production-import";
 import { parseProductionImportBatch } from "@/data/contracts/production-import-validation";
 import { BatchIdConflictError, BatchNotFoundError, BatchStateConflictError, IdempotencyConflictError, type ImportBatchStore } from "@/data/repositories/production-import-batch-store";
 import type { StoreMasterData } from "@/types/ehs";
@@ -53,9 +53,13 @@ export class ProductionImportService {
     const { state: _state, receivedAt: _receivedAt, publishedAt: _publishedAt, diagnostics: _diagnostics, createdByPrincipalId: _creator, revision: _revision, coverageAssessment: _coverageAssessment, audit: _audit, ...input } = batch;
     const parsed = parseProductionImportBatch(input);
     const diagnostics = [...parsed.diagnostics];
-    if (parsed.value && parsed.value.domain !== "store-master") {
-      const stores = await this.readPublishedStores();
-      diagnostics.push(...validateProductionBatchStoreLinks(parsed.value, createStoreReferenceResolver(stores)));
+    if (parsed.value) {
+      if (parsed.value.domain === "store-master") {
+        diagnostics.push(...validateProductionBatchStoreLinks(parsed.value, () => ({ kind: "UNRESOLVED" })));
+      } else {
+        const stores = await this.readPublishedStores();
+        diagnostics.push(...validateProductionBatchStoreLinks(parsed.value, createStoreReferenceResolver(stores)));
+      }
     }
     let verifiedCoverage = false;
     if (batch.coverage.completeness === "COMPLETE" && batch.coverage.proof) {
@@ -120,7 +124,7 @@ export type ImportPrincipalResolver = (request: Request) => Promise<MachinePrinc
 export type ProductionImportServiceResolver = () => ProductionImportService;
 
 async function readBoundedJson(request: Request): Promise<unknown> {
-  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) throw new ImportRequestError(415, "JSON_CONTENT_TYPE_REQUIRED");
+  if (request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") throw new ImportRequestError(415, "JSON_CONTENT_TYPE_REQUIRED");
   const declaredLength = Number(request.headers.get("content-length") ?? 0);
   const limit = 10 * 1024 * 1024;
   if (Number.isFinite(declaredLength) && declaredLength > limit) throw new ImportRequestError(413, "REQUEST_TOO_LARGE");
@@ -180,12 +184,13 @@ export async function handleImportApiRequest(
         : operation.kind === "validate"
           ? await service.validate(principal, operation.batchId, requestId)
           : await service.publish(principal, operation.batchId, requestId);
-    return Response.json(result, { status: operation.kind === "submit" ? 202 : 200 });
+    return Response.json(toImportBatchStatus(result), { status: operation.kind === "submit" ? 202 : 200 });
   } catch (error) {
     const normalizedError = error instanceof SyntaxError ? new ImportRequestError(400, "MALFORMED_JSON") : error;
     const known = normalizedError instanceof ImportRequestError;
     const status = known ? normalizedError.status : 503;
-    const code = known ? normalizedError.code : normalizedError instanceof Error && normalizedError.message === "PRODUCTION_IMPORT_RUNTIME_NOT_CONFIGURED"
+    const integrationNotConfigured = normalizedError instanceof Error && ["PRODUCTION_IMPORT_RUNTIME_NOT_CONFIGURED", "MACHINE_IDENTITY_PROVIDER_NOT_CONFIGURED"].includes(normalizedError.message);
+    const code = known ? normalizedError.code : integrationNotConfigured
       ? "PRODUCTION_IMPORT_NOT_CONFIGURED"
       : "IMPORT_SERVICE_UNAVAILABLE";
     const diagnostics = known ? normalizedError.diagnostics : [];
@@ -207,4 +212,9 @@ export async function handleImportApiRequest(
     });
     return Response.json({ error: { code, message, diagnostics } }, { status });
   }
+}
+
+function toImportBatchStatus(batch: ProductionImportBatch): ProductionImportBatchStatus {
+  const { records: _records, ...status } = batch;
+  return status;
 }

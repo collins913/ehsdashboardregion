@@ -36,7 +36,7 @@ describe("Access server service", () => {
     expect(created.ok).toBe(true);
     if (!created.ok) return;
     expect((await createManualGrant({ email, accessType: "STORE", scopeId: "TEST-001", note: null })).ok).toBe(false);
-    expect((await updateManualGrant(created.value, { accessType: "AREA", scopeId: "北辰区::北辰一部", note: "updated", email: "forged@example.test" } as never)).ok).toBe(true);
+    expect((await updateManualGrant(created.value, { accessType: "AREA", scopeId: '["北辰区","北辰一部"]', note: "updated", email: "forged@example.test" } as never)).ok).toBe(true);
     expect((await listManualGrants({ email })).find((grant) => grant.id === created.value)?.email).toBe(email);
     expect((await deleteManualGrant(created.value)).ok).toBe(true);
     const events = (await queryAuditLog(email)).filter((e) => e.grantId === created.value);

@@ -6,9 +6,13 @@ const record = (value: unknown): value is UnknownRecord => value !== null && typ
 const only = (value: UnknownRecord, keys: readonly string[]) => Object.keys(value).every((key) => keys.includes(key));
 const timestamp = (value: unknown): value is string => typeof value === "string" && parseTimezoneAwareInstant(value) !== null;
 const month = (value: unknown) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-const storeReference = (value: unknown) => record(value) && only(value, ["trtid", "storeNameEn"]) &&
-  ((typeof value.trtid === "string" && value.trtid.trim() !== "") || (typeof value.storeNameEn === "string" && value.storeNameEn.trim() !== "")) &&
-  (value.storeNameEn === undefined || value.storeNameEn === null || typeof value.storeNameEn === "string" && value.storeNameEn.trim() !== "");
+const storeReference = (value: unknown) => {
+  if (!record(value) || !only(value, ["trtid", "storeNameEn"])) return false;
+  const trtidValid = value.trtid === undefined || typeof value.trtid === "string" && value.trtid.trim() !== "";
+  const storeNameValid = value.storeNameEn === undefined || value.storeNameEn === null || typeof value.storeNameEn === "string" && value.storeNameEn.trim() !== "";
+  const hasIdentity = typeof value.trtid === "string" && value.trtid.trim() !== "" || typeof value.storeNameEn === "string" && value.storeNameEn.trim() !== "";
+  return trtidValid && storeNameValid && hasIdentity;
+};
 const dateOnlyOrNull = (value: unknown) => {
   if (value === null) return true;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -48,7 +52,7 @@ const allowedFields: Partial<Record<ProductionDomain, readonly string[]>> = {
   "take-charge": ["storeReference", "tchId", "submittedBy", "submittedAt", "summary", "Status", "extraFields", "sourceReference"],
   certificates: ["TRTID", "English Store Name", "Certificate Type", "Expiry Date", "Person", "Person Email", "Business Title"],
   environment: ["TRTID", "English Store Name", "环境影响评价", "排污许可", "排水许可", "环境预案", "监测", "废弃物合同"],
-  "take-charge-annual-aggregates": ["scope", "currentYear", "asOfMonth", "averageSubmissionsYtd", "participationRateYtd"],
+  "take-charge-annual-aggregates": ["scope", "currentYear", "asOfMonth", "submissionsPerCapitaYtd", "participationRateYtd"],
   "required-sets": ["storeReference", "month", "requiredTrainingItems", "expectedInspectionTasks"],
 };
 
@@ -84,6 +88,7 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
   if (domain === "store-master" && (typeof value.trtid !== "string" || !value.trtid.trim())) add("trtid", "INVALID_TRTID", "TRTID 必须是非空稳定标识，不允许空白字符串。");
   if ("incompletePeople" in value && value.incompletePeople !== null && (!Array.isArray(value.incompletePeople) || !value.incompletePeople.every((person) => typeof person === "string"))) add("incompletePeople", "INVALID_TYPE", "incompletePeople 必须为 string[] 或 null。");
   if ("sourceReference" in value && value.sourceReference !== null && (!record(value.sourceReference) || !only(value.sourceReference, ["sourceSystem", "sourceRecordId", "sourceUrl"]) || Object.values(value.sourceReference).some((item) => item !== undefined && typeof item !== "string"))) add("sourceReference", "INVALID_OBJECT", "sourceReference 只能包含 string 类型的已定义字段。");
+  if ("extraFields" in value && (!record(value.extraFields) || Object.values(value.extraFields).some((item) => item !== null && typeof item !== "string" && typeof item !== "boolean" && (typeof item !== "number" || !Number.isFinite(item))))) add("extraFields", "INVALID_OBJECT", "extraFields 只能包含 string、有限 number、boolean 或 null。");
   if (record(value.sourceReference) && typeof value.sourceReference.sourceUrl === "string") {
     try { new URL(value.sourceReference.sourceUrl); }
     catch { add("sourceReference.sourceUrl", "INVALID_URI", "sourceUrl 必须是绝对 URI。"); }
@@ -135,7 +140,7 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
       });
     }
   }
-  if (domain === "take-charge-annual-aggregates") add(null, "CONTRACT_TBD", "年度 aggregate 的 scope 与物理逻辑 Schema 尚未冻结，当前禁止接收和发布。");
+  if (domain === "take-charge-annual-aggregates") add(null, "DIRECT_REPOSITORY_INTEGRATION_REQUIRED", "年度指标的业务目标与逻辑输出已冻结；公司数据应由 Production Repository Adapter 直接映射，当前通用批量导入不接收该 Domain。");
   return errors;
 }
 

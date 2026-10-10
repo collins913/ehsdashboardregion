@@ -56,4 +56,13 @@ describe("client monitoring error endpoint", () => {
     }), expect.objectContaining({ throwOnStorageFailure: true }));
     expect(await response.json()).toEqual({ accepted: true, eventId: "event-1" });
   });
+
+  it("returns 400 for an empty body and rejects JSON-like but unsupported media types", async () => {
+    const empty = await POST(new Request("http://localhost/api/monitoring/client-error", { method: "POST", headers: { "content-type": "application/json" }, body: "" }));
+    expect(empty.status).toBe(400);
+    expect(await empty.json()).toEqual({ error: { code: "INVALID_REQUEST_BODY" } });
+
+    const wrongType = await POST(new Request("http://localhost/api/monitoring/client-error", { method: "POST", headers: { "content-type": "application/json-patch+json" }, body: "{}" }));
+    expect(wrongType.status).toBe(415);
+  });
 });

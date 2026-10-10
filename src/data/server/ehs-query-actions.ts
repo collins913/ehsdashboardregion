@@ -46,15 +46,17 @@ import {
   parseTakeChargeGoalsQuery,
   parseTakeChargeRecordsQuery,
 } from "@/data/server/query-input-validation";
+import { resolveBusinessReferenceDate } from "@/data/server/data-source-mode.server";
 
-function repositoryFor(referenceDateIso: string) {
-  return createEhsRepository(new Date(referenceDateIso));
+function runtimeFor(referenceDateIso: string) {
+  const referenceDate = resolveBusinessReferenceDate(referenceDateIso);
+  return { referenceDate, repository: createEhsRepository(referenceDate) };
 }
 
 async function queryKpiRowsCore(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<readonly KpiRow[]> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseEhsFilterContext);
   const authorized = { ...context, ...await authorizeBusinessScope(context) };
-  const snapshot = await repositoryFor(referenceDateIso).getKpiData(authorized);
+  const snapshot = await runtimeFor(referenceDateIso).repository.getKpiData(authorized);
   return buildKpiRows(authorized, snapshot);
 }
 
@@ -83,8 +85,9 @@ async function queryOverviewCore(input: { referenceDateIso: string; query: Overv
       });
     }
   }
-  const data = await repositoryFor(referenceDateIso).getOverviewScoreData({ scope: authorizedScope, attentionScope });
-  const { year, month } = shanghaiYearMonth(new Date(referenceDateIso));
+  const { referenceDate, repository } = runtimeFor(referenceDateIso);
+  const data = await repository.getOverviewScoreData({ scope: authorizedScope, attentionScope });
+  const { year, month } = shanghaiYearMonth(referenceDate);
   return prepareOverviewResult({
     referenceMonth: `${year}-${String(month).padStart(2, "0")}` as Month,
     stores: data.attentionStores,
@@ -113,31 +116,31 @@ async function authorizeKpiDetailQuery(
 async function queryKpiTrainingDetailsCore(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiTrainingDetailRecord>> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseKpiDetailQuery);
   const authorized = await authorizeKpiDetailQuery(query);
-  return repositoryFor(referenceDateIso).getKpiTrainingDetails(authorized);
+  return runtimeFor(referenceDateIso).repository.getKpiTrainingDetails(authorized);
 }
 
 async function queryKpiDrillDetailsCore(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiDrillDetailRecord>> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseKpiDetailQuery);
   const authorized = await authorizeKpiDetailQuery(query);
-  return repositoryFor(referenceDateIso).getKpiDrillDetails(authorized);
+  return runtimeFor(referenceDateIso).repository.getKpiDrillDetails(authorized);
 }
 
 async function queryKpiInspectionDetailsCore(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiInspectionDetailRecord>> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseKpiDetailQuery);
   const authorized = await authorizeKpiDetailQuery(query);
-  return repositoryFor(referenceDateIso).getKpiInspectionDetails(authorized);
+  return runtimeFor(referenceDateIso).repository.getKpiInspectionDetails(authorized);
 }
 
 async function queryKpiAstmDetailsCore(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiAstmDetailRecord>> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseKpiDetailQuery);
   const authorized = await authorizeKpiDetailQuery(query);
-  return repositoryFor(referenceDateIso).getKpiAstmDetails(authorized);
+  return runtimeFor(referenceDateIso).repository.getKpiAstmDetails(authorized);
 }
 
 async function queryActionsCore(input: { referenceDateIso: string; query: ActionsQuery }): Promise<ActionsQueryResult> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseActionsQuery);
   const authorizedQuery = { ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } };
-  return repositoryFor(referenceDateIso).getActions(authorizedQuery);
+  return runtimeFor(referenceDateIso).repository.getActions(authorizedQuery);
 }
 
 async function queryActionsAnalyticsCore(input: { referenceDateIso: string; query: ActionAnalyticsQuery }): Promise<ActionAnalyticsResult> {
@@ -146,13 +149,13 @@ async function queryActionsAnalyticsCore(input: { referenceDateIso: string; quer
     ...query,
     context: { ...query.context, ...await authorizeBusinessScope(query.context) },
   };
-  return repositoryFor(referenceDateIso).getActionsAnalytics(authorizedQuery);
+  return runtimeFor(referenceDateIso).repository.getActionsAnalytics(authorizedQuery);
 }
 
 async function queryEventsCore(input: { referenceDateIso: string; query: EventsQuery }): Promise<EventsQueryResult> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseEventsQuery);
   const authorizedQuery = { ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } };
-  return repositoryFor(referenceDateIso).getEvents(authorizedQuery);
+  return runtimeFor(referenceDateIso).repository.getEvents(authorizedQuery);
 }
 
 async function queryEventsAnalyticsCore(input: { referenceDateIso: string; query: EventAnalyticsQuery }): Promise<EventAnalyticsResult> {
@@ -161,31 +164,31 @@ async function queryEventsAnalyticsCore(input: { referenceDateIso: string; query
     ...query,
     context: { ...query.context, ...await authorizeBusinessScope(query.context) },
   };
-  return repositoryFor(referenceDateIso).getEventsAnalytics(authorizedQuery);
+  return runtimeFor(referenceDateIso).repository.getEventsAnalytics(authorizedQuery);
 }
 
 async function queryTakeChargeGoalsCore(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<TakeChargeGoalsSummary> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseTakeChargeGoalsQuery);
   const authorizedContext = { ...context, ...await authorizeBusinessScope(context) };
-  return repositoryFor(referenceDateIso).getTakeChargeGoals({ context: authorizedContext });
+  return runtimeFor(referenceDateIso).repository.getTakeChargeGoals({ context: authorizedContext });
 }
 
 async function queryTakeChargeRecordsCore(input: { referenceDateIso: string; query: TakeChargeRecordsQuery }): Promise<TakeChargeRecordsResult> {
   const { referenceDateIso, query } = parseQueryEnvelope(input, parseTakeChargeRecordsQuery);
   const authorizedQuery = { ...query, context: { ...query.context, ...await authorizeBusinessScope(query.context) } };
-  return repositoryFor(referenceDateIso).getTakeChargeRecords(authorizedQuery);
+  return runtimeFor(referenceDateIso).repository.getTakeChargeRecords(authorizedQuery);
 }
 
 async function queryStoresCore(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<StoresQueryResult> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseEhsStoreScope);
   const authorizedContext = await authorizeBusinessScope(context);
-  return repositoryFor(referenceDateIso).getStores({ context: authorizedContext });
+  return runtimeFor(referenceDateIso).repository.getStores({ context: authorizedContext });
 }
 
 async function queryEnvironmentCore(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<EnvironmentQueryResult> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseEhsStoreScope);
   const authorizedContext = await authorizeBusinessScope(context);
-  return repositoryFor(referenceDateIso).getEnvironment({ context: authorizedContext });
+  return runtimeFor(referenceDateIso).repository.getEnvironment({ context: authorizedContext });
 }
 
 async function queryEnvironmentAnalyticsCore(input: { referenceDateIso: string; query: EnvironmentAnalyticsQuery }): Promise<EnvironmentAnalyticsResult> {
@@ -194,17 +197,18 @@ async function queryEnvironmentAnalyticsCore(input: { referenceDateIso: string; 
     ...query,
     context: await authorizeBusinessScope(query.context),
   };
+  const { referenceDate, repository } = runtimeFor(referenceDateIso);
   const repositoryQuery: EnvironmentAnalyticsRepositoryQuery = {
     ...authorizedQuery,
-    period: periodForMode("THIS_MONTH", new Date(referenceDateIso)),
+    period: periodForMode("THIS_MONTH", referenceDate),
   };
-  return repositoryFor(referenceDateIso).getEnvironmentAnalytics(repositoryQuery);
+  return repository.getEnvironmentAnalytics(repositoryQuery);
 }
 
 async function queryCertificatesCore(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<CertificatesPageQueryResult> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseEhsStoreScope);
   const authorizedContext = await authorizeBusinessScope(context);
-  const certificates = await repositoryFor(referenceDateIso).getCertificates({ context: authorizedContext });
+  const certificates = await runtimeFor(referenceDateIso).repository.getCertificates({ context: authorizedContext });
   return { ...certificates, overview: buildCertificateOverview(certificates) };
 }
 

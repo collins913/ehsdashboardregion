@@ -53,10 +53,10 @@ paths:
                       ASTMInjuryIllness: 'No'
       responses:
         '202':
-          description: Batch staged; response is ImportBatch
+          description: Batch staged; response contains lifecycle metadata and diagnostics, never staged source records
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ImportBatch' }
+              schema: { $ref: '#/components/schemas/ImportBatchStatus' }
               examples:
                 received:
                   value:
@@ -72,15 +72,6 @@ paths:
                       businessPeriod: { startInclusive: '2026-10-01T00:00:00+08:00', endExclusive: '2026-11-01T00:00:00+08:00' }
                     expectedRecordCount: 1
                     idempotencyKey: events-2026-10-09-001
-                    records:
-                      - eventId: EVT-001
-                        storeReference: { trtid: 'S-001' }
-                        eventType: Agency
-                        submittedBy: User
-                        eventDate: '2026-10-08T15:00:00+08:00'
-                        EventDetail: { Description: Example }
-                        Status: Open
-                        ASTMInjuryIllness: 'No'
                     state: RECEIVED
                     receivedAt: '2026-10-09T10:00:01+08:00'
                     publishedAt: null
@@ -115,7 +106,7 @@ paths:
         '200':
           description: Batch status
           content:
-            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatchStatus' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -134,7 +125,7 @@ paths:
         '200':
           description: Batch state becomes VALIDATED or REJECTED
           content:
-            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatchStatus' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -155,7 +146,7 @@ paths:
         '200':
           description: Batch published
           content:
-            application/json: { schema: { $ref: '#/components/schemas/ImportBatch' } }
+            application/json: { schema: { $ref: '#/components/schemas/ImportBatchStatus' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -337,14 +328,21 @@ components:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
-          required: [domain, records]
+          required: [domain, effectiveTime, records]
           properties:
             domain: { const: store-master }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - properties:
+                    stores:
+                      type: array
+                      items: { type: object, required: [trtid] }
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/StoreMasterRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     TrainingBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -352,11 +350,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: training }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/TrainingRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     DrillBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -364,11 +366,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: drill }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/DrillRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     InspectionBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -376,11 +382,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: inspection }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/InspectionRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     ActionClosureRateBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -388,11 +398,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: action-closure-rate }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/ActionClosureRateRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     EventsBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -400,11 +414,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: events }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/EventRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     ActionsBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -412,11 +430,15 @@ components:
           required: [domain, records]
           properties:
             domain: { const: actions }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/ActionRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     TakeChargeBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -424,12 +446,18 @@ components:
           required: [domain, records]
           properties:
             domain: { const: take-charge }
+            coverage:
+              allOf:
+                - { $ref: '#/components/schemas/Coverage' }
+                - required: [businessPeriod]
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/TakeChargeRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     TakeChargeAnnualAggregatesBatchInput:
+      description: 'The generic batch transport does not accept this domain. Company integration maps database aggregates directly through the Production Repository adapter.'
+      x-implementation-status: DIRECT-REPOSITORY-INTEGRATION-REQUIRED
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
@@ -440,49 +468,50 @@ components:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/UnresolvedAnnualAggregateRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     CertificatesBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
-          required: [domain, records]
+          required: [domain, effectiveTime, records]
           properties:
             domain: { const: certificates }
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/CertificateRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     EnvironmentBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
-          required: [domain, records]
+          required: [domain, effectiveTime, records]
           properties:
             domain: { const: environment }
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/EnvironmentRecord' }
-          unevaluatedProperties: false
+      unevaluatedProperties: false
     RequiredSetsBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
-          required: [domain, records]
+          required: [domain, effectiveTime, records]
           properties:
             domain: { const: required-sets }
             records:
               type: array
               maxItems: 10000
               items: { $ref: '#/components/schemas/RequiredSetRecord' }
-          unevaluatedProperties: false
-    ImportBatch:
+      unevaluatedProperties: false
+    ImportBatchStatus:
       allOf:
-        - { $ref: '#/components/schemas/ImportBatchInput' }
+        - { $ref: '#/components/schemas/ImportBatchBase' }
         - type: object
-          required: [state, receivedAt, publishedAt, diagnostics, createdByPrincipalId, revision, coverageAssessment, audit]
+          required: [domain, state, receivedAt, publishedAt, diagnostics, createdByPrincipalId, revision, coverageAssessment, audit]
           properties:
+            domain: { $ref: '#/components/schemas/Domain' }
             state: { type: string, enum: [RECEIVED, VALIDATED, REJECTED, PUBLISHED] }
             receivedAt: { $ref: '#/components/schemas/DateTime' }
             publishedAt: { oneOf: [{ $ref: '#/components/schemas/DateTime' }, { type: 'null' }] }
@@ -491,6 +520,7 @@ components:
             revision: { type: integer, minimum: 1 }
             coverageAssessment: { type: string, enum: [DECLARED_COMPLETE, VERIFIED_COMPLETE, INCOMPLETE, UNKNOWN] }
             audit: { type: array, items: { $ref: '#/components/schemas/ImportAuditEvent' } }
+      unevaluatedProperties: false
     ImportAuditEvent:
       type: object
       additionalProperties: false
@@ -544,12 +574,12 @@ components:
       properties: { storeReference: { $ref: '#/components/schemas/StoreReference' }, tchId: { type: string }, submittedBy: { type: string }, submittedAt: { $ref: '#/components/schemas/DateTime' }, summary: { type: string }, Status: { type: string }, extraFields: { type: object, additionalProperties: { type: [string, number, boolean, 'null'] } }, sourceReference: { $ref: '#/components/schemas/SourceReference' } }
     TakeChargeAnnualAggregateRecord:
       type: object
-      description: 'BLOCKED/TBD: the authoritative scope and upstream physical aggregation contract are not frozen.'
+      description: 'Logical output names only. Company physical fields are mapped by the Production Repository adapter; this batch transport rejects the domain.'
       additionalProperties: false
-      properties: { scope: { type: object }, currentYear: { type: integer }, asOfMonth: { type: string }, averageSubmissionsYtd: { type: object }, participationRateYtd: { type: object } }
+      properties: { scope: { type: object }, currentYear: { type: integer }, asOfMonth: { type: string }, submissionsPerCapitaYtd: { type: object }, participationRateYtd: { type: object } }
     UnresolvedAnnualAggregateRecord:
       allOf: [{ $ref: '#/components/schemas/TakeChargeAnnualAggregateRecord' }]
-      x-implementation-status: BLOCKED-TBD
+      x-implementation-status: DIRECT-REPOSITORY-INTEGRATION-REQUIRED
     CertificateRecord:
       type: object
       additionalProperties: false

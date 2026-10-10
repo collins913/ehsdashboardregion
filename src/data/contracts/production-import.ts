@@ -80,6 +80,8 @@ export interface ProductionImportBatch extends ProductionImportBatchInput {
   diagnostics: readonly ImportDiagnostic[];
 }
 
+export type ProductionImportBatchStatus = Omit<ProductionImportBatch, "records">;
+
 export interface MachinePrincipal {
   principalId: string;
   allowedDomains: readonly ProductionDomain[];

@@ -26,9 +26,9 @@ describe("production import batch schema", () => {
     expect(parseProductionImportBatch({ ...valid, businessPeriod: { startInclusive: "2026-01-01", endExclusive: "2026-02-01" } }).diagnostics.map(({ code }) => code)).toContain("INVALID_PERIOD");
   });
 
-  it("blocks unresolved Take Charge annual aggregate contract", () => {
+  it("routes Take Charge annual aggregates to the company Production Repository adapter", () => {
     const batch = { ...valid, domain: "take-charge-annual-aggregates", records: [{}] };
-    expect(parseProductionImportBatch(batch).diagnostics.map(({ code }) => code)).toContain("CONTRACT_TBD");
+    expect(parseProductionImportBatch(batch).diagnostics.map(({ code }) => code)).toContain("DIRECT_REPOSITORY_INTEGRATION_REQUIRED");
   });
 
   it("rejects duplicate event identities and impossible calendar dates", () => {
@@ -102,5 +102,26 @@ describe("production import batch schema", () => {
     expect(parseProductionImportBatch({ ...valid, createdByPrincipalId: "spoofed" }).diagnostics.map(({ code }) => code)).toContain("UNEXPECTED_FIELD");
     expect(parseProductionImportBatch({ ...valid, coverage: { ...valid.coverage, proof: { kind: "AUTHORITATIVE_EMPTY", reference: "source", controlRecordCount: 1 } } }).diagnostics.map(({ code }) => code)).toContain("INVALID_COVERAGE");
     expect(parseProductionImportBatch({ ...valid, coverage: { ...valid.coverage, proof: { kind: "SOURCE_CONTROL_TOTAL", reference: "source" } } }).diagnostics.map(({ code }) => code)).toContain("INVALID_COVERAGE");
+  });
+
+  it("rejects non-string Store identity fields even when another identity is valid", () => {
+    const result = parseProductionImportBatch({
+      ...valid,
+      records: [{ ...valid.records[0], storeReference: { trtid: 123, storeNameEn: "Store One" } }],
+    });
+    expect(result.diagnostics.map(({ code }) => code)).toContain("INVALID_STORE_REFERENCE");
+  });
+
+  it("rejects non-primitive Take Charge extra fields", () => {
+    const result = parseProductionImportBatch({
+      ...valid,
+      domain: "take-charge",
+      records: [{
+        storeReference: { trtid: "S-1" }, tchId: "T-1", submittedBy: "Person",
+        submittedAt: "2026-10-01T09:00:00+08:00", summary: "Summary", Status: "Open",
+        extraFields: { unsafe: { nested: true } },
+      }],
+    });
+    expect(result.diagnostics.map(({ code }) => code)).toContain("INVALID_OBJECT");
   });
 });

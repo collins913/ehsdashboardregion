@@ -87,6 +87,23 @@ describe("ProductionImportService", () => {
     expect(result.diagnostics.map(({ code }) => code)).toContain("COVERAGE_MISMATCH");
   });
 
+  it("rejects a complete Store Master batch whose records do not match its declared coverage", async () => {
+    const { service } = setup();
+    const storePrincipal: MachinePrincipal = { ...principal, allowedDomains: ["store-master"] };
+    const batch = await service.submit(storePrincipal, {
+      ...input,
+      domain: "store-master",
+      batchId: "store-master-coverage-mismatch",
+      idempotencyKey: "store-master-coverage-mismatch",
+      effectiveTime: { startInclusive: "2026-10-01T00:00:00+08:00", endExclusive: "2026-11-01T00:00:00+08:00" },
+      coverage: { ...input.coverage, stores: [{ trtid: "S-2" }] },
+      records: [{ region: "R1", area: "A1", storeNameCn: "门店", storeNameEn: "Store One", trtid: "S-1" }],
+    });
+    const result = await service.validate(storePrincipal, batch.batchId);
+    expect(result.state).toBe("REJECTED");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("COVERAGE_MISMATCH");
+  });
+
   it("keeps declared coverage distinct from independently verified coverage", async () => {
     const { service } = setup(async () => false);
     const batch = await service.submit(principal, { ...input, batchId: "unverified", idempotencyKey: "unverified" });
@@ -200,6 +217,14 @@ describe("ProductionImportService", () => {
       { kind: "submit" },
     );
     expect(unauthenticated.status).toBe(401);
+    const missingMachineIdentity = await (await import("./production-import-service")).handleImportApiRequest(
+      new Request("https://dashboard.invalid/api/v1/import/batches/batch-1", { method: "GET" }),
+      () => service,
+      async () => { throw new Error("MACHINE_IDENTITY_PROVIDER_NOT_CONFIGURED"); },
+      { kind: "get", batchId: "batch-1" },
+    );
+    expect(missingMachineIdentity.status).toBe(503);
+    expect(await missingMachineIdentity.json()).toMatchObject({ error: { code: "PRODUCTION_IMPORT_NOT_CONFIGURED" } });
     const unauthorizedOperation = await (await import("./production-import-service")).handleImportApiRequest(
       new Request("https://dashboard.invalid/api/v1/import/batches/batch-1", { method: "GET" }),
       () => { throw new Error("runtime must remain uninitialized"); },
@@ -207,6 +232,20 @@ describe("ProductionImportService", () => {
       { kind: "get", batchId: "batch-1" },
     );
     expect(unauthorizedOperation.status).toBe(403);
+  });
+
+  it("never returns staged source records from the HTTP API", async () => {
+    const { service } = setup();
+    const response = await (await import("./production-import-service")).handleImportApiRequest(
+      new Request("https://dashboard.invalid/api/v1/import/batches", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }),
+      () => service,
+      async () => principal,
+      { kind: "submit" },
+    );
+    const body = await response.json() as Record<string, unknown>;
+    expect(response.status).toBe(202);
+    expect(body).not.toHaveProperty("records");
+    expect(body).toMatchObject({ batchId: input.batchId, expectedRecordCount: 1 });
   });
 
   it("does not initialize protected import runtime for unauthenticated or out-of-scope submitters", async () => {

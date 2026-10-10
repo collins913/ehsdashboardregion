@@ -3,7 +3,7 @@ import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
 import type { AccessScope, AccountSummary, BaseGrant, EffectiveAccess, ManualGrant } from "@/data/contracts/access";
 
 export function canonicalEmail(value: string): string { return value.trim().toLowerCase(); }
-export function areaScopeId(region: string, area: string): string { return `${region}::${area}`; }
+export function areaScopeId(region: string, area: string): string { return JSON.stringify([region, area]); }
 const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function isValidEmail(value: string): boolean { return validEmail.test(canonicalEmail(value)); }
 export function deriveBaseGrants(stores: readonly StoreMasterData[]): BaseGrant[] {

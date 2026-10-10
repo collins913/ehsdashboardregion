@@ -49,9 +49,10 @@ export function createStoreReferenceResolver(
       typeof rawStoreNameEn === "string" && rawStoreNameEn.trim() !== ""
         ? rawStoreNameEn
         : undefined;
+    const rawTrtid = "trtid" in reference ? reference.trtid : undefined;
     const trtid =
-      "trtid" in reference && reference.trtid.trim() !== ""
-        ? reference.trtid
+      typeof rawTrtid === "string" && rawTrtid.trim() !== ""
+        ? rawTrtid
         : undefined;
 
     if (trtid !== undefined) {

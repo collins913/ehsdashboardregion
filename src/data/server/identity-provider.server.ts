@@ -11,7 +11,7 @@ export function resolveIdentityMode(env: NodeJS.ProcessEnv = process.env): Ident
   if (mode === "mock") { assertMockIdentityAllowed(env); return "mock"; }
   if (mode === "enterprise") return "enterprise";
   if (mode) throw new Error("INVALID_EHS_IDENTITY_MODE");
-  return env.NODE_ENV === "production" ? "enterprise" : "mock";
+  return env.NODE_ENV === "production" || env.EHS_DATA_SOURCE?.trim().toLowerCase() === "production" ? "enterprise" : "mock";
 }
 
 /** Enterprise SSO adapter is supplied by the deployment integration. Never trusts request JSON. */
