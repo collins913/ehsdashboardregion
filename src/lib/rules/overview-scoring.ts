@@ -12,7 +12,7 @@ export const OVERVIEW_V1_METRIC_CATALOG = [
   { metricId: "INSPECTION", dimensionId: "PERFORMANCE" },
   { metricId: "ASTM_INCIDENT", dimensionId: "PERFORMANCE" },
   { metricId: "TAKE_CHARGE_CLOSE_RATE", dimensionId: "TAKE_CHARGE" },
-  { metricId: "AVERAGE_SUBMISSIONS_YTD", dimensionId: "TAKE_CHARGE" },
+  { metricId: "SUBMISSIONS_PER_CAPITA_YTD", dimensionId: "TAKE_CHARGE" },
   { metricId: "PARTICIPATION_RATE_YTD", dimensionId: "TAKE_CHARGE" },
   { metricId: "CERTIFICATE_SAFETY_HEALTH", dimensionId: "CERTIFICATES" },
   { metricId: "CERTIFICATE_FIRST_AID", dimensionId: "CERTIFICATES" },

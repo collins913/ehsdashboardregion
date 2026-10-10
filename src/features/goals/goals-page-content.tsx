@@ -71,9 +71,9 @@ export function SummaryCards({
         }
       />
       <AnalyticsMetricCard
-        title="今年平均提交数"
+        title="今年人均提交数"
         subtitle={`${summary.annual.currentYear} 年`}
-        value={annualUnavailable ? null : summary.annual.averageSubmissionsYtd.value}
+        value={annualUnavailable ? null : summary.annual.submissionsPerCapitaYtd.value}
         emptyLabel="无"
         valueFallback={annualUnavailable ? <DataAvailabilityDisplay availability={summary.annual.availability} /> : undefined}
         formatter={(value) => value.toFixed(1)}
@@ -114,7 +114,7 @@ export function SummaryCardsPlaceholder({
   const cards = [
     { title: "提交总数", subtitle: selectedPeriod },
     { title: "关闭率", subtitle: selectedPeriod },
-    { title: "今年平均提交数", subtitle: `${currentYear} 年` },
+    { title: "今年人均提交数", subtitle: `${currentYear} 年` },
     { title: "今年参与率", subtitle: `${currentYear} 年` },
   ] as const;
 

@@ -16,7 +16,7 @@ describe("Overview Demo detail score decomposition", () => {
 
   it("does not invent item contributions when completeness changes", () => {
     const previous = [{ storeId: "a", outcomes: createPrototypeOverviewOutcomes([]), operationalFacts: facts }]
-    const current = [{ storeId: "a", outcomes: createPrototypeOverviewOutcomes(["actions"], ["averageSubmissionsYtd"]), operationalFacts: facts }]
+    const current = [{ storeId: "a", outcomes: createPrototypeOverviewOutcomes(["actions"], ["submissionsPerCapitaYtd"]), operationalFacts: facts }]
     expect(buildPrototypeOverviewScoreChanges(current, previous)).toEqual([])
   })
 })

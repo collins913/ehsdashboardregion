@@ -77,7 +77,7 @@ export interface TakeChargePeriodMetrics {
 export interface TakeChargeAnnualMetrics {
   availability: DataAvailability;
   currentYear: number;
-  averageSubmissionsYtd: TakeChargeMetricValue;
+  submissionsPerCapitaYtd: TakeChargeMetricValue;
   participationRateYtd: TakeChargeMetricValue;
 }
 
@@ -99,6 +99,6 @@ export interface TakeChargeMonthlyAggregate {
 
 /** Normalized upstream values; physical numerator/denominator fields remain adapter-owned. */
 export interface TakeChargeAnnualSource {
-  averageSubmissionsYtd: { value: number | null; reason?: DomainReason };
+  submissionsPerCapitaYtd: { value: number | null; reason?: DomainReason };
   participationRateYtd: { value: number | null; reason?: DomainReason };
 }

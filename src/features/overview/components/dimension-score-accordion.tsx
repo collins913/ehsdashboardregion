@@ -11,7 +11,7 @@ import { formatOverviewScore, ScoreChange } from "./score-change"
 const dimensionLabels = { PERFORMANCE: "KPI", TAKE_CHARGE: "目标", CERTIFICATES: "证件", ENVIRONMENT: "环境" }
 const itemLabels: Record<OverviewMetricId, string> = {
   TRAINING: "培训", DRILL: "演练", ACTION_CLOSURE_RATE: "行动项关闭率", INSPECTION: "检查", ASTM_INCIDENT: "ASTM 事件",
-  TAKE_CHARGE_CLOSE_RATE: "关闭率", AVERAGE_SUBMISSIONS_YTD: "今年平均提交数", PARTICIPATION_RATE_YTD: "今年参与率",
+  TAKE_CHARGE_CLOSE_RATE: "关闭率", SUBMISSIONS_PER_CAPITA_YTD: "今年人均提交数", PARTICIPATION_RATE_YTD: "今年参与率",
   CERTIFICATE_SAFETY_HEALTH: "安全健康", CERTIFICATE_FIRST_AID: "急救员", CERTIFICATE_SPECIAL_WORK: "特种作业", CERTIFICATE_SAFE_DRIVING: "安全驾驶",
 }
 

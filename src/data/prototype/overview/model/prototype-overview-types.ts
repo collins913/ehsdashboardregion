@@ -14,7 +14,7 @@ export type PrototypeOverviewScoredItemId =
   | "inspections"
   | "events"
   | "closeRate"
-  | "averageSubmissionsYtd"
+  | "submissionsPerCapitaYtd"
   | "participationRateYtd"
   | "certificateSafetyHealth"
   | "certificateFirstAid"

@@ -10,7 +10,7 @@ import { buildOverviewScoreContributions, overviewObservationKey, type OverviewD
 export interface StoreGoalDomainResult {
   storeId: StoreId;
   closeRate: TakeChargeMetricValue;
-  averageSubmissionsYtd: TakeChargeMetricValue;
+  submissionsPerCapitaYtd: TakeChargeMetricValue;
   participationRateYtd: TakeChargeMetricValue;
 }
 export interface OverviewDomainReaders {
@@ -52,7 +52,7 @@ export async function produceOverviewScoreData(
       put(row.store.storeId, "ASTM_INCIDENT", { kind: "ASTM_RESULT", result: row.astmEvents.result, unavailableReason: row.astmEvents.reason });
     }
     for (const row of goals) for (const [metricId, value] of [["TAKE_CHARGE_CLOSE_RATE", row.closeRate],
-      ["AVERAGE_SUBMISSIONS_YTD", row.averageSubmissionsYtd], ["PARTICIPATION_RATE_YTD", row.participationRateYtd]] as const) {
+      ["SUBMISSIONS_PER_CAPITA_YTD", row.submissionsPerCapitaYtd], ["PARTICIPATION_RATE_YTD", row.participationRateYtd]] as const) {
       put(row.storeId, metricId, { kind: "DOMAIN_ACHIEVEMENT", result: value.result, reason: value.reason });
     }
     for (const row of certificates) for (const category of row.categories) {

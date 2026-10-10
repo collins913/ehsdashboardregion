@@ -894,7 +894,7 @@ export function createMockEhsRepository(
       const source = takeChargePeriodSource([storeId], context, covered);
       const annual = annualGoalResult([storeId], referenceMonth);
       return { storeId, closeRate: evaluateTakeChargePeriod(source.totalCount, source.closedCount, source.availability, source.reason),
-        averageSubmissionsYtd: annual.averageSubmissionsYtd, participationRateYtd: annual.participationRateYtd };
+        submissionsPerCapitaYtd: annual.submissionsPerCapitaYtd, participationRateYtd: annual.participationRateYtd };
     });
   }
 

@@ -37,7 +37,7 @@ function summary(closeRate: number | null): TakeChargeGoalsSummary {
     annual: {
       availability: "AVAILABLE",
       currentYear: 2026,
-      averageSubmissionsYtd: { value: 5.5, result: "ACHIEVED", reason: "ACHIEVED" },
+      submissionsPerCapitaYtd: { value: 5.5, result: "ACHIEVED", reason: "ACHIEVED" },
       participationRateYtd: { value: 58.7, result: "ACHIEVED", reason: "ACHIEVED" },
     },
   };

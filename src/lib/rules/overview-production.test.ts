@@ -18,7 +18,7 @@ describe("repository-independent Overview production", () => {
         actions: { ...available, value: 1 }, // A consumer must not reinterpret this authoritative result.
         training: { availability: "INCOMPLETE", result: "UNDETERMINED", reason: "SOURCE_INVALID" },
       }]),
-      goals: vi.fn(async () => [{ storeId: store.storeId, closeRate: goal, averageSubmissionsYtd: goal, participationRateYtd: goal }]),
+      goals: vi.fn(async () => [{ storeId: store.storeId, closeRate: goal, submissionsPerCapitaYtd: goal, participationRateYtd: goal }]),
       certificates: vi.fn(async (): Promise<readonly CertificatesStoreRow[]> => [{ storeId: store.storeId, storeDisplayName: store.displayName, categories:
         CERTIFICATE_CATEGORIES.map((category) => ({ certificateCategory: category, status: "NORMAL", reason: "ACHIEVED", records: [] })) }]),
     };

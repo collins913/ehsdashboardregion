@@ -37,7 +37,7 @@ export function createMockTakeChargeAnnualAggregateReader(
       return { value: records.reduce((sum, row) => sum + row[numerator], 0) /
         records.reduce((sum, row) => sum + row[denominator], 0) * scale };
     };
-    return { averageSubmissionsYtd: metric("submissionsNumerator", "submissionsDenominator", 1),
+    return { submissionsPerCapitaYtd: metric("submissionsNumerator", "submissionsDenominator", 1),
       participationRateYtd: metric("participationNumerator", "participationDenominator", 100) };
   };
 }

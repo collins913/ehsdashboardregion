@@ -9,10 +9,10 @@ function metric(source: { value: number | null; reason?: DomainReason }, evaluat
     reason: source.reason ?? (result === "UNDETERMINED" ? source.value === null ? "SOURCE_MISSING" : "SOURCE_INVALID" : result === "ACHIEVED" ? "ACHIEVED" : "RULE_NOT_MET") };
 }
 export function evaluateTakeChargeAnnual(source: TakeChargeAnnualSource) {
-  const averageSubmissionsYtd = metric(source.averageSubmissionsYtd, evaluateTakeChargeSubmissionsPerCapita);
+  const submissionsPerCapitaYtd = metric(source.submissionsPerCapitaYtd, evaluateTakeChargeSubmissionsPerCapita);
   const participationRateYtd = metric(source.participationRateYtd, evaluateTakeChargeParticipateRate);
-  return { availability: averageSubmissionsYtd.result === "UNDETERMINED" || participationRateYtd.result === "UNDETERMINED" ? "INCOMPLETE" as const : "AVAILABLE" as const,
-    averageSubmissionsYtd, participationRateYtd };
+  return { availability: submissionsPerCapitaYtd.result === "UNDETERMINED" || participationRateYtd.result === "UNDETERMINED" ? "INCOMPLETE" as const : "AVAILABLE" as const,
+    submissionsPerCapitaYtd, participationRateYtd };
 }
 export function evaluateTakeChargePeriod(totalCount: number, closedCount: number, availability: DataAvailability, sourceReason?: DomainReason): TakeChargeMetricValue {
   if (sourceReason || availability === "INCOMPLETE" || availability === "UNAVAILABLE") {

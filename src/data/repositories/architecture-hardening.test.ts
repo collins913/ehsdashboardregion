@@ -92,7 +92,7 @@ const mutations: Mutation[] = [
     takeChargeRecords: data.takeChargeRecords.map((row) => isB(row.storeReference) && row.submittedAt.startsWith(month) ? { ...row, Status: " " } : row) }) },
   { name: "Take Charge invalid date", metric: "TAKE_CHARGE_CLOSE_RATE", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     takeChargeRecords: data.takeChargeRecords.map((row) => isB(row.storeReference) && row.submittedAt.startsWith(month) ? { ...row, submittedAt: "invalid" as typeof row.submittedAt } : row) }) },
-  { name: "YTD submissions invalid", metric: "AVERAGE_SUBMISSIONS_YTD", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
+  { name: "YTD submissions per capita invalid", metric: "SUBMISSIONS_PER_CAPITA_YTD", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     takeChargeAnnualAggregateFixtures: data.takeChargeAnnualAggregateFixtures.map((row) => row.storeId === storeB.trtid && row.referenceMonth === month ? { ...row, submissionsNumerator: Number.NaN } : row) }) },
   { name: "YTD participation invalid", metric: "PARTICIPATION_RATE_YTD", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     takeChargeAnnualAggregateFixtures: data.takeChargeAnnualAggregateFixtures.map((row) => row.storeId === storeB.trtid && row.referenceMonth === month ? { ...row, participationDenominator: 0 } : row) }) },
@@ -154,7 +154,7 @@ describe("Architecture Hardening V1", () => {
     const repository = createMockEhsRepository(referenceDate, { dataset });
     const january = await repository.getTakeChargeGoals({ context });
     const current = dataset.takeChargeAnnualAggregateFixtures.filter((row) => row.referenceMonth === "2026-09");
-    expect(january.annual.averageSubmissionsYtd.value).toBe(current.reduce((sum, row) => sum + row.submissionsNumerator, 0) / current.reduce((sum, row) => sum + row.submissionsDenominator, 0));
+    expect(january.annual.submissionsPerCapitaYtd.value).toBe(current.reduce((sum, row) => sum + row.submissionsNumerator, 0) / current.reduce((sum, row) => sum + row.submissionsDenominator, 0));
     expect(january.annual.participationRateYtd.value).toBe(current.reduce((sum, row) => sum + row.participationNumerator, 0) / current.reduce((sum, row) => sum + row.participationDenominator, 0) * 100);
     for (const period of [periodFromMonthRange("2026-01", "2026-03")!, periodFromMonthRange("2026-09", "2026-09")!, periodFromMonthRange("2027-01", "2027-01")!]) {
       expect((await repository.getTakeChargeGoals({ context: { ...all, period } })).annual).toEqual(january.annual);
@@ -167,9 +167,9 @@ describe("Architecture Hardening V1", () => {
     const repository = createMockEhsRepository(referenceDate, { dataset: { ...data, takeChargeAnnualAggregateFixtures: fixtures } });
     const goals = await repository.getTakeChargeGoals({ context });
     const result = await repository.getOverviewScoreData({ scope: all });
-    expect(goals.annual.averageSubmissionsYtd.result).toBe("ACHIEVED");
-    expect(result.contributions.find((row) => row.storeId === storeA.trtid && row.month === month && row.metricId === "AVERAGE_SUBMISSIONS_YTD")?.reason).toBe("RULE_NOT_MET");
-    expect(result.contributions.find((row) => row.storeId === storeA.trtid && row.month === "2026-09" && row.metricId === "AVERAGE_SUBMISSIONS_YTD")?.reason).toBe("ACHIEVED");
+    expect(goals.annual.submissionsPerCapitaYtd.result).toBe("ACHIEVED");
+    expect(result.contributions.find((row) => row.storeId === storeA.trtid && row.month === month && row.metricId === "SUBMISSIONS_PER_CAPITA_YTD")?.reason).toBe("RULE_NOT_MET");
+    expect(result.contributions.find((row) => row.storeId === storeA.trtid && row.month === "2026-09" && row.metricId === "SUBMISSIONS_PER_CAPITA_YTD")?.reason).toBe("ACHIEVED");
   });
 
   it("does not return Event rows for an invalid Period contract", async () => {

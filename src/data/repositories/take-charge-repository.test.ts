@@ -59,7 +59,7 @@ describe("Take Charge Goals repository", () => {
       closeRate: { value: (periodRecords.filter(({ Status }) => isTakeChargeClosedForRate(Status)).length / periodRecords.length) * 100, result: "NOT_ACHIEVED" },
     });
     expect(summary.annual.currentYear).toBe(2026);
-    expect(summary.annual.averageSubmissionsYtd).toEqual({
+    expect(summary.annual.submissionsPerCapitaYtd).toEqual({
       value: submissionsNumerator / submissionsDenominator,
       result: submissionsNumerator / submissionsDenominator >= 4 ? "ACHIEVED" : "NOT_ACHIEVED",
       reason: submissionsNumerator / submissionsDenominator >= 4 ? "ACHIEVED" : "RULE_NOT_MET",
@@ -160,9 +160,9 @@ describe("Take Charge Goals repository", () => {
     } satisfies EhsFilterContext;
     const annual = (await repository.getTakeChargeGoals({ context: filters })).annual;
 
-    expect(annual.averageSubmissionsYtd.value).toBeCloseTo(98 / 12);
+    expect(annual.submissionsPerCapitaYtd.value).toBeCloseTo(98 / 12);
     expect(annual.participationRateYtd.value).toBeCloseTo((10 / 12) * 100);
-    expect(annual.averageSubmissionsYtd.value).not.toBe(6.5);
+    expect(annual.submissionsPerCapitaYtd.value).not.toBe(6.5);
     expect(annual.participationRateYtd.value).not.toBe(70);
   });
 
