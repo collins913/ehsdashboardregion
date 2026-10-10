@@ -10,6 +10,7 @@
 
 - 全局主题支持浅色、深色和跟随系统，内部值保持为 `light`、`dark`、`system`。
 - 主题通过根级 ThemeProvider 写入 `html` class；组件只消费语义 token。
+- 组件外观以项目配置的 shadcn/ui `radix-nova / neutral / lucide` 为准；尺寸、间距、字重、边界、阴影及交互状态使用官方实现和已有 size / variant。页面只组合业务布局，不重复覆盖 primitive 外观。
 - 使用 shadcn/ui CSS 变量主题，不在页面写业务语义颜色。
 - 可用通用语义色：`background`、`foreground`、`card`、`popover`、`primary`、`secondary`、`muted`、`accent`、`destructive`、`border`、`input`、`ring`。
 - `destructive` 只表达破坏性操作，不代表业务状态。
@@ -24,9 +25,9 @@
 ## Typography
 
 - 页面标题：`text-2xl font-semibold`。
-- 区块标题：`text-lg font-semibold`。
+- Card 区块标题复用官方 `CardTitle`；独立标题按语义层级排版。
 - 正文：`text-base`；界面与辅助文字：`text-sm`；元数据：`text-xs`。
-- 标题使用 `tracking-tight`，正文使用默认字距。
+- 页面标题使用 `tracking-tight`；组件内部文字使用对应 primitive 的默认排版。
 
 ## Spacing and layout
 
@@ -39,8 +40,7 @@
 ## Radius and shadow
 
 - 基础圆角为 10px，并通过 shadcn/ui 半径比例派生。
-- 控件使用 `rounded-md` 或 `rounded-lg`。
-- 普通控件最多使用 `shadow-xs`，浮层使用 `shadow-md`；页面内容不默认添加阴影。
+- 控件圆角、边界和阴影使用对应 Nova primitive 默认值；Card 默认 16px 间距，保留官方 ring 边界。
 
 ## Composition and accessibility
 
@@ -48,10 +48,10 @@
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
 - PageHeader 仅常驻显示页面标题；导航元数据中的非空说明通过标题的悬停或键盘焦点触发共享 shadcn HoverCard，不在标题旁增加提示图标；无说明时不渲染浮层。
 - 正式 Detail Sheet 复用 shared `DetailHeader`：标题表达所选业务列、指标、分类或实体，副标题在适用时显示 Store Master 中文门店名；只有调用方提供正式结果/状态时才显示对应区块。正文不重复 Header 已表达的信息或虚构结果。
-- Detail Accordion 表达业务分类 / 信息组。是否使用 `DetailRecordCard` 由正式 contract 的 multiplicity 决定，而非当前 mock 返回条数：singleton contract 直接展示 `DetailField` / layout；collection contract（0 / 1 / N）为每条 record 使用一个 `DetailRecordCard`。同一条 record 最多一个主要 DetailRecordCard shell；collection renderer 负责 record 边界，嵌入其中的业务内容不得再套 Card。不得为装饰添加 Card 或嵌套 Card。`DetailAccordion` 只负责 presentation；title、count、disabled、attention 与 default-open values 由调用方提供。空组可用 disabled semantics；count Badge 保持中性且不继承标题 hover 下划线。展开默认值属于 feature 选择，不是全局默认行为。
+- Detail Accordion 表达业务分类 / 信息组。是否使用 `DetailRecordCard` 由正式 contract 的 multiplicity 决定，而非当前 mock 返回条数：singleton contract 直接展示 `DetailField` / layout；collection contract（0 / 1 / N）为每条 record 使用一个 `DetailRecordCard`。同一条 record 最多一个主要 DetailRecordCard shell；collection renderer 负责 record 边界，嵌入其中的业务内容不得再套 Card。不得为装饰添加 Card 或嵌套 Card。`DetailAccordion` 只负责 presentation；title、count、disabled、attention 与 default-open values 由调用方提供。空组可用 disabled semantics；count Badge 保持中性且不继承标题 hover 下划线；attention 使用带“需要关注”标签的中性图标，不用 destructive 表达业务异常。展开默认值属于 feature 选择，不是全局默认行为。
 - `DetailField` 只负责 label、value、间距、排版与换行；不格式化日期、不推断状态、不计算业务值，也不把 null 转成零。业务组件按字段与 contract 提供已准备好的显示值。
-- 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。
-- 表单 mutation feedback：字段校验显示在字段附近；pending 显示在触发操作的控件内；成功与服务端 / mutation 失败使用 Sonner。
+- 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。受控 Sheet 关闭后由共享 primitive 恢复原触发器焦点，并尊重调用方显式焦点处理。
+- 表单使用原生 submit 语义，回车与点击共用提交入口，校验失败聚焦首个错误字段。mutation feedback：字段校验显示在字段附近；pending 显示在触发操作的控件内；成功与服务端 / mutation 失败使用 Sonner。
 
 ## Shared selection controls
 
@@ -66,20 +66,19 @@
 - 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 - 异步分页/排序 pending 在固定宽度的 footer 槽位显示轻量反馈，同时禁用重复操作；同步客户端分页不显示请求反馈。
-- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表，CountTrend 将最新预计算数据直接交给稳定的 Recharts LineChart，不自行路由月份域变化；图表数据更新动画 375ms，数字动画 325ms，均尊重 `prefers-reduced-motion`。
+- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表。事件及行动项 CountTrend 只将绘图区改为官方 Area Chart - Gradient 样式，保留卡片、标题、筛选及数据；最新预计算数据直接交给稳定的 AreaChart。图表数据更新动画 375ms，数字动画 325ms，均尊重 `prefers-reduced-motion`。
 - Dashboard Analytics 统一使用移动端（<640px）、中间屏（640–1151px）、桌面（>=1152px）的响应阶段。图表按组合与最小可读宽度选择列宽；必要时可在中间屏使用现有断点，不为统一列数牺牲可读性。
 - 同类 AnalyticsMetricCard 组使用一致的响应式列断点：小于 640px 为 1 列，640–1151px 为 2 列，1152px 起按该页面卡片数量使用完整列数。统一断点，不统一业务卡片数量；具体列数由 feature 布局决定。
 - 数字型 Dashboard summary cards 统一使用 shared `AnalyticsMetricCard` presentation contract。Feature 只负责 Grid composition 和业务内容，不覆盖卡片高度、间距、字体、Info trigger 或数值样式。
 - adaptive page sizing 复用共享测量行为，仅使用 5 / 7 / 10 档位；已有业务表格由 Feature 持有分页状态，通用 shared DataTable 自行持有分页状态，不另建 responsive table engine。
-- 业务表格正文行以 Actions 行为基准：shared DataTable presentation 统一单元格 22px 行盒，TableCellTrigger 与 placeholder 行遵循同一几何。
+- 表格单元格保留官方 Table 默认排版；TableCellTrigger 使用官方 ghost / sm Button，placeholder 按其 28px 控件高度预留行空间，自适应分页测量实际行高。排序状态同时写入表头 `aria-sort`。
 - Sticky 首列维持不透明背景，并通过 shared row state 跟随整行 hover 与 selected 背景。
 - 可下钻单元格复用 `TableCellTrigger`，详情复用已有 Sheet；同一领域的类别共用详情结构，不创建 Generic Detail framework。
 - Shared `DataTable` 的整行点击是 opt-in：保持原生 table / row 语义，为可点击行提供 Tab、Enter / Space 和 focus ring；按钮、链接、表单控件及菜单项内部交互不得冒泡触发行操作。
 
 ## Motion
 
-- Micro interaction 使用 120–150ms，用于 Tooltip、HoverCard、hover 和 focus；说明型 HoverCard 打开延迟约 100–150ms，Tooltip 默认即时出现。
-- Structural transition 使用 180–220ms，用于 Sheet、Dialog、Accordion、Sidebar 和 Tabs active indicator。Accordion 只做单一高度动画与 chevron rotation；Tabs 不给 panel 增加 entrance animation。
+- primitive 交互与结构动画使用对应 Nova 官方时长；说明型 HoverCard 的打开延迟保持现有交互约定，Tooltip 默认即时出现。保留 reduced-motion 支持，Tabs 不给 panel 增加 entrance animation。
 - Data update animation 使用 300–400ms，用于 `AnimatedNumber` 和 Recharts Analytics 图表。尊重 `prefers-reduced-motion`，不增加 artificial delay、stagger 或 bounce。
 - 表格排序/分页、Global Filter 更新与页面软导航不做整表或整页 entrance/exit；刷新时保留已解析内容，只有首次加载可使用 Skeleton。
 
@@ -95,7 +94,7 @@
 - 页面查询只依赖实际使用的筛选维度；Period-independent 页面不因 Period 切换或暂时无效而 loading / IDLE。
 - 全局筛选使用与 Dashboard Shell 连续的全宽紧凑 Filter Bar，不使用 Card、圆角外框或阴影。
 - 筛选触发器文本保持单行截断；只对确实可能溢出的门店名称复用 `OverflowTooltip`，且仅在 DOM 实际溢出时启用提示。
-- Region / Area / Period Select 与 Store Button 复用 GlobalFilters 内同一触发器 presentation；Store 继续使用 Popover + Command 搜索多选，不替换选择业务逻辑。
+- Region / Area / Period 使用官方 Select，Store 使用官方 outline Button；统一宽度与截断布局，不覆盖 hover 和 expanded 外观。Store 由 Popover + InputGroup 搜索 + Checkbox 多选组成，`aria-checked` 表达真实选择，保留 canonical selection 业务逻辑；Command 活动导航状态不得表示业务多选。
 - 门店搜索只过滤当前 Region / Area 范围内的 `displayName`；关键词属于选择器临时 UI 状态，不进入 Filter Context。
 
 ## UI Lab maintenance

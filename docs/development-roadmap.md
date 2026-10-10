@@ -84,6 +84,8 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Environment 500 Store coverage
 - 页面响应性和交互性能
 
+该 Profile 的月份、门店、事件类型和状态使用按字段独立的确定性采样；每个已支持月份都有记录，月度数量不再等量或受固定步长取余限制。事件类型覆盖每个支持月份。培训、检查、演练及源行动项关闭率结合月份和小区的模拟差异，使总览趋势和变化排名来自实际 Domain Results；保留少量缺失、无效和空值样本。固定 reference month 的生成结果可复现，记录总规模及 Standard 场景保持不变；不生成未来月份，不从明细重算源汇总值。
+
 Standard Mock 仍保持默认；单元测试不默认加载 Performance Mock。
 
 Mock Profile 的目标边界：

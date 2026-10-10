@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type KeyboardEvent, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, createSortedRowModel, rowPaginationFeature, rowSortingFeature, sortFn_basic, sortFn_text, tableFeatures as defineTableFeatures, useTable, type PaginationState, type SortingState } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import { dataTableClassName, dataTableCompactPrimaryClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot } from "@/components/shared/data-table-loading";
@@ -86,7 +86,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
   const placeholderColumns = columns.map((item, index) => ({ id: item.id, className: cn(columnClassName(item.sizeRole), stickyFirstColumn && index === 0 && stickyStoreCellClassName) }));
   return <>
     <div ref={tableFrameRef} className={cn(dataTableFrameClassName, "@container/data-table")} aria-busy={status === "LOADING"} inert={status === "LOADING" ? true : undefined}><Table className={cn(dataTableClassName, compactOnMobile && "max-sm:min-w-0")}>
-      <TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header, index) => <TableHead key={header.id} className={cn(columnClassName(columns.find((item) => item.id === header.column.id)?.sizeRole ?? "standard"), stickyFirstColumn && index === 0 && stickyStoreHeaderClassName)}>{header.isPlaceholder ? null : <table.FlexRender header={header} />}</TableHead>)}</TableRow>)}</TableHeader>
+      <TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header, index) => <TableHead key={header.id} aria-sort={getColumnAriaSort(header.column)} className={cn(columnClassName(columns.find((item) => item.id === header.column.id)?.sizeRole ?? "standard"), stickyFirstColumn && index === 0 && stickyStoreHeaderClassName)}>{header.isPlaceholder ? null : <table.FlexRender header={header} />}</TableHead>)}</TableRow>)}</TableHeader>
       <TableBody ref={tableBodyRef}>{!adaptivePagination ? <TableRow ref={rowMeasurementRef} aria-hidden="true" data-adaptive-table-measurement-row className="pointer-events-none invisible hover:bg-transparent"><TableCell colSpan={columns.length}><div className="h-8" /></TableCell></TableRow> : status === "ERROR" || (status === "LOADING" && renderedRows.length === 0) ? <DataTablePlaceholderRows columns={placeholderColumns} rowCount={pagination.pageSize} hidden={status === "ERROR"} /> : renderedRows.map((row, index) => {
         const rowInteractive = status === "READY" && onRowClick !== undefined;
         const onRowClickEvent = rowInteractive ? (event: MouseEvent<HTMLTableRowElement>) => {

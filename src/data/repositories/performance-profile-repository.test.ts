@@ -9,6 +9,7 @@ import {
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
 import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
 import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
+import { prepareOverviewResult } from "@/features/overview/prepare-overview-result";
 
 const referenceDate = new Date("2026-09-11T00:00:00+08:00");
 const dataset = getPerformanceMockDataset(referenceDate);
@@ -26,6 +27,28 @@ function context(
 }
 
 describe("performance profile Repository behavior", () => {
+  it("produces varied Overview history and both improving and declining areas from source records", async () => {
+    const now = new Date("2026-10-10T00:00:00+08:00");
+    const octoberRepository = createMockEhsRepository(now, { dataset: getPerformanceMockDataset(now) });
+    const scope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } } as const;
+    const data = await octoberRepository.getOverviewScoreData({ scope });
+    const result = prepareOverviewResult({
+      referenceMonth: "2026-10", stores: data.attentionStores, selectedStores: data.stores,
+      attentionStores: data.attentionStores, contributions: data.contributions,
+      context: scope, requestedScope: scope, availableMonths: data.months, sourceAvailability: data.availability,
+    });
+
+    expect(result.hero.monthlyScoreHistory).toHaveLength(10);
+    expect(new Set(result.hero.monthlyScoreHistory.map((point) => Math.round(point.score!))).size).toBeGreaterThanOrEqual(5);
+    expect(result.hero.improvingRanking.areas.some((area) => area.delta! > 0)).toBe(true);
+    expect(result.hero.decliningRanking.areas.some((area) => area.delta! < 0)).toBe(true);
+    // Required-set error examples remain reachable after the distribution change.
+    for (const metricId of ["TRAINING", "INSPECTION"] as const) {
+      const reasons = new Set(data.contributions.filter((item) => item.metricId === metricId).map((item) => item.reason));
+      expect(reasons).toEqual(new Set(["ACHIEVED", "RULE_NOT_MET", "SOURCE_MISSING", "SOURCE_INVALID", "SOURCE_INCOMPLETE"]));
+    }
+  });
+
   it("handles 500 Stores and keeps Period irrelevant to Store Master", async () => {
     const filters = await repository.getFilterStores();
     const year = await repository.getStores({ context: context("THIS_YEAR") });

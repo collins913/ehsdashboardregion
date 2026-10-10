@@ -33,14 +33,14 @@ export function ManagementSummary({ hero, comparisonLabel, onSelect, scoreDetail
   return (
     <div className="@container/overview-summary">
     <div className="grid min-w-0 gap-6 @min-[60rem]/overview-summary:grid-cols-3" data-testid="management-summary">
-      <Card className="min-w-0 shadow-none">
+      <Card className="min-w-0">
         <OverviewScoreRateSummary scoreRate={hero.overallScore} monthlyDelta={hero.monthlyDelta} history={hero.monthlyScoreHistory} fillHeight />
       </Card>
       {([
         ["小区变化排名", hero.improvingRanking.areas, hero.decliningRanking.areas],
         ["门店变化排名", hero.improvingRanking.stores, hero.decliningRanking.stores],
       ] as const).map(([title, improving, declining]) => (
-        <Card key={title} className="min-w-0 shadow-none">
+        <Card key={title} className="min-w-0">
           <OverviewSectionHeader title={title} description={`${comparisonLabel}，按得分率变化排序。变化 = 当前得分率 − 上一个自然月得分率，使用 % 标记，属于差值而非相对增长率。提升包含增加或持平，退步包含下降或持平；同一对象不重复出现，持平时优先进入提升。`} />
           <CardContent className="min-w-0">
             <ChangeRankingList improving={improving} declining={declining} onSelect={onSelect} />

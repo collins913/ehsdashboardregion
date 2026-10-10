@@ -29,7 +29,7 @@ import {
   stickyStoreHeaderClassName,
   type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { DetailHeader } from "@/components/shared/detail-header";
@@ -586,7 +586,7 @@ export function ActionsDataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
-                    key={header.id}
+                    key={header.id} aria-sort={getColumnAriaSort(header.column)}
                     className={cn(
                       actionColumnSizeClassName(header.column.id),
                       header.column.id === "store" &&

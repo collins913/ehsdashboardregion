@@ -53,7 +53,7 @@ export function createInitialGlobalFilterState(): GlobalFilterState {
     region: all(),
     area: all(),
     store: all(),
-    period: { mode: "THIS_QUARTER" },
+    period: { mode: "THIS_YEAR" },
   };
 }
 

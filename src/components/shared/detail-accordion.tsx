@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CircleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -53,7 +54,7 @@ export function DetailAccordionItem({
           </span>
           {summary}
           {attention ? (
-            <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-destructive" />
+            <CircleAlert role="img" aria-label="需要关注" className="size-4 shrink-0" />
           ) : null}
         </span>
       </AccordionTrigger>

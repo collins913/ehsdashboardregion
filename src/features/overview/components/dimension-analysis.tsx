@@ -7,7 +7,7 @@ export function DimensionAnalysis({ scores, storeCount, identity }: {
   storeCount: number
   identity: string
 }) {
-  return <Card className="h-full min-h-0 min-w-0 shadow-none">
+  return <Card className="h-full min-h-0 min-w-0">
     <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
       <DimensionScoreAccordion scores={scores} storeCount={storeCount} showAverage={storeCount > 1} identity={identity} />
     </CardContent>

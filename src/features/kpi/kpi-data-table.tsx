@@ -17,7 +17,7 @@ import {
   tableFeatures as defineTableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
@@ -709,7 +709,7 @@ export function KpiDataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
-                    key={header.id}
+                    key={header.id} aria-sort={getColumnAriaSort(header.column)}
                     className={cn(
                       kpiColumnSizeClassName(header.column.id),
                       header.column.id === "store" &&

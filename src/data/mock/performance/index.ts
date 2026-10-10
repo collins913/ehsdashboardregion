@@ -105,10 +105,54 @@ const organizationScopes = Array.from(
   ).values(),
 );
 
-function sourceDateTime(month: Month, index: number): IsoDateTime {
-  const day = 1 + (index % 27);
-  const hour = 8 + ((index * 5) % 11);
-  const minute = (index * 17) % 60;
+// Keyed sampling keeps unrelated fields independent and repeatable across reloads.
+function sample(key: string): number {
+  let value = 2166136261;
+  for (let index = 0; index < key.length; index += 1) {
+    value = Math.imul(value ^ key.charCodeAt(index), 16777619);
+  }
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967296;
+}
+
+function sampleIndex(key: string, length: number): number {
+  return Math.floor(sample(key) * length);
+}
+
+function monthPicker(domain: string, months: readonly [Month, ...Month[]]) {
+  const weights = months.map((month) => 0.25 + sample(`${domain}:volume:${month}`) * 2);
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return (index: number): Month => {
+    if (index < months.length) return months[index];
+    let remaining = sample(`${domain}:month:${index}`) * total;
+    for (let monthIndex = 0; monthIndex < months.length; monthIndex += 1) {
+      remaining -= weights[monthIndex];
+      if (remaining < 0) return months[monthIndex];
+    }
+    return months[months.length - 1];
+  };
+}
+
+// Synthetic source variation, not an EHS score or achievement rule.
+function monthlyActivity(store: StoreMasterData, month: Month): number {
+  return sample(`month:${month}`) * 0.35 + sample(`area:${store.region}:${store.area}:${month}`) * 0.65;
+}
+
+function requirementScenario(domain: string, store: StoreMasterData, month: Month): number {
+  const value = sample(`${domain}:${store.trtid}:${month}`);
+  // Retain missing, invalid and null examples without saturating the annual view.
+  if (value < 0.01) return 2;
+  if (value < 0.02) return 3;
+  if (value < 0.03) return 4;
+  return value < 0.03 + (0.3 + monthlyActivity(store, month) * 0.65) * 0.97 ? 0 : 1;
+}
+
+function sourceDateTime(month: Month, index: number, dayOffset = 0): IsoDateTime {
+  const key = `date:${month}:${index}`;
+  const day = 1 + sampleIndex(`${key}:day`, 18) + dayOffset;
+  const hour = 8 + sampleIndex(`${key}:hour`, 11);
+  const minute = sampleIndex(`${key}:minute`, 60);
 
   return `${month}-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }
@@ -144,10 +188,11 @@ function performanceActions(
   stores: readonly StoreMasterData[],
   months: readonly [Month, ...Month[]],
 ): readonly RawActionRecord[] {
+  const pickMonth = monthPicker("actions", months);
   return Array.from({ length: PERFORMANCE_ACTION_COUNT }, (_, index) => {
-    const store = stores[index % stores.length];
-    const month = months[(index * 7) % months.length];
-    const status = PERFORMANCE_ACTION_STATUSES[index % PERFORMANCE_ACTION_STATUSES.length];
+    const store = stores[index < stores.length ? index : sampleIndex(`actions:store:${index}`, stores.length)];
+    const month = pickMonth(index);
+    const status = PERFORMANCE_ACTION_STATUSES[sampleIndex(`actions:status:${index}`, PERFORMANCE_ACTION_STATUSES.length)];
     const submittedDate = sourceDateTime(month, index);
 
     return {
@@ -158,9 +203,9 @@ function performanceActions(
       submittedBy: mockPersonAt(index + 1),
       owner: mockPersonAt(index + 4),
       submittedDate,
-      dueDate: sourceDateTime(month, index + 9),
+      dueDate: sourceDateTime(month, index, 9),
       closedDate:
-        status === "Closed" ? sourceDateTime(month, index + 3) : null,
+        status === "Closed" ? sourceDateTime(month, index, 3) : null,
       Status: status,
       sourceReference: {
         sourceSystem: "Performance Mock Actions",
@@ -174,10 +219,18 @@ function performanceEvents(
   stores: readonly StoreMasterData[],
   months: readonly [Month, ...Month[]],
 ): readonly EventRecord[] {
+  const pickMonth = monthPicker("events", months);
+  const typeCoverageCount = months.length * PERFORMANCE_EVENT_TYPES.length;
   return Array.from({ length: PERFORMANCE_EVENT_COUNT }, (_, index) => {
-    const store = stores[(index * 11) % stores.length];
-    const eventType = PERFORMANCE_EVENT_TYPES[index % PERFORMANCE_EVENT_TYPES.length];
-    const month = months[(index * 5) % months.length];
+    const store = stores[index < stores.length ? index : sampleIndex(`events:store:${index}`, stores.length)];
+    const eventType = PERFORMANCE_EVENT_TYPES[
+      index < typeCoverageCount
+        ? index % PERFORMANCE_EVENT_TYPES.length
+        : sampleIndex(`events:type:${index}`, PERFORMANCE_EVENT_TYPES.length)
+    ];
+    const month = index < typeCoverageCount
+      ? months[Math.floor(index / PERFORMANCE_EVENT_TYPES.length)]
+      : pickMonth(index);
 
     return {
       eventId: `EVT-${String(10_000 + index).padStart(5, "0")}`,
@@ -188,9 +241,9 @@ function performanceEvents(
       EventDetail: {
         Description: `第 ${index + 1} 条 ${eventType} 事件记录，用于验证大规模筛选、排序、分页和长文本展示。`,
       },
-      Status: index % 4 === 3 ? "Closed" : "Open",
+      Status: sample(`events:status:${index}`) < 0.4 ? "Closed" : "Open",
       ASTMInjuryIllness:
-        eventType === "Injury/Illness" && index % 5 === 0 ? "Yes" : "No",
+        eventType === "Injury/Illness" && sample(`events:astm:${index}`) < 0.2 ? "Yes" : "No",
       sourceReference: {
         sourceSystem: "Performance Mock Events",
         sourceRecordId: `PERF-EVENT-${index + 1}`,
@@ -203,9 +256,14 @@ function performanceTakeCharge(
   stores: readonly StoreMasterData[],
   months: readonly [Month, ...Month[]],
 ): readonly TakeChargeRecord[] {
+  const pickMonth = monthPicker("take-charge", months);
   return Array.from({ length: PERFORMANCE_TAKE_CHARGE_COUNT }, (_, index) => {
-    const store = stores[(index * 13) % stores.length];
-    const month = months[(index * 7) % months.length];
+    const store = stores[index < stores.length ? index : sampleIndex(`take-charge:store:${index}`, stores.length)];
+    const month = pickMonth(index);
+    const closed = sample(`take-charge:closed:${index}`) < monthlyActivity(store, month);
+    const statusIndex = closed
+      ? sampleIndex(`take-charge:status:${index}`, 2)
+      : 2 + sampleIndex(`take-charge:status:${index}`, 4);
 
     return {
       storeReference: { trtid: store.trtid },
@@ -213,10 +271,7 @@ function performanceTakeCharge(
       submittedBy: mockPersonAt(index + 3),
       submittedAt: sourceDateTime(month, index + 19),
       summary: `第 ${index + 1} 项门店安全、流程或工作环境改进建议。`,
-      Status:
-        PERFORMANCE_TAKE_CHARGE_STATUSES[
-          index % PERFORMANCE_TAKE_CHARGE_STATUSES.length
-        ],
+      Status: PERFORMANCE_TAKE_CHARGE_STATUSES[statusIndex],
       sourceReference: {
         sourceSystem: "Performance Mock Take Charge",
         sourceRecordId: `PERF-TCH-${index + 1}`,
@@ -229,12 +284,12 @@ function performanceDrills(
   stores: readonly StoreMasterData[],
   months: readonly [Month, ...Month[]],
 ): readonly DrillRecord[] {
-  return stores.flatMap((store, storeIndex) =>
+  return stores.flatMap((store) =>
     months.map((month, monthIndex) => ({
       storeReference: { trtid: store.trtid },
       month,
       drillName: `月度应急演练 ${monthIndex + 1}`,
-      status: (storeIndex + monthIndex) % 13 === 0 ? "未完成" : "已完成",
+      status: sample(`drills:${store.trtid}:${month}`) < 0.55 + monthlyActivity(store, month) * 0.4 ? "已完成" : "未完成",
     })),
   );
 }
@@ -248,7 +303,10 @@ function performanceActionClosureRates(
       storeReference: { trtid: store.trtid },
       startInclusive: scope.startInclusive,
       endExclusive: scope.endExclusive,
-      value: 55 + ((storeIndex * 17 + scopeIndex * 11) % 46),
+      value: Math.min(100, Math.round(
+        55 + monthlyActivity(store, scope.includedMonths[scope.includedMonths.length - 1]) * 35
+        + sample(`action-rate:${store.trtid}:${scope.startInclusive}:${scope.endExclusive}`) * 15,
+      )),
       sourceReference: {
         sourceSystem: "Performance Mock Action Aggregates",
         sourceRecordId: `PERF-ACTION-RATE-${storeIndex + 1}-${scopeIndex + 1}`,
@@ -272,9 +330,11 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
       supportedPeriod,
       actionAggregateScopes,
     ),
-    trainingRecords: createMockTrainingRecordsForStores(stores, supportedMonths),
+    trainingRecords: createMockTrainingRecordsForStores(stores, supportedMonths, (storeIndex, monthIndex) =>
+      requirementScenario("training", stores[storeIndex], supportedMonths[monthIndex])),
     drillRecords: performanceDrills(stores, supportedMonths),
-    inspectionRecords: createMockInspectionRecordsForStores(stores, supportedMonths),
+    inspectionRecords: createMockInspectionRecordsForStores(stores, supportedMonths, (storeIndex, monthIndex) =>
+      requirementScenario("inspections", stores[storeIndex], supportedMonths[monthIndex])),
     actionClosureRates: performanceActionClosureRates(
       stores,
       actionAggregateScopes,

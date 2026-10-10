@@ -14,6 +14,11 @@ type DataTableColumnHeaderProps = {
   className?: string;
 };
 
+export function getColumnAriaSort(column: Pick<SortableColumn, "getIsSorted">) {
+  const direction = column.getIsSorted();
+  return direction === "asc" ? "ascending" as const : direction === "desc" ? "descending" as const : undefined;
+}
+
 export function DataTableColumnHeader({
   column,
   title,

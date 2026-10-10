@@ -100,18 +100,24 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
   },
 };
 
+const emphasisVariants = {
+  PRIMARY: "default",
+  SECONDARY: "secondary",
+  NEUTRAL: "outline",
+} as const;
+
 const emphasisClassNames: Record<StatusEmphasis, string> = {
-  PRIMARY: "border-transparent bg-primary text-primary-foreground",
-  SECONDARY: "border-transparent bg-secondary text-secondary-foreground",
-  NEUTRAL: "border-border bg-background text-muted-foreground",
+  PRIMARY: "",
+  SECONDARY: "",
+  NEUTRAL: "text-muted-foreground",
 };
 
 const interactiveClassNames: Record<StatusEmphasis, string> = {
   PRIMARY: "group-hover/table-cell-trigger:bg-primary/80",
   SECONDARY:
-    "group-hover/table-cell-trigger:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+    "group-hover/table-cell-trigger:bg-secondary/80",
   NEUTRAL:
-    "group-hover/table-cell-trigger:bg-muted group-hover/table-cell-trigger:text-foreground",
+    "group-hover/table-cell-trigger:bg-muted group-hover/table-cell-trigger:text-muted-foreground",
 };
 
 export function getStatusIntent(status: BusinessStatus): StatusIntent {
@@ -146,7 +152,7 @@ export function StatusDisplay({
 
   return (
     <Badge
-      variant="outline"
+      variant={emphasisVariants[definition.emphasis]}
       data-intent={definition.intent.toLowerCase()}
       data-emphasis={definition.emphasis.toLowerCase()}
       className={cn(

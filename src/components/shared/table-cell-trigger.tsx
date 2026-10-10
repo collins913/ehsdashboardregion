@@ -16,8 +16,9 @@ export function TableCellTrigger({
     <Button
       type={type}
       variant="ghost"
+      size="sm"
       className={cn(
-        "group/table-cell-trigger h-auto min-h-5.5 cursor-pointer px-1 py-0 hover:bg-transparent dark:hover:bg-transparent",
+        "group/table-cell-trigger cursor-pointer",
         className,
       )}
       {...props}

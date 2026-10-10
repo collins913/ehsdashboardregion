@@ -13,7 +13,7 @@ describe("TableCellTrigger", () => {
     expect(markup).toContain('type="button"');
     expect(markup).toContain("group/table-cell-trigger");
     expect(markup).toContain("cursor-pointer");
-    expect(markup).toContain("min-h-5.5");
+    expect(markup).toContain('data-size="sm"');
   });
 
   it("preserves native disabled semantics", () => {

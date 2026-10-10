@@ -34,6 +34,7 @@ import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
 import { authorizeBusinessScope, getAuthorizedFilterStores } from "@/lib/access/access-service.server";
 import type { KpiRow } from "@/features/kpi/types";
 import {
+  InvalidQueryInputError,
   parseActionAnalyticsQuery,
   parseActionsQuery,
   parseEhsFilterContext,
@@ -46,7 +47,7 @@ import {
   parseTakeChargeGoalsQuery,
   parseTakeChargeRecordsQuery,
 } from "@/data/server/query-input-validation";
-import { resolveBusinessReferenceDate } from "@/data/server/data-source-mode.server";
+import { resolveBusinessReferenceDate, resolveDataSourceMode } from "@/data/server/data-source-mode.server";
 
 function runtimeFor(referenceDateIso: string) {
   const referenceDate = resolveBusinessReferenceDate(referenceDateIso);
@@ -241,22 +242,27 @@ async function withOperationalCapture<T>(component: string, action: () => Promis
     const counts = summarizeAvailability(result);
     if (counts.UNAVAILABLE || counts.INCOMPLETE) {
       const unavailable = counts.UNAVAILABLE > 0;
+      const mock = resolveDataSourceMode() === "mock";
       await recordOperationalEvent({
-        environment: process.env.NODE_ENV ?? "unknown", source: "Production Repository", component,
+        environment: process.env.NODE_ENV ?? "unknown", source: mock ? "Mock Repository" : "Production Repository", component,
         severity: unavailable ? "ERROR" : "WARNING", errorCode: unavailable ? "REQUIRED_DATA_UNAVAILABLE" : "SOURCE_DATA_INCOMPLETE",
-        safeMessage: unavailable ? "请求范围内存在不可用的数据源。" : "请求范围内存在不完整的数据覆盖。",
+        safeMessage: unavailable ? "请求范围内存在不可用的数据源。" : mock ? "模拟数据查询结果包含不完整项。" : "请求范围内存在不完整的数据项。",
         phenomenon: `数据结果包含 ${counts.UNAVAILABLE} 个不可用项、${counts.INCOMPLETE} 个不完整项。`,
         causeStatus: "UNKNOWN", knownCause: null,
         impact: { kind: "DOMAIN", id: scopeId, summary: `影响范围：${component} 当前查询范围。` },
         actionTaken: "保留领域诊断与 DataAvailability 原始语义，没有将其转换为业务结果。",
-        nextStep: "检查来源覆盖、门店映射和企业数据 Adapter。", correlationId: randomUUID(),
-        relatedBatchId: null, relatedJobId: null, relatedDomain: null, diagnostics: [],
+        nextStep: mock ? "检查模拟数据中的缺失、无效值及覆盖范围；此记录不代表生产数据故障。" : "检查来源覆盖、门店映射和企业数据 Adapter。", correlationId: randomUUID(),
+        relatedBatchId: null, relatedJobId: null, relatedDomain: null,
+        diagnostics: [
+          ...(counts.UNAVAILABLE ? [{ code: "REQUIRED_DATA_UNAVAILABLE", severity: "ERROR" as const, message: `查询结果包含 ${counts.UNAVAILABLE} 个不可用项。` }] : []),
+          ...(counts.INCOMPLETE ? [{ code: "SOURCE_DATA_INCOMPLETE", severity: "WARNING" as const, message: `查询结果包含 ${counts.INCOMPLETE} 个不完整项。` }] : []),
+        ],
       });
     }
     return result;
   }
   catch (error) {
-    const expected = error instanceof Error && ["NOT_AUTHORIZED", "NOT_AUTHENTICATED", "INVALID_QUERY_INPUT"].includes(error.message);
+    const expected = error instanceof InvalidQueryInputError || (error instanceof Error && ["NOT_AUTHORIZED", "NOT_AUTHENTICATED", "INVALID_QUERY_INPUT"].includes(error.message));
     await recordOperationalEvent({
       environment: process.env.NODE_ENV ?? "unknown", source: "Server Action", component,
       severity: expected ? "INFO" : "ERROR",

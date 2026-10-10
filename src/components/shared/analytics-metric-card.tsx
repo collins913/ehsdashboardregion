@@ -24,30 +24,28 @@ export function AnalyticsMetricCard({
   valueFallback?: React.ReactNode;
 }) {
   return (
-    <Card className="gap-4 py-5 shadow-none">
-      <CardHeader className="px-5">
-        <div className="min-w-0 space-y-1.5">
-          <CardTitle className="text-sm">
-            {info ? (
-              <HoverCard openDelay={125} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`${title}指标说明`}
-                    className="inline-flex items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <span>{title}</span>
-                    <Info aria-hidden="true" className="size-3 text-muted-foreground" />
-                  </button>
-                </HoverCardTrigger>
-                <HoverCardContent side="bottom" align="start">{info}</HoverCardContent>
-              </HoverCard>
-            ) : title}
-          </CardTitle>
-          {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {info ? (
+            <HoverCard openDelay={125} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`${title}指标说明`}
+                  className="inline-flex items-center gap-1.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <span>{title}</span>
+                  <Info aria-hidden="true" className="size-3 text-muted-foreground" />
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" align="start">{info}</HoverCardContent>
+            </HoverCard>
+          ) : title}
+        </CardTitle>
+        {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
       </CardHeader>
-      <CardContent className="px-5">
+      <CardContent>
         {loading && value === null ? (
           <div className="flex h-8 items-center">
             <Skeleton className="h-7 w-16" aria-label="指标加载中" />

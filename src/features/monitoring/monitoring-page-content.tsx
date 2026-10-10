@@ -29,7 +29,14 @@ export function buildIncidentDiagnostics(incident: OperationalIncident, events: 
   return {
     incident: {
       incidentId: incident.incidentId,
+      source: incident.source,
+      component: incident.component,
+      severity: incident.severity,
       errorCode: incident.errorCode,
+      summary: incident.summary,
+      causeStatus: incident.causeStatus,
+      knownCause: incident.knownCause,
+      impact: incident.impact,
       status: incident.status,
       firstOccurredAt: incident.firstOccurredAt,
       lastOccurredAt: incident.lastOccurredAt,
@@ -38,6 +45,19 @@ export function buildIncidentDiagnostics(incident: OperationalIncident, events: 
     diagnosticDetails: events.filter((event) => event.incidentId === incident.incidentId).map((event) => ({
       eventId: event.eventId,
       occurredAt: event.occurredAt,
+      environment: event.environment,
+      source: event.source,
+      component: event.component,
+      severity: event.severity,
+      errorCode: event.errorCode,
+      safeMessage: event.safeMessage,
+      phenomenon: event.phenomenon,
+      causeStatus: event.causeStatus,
+      knownCause: event.knownCause,
+      impact: event.impact,
+      actionTaken: event.actionTaken,
+      nextStep: event.nextStep,
+      correlationId: event.correlationId,
       diagnostics: event.diagnostics,
     })),
   };
@@ -161,7 +181,7 @@ export function MonitoringPageContent({ initialSnapshot, storageMode }: { initia
             <Button onClick={() => void copyDiagnostics()} size="sm">复制诊断信息</Button>
             <section className="space-y-2 border-t pt-3" aria-labelledby="diagnostics-title">
               <h3 id="diagnostics-title" className="text-sm font-medium">诊断明细</h3>
-              {relatedEvents.some((event) => event.diagnostics.length > 0) ? <pre className="max-h-[50vh] overflow-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words"><code>{JSON.stringify(buildIncidentDiagnostics(selectedIncident, relatedEvents).diagnosticDetails, null, 2)}</code></pre> : <pre className="rounded-md bg-muted p-3 font-mono text-xs text-muted-foreground"><code>暂无诊断明细</code></pre>}
+              {relatedEvents.length > 0 ? <pre className="max-h-[50vh] overflow-auto rounded-md bg-muted p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words"><code>{JSON.stringify(buildIncidentDiagnostics(selectedIncident, relatedEvents).diagnosticDetails, null, 2)}</code></pre> : <pre className="rounded-md bg-muted p-3 font-mono text-xs text-muted-foreground"><code>暂无诊断明细</code></pre>}
             </section>
           </div>
         </> : <DetailHeader title="报错详情" subtitle="此记录不在当前时间范围内，请扩大时间范围后重试。" />}

@@ -150,7 +150,7 @@ describe("StatusDisplay semantics", () => {
       "group-hover/table-cell-trigger:bg-primary/80",
     );
     expect(secondary).toContain(
-      "group-hover/table-cell-trigger:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+      "group-hover/table-cell-trigger:bg-secondary/80",
     );
     expect(neutral).toContain(
       "group-hover/table-cell-trigger:bg-muted",

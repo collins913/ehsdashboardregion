@@ -71,6 +71,10 @@ describe("performance mock dataset", () => {
     expect(spotIds(first)).toEqual(spotIds(second));
     expect(first.environmentRecords).toEqual(second.environmentRecords);
     expect(first.inspectionRecords).toEqual(second.inspectionRecords);
+    expect(first.actionRecords).toEqual(second.actionRecords);
+    expect(first.eventRecords).toEqual(second.eventRecords);
+    expect(first.trainingRecords).toEqual(second.trainingRecords);
+    expect(first.takeChargeRecords).toEqual(second.takeChargeRecords);
     expect(getPerformanceMockDataset(referenceDate)).toBe(
       getPerformanceMockDataset(referenceDate),
     );
@@ -84,6 +88,42 @@ describe("performance mock dataset", () => {
     expect(ids.every((id) => /^INP-\d{5}$/.test(id))).toBe(true);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual(createKpiMockData(referenceDate).inspectionRecords.map(({ inspectionNumber }) => inspectionNumber));
+  });
+
+  it.each([1, 5, 7, 10, 12])("distributes records across every supported month through month %i", (monthNumber) => {
+    const dataset = createPerformanceMockDataset(new Date(`2026-${String(monthNumber).padStart(2, "0")}-10T00:00:00+08:00`));
+    for (const dates of [
+      dataset.actionRecords.map((record) => record.submittedDate),
+      dataset.eventRecords.map((record) => record.eventDate),
+      dataset.takeChargeRecords.map((record) => record.submittedAt),
+    ]) {
+      const counts = dataset.supportedMonths.map((month) => dates.filter((date) => date.startsWith(month)).length);
+      expect(counts.every((count) => count > 0)).toBe(true);
+      expect(counts.reduce((sum, count) => sum + count, 0)).toBe(dates.length);
+      expect(new Set(counts).size).toBeGreaterThanOrEqual(Math.min(monthNumber, 3));
+    }
+    for (const month of dataset.supportedMonths) {
+      const events = dataset.eventRecords.filter((record) => record.eventDate.startsWith(month));
+      expect(new Set(events.map((record) => record.eventType))).toEqual(new Set(PERFORMANCE_EVENT_TYPES));
+    }
+    for (const store of [dataset.stores[0], dataset.stores[249], dataset.stores[499]]) {
+      const months = new Set(dataset.actionRecords.filter((record) => "trtid" in record.storeReference && record.storeReference.trtid === store.trtid).map((record) => record.submittedDate.slice(0, 7)));
+      expect(months.size).toBeGreaterThanOrEqual(Math.min(monthNumber, 3));
+    }
+  });
+
+  it("keeps randomized action dates in chronological order", () => {
+    const dataset = createPerformanceMockDataset(referenceDate);
+    for (const record of dataset.actionRecords) {
+      expect(record.dueDate >= record.submittedDate).toBe(true);
+      if (record.Status === "Closed") {
+        expect(record.closedDate).not.toBeNull();
+        expect(record.closedDate! >= record.submittedDate).toBe(true);
+        expect(record.closedDate! <= record.dueDate).toBe(true);
+      } else {
+        expect(record.closedDate).toBeNull();
+      }
+    }
   });
 
   it("keeps identifiers unique and Store references resolvable", () => {

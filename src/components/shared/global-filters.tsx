@@ -1,16 +1,10 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
-import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import {
   Popover,
   PopoverContent,
@@ -33,8 +27,8 @@ import type { StoreId } from "@/types/ehs";
 
 const ALL_VALUE = "__ALL__";
 
-// Both Select and searchable Popover use the adopted filter trigger presentation.
-const filterTriggerClassName = "w-full min-w-0 h-8 gap-2 rounded-lg border-input bg-transparent px-2.5 py-1.5 text-sm font-normal text-foreground shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:hover:bg-input/50";
+// Width belongs to the filter layout; each primitive owns its visual presentation.
+const filterTriggerClassName = "w-full min-w-0";
 
 const periodLabels = {
   THIS_YEAR: "本年",
@@ -207,86 +201,62 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={`${filterTriggerClassName} justify-between hover:bg-transparent hover:text-foreground aria-expanded:bg-transparent aria-expanded:text-foreground disabled:pointer-events-auto`}
+                    className={`${filterTriggerClassName} justify-between font-normal`}
                     aria-label={storeLabel}
                     aria-expanded={storePopoverOpen}
-                    role="combobox"
                   >
                     <OverflowTooltip
                       text={storeLabel}
                       className="w-0 flex-1 text-left"
                       focusable={false}
                     />
-                    <ChevronDown className="size-4 shrink-0 text-muted-foreground opacity-50" aria-hidden="true" />
+                    <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   align="start"
-                  className="w-(--radix-popover-trigger-width) min-w-56 p-0"
+                  aria-label="选择门店"
+                  className="w-(--radix-popover-trigger-width) min-w-56"
                 >
-                  <Command shouldFilter={false} label="搜索并选择门店">
-                    <CommandInput
+                  <InputGroup>
+                    <InputGroupInput
+                      aria-label="搜索门店"
                       value={storeKeyword}
-                      onValueChange={setStoreKeyword}
+                      onChange={(event) => setStoreKeyword(event.target.value)}
                       placeholder="搜索门店"
                     />
-                    <CommandList className="overscroll-y-contain">
-                      {!hasStoreKeyword ? (
-                        <CommandGroup>
-                          <CommandItem
-                            value={ALL_VALUE}
-                            onSelect={() => setStore({ kind: "ALL" })}
-                          >
-                            <span className="min-w-0 flex-1 truncate">
-                              全部门店
-                            </span>
-                            <Check
-                              className={
-                                state.store.kind === "ALL"
-                                  ? "size-4 opacity-100"
-                                  : "size-4 opacity-0"
-                              }
-                              aria-hidden="true"
-                            />
-                          </CommandItem>
-                        </CommandGroup>
-                      ) : null}
-                      {visibleStores.length === 0 ? (
-                        <CommandEmpty>未找到门店</CommandEmpty>
-                      ) : (
-                        <CommandGroup>
-                          {visibleStores.map((store) => {
-                            const isSelected =
-                              selectedIds?.has(store.storeId) ?? false;
-
-                            return (
-                              <CommandItem
-                                key={store.storeId}
-                                value={store.storeId}
-                                onSelect={() =>
-                                  toggleStore(store.storeId, !isSelected)
-                                }
-                              >
-                                <OverflowTooltip
-                                  text={store.displayName}
-                                  className="w-0 flex-1"
-                                  focusable={false}
-                                />
-                                <Check
-                                  className={
-                                    isSelected
-                                      ? "size-4 opacity-100"
-                                      : "size-4 opacity-0"
-                                  }
-                                  aria-hidden="true"
-                                />
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      )}
-                    </CommandList>
-                  </Command>
+                    <InputGroupAddon><Search aria-hidden="true" /></InputGroupAddon>
+                  </InputGroup>
+                  <div role="group" aria-label="门店选项" className="max-h-72 space-y-3 overflow-y-auto overscroll-y-contain p-1">
+                    {!hasStoreKeyword ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-pressed={state.store.kind === "ALL"}
+                        onClick={() => setStore({ kind: "ALL" })}
+                        className="w-full justify-start"
+                      >
+                        <Check aria-hidden="true" className={state.store.kind === "ALL" ? "opacity-100" : "opacity-0"} />
+                        全部门店
+                      </Button>
+                    ) : null}
+                    {visibleStores.length === 0 ? (
+                      <p className="py-6 text-center text-sm">未找到门店</p>
+                    ) : visibleStores.map((store) => (
+                      <label key={store.storeId} className="flex items-center gap-3 text-sm">
+                        <Checkbox
+                          checked={selectedIds?.has(store.storeId) ?? false}
+                          onCheckedChange={(checked) => toggleStore(store.storeId, checked === true)}
+                        />
+                        <OverflowTooltip
+                          text={store.displayName}
+                          className="w-0 flex-1"
+                          focusable={false}
+                        />
+                      </label>
+                    ))}
+                  </div>
                 </PopoverContent>
               </Popover>
             </FilterField>

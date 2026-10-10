@@ -43,7 +43,8 @@ describe("Certificates V1 feature", () => {
       expect(detail.groups[0].records).toEqual([certificate]);
       expect(detail.groups[0].count).toBe(1);
       expect(detail.groups[0].hasAbnormalRecords).toBe(true);
-      expect((html.match(/bg-destructive/g) ?? []).length).toBe(1);
+      expect((html.match(/aria-label="需要关注"/g) ?? []).length).toBe(1);
+      expect(html).not.toContain("bg-destructive");
     } else {
       expect(detail.groups.every((group) => group.count === 0 && group.disabled && !group.hasAbnormalRecords)).toBe(true);
       expect((html.match(/>0<\/span>/g) ?? []).length).toBe(expectedTypes.length);
@@ -104,7 +105,7 @@ describe("Certificates V1 feature", () => {
     expect(html).not.toContain("同类型第二位");
     expect(detail.groups[0].records).toHaveLength(2);
     expect(detail.groups[0].records[1].personEmail).toBe("second@example.test");
-    expect((html.match(/aria-hidden="true" class="size-2/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-label="需要关注"/g) ?? []).length).toBe(1);
   });
   it("displays supplied status and days even if they disagree with the displayed date", () => {
     const records = [{ ...certificate, expiryDate: "1900-01-01", certificateStatus: "NORMAL" as const, daysUntilExpiry: 128 }];

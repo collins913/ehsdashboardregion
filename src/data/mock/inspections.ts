@@ -14,12 +14,13 @@ export function createMockInspectionRecords(
 export function createMockInspectionRecordsForStores(
   stores: readonly StoreMasterData[],
   months: SupportedMonths,
+  scenarioFor = (storeIndex: number, monthIndex: number) => (storeIndex + monthIndex) % 7,
 ): readonly InspectionRecord[] {
   let sequence = 0;
 
   return stores.flatMap((store, storeIndex) =>
     months.flatMap((month, monthIndex) => {
-      const scenario = (storeIndex + monthIndex) % 7;
+      const scenario = scenarioFor(storeIndex, monthIndex);
       return MOCK_V1_EXPECTED_INSPECTION_TASKS.flatMap((inspectionName, taskIndex) => {
         if (scenario === 2 && taskIndex === 1) return [];
         sequence += 1;

@@ -100,7 +100,7 @@ function Field({
 function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
   const incompletePeople = record.incompletePeople?.join("、") ?? null;
   return (
-    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.trainingName}</CardTitle>}>
+    <DetailRecordCard header={<CardTitle>{record.trainingName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
           <Field label="完成率" value={record.completionRate} />
@@ -114,7 +114,7 @@ function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
 
 function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.drillName}</CardTitle>}>
+    <DetailRecordCard header={<CardTitle>{record.drillName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
           <Field label="状态" value={record.status} />
@@ -125,7 +125,7 @@ function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
 
 function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle className="text-sm leading-normal">{record.inspectionName}</CardTitle>}>
+    <DetailRecordCard header={<CardTitle>{record.inspectionName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <div className="col-span-2">
             <Field label="检查编号" value={record.inspectionNumber} />

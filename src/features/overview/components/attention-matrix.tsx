@@ -19,11 +19,11 @@ export function AttentionMatrix({ matrix, onSelect, comparisonLabel, selectedSco
   const members = matrix.groups.flatMap((group) => group.members.map((member) => ({ ...member, score: group.score, delta: group.delta })))
   const hasSelectedPeer = selectedScopeId && members.length > 1 && members.some((member) => member.id === selectedScopeId)
   return (
-    <Card className="h-full min-h-0 min-w-0 shadow-none" data-testid="attention-matrix">
+    <Card className="h-full min-h-0 min-w-0" data-testid="attention-matrix">
       <Tabs defaultValue="matrix" className="min-h-0 flex-1 gap-4">
         <OverviewSectionHeader title="同级得分与变化" subtitle={`同级平均得分率 ${matrix.averageScore === null ? "—" : `${formatOverviewScore(matrix.averageScore)}%`}`} description={`横轴为当前得分率（%），纵轴为当前得分率减去上一个自然月得分率，使用 % 标记且不是相对增长率；${comparisonLabel}。参考线表示同级平均得分率和 0%。同坐标对象合并显示，点击可查看所有成员；明细保留每个对象。`}
           action={members.length > 0 ? <TabsList aria-label="同级比较显示方式"><TabsTrigger value="matrix">矩阵</TabsTrigger><TabsTrigger value="list">明细</TabsTrigger></TabsList> : null} />
-        <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col px-5 sm:px-6">
+        <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
           {members.length === 0 ? <p className="flex h-60 items-center justify-center text-sm text-muted-foreground">无可比较数据</p> : <>
             {hasSelectedPeer ? <p className="mb-3 shrink-0 text-xs text-muted-foreground">摘要为当前门店；此处比较范围包含同级门店。</p> : null}
             <TabsContent value="list" className="min-h-60 flex-1 overflow-hidden">

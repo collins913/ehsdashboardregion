@@ -7,7 +7,7 @@ import {
   type PaginationState, rowPaginationFeature, rowSortingFeature,
   type SortingState, sortFn_text, tableFeatures as defineTableFeatures, useTable,
 } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
@@ -181,7 +181,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
       <div ref={tableFrameRef} className={dataTableFrameClassName} aria-busy={loading} inert={loading ? true : undefined}>
         <Table className={dataTableClassName}>
           <TableHeader>{table.getHeaderGroups().map((group) => <TableRow key={group.id}>{group.headers.map((header) => (
-            <TableHead key={header.id} className={cn(sizeClassName(header.column.id), header.column.id === "store" && stickyStoreHeaderClassName)}>
+            <TableHead key={header.id} aria-sort={getColumnAriaSort(header.column)} className={cn(sizeClassName(header.column.id), header.column.id === "store" && stickyStoreHeaderClassName)}>
               {header.isPlaceholder ? null : <table.FlexRender header={header} />}
             </TableHead>
           ))}</TableRow>)}</TableHeader>

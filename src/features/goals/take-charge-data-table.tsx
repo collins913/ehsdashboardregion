@@ -24,7 +24,7 @@ import { DataAvailabilityDisplay } from "@/components/shared/data-availability-d
 import { DetailField } from "@/components/shared/detail-field";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
-import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import {
   DataTableLoadingCellContent,
   DataTablePendingFeedback,
@@ -46,6 +46,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
+import { getTakeChargeSourceStatusLabel } from "@/features/goals/take-charge-status-presentation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
@@ -156,7 +157,7 @@ function formatExtraValue(value: TakeChargeExtraFieldValue): string {
 }
 
 function statusLabel(record: NormalizedTakeChargeRecord): string | undefined {
-  return record.recordState === "UNKNOWN" ? undefined : record.sourceStatus;
+  return record.recordState === "UNKNOWN" ? undefined : getTakeChargeSourceStatusLabel(record.sourceStatus);
 }
 
 export function TakeChargeDetailContent({
@@ -616,7 +617,7 @@ export function TakeChargeDataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead
-                    key={header.id}
+                    key={header.id} aria-sort={getColumnAriaSort(header.column)}
                     className={cn(
                       takeChargeColumnSizeClassName(header.column.id),
                       header.column.id === "store" && stickyStoreHeaderClassName,

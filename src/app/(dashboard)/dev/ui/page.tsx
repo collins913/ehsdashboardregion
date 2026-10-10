@@ -455,7 +455,7 @@ export default function UiLabPage() {
             </DemoSurface>
             <DemoSurface
               title="TableCellTrigger"
-              description="提供紧凑点击、键盘、焦点和按压行为。"
+              description="使用官方 ghost / sm Button 的尺寸、键盘、焦点和按压行为。"
             >
               <div className="flex flex-wrap gap-2">
                 <TableCellTrigger aria-label="92% 可点击示例">
@@ -493,7 +493,7 @@ export default function UiLabPage() {
           </p>
           <h3 className="mt-4 text-sm font-medium">Global Filters</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            唯一的可控 fixture 实例，保持正式全宽 Filter Bar 外观。
+            唯一的可控 fixture 实例；门店搜索复用 InputGroup 与 Checkbox，勾选状态对应真实选择。
           </p>
         </PageContainer>
 

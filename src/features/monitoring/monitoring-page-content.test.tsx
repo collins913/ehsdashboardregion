@@ -29,8 +29,13 @@ describe("monitoring incident diagnostics presentation", () => {
     const result = buildIncidentDiagnostics(incident, [linked, unrelated]);
 
     expect(result.incident).toMatchObject({ incidentId: "incident-1", errorCode: "REPOSITORY_QUERY_FAILED", status: "OPEN", resolvedAt: null });
+    expect(result.incident).toMatchObject({ source: "Repository", component: "查询", severity: "ERROR", causeStatus: "UNKNOWN" });
     expect(result.diagnosticDetails).toHaveLength(1);
     expect(result.diagnosticDetails[0]).toMatchObject({ eventId: "event-1", occurredAt: "2026-10-09T00:00:00.000Z", diagnostics: [{ code: "DB_TIMEOUT" }] });
+    expect(result.diagnosticDetails[0]).toMatchObject({ phenomenon: "查询失败", actionTaken: "已记录", nextStep: "检查数据源", correlationId: "request-1" });
     expect(JSON.stringify(result)).not.toContain("event-2");
+
+    const withoutFieldDiagnostics = buildIncidentDiagnostics(incident, [{ ...linked, diagnostics: [] }]);
+    expect(withoutFieldDiagnostics.diagnosticDetails[0]).toMatchObject({ source: "Repository", phenomenon: "查询失败", nextStep: "检查数据源", diagnostics: [] });
   });
 });

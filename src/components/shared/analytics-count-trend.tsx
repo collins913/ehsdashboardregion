@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode } from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { type ReactNode, useId } from "react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ANALYTICS_CARD_HEIGHT_CLASS_NAME,
@@ -51,10 +51,11 @@ export function AnalyticsCountTrend({
   toolbar?: ReactNode;
 }) {
   const config = {
-    count: { label: valueLabel, color: "var(--analytics-primary)" },
+    count: { label: valueLabel, color: "var(--chart-1)" },
   } satisfies ChartConfig;
   const chartAnimationEnabled = useAnalyticsChartAnimationEnabled();
   const scale = analyticsCountTrendScale(data);
+  const gradientId = `count-gradient-${useId().replace(/:/g, "")}`;
 
   return (
     <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4`}>
@@ -65,16 +66,22 @@ export function AnalyticsCountTrend({
       <CardContent className="flex min-h-0 flex-1 flex-col px-4 pt-4">
         <div className="relative min-h-0 flex-1 w-full">
           <ChartContainer config={config} className="absolute inset-0 aspect-auto">
-            <LineChart data={data} margin={{ left: 12, right: 12 }}>
+            <AreaChart accessibilityLayer data={data} margin={{ left: 12, right: 12 }}>
               <CartesianGrid vertical={false} />
-              <YAxis type="number" width={34} domain={scale.domain} ticks={scale.ticks} allowDataOverflow tickLine={false} axisLine={false} tickMargin={6} tick={{ fontSize: 10 }} tickFormatter={(value: number) => String(Math.round(value))} />
-              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" minTickGap={8} tick={{ fontSize: 10 }} tickFormatter={(month: string) => `${Number(month.slice(5))}月`} />
+              <YAxis hide type="number" domain={scale.domain} ticks={scale.ticks} allowDataOverflow />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(month: string) => `${Number(month.slice(5))}月`} />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent labelFormatter={(month) => formatBusinessMonth(String(month ?? ""))} indicator="dot" />}
               />
-              <Line dataKey="count" type="monotone" stroke="var(--color-count)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
-            </LineChart>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-count)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="var(--color-count)" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <Area dataKey="count" type="monotone" fill={`url(#${gradientId})`} fillOpacity={0.4} stroke="var(--color-count)" dot={data.length === 1 ? { r: 3 } : false} connectNulls={false} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
+            </AreaChart>
           </ChartContainer>
         </div>
       </CardContent>

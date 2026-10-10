@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import type { AccessCatalog, AccessType, GrantInput, ManualGrant } from "@/data/contracts/access";
 import { loadAccessCatalog, loadManualGrants, removeGrant, reviseGrant, submitGrant } from "@/data/server/access-actions";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
@@ -67,6 +68,13 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const pendingRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const focusInvalidRef = useRef(false);
+  useEffect(() => {
+    if (!focusInvalidRef.current) return;
+    focusInvalidRef.current = false;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [errors]);
   const clearError = (field: keyof FieldErrors) => setErrors((current) => ({ ...current, [field]: undefined }));
   useEffect(() => { if (!open) return; setInput(formInputFor(editing, catalog)); setErrors({}); }, [editing, open]);
   async function save() {
@@ -79,7 +87,7 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
     if ((input.accessType === "AREA" || input.accessType === "STORE") && !input.regionId) nextErrors.regionId = "请选择区域";
     if ((input.accessType === "AREA" || input.accessType === "STORE") && input.regionId && !input.areaId) nextErrors.areaId = "请选择小区";
     if (input.accessType === "STORE" && input.regionId && input.areaId && !input.scopeId) nextErrors.scopeId = "请选择门店";
-    if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
+    if (Object.keys(nextErrors).length) { focusInvalidRef.current = true; setErrors(nextErrors); return; }
     pendingRef.current = true;
     setPending(true);
     const toastId = toast.loading("正在保存…", { duration: Infinity });
@@ -92,11 +100,13 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
     } catch { toast.error("保存失败，请重试", { id: toastId, duration: mutationToastDuration }); } finally { pendingRef.current = false; setPending(false); }
   }
   return <Dialog open={open} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editing ? "编辑权限" : "新增权限"}</DialogTitle><DialogDescription>手动授权独立于组织角色自动权限。</DialogDescription></DialogHeader>
+    <form ref={formRef} className="contents" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
     <div className="max-h-[65vh] space-y-3 overflow-y-auto">
       <label className="block space-y-1 text-sm">邮箱<Input id="grant-email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "grant-email-error" : undefined} type="email" value={input.email} disabled={!!editing} onChange={(event) => { clearError("email"); setInput({ ...input, email: event.target.value }); }} placeholder={editing ? undefined : "name@example.com"} /><FieldError id="grant-email-error">{errors.email}</FieldError></label>
       <label className="block space-y-1 text-sm">权限类型<Select value={input.accessType} onValueChange={(value) => { setErrors((current) => ({ email: current.email })); setInput({ ...input, accessType: value as AccessType, scopeId: null, regionId: "", areaId: "" }); }}><SelectTrigger id="grant-access-type" aria-invalid={!!errors.accessType} aria-describedby={errors.accessType ? "grant-access-type-error" : undefined} className="w-full"><SelectValue placeholder="请选择权限类型" /></SelectTrigger><SelectContent>{types.map((type) => <SelectItem key={type} value={type}>{accessTypeLabels[type]}</SelectItem>)}</SelectContent></Select><FieldError id="grant-access-type-error">{errors.accessType}</FieldError></label>
       {input.accessType ? <><ScopeFields key={`${editing?.id ?? "new"}-${input.accessType}`} value={input} onChange={setInput} catalog={catalog} errors={errors} clearError={clearError} /><label className="block space-y-1 text-sm">备注（可选）<Input value={input.note ?? ""} onChange={(event) => setInput({ ...input, note: event.target.value || null })} /></label></> : null}
-    </div><DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>取消</Button><Button onClick={() => void save()} disabled={pending}>保存</Button></DialogFooter>
+    </div><DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>取消</Button><Button type="submit" disabled={pending} aria-busy={pending}>{pending ? <Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none" /> : null}{pending ? "正在保存…" : "保存"}</Button></DialogFooter>
+    </form>
   </DialogContent></Dialog>;
 }
 
@@ -115,7 +125,7 @@ function DeleteGrantDialog({ grant, onOpenChange, onDeleted }: { grant: ManualGr
       toast.success("权限已删除", { id: toastId, duration: mutationToastDuration });
     } catch { toast.error("删除失败，请重试", { id: toastId, duration: mutationToastDuration }); } finally { pendingRef.current = false; setPending(false); }
   }
-  return <AlertDialog open={!!grant} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>删除手动权限</AlertDialogTitle><AlertDialogDescription>{grant?.email} · {grant ? accessTypeLabels[grant.accessType] : ""} · {grant ? scopeLabel(grant) : ""}<br />删除后不会影响该用户通过组织角色自动获得的权限。</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={pending}>取消</AlertDialogCancel><AlertDialogAction variant="destructive" disabled={pending} onClick={(event) => { event.preventDefault(); void remove(); }}>删除</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>;
+  return <AlertDialog open={!!grant} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>删除手动权限</AlertDialogTitle><AlertDialogDescription>{grant?.email} · {grant ? accessTypeLabels[grant.accessType] : ""} · {grant ? scopeLabel(grant) : ""}<br />删除后不会影响该用户通过组织角色自动获得的权限。</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={pending}>取消</AlertDialogCancel><AlertDialogAction variant="destructive" disabled={pending} onClick={(event) => { event.preventDefault(); void remove(); }} aria-busy={pending}>{pending ? <Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none" /> : null}{pending ? "正在删除…" : "删除"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>;
 }
 
 export function AccessManagementPage() {

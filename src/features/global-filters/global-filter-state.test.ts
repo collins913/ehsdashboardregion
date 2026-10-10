@@ -94,7 +94,7 @@ describe("global filter hierarchy", () => {
 });
 
 describe("natural-month periods", () => {
-  it("defaults to the current Shanghai quarter", () => {
+  it("defaults to the current Shanghai year through the current month", () => {
     const context = toEhsFilterContext(
       createInitialGlobalFilterState(),
       new Date("2026-08-15T23:00:00Z"),
@@ -102,9 +102,9 @@ describe("natural-month periods", () => {
     );
 
     expect(context?.period).toEqual({
-      startInclusive: "2026-07-01T00:00:00+08:00",
+      startInclusive: "2026-01-01T00:00:00+08:00",
       endExclusive: "2026-09-01T00:00:00+08:00",
-      includedMonths: ["2026-07", "2026-08"],
+      includedMonths: ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"],
     });
   });
 

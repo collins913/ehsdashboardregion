@@ -13,10 +13,11 @@ export function createMockTrainingRecords(
 export function createMockTrainingRecordsForStores(
   stores: readonly StoreMasterData[],
   months: SupportedMonths,
+  scenarioFor = (storeIndex: number, monthIndex: number) => (storeIndex + monthIndex) % 7,
 ): readonly TrainingRecord[] {
   return stores.flatMap((store, storeIndex) =>
     months.flatMap((month, monthIndex) => {
-      const scenario = (storeIndex + monthIndex) % 7;
+      const scenario = scenarioFor(storeIndex, monthIndex);
       return MOCK_V1_REQUIRED_TRAINING_ITEMS.flatMap((trainingName, itemIndex) => {
         if (scenario === 2 && itemIndex === 1) return [];
         const completionRate = scenario === 1 && itemIndex === 1 ? 84

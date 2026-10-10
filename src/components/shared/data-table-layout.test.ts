@@ -12,7 +12,7 @@ describe("shared data table layout contract", () => {
   it("keeps the shared frame and minimum table width aligned", () => {
     expect(dataTableFrameClassName).toContain("overflow-hidden");
     expect(dataTableClassName).toBe(
-      "min-w-224 table-fixed [&_tbody_td]:leading-5.5",
+      "min-w-224 table-fixed",
     );
   });
 

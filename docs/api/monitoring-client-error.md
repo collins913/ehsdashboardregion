@@ -31,3 +31,9 @@ Accepted reports return `202` with `{ "accepted": true, "eventId": "..." }`. Err
 | 503 | `IDENTITY_PROVIDER_UNAVAILABLE`, `MONITORING_STORAGE_UNAVAILABLE` |
 
 Production identity and durable Monitoring storage are integration boundaries; the Production route fails closed when either is unavailable. Diagnostic reads remain behind GLOBAL_ADMIN-authorized Server Actions. A future company AI read path requires an explicitly protected, audited machine principal and a dedicated read-only contract; no such endpoint is implemented by this route.
+
+## Related Server Action diagnostics
+
+Business query capture identifies the configured data source as `Mock Repository` or `Production Repository`. Incomplete results remain WARNING records with `SOURCE_DATA_INCOMPLETE`; unavailable results retain ERROR severity. Mock warnings explicitly identify simulated data and include availability counts, without changing business results. Query validation rejection is recorded as INFO with `INVALID_QUERY_INPUT`, while unexpected exceptions remain ERROR with `SERVER_ACTION_FAILED`.
+
+The administrator detail view and diagnostic copy retain safe event context (environment, source, component, phenomenon, impact, action taken, next step and correlation ID), even when the per-field `diagnostics` array is empty. Raw exception messages and stacks are not added. Existing events retain their originally recorded metadata; this correction does not rewrite or clear monitoring history.
