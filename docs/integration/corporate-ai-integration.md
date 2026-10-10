@@ -23,13 +23,13 @@ source records → Store Resolution → normalized domain readers → existing D
 
 The API accepts source facts and import metadata only. Never upload score rates, rankings, contributions, final rule states or trends. Existing scoring and Domain Rules remain the only calculation path.
 
-**IMPLEMENTED:** typed `EhsRepository` grouped by Domain; Standard / Performance Mock Repository; server-only data-source selector; Production Repository composition seam; raw batch validation with domain-bound schemas; error diagnostics; Store link validation against published Store Master; revisioned batch lifecycle service; machine principal audit; coverage declaration/proof distinction; production fail-closed stubs; GLIFE display-profile adapter; server identity and machine identity interfaces; principal-bound one-time bootstrap gate; tests using test-only memory adapters.
+**IMPLEMENTED:** typed `EhsRepository` grouped by Domain; Standard / Performance Mock Repository; server-only data-source selector; Production Repository composition seam; raw batch validation with domain-bound OpenAPI 3.1 schemas; error diagnostics; Store link validation including Store Master complete-coverage equality; revisioned batch lifecycle service; machine principal audit; coverage declaration/proof distinction; status responses that omit staged source records; production fail-closed stubs; GLIFE display-profile adapter; server identity and machine identity interfaces; principal-bound one-time bootstrap gate; tests using test-only memory adapters.
 
 **INTEGRATION REQUIRED:** actual database reads/writes, per-Domain Production Repository readers, atomic CAS and transaction implementation, independent source-proof verifier, SSO validation, M2M authentication/authorization, persistent Access grants/audit, and configured bootstrap storage. Handoff readiness is not production deployment readiness.
 
-Access grants remain keyed by normalized verified email for compatibility. The verified stable `principalId` is recorded as admin actor in audit and is required for bootstrap. Company AI must decide identity mapping, duplicate-email resolution and grant migration before changing the grant key; do not infer these from GLIFE display data.
+Access grants remain keyed by normalized, server-verified email by confirmed product decision. The verified stable `principalId` is recorded as admin actor in audit and is required for bootstrap. Company AI must make the company SSO return a verified email; it must not take the address from GLIFE display data or request payloads.
 
-**BLOCKED / TBD:** Take Charge annual aggregate source scope and logical schema. Its import records are rejected with `CONTRACT_TBD` until the business source contract is decided.
+**CONFIRMED BUSINESS OUTPUT:** Take Charge uses `submissionsPerCapitaYtd >= 4`, `participationRateYtd >= 50`, and `closeRate >= 90`. The first two are source-provided aggregates for the authorized organization scope from January through the current Shanghai reference month; the Dashboard does not derive their denominator or average Store-level results. Company physical field names are mapped to these English logical fields by the Production Repository Adapter. The generic batch import rejects this Domain with `DIRECT_REPOSITORY_INTEGRATION_REQUIRED` because no company batch schema is needed for the selected direct-database path.
 
 ## D. Production database connection
 
@@ -66,7 +66,7 @@ The adapter maps company physical fields into the existing logical source contra
 | Events / ASTM | `eventId`, Store reference, `eventType`, submitted by, event time, description, raw status, `ASTMInjuryIllness` | Event ID unique in Events; Event Date defines period | Event subtype details and employee identity TBD; ASTM is not a separate feed |
 | Actions | `actionId`, Store reference, problem/action, submitted by/owner, submitted/due/closed dates, raw status | Action ID unique in Actions; Submitted Date defines page period | Person identity and source refresh metadata TBD |
 | Take Charge | `tchId`, Store reference, submitter/time, summary, raw status and approved extra-field definitions | TCH ID unique in Domain; Submitted At uses Shanghai timezone | Extra-field dictionary and upstream status values must be mapped without inventing meanings |
-| Take Charge annual aggregates | Existing two source-provided values only | Existing reader scope must stay consistent | **BLOCKED:** authoritative scope/identity/schema and participation denominator not frozen |
+| Take Charge annual aggregates | `submissionsPerCapitaYtd`, `participationRateYtd` | Authorized organization scope; January through current Shanghai reference month | Direct DB adapter maps company fields; never average Store final values or derive an unapproved denominator |
 | Certificates | TRTID/English name, exact Certificate Type, expiry text, Person, Person Email, Business Title | Effective-time history needed for historical score reconstruction | No certificate record ID or issue date; retain invalid expiry text for existing rule diagnostics |
 | Environment | Existing typed permit, EIA, emergency, monitoring and 0..N waste-contract fields | One covered Store snapshot and effective time | Monitoring detail/physical additions TBD; no new compliance result allowed |
 | Required sets | Store reference, month, either required training item identities or expected inspection task identities | Store × month × set kind, versioned effective range; Training and Inspection sets remain distinct | Authority and stable item/task identity are company decisions; never infer from observed results |
@@ -99,7 +99,7 @@ Implement `ServerIdentityProvider.getVerifiedPrincipal()` in `src/data/contracts
 
 The provider must distinguish unauthenticated requests from invalid/expired credentials according to the company integration and fail closed. Production currently throws `SERVER_IDENTITY_PROVIDER_NOT_CONFIGURED`; it does not use GLIFE_CONTEXT or Mock identity as a fallback.
 
-**Compatibility note:** current Access Grants are email-keyed. The trusted provider must currently supply a verified email to map into the existing Access Domain. Stable `principalId` is available for bootstrap/audit, but migrating grant identity away from email would be a separate access-model decision.
+**Confirmed access key:** Access Grants are email-keyed. The trusted provider must supply a server-verified email to map into the existing Access Domain. Stable `principalId` remains mandatory for bootstrap/audit; it does not replace the email grant key.
 
 ## J. Initial administrator
 
@@ -123,6 +123,8 @@ Run the existing package scripts: `pnpm test`, `pnpm typecheck`, `pnpm build`. C
 
 Database connection, SSO credentials, machine credentials, Access persistence and batch storage configuration are company-specific and are not defined in this repository. Do not add their actual values to source control or this guide.
 
+Selecting `EHS_DATA_SOURCE=production` also requires enterprise identity even in a non-production process; Mock identity cannot be combined with Production data for Pilot/UAT. The repository pins Node 22 and pnpm 11.19 for CI/deployment parity. Run `pnpm openapi:validate`, `pnpm performance:v1` and `pnpm audit --prod` with the normal test, typecheck and build gates. The performance suite is a structural/regression baseline until the company approves explicit latency and payload budgets. Application responses set `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and production HSTS. CSP `frame-ancestors` remains a deployment decision because the approved GLIFE parent origin is not yet confirmed.
+
 ## N–O. Authorization and end-to-end verification
 
 Verify with the trusted identity and production Access adapter:
@@ -144,7 +146,7 @@ Do not use Mock happy-path tests as proof of enterprise authentication or databa
 
 ## P. Import diagnostics
 
-`ImportDiagnostic` carries `domain`, `batchId`, `recordIndex`, optional `recordId`, `field`, stable `code`, `message` and `severity`. Current structural validation includes unknown fields, version, timestamps, dates, numeric bounds, enums, duplicate known record keys, record count, Store conflicts/unresolved stores, coverage mismatch and partial coverage. Certificate invalid expiry text is a warning and remains available for the existing rule. Take Charge annual aggregate is blocked with `CONTRACT_TBD`.
+`ImportDiagnostic` carries `domain`, `batchId`, `recordIndex`, optional `recordId`, `field`, stable `code`, `message` and `severity`. Current structural validation includes unknown fields, version, timestamps, dates, numeric bounds, enums, duplicate known record keys, record count, Store conflicts/unresolved stores, coverage mismatch and partial coverage. Certificate invalid expiry text is a warning and remains available for the existing rule. Take Charge annual aggregate uses direct Production Repository integration; generic import returns `DIRECT_REPOSITORY_INTEGRATION_REQUIRED`.
 
 Company adapters must add source-specific diagnostics without dropping malformed rows silently. Route-level unexpected infrastructure errors return a generic safe response; detailed internal exception data must remain in protected server logs, correlated by batch/request ID, not in the client error body.
 
@@ -159,7 +161,7 @@ Company adapters must add source-specific diagnostics without dropping malformed
 7. Do not switch Overview to Production until all score-required sources, required-set configuration, source aggregates and history are ready. The existing 12-point invariant means missing source inputs still produce their existing zero-point diagnostics; this must not be presented as a complete production score.
 8. Set `EHS_DATA_SOURCE=production` explicitly. Verify the process fails closed when a reader, identity provider, machine verifier or persistence adapter is removed. Never allow automatic Mock fallback.
 
-Snapshot V1 and history compaction are not implemented. Current batch contract supports source/configuration versions, fixed `schemaVersion: v1`, extraction/publication time, business/effective periods and declared/verified coverage. It does **not** freeze Snapshot `referenceDate` or historical calculation semantics; `referenceDate` remains an optional read scope. Treat its historical meaning as TBD and do not claim replay from the API alone. Do not build snapshot jobs in this phase.
+Current Production queries take `referenceDate` from the trusted application-server clock and interpret business day/month in `Asia/Shanghai`; client input cannot override it. Snapshot V1 and history compaction are not implemented. The batch contract supports source/configuration versions, fixed `schemaVersion: v1`, extraction/publication time, business/effective periods and declared/verified coverage, but it does **not** freeze historical Snapshot reference dates or replay semantics. Do not claim replay from the API alone or build snapshot jobs in this phase.
 
 ## R. System Monitoring & Alerting V1
 
@@ -169,7 +171,7 @@ Snapshot V1 and history compaction are not implemented. Current batch contract s
 
 **INTEGRATION REQUIRED:** provide the enterprise Email transport and configure `EHS_MONITORING_ALERT_RECIPIENTS`; notification submission is not inbox delivery unless the transport returns positive delivery confirmation. Configure an external scheduler to invoke `runConfiguredJobWatchdog` and `runConfiguredNotificationWorker`, provide explicit `EHS_MONITORING_JOBS` entries only after each schedule and threshold is approved, and connect job lifecycle updates / heartbeats to monitored tasks. An empty configuration intentionally generates no missing-job alarms. Provide an independent monitoring-storage failure channel, access-controlled retention and backup policy, and end-to-end incident drills in the company environment.
 
-**BLOCKED / TBD:** company database schema/isolation guarantees, SSO principal and GLOBAL_ADMIN grants, email service and recipient ownership, scheduler platform, approved job names/frequencies/thresholds, log retention, independent failure channel and operational response ownership are not defined here. Test adapters demonstrate contract behavior only and are never Production adapters.
+**COMPANY-OWNED INTEGRATION CHOICES:** company database schema/isolation guarantees, SSO implementation, initial GLOBAL_ADMIN, email service and recipients, scheduler platform, approved job names/frequencies/thresholds, log retention, independent failure channel and operational response owner. The company AI may select and implement these from the available company platform, but it must preserve the ports, authorization boundaries and fail-closed behavior documented here. Test adapters demonstrate contract behavior only and are never Production adapters.
 
 The implemented `POST /api/monitoring/client-error` is an authenticated browser telemetry endpoint, not a diagnostic read API. Its request and error contract is documented in [`../api/monitoring-client-error.md`](../api/monitoring-client-error.md). Company AI must not query the Monitoring database directly or use browser telemetry to retrieve incidents. A machine-readable diagnostic read path remains **BLOCKED / TBD** until the company establishes a stable machine principal, explicit least-privilege authorization, audited access, response redaction and retention rules; it must be a protected read-only server API. The current notification provider deliberately throws `EMAIL_NOTIFICATION_PROVIDER_NOT_CONFIGURED` until a company transport is injected. `EHS_MONITORING_CLIENT_REPORT_LIMIT_PER_MINUTE` controls the per-principal report limit (default 20, valid 1–100); `EHS_MONITORING_MODE=disabled` explicitly disables local Monitoring storage. Identity still depends on the production server Identity Provider.
 

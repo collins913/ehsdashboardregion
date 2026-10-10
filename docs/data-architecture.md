@@ -136,7 +136,7 @@ Raw Take Charge (TRTID + optional English Store Name)
 ```
 
 - 提交总数与关闭率按 Submitted At 使用 Global Period；关闭率先汇总月度分子与分母，再计算百分比。
-- 今年平均提交数与今年参与率由年度组织范围 aggregate 提供，不读取 Global Period，也不平均门店最终指标。
+- 今年人均提交数与今年参与率由年度组织范围 aggregate 提供，不读取 Global Period，也不平均门店最终指标。
 - Take Charge 明细查询在 Repository 边界接收 view mode、sorting、`pageIndex / pageSize` 并返回 `totalCount`；Repository 对完整 scoped result 先过滤、排序，再分页。视图和排序不影响 Goals summary。
 - 动态扩展字段只能由字段定义驱动，默认隐藏，不能覆盖核心字段或直接暴露 raw object。
 
@@ -206,11 +206,13 @@ Production query implementations compose the existing `EhsRepository` domain int
 
 The import API is Contract First at `docs/api/production-api-v1.yaml`; route handlers are `/api/v1/import/batches`, `/api/v1/import/batches/{batchId}`, `/validate`, and `/publish`. Identity is verified before resolving the protected Import Service; submit requests are also checked for Domain scope before runtime initialization. They return `PRODUCTION_IMPORT_NOT_CONFIGURED` until the machine identity verifier and persistent import adapter are supplied. `COMPLETE` is only an uploader declaration; publication requires an independently verified proof and records `VERIFIED_COMPLETE`. A configured proof verifier is not installed here, so the current default fails closed. The persistent adapter must implement revision/state compare-and-swap for validation and publication, persist creator/operator audit, and atomically replace only the declared scope, active pointer and batch state in one transaction. Validation cannot overwrite `PUBLISHED`; stale revisions conflict; a repeated publish of the same published batch is idempotent. The database adapter must preserve the prior publication and audit atomicity on failure.
 
+Import HTTP responses expose batch metadata, state, coverage assessment, audit and diagnostics only; staged source records are not returned by submit, status, validate or publish responses. Validation still reads them through the protected persistence/service boundary.
+
 `GLIFE_CONTEXT` is accepted only by the client-side display profile adapter after exact parent-origin and `window.parent` source checks. `publicMediaToken` is discarded. This browser value is never used by `authorizeBusinessScope`. Protected Server Actions resolve a server-trusted principal; Production without a configured `ServerIdentityProvider` fails closed. Production Access requires a company-provided Store/organization and persistent `AccessRepository` runtime. The provider must verify the principal and supply a verified email because the existing Access Domain is email-keyed; stable `principalId` is retained for bootstrap and audit integration, but grant-key migration is not implemented.
 
 `/api/v1/access/bootstrap` checks the trusted stable principal against `EHS_BOOTSTRAP_PRINCIPAL_ID` before resolving the bootstrap store; the configured persistence transaction must atomically create the first administrator grant and its audit/bootstrap record. No bootstrap store is configured by default. Machine import identity is separate and must authorize specific domains; it confers no Dashboard user or administrator rights. Production Access persistence must atomically write each grant mutation and audit event and enforce the last-effective-admin invariant inside the same database transaction; service preflight checks alone are insufficient.
 
-Status boundary: API routes, DTO validation, lifecycle service, adapter interfaces, GLIFE display adapter, server identity seam, and test doubles are implemented. Enterprise database, persistent transaction adapter, trusted SSO verification, M2M credentials, access persistence and initial-admin storage remain integration-required. Take Charge annual aggregate ingestion remains blocked until its source scope/schema is frozen. See `docs/integration/corporate-ai-integration.md` before enabling any production mode.
+Status boundary: API routes, DTO validation, lifecycle service, adapter interfaces, GLIFE display adapter, server identity seam, and test doubles are implemented. Enterprise database, persistent transaction adapter, trusted SSO verification, M2M credentials, access persistence and initial-admin storage remain integration-required. Take Charge annual logical outputs and targets are frozen; company physical fields are mapped directly by the Production Repository Adapter, while the generic batch API intentionally rejects that Domain. See `docs/integration/corporate-ai-integration.md` before enabling any production mode.
 
 Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同记录计分子；到期记录数按 normalized 合同记录与 referenceDate 所在自然月计算，不接收 Global Period。设施信息和 Monitoring 新字段保持 TBD。
 
@@ -244,7 +246,7 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 - 数据源系统、刷新频率与持久化方式
 - Production Entra identity（tenantId + objectId）、first-admin bootstrap、Access / Audit 持久化与独立受保护 Backend/API 选型
 - SharePoint protected JSON API / secure data access、authorization-aware cache isolation 与 ASPX / SPFx 部署安全验证
-- 生产环境 `referenceDate` 来源与 clock injection 策略；业务时区已冻结为 `Asia/Shanghai`
+- 历史 Snapshot 的 `referenceDate` 冻结与重放策略；当前 Production 查询已使用服务端可信时钟并按 `Asia/Shanghai` 解释
 
 ## 当前测试数据实现
 

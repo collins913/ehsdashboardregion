@@ -18,6 +18,8 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 8. [`ui-registry.md`](ui-registry.md)：已采用的组件、模式和共享能力。
 9. [`development-roadmap.md`](development-roadmap.md)：当前进度与下一阶段。
 10. [`decisions.md`](decisions.md)：已冻结决策及 supersede 关系。
+11. [`api/production-api-v1.yaml`](api/production-api-v1.yaml)：Production Import API 的 OpenAPI 3.1 契约。
+12. [`integration/corporate-ai-integration.md`](integration/corporate-ai-integration.md)：公司数据库、SSO、M2M、Access 与 Monitoring 接入清单。
 
 涉及历史业务文档迁移时，再查阅 [`business-conflict-review.md`](business-conflict-review.md)。
 
@@ -34,6 +36,8 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 | [`ui-guidelines.md`](ui-guidelines.md) | 定义主题、密度、布局、交互和可访问性等通用 UI 原则。 |
 | [`ui-registry.md`](ui-registry.md) | 登记已采用的 shadcn、shared、hook 和 feature pattern，防止重复实现。 |
 | [`development-roadmap.md`](development-roadmap.md) | 记录已完成阶段、开发顺序和未来 Performance / Production / Permissions 阶段。 |
+| [`api/production-api-v1.yaml`](api/production-api-v1.yaml) | 定义 Production Import API 路由、请求、状态响应与错误契约。 |
+| [`integration/corporate-ai-integration.md`](integration/corporate-ai-integration.md) | 区分已实现边界、公司接入项和仍被业务决策阻塞的事项。 |
 | [`api/monitoring-client-error.md`](api/monitoring-client-error.md) | 记录受认证的浏览器监控错误上报契约；不提供诊断读取接口。 |
 | [`business-conflict-review.md`](business-conflict-review.md) | 保存 2026-09-10 业务文档迁移审查快照；当前规则仍以专项文档和后续决策为准。 |
 

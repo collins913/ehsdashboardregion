@@ -34,7 +34,7 @@
 
 - Global Filters 的生产数据源
 - Training 与 Inspection 的 Requirement 集合来源及 source 状态映射
-- 生产环境 Reference Date 的来源
+- 历史 Snapshot 的 Reference Date 冻结与重放策略；当前 Production 查询已使用服务端可信时钟与 `Asia/Shanghai`
 - 环境合同适用关系、组合结果列映射、许可空值处理
 - Environmental Monitoring 明细、频次和达标规则
 - Events / Actions 以外数据源的 Store Resolution 策略

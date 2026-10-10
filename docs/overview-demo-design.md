@@ -45,13 +45,13 @@ Scope Detail 打开时仅把初始焦点落在可编程聚焦的 Sheet 容器，
 
 ## 正式规则尚未关闭的事项
 
-ASTM V1 scoring 方向已确认：`NOT_OCCURRED` 得 1/1，`OCCURRED` 得 0/1。Training required item catalog 与 Inspection expected task set 当前不存在；正式 Overview 对这两项保留 0/1 与 `RULE_CONFIGURATION_MISSING`，不能从 records 推导。不能可靠从历史源 records 重算的 Production Domain，其 snapshot 来源与保存策略仍待后续确定。此文档描述 Overview 页面与 Prototype 参考，不是 Prototype 算分的正式口径。
+ASTM V1 scoring 方向已确认：`NOT_OCCURRED` 得 1/1，`OCCURRED` 得 0/1。Mock V1 的 Training required item catalog 与 Inspection expected task set 已由集中 provider 提供；Production authoritative source/config 尚未接入，不能从 observed records 推导。不能可靠从历史源 records 重算的 Production Domain，其 snapshot 来源与保存策略仍待后续确定。此文档描述 Overview 页面与 Prototype 参考，不是 Prototype 算分的正式口径。
 
 ## 顶部展示布局
 
 顶部为三个同级 shadcn Card：综合得分率、小区变化排名、门店变化排名，无管理总览/关键变化外层标题或嵌套 Card。外层按真实内容容器宽度响应：960px 起三张等宽并排；704–959px 得分率独占一行、两张排名卡等宽；低于 704px 单列。
 
-两张排名卡按 Area / Store 分开，复用 feature-local `ChangeRankingPodium`。每张卡上方提升 Top 3、下方退步 Top 3，均为 2 / 1 / 3；柱高仅表达名次，使用中性 surface 和极淡金/银/铜柱体 tint。上下 segment 在中央基准线处留白断开，对齐不表示对象关联。每项名称与 delta 同行，单位百分点仅在标题 HoverCard 说明；上下各三根柱体始终显示，不足三名时仅已有条目显示名称、数值与详情交互，空柱保留文本槽位高度；无有效数据时保留柱体并显示 unavailable。排名内部永远保持三列横向双向领奖台（银 / 金 / 铜），无列表模式、奖牌图标、数字名次或提升/退步常驻标签；非零上方数值为绿色、下方数值为红色，零值为中性；长名称复用 OverflowTooltip，数值禁止压缩。不引入诊断或风险判断。
+两张排名卡按 Area / Store 分开，复用 feature-local `ChangeRankingList`。每张卡按提升 Top 3、退步 Top 3 分为两个紧凑表格，显示名次、名称、得分率与变化；候选不足三名时保留空行和明确空值，无有效数据时显示“无可比较数据”。名称复用 `OverflowTooltip` 与 `TableCellTrigger` 打开已有详情，变化颜色复用 `ScoreChange`。排名不使用领奖台、奖牌或装饰性柱体，不引入诊断或风险判断。
 
 Prototype presentation 仍复用既有 `hero.monthlyDelta`、趋势与说明文案；这些字段背后的 Prototype 数值不能作为正式 scoreRate。正式分母固定为 12 个 V1 metric points，不排除 MISSING / N/A / incomplete；正式页面已接入独立的 ScoreContribution contract 与 Overview preparation result。
 

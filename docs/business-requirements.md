@@ -135,7 +135,7 @@ Training 和 Inspection 当前 source contract 不含必修 / 必检标记或对
 
 ## 5. Performance → Goals
 
-Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年平均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。
+Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年人均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。
 
 ### 5.1 提交总数
 
@@ -150,7 +150,7 @@ Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area�
 - 目标值：`>= 90%`。
 - 完整 Coverage 下无记录时显示“无”，不显示 `0%` 或 `100%`。
 
-### 5.3 今年平均提交数
+### 5.3 今年人均提交数
 
 - 使用数据源提供的当前组织范围年度累计 aggregate，不平均门店最终指标。
 - 目标值：`>= 4`，展示 1 位小数。
@@ -338,7 +338,7 @@ Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID
 - 数据库表、物理字段名、字段类型、约束与索引
 - API 路由、请求和响应格式
 - 数据刷新频率与持久化方式
-- 生产环境 Reference Date 的来源；业务时区与 Period 边界已由 Global Filters 规则冻结
+- 历史 Snapshot 的 Reference Date 冻结与重放；当前 Production 查询使用服务端可信时钟，业务时区与 Period 边界为 `Asia/Shanghai`
 - 未明确的状态字典与视觉颜色
 
 ## 12. Access Management V1

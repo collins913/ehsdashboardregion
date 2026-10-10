@@ -106,7 +106,7 @@ blank / null 表示缺失；invalid date 保留为 invalid，不自动修正；�
 
 `EhsRepository` 的公开能力按 KPI、Actions、Events、Take Charge、Stores、Environment、Certificates 与 Global Filters 分组，全部返回 Promise。公开接口只返回 normalized/domain result，不暴露 raw `list*` source API。
 
-Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 period-aware context、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。
+Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 period-aware context、view/filter/sorting、`pageIndex`、`pageSize`、ISO datetime string 等可序列化值。Repository factory 与 `referenceDateIso → Date` 转换只发生在 server-only 边界。Production 的业务日期固定来自服务端可信时钟并按 `Asia/Shanghai` 解释；Client timestamp 不能覆盖它。Mock 仍可注入日期以保持测试确定性。
 
 ## 3. Store Master Data
 
@@ -220,10 +220,10 @@ Repository 向页面提供两组明确分离的结果：
 | 范围 | 逻辑字段 | 含义 |
 |---|---|---|
 | Global Period | submissionTotal / closedCount / closeRate | 当前 Submitted At 范围内的提交与关闭汇总 |
-| 当前年度累计 | averageSubmissionsYtd | 当前组织范围的数据源 aggregate，1 位小数 |
+| 当前年度累计 | submissionsPerCapitaYtd | 当前组织范围的数据源人均提交数 aggregate，1 位小数 |
 | 当前年度累计 | participationRateYtd | 当前组织范围的数据源 aggregate，0 位小数 |
 
-`averageSubmissionsYtd` 与 `participationRateYtd` 当前由 upstream 提供 aggregate，Dashboard 不从明细重新计算。年度指标不携带 Global Period。多 Store、Area、Region 查询必须由上游返回该范围 aggregate，不允许平均门店最终值。百分比统一使用 0–100。只有完整明细与正式 denominator 均定义后，才可评估迁移为 Dashboard-derived metric。
+`submissionsPerCapitaYtd` 与 `participationRateYtd` 由 upstream / company Production Repository Adapter 提供 aggregate，Dashboard 不从明细重新计算。年度指标不携带 Global Period。多 Store、Area、Region 查询必须返回该授权范围的 aggregate，不允许平均门店最终值。`submissionsPerCapitaYtd >= 4`、`participationRateYtd >= 50` 为达成；关闭率字段为 `closeRate`，目标为 `>= 90`。百分比统一使用 0–100。公司物理字段名由 Adapter 映射到这些英文逻辑字段；Dashboard 不定义公司表字段或反推 denominator。
 
 ### 5.2 Take Charge Record
 
@@ -480,7 +480,7 @@ type OverviewMetricId =
   | "INSPECTION"
   | "ASTM_INCIDENT"
   | "TAKE_CHARGE_CLOSE_RATE"
-  | "AVERAGE_SUBMISSIONS_YTD"
+  | "SUBMISSIONS_PER_CAPITA_YTD"
   | "PARTICIPATION_RATE_YTD"
   | "CERTIFICATE_SAFETY_HEALTH"
   | "CERTIFICATE_FIRST_AID"
@@ -503,7 +503,7 @@ Historical data from 2026-01 through the current business month produces one con
 
 - `DomainSource<T>` 表达单个 Store × Period 的 normalized records、availability 与可选 source reason；不能用全 Dataset 的坏数据覆盖其它 Store 的贡献。
 - `KpiDataSnapshot.domainResults` 是 KPI / ScoreContribution 的共同真源；KPI Builder 不评价业务。`KpiInspectionRecord.month` 是 Adapter 派生值，Raw Inspection 仍不提供 month。
-- `TakeChargeAnnualSource` 仅含两个 source-provided normalized values 及独立原因，不规定 Production numerator/denominator schema。Goals 使用 reference year/month；Global Period 不参与 YTD 查询。Mock fixture adapter 保留 pooled source numerator/denominator 口径，不平均 Store 百分比。
+- `TakeChargeAnnualSource` 仅含 `submissionsPerCapitaYtd`、`participationRateYtd` 两个 source-provided normalized values 及独立原因，不规定 Production numerator/denominator schema。Goals 使用 reference year/month；Global Period 不参与 YTD 查询。Mock fixture adapter 保留 pooled source numerator/denominator 口径，不平均 Store 百分比。
 - `TakeChargeMetricValue` 与 `CertificateCategorySummary` 保留领域 reason；12 个 scoring producer 消费真实领域诊断。非法 NaN 不得降为通用 SOURCE_INCOMPLETE。
 - 缺失/非法日期无法确定 Period membership 时不补日期；仅保守标记可定位 Store/domain。不能解析到 Store 的行保持 orphan diagnostic，不任意分配。Production authoritative scope/coverage 的物理表示仍为 TBD。
 
@@ -519,7 +519,7 @@ The trusted `MachinePrincipal` contains stable `principalId`, authorized Domain 
 
 Store Master `trtid` is rejected when empty or whitespace-only; this does not define Store lifecycle policy. The current Training duplicate guard uses provisional Store × Month × `trainingName` solely to flag within-batch duplicates; it is not a confirmed enterprise natural key. Required-set duplicate identity includes set kind, so Training and Inspection configurations for the same Store × Month do not collide. Company source identity and required-set authority remain integration decisions.
 
-Diagnostics identify Domain, batch, row index or source record ID where available, field, stable error code, message and severity. Schema errors reject a batch; unresolved Store references and coverage mismatch block publication. Invalid Certificate expiry text is retained with a warning so the existing Certificate Rule can produce its current invalid-date reason. Unresolved Take Charge annual aggregate scope/schema is intentionally rejected as `CONTRACT_TBD`.
+Diagnostics identify Domain, batch, row index or source record ID where available, field, stable error code, message and severity. Schema errors reject a batch; unresolved Store references and coverage mismatch block publication. Invalid Certificate expiry text is retained with a warning so the existing Certificate Rule can produce its current invalid-date reason. Take Charge annual values are supplied by the company Production Repository Adapter; the generic import API rejects that Domain with `DIRECT_REPOSITORY_INTEGRATION_REQUIRED` instead of inventing a company batch schema.
 
 Current implementation status is explicitly not equivalent to production service readiness: route handlers and generic contract validation exist, while the machine verifier and durable storage are unconfigured. The OpenAPI marks those endpoints `INTEGRATION_REQUIRED`; runtime responds 503 until adapters are installed.
 

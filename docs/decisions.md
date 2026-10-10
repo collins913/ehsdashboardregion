@@ -58,7 +58,7 @@ Training、Drill、Inspections、ASTM、Actions Open 分类与 Certificates 判�
 以下值由后续数据源直接提供：
 
 - Action Closure Rate
-- Take Charge current-year Average Submissions
+- Take Charge current-year Submissions per Capita
 - Take Charge current-year Participation Rate
 
 Dashboard 不根据明细猜测分子、分母或人员基数。
@@ -111,7 +111,7 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 |---|---:|---:|
 | 提交总数 | 无目标 | 整数 |
 | Take Charge Close Rate | >= 90% | 0 位小数 |
-| 今年平均提交数 | >= 4 | 1 位小数 |
+| 今年人均提交数 | >= 4 | 1 位小数 |
 | 今年参与率 | >= 50% | 0 位小数 |
 
 提交总数与关闭率跟随 Global Period；关闭率由 Take Charge 明细的月度分子/分母汇总计算。两个“今年”指标固定为 reference year 年初至当前月，只跟随 Region / Area / Store，并由 upstream 提供数据源范围 aggregate；Dashboard 不从明细重算，也不得平均门店最终值。只有完整明细与正式 denominator 定义后，才可评估迁移为 Dashboard-derived metric。
@@ -196,7 +196,7 @@ Environment 主表保持门店维度，仅提供设施信息、环保证照、�
 - 历史环境合规需求中，缺失必要 Expiry Date 且没有更早异常结论：`UNDETERMINED`；不适用于当前 Environment Detail Expansion。
 - Certificates V1 缺失 / 无效日期为 `ABNORMAL`，具体以 D-021 为准，不沿用历史缺日期规则。
 - 共享 Dashboard referenceDate 与 Global Period 独立；规则接受注入值，不另读系统或浏览器当前时间。
-- 生产环境如何确定 Reference Date：TBD。
+- Production 使用应用服务端可信时钟，按 `Asia/Shanghai` 解释业务日期；Client 传入值不能覆盖 Production referenceDate。Mock 保留可注入日期以支持确定性测试。
 
 ### D-029 KPI 使用集中数据组装契约
 
@@ -262,7 +262,6 @@ Environment Analytics 的危险废物与一般工业固体废物合同持有率�
 
 - 非完整自然月和自定义日期区间的 KPI 规则
 - Training 与 Inspection 的 Requirement 集合来源
-- 生产环境 Reference Date 的来源
 - 危废/一般固废组合结果在两个独立类别列中的呈现方式
 - Environmental Monitoring 的明细字段、频次与监测结果规则
 - 数据库、API 物理结构、Production Identity Provider、刷新、持久化及视觉状态规范
@@ -318,9 +317,11 @@ Overview、Certificates、Environment、Stores 的正式页面隐藏 Global Peri
 
 Production API 只接收原始业务事实及导入元数据，不接收 Dashboard 计算结果。批次须完成结构校验、Store Resolution、覆盖范围验证和请求记录数自洽校验后才能进入覆盖证明判定；请求内计数相等不证明来源完整。生产持久层须将批次发布与已发布数据指针原子提交。此决策不改变任何 Domain Rule、ScoreContribution 或 12-point invariant。
 
+Import API 的 submit / status / validate / publish 响应只返回批次生命周期元数据、coverage assessment、audit 与 diagnostics，不返回暂存 source records。原始 records 仅留在受保护的持久化与校验边界内。
+
 `GLIFE_CONTEXT` 是父页面经 origin/source 校验后提供的显示资料，不构成服务端认证凭据。Server Identity Provider 与 Machine Identity Provider 分离；受保护查询只接受服务端验证的身份，数据导入机器身份按 Domain 授权。生产身份协议、数据库、token 验证方式仍由公司集成确定。
 
-Access 持续使用既有 Region / Area / Store 授权语义。企业 Access Repository 必须原子写入 Manual Grant 和 Audit，并在同一事务保证最后一名有效管理员约束。初始管理员必须绑定服务端验证的稳定 principalId，不能用客户端邮箱字符串触发；实际企业存储未配置前 Bootstrap 关闭。
+Access 持续使用既有 Region / Area / Store 授权语义，并以服务端验证、规范化后的邮箱作为权限匹配键。企业 Access Repository 必须原子写入 Manual Grant 和 Audit，并在同一事务保证最后一名有效管理员约束。稳定 `principalId` 用于 Bootstrap 与审计，初始管理员不能用客户端邮箱字符串触发；实际企业存储未配置前 Bootstrap 关闭。
 
 ### D-048 Production Import CAS、审计与覆盖证明
 

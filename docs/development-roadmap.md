@@ -1,11 +1,11 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-10-02
+- 更新日期：2026-10-09
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
 
-项目已完成基础架构及七个正式业务模块；Overview Data V1 与 Phase 2.5 Mock required-set provider 已接入正式 `/overview`。Training / Inspection 使用合成 Mock V1 集合验证规则；Production authoritative required-set source/config 仍待提供。Prototype 文件保留，但正式路由不依赖 Prototype 数据、评分或历史 fixture。Access Management V1 Demo：completed；Production Integration 为后续独立阶段。
+项目已完成基础架构、七个正式业务模块、Overview Data V1、Production Import API V1 接口边界及 System Monitoring V1 应用边界。Training / Inspection 使用合成 Mock V1 集合验证规则；Production authoritative required-set source/config 仍待提供。Prototype 文件保留，但正式路由不依赖 Prototype 数据、评分或历史 fixture。Access Management V1 Demo：completed；当前进入公司 Production Integration 阶段，尚未达到生产部署就绪。
 
 Environment Detail Expansion：completed。主表保持门店维度并提供五个详情入口；typed 环保证照、应急预案与废弃物合同明细已完成，设施信息及 Monitoring 新字段保持 TBD。
 
@@ -37,6 +37,9 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Environment Analytics Metric Cards
 - Dashboard shared Analytics presentation reuse
 - Overview Data V1（正式 ScoreContribution 链路与 Server-side pooled aggregation）
+- Production Import API V1（OpenAPI、运行时校验、批次生命周期与 fail-closed 接入边界）
+- Enterprise Access V1 接入边界（可信主体、Bootstrap 与持久化端口）
+- System Monitoring & Alerting V1 应用边界（事件、Incident、Outbox、管理页与 fail-closed 接入端口）
 
 ## Architecture Hardening
 
@@ -56,7 +59,7 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 2. 生产历史若无法按月末 referenceDate 从可靠 Domain records 回算，再定义 snapshot；本阶段没有建立 snapshot。
 3. ASTM KPI Drilldown（独立后续增强，不是 Overview 前置条件）。
 
-依赖原则：Overview 只组合既有 Domain Results，不复制业务规则。Standard / Performance Mock 与正式 Overview 共用 Repository、Domain rules、contribution producer 和 aggregation。未定义 API 或 snapshot。ASTM KPI Drilldown 复用现有 normalized Event Repository。
+依赖原则：Overview 只组合既有 Domain Results，不复制业务规则。Standard / Performance Mock 与正式 Overview 共用 Repository、Domain rules、contribution producer 和 aggregation。Production Import API 已定义；业务查询 API 与 snapshot 仍未冻结。ASTM KPI Drilldown 复用现有 normalized Event Repository。
 
 ## Performance & Scale Validation
 
@@ -118,7 +121,7 @@ Performance V1 已完成 KPI summary / 按需 domain drilldown 优化、异步�
 
 Access V1 Demo：completed。已建立 Mock identity、Base Grants、Manual Grants、Effective Access、Global User、Global Admin、server authorization 与 audit semantics；`/access` 提供“手动权限管理”和“操作日志”两个 Tab，自动权限由组织数据派生，Manual Grant 无截止时间和过期状态，服务端保护最后一名全局管理员。
 
-Production Integration TBD：Entra identity、稳定 tenantId + objectId、Production Identity Provider、Azure Function / App Service 等受保护 API、SharePoint protected JSON API / secure data access、Manual Grant 与 Audit 持久化（数据库或 SharePoint List）、production first-admin bootstrap、authorization-aware cache isolation、ASPX / SPFx 部署安全验证。不得把 Demo Mock identity 或进程内授权与审计数据视为生产能力。若采用静态 ASPX 托管，独立 server authorization runtime 仍为必要条件。当前约束链路为：
+Production Integration 当前待完成：企业数据库 Adapter 及事务保证、可信 SSO、M2M 身份、Manual Grant / Audit 与 Bootstrap 持久化、Production Repository、Monitoring 持久化、Email、Scheduler、authoritative required sets、Take Charge 年度 aggregate 物理字段映射、authorization-aware cache isolation 与部署安全验证。Take Charge 的逻辑输出与目标已确认；通用批量 API 不接收其年度 aggregate，由公司 Production Repository Adapter 直接读取并映射。接口、端口和 fail-closed 行为已实现；不得把测试内存 Adapter、Mock identity 或进程内数据视为生产能力。详见 `integration/corporate-ai-integration.md`。当前约束链路为：
 
 ```text
 User Identity

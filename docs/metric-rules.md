@@ -137,9 +137,10 @@ Dates used for expiry evaluation should be date-only values such as:
 
 The rule function must not read the browser/system current time directly.
 
-How production determines `referenceDate` is an application-level policy and remains:
-
-`TBD`
+Production uses the trusted application-server clock. The business date and
+month are interpreted in `Asia/Shanghai`; a client-supplied timestamp cannot
+override the production business date. Mock mode retains injected dates for
+deterministic tests.
 
 This does not prevent deterministic testing because tests can inject a reference date.
 
@@ -354,7 +355,7 @@ Complete coverage with zero records returns `null` and displays “无”; it mu
 
 ---
 
-## 4.3 Current-year Average Submissions
+## 4.3 Current-year Submissions per Capita
 
 The source provides the aggregate for the selected Region / Area / Store scope from January through the Dashboard reference month. It ignores Global Period. For multi-store scopes, do not average store-level final values.
 
@@ -779,7 +780,7 @@ Each row below has one available point per Store × Month. Existing domain rules
 | Inspection | Performance | Section 3.4; every expected task must be complete | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason; Mock V1 provider exists, Production source remains future work |
 | ASTM Incident | Performance | Section 3.5 `OccurrenceResult` | `NOT_OCCURRED` → ACHIEVED 1/1; `OCCURRED` → NOT_ACHIEVED 0/1; missing / invalid / incomplete → 0/1 with the corresponding diagnostic reason |
 | Take Charge Close Rate | Take Charge | Section 4.2 Goal result | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
-| Average Submissions YTD | Take Charge | Section 4.3 source aggregate and >= 4 target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
+| Submissions per Capita YTD | Take Charge | Section 4.3 source aggregate and >= 4 target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
 | Participation Rate YTD | Take Charge | Section 4.4 source aggregate and >= 50% target | ACHIEVED 1/1; otherwise 0/1 with diagnostic reason |
 | Safety & Health Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
 | First Aid Certificates | Certificates | Section 7 Store × Category result | NORMAL 1/1; ABNORMAL 0/1 |
