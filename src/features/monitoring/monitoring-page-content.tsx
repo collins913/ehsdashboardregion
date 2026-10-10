@@ -43,7 +43,7 @@ export function buildIncidentDiagnostics(incident: OperationalIncident, events: 
   };
 }
 
-export function MonitoringPageContent({ initialSnapshot, storageMode }: { initialSnapshot: MonitoringSnapshot; storageMode: "DEVELOPMENT_MEMORY" | "UNAVAILABLE" }) {
+export function MonitoringPageContent({ initialSnapshot, storageMode }: { initialSnapshot: MonitoringSnapshot; storageMode: "DEVELOPMENT_MEMORY" | "PRODUCTION" | "UNAVAILABLE" }) {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("7d");
   const [windowClock, setWindowClock] = useState(() => Date.now());
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);

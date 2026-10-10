@@ -3,22 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CircleHelp,
-  EllipsisVertical,
   House,
-  MessageSquare,
   UserRound,
 } from "lucide-react";
-import { toast } from "sonner";
 import { applicationName, navigationGroups, navigationLabels, routes } from "@/config/navigation";
 import type { AccountSummary } from "@/data/contracts/access";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -103,49 +93,19 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
         <SidebarFooter className="border-t p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    aria-label={account.email}
-                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                  >
-                    <Avatar>
-                      <AvatarFallback>
-                        <UserRound aria-hidden="true" className="size-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                      <span className="truncate text-sm font-medium">{account.email}</span>
-                      <span className="truncate text-xs text-muted-foreground">{account.summary}</span>
-                    </div>
-                    <EllipsisVertical
-                      aria-hidden="true"
-                      className="ml-auto size-4 group-data-[collapsible=icon]:hidden"
-                    />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="end" sideOffset={4}>
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      toast.info("帮助功能暂未开放");
-                      setOpenMobile(false);
-                    }}
-                  >
-                    <CircleHelp aria-hidden="true" />
-                    <span>帮助</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      toast.info("反馈建议功能暂未开放");
-                      setOpenMobile(false);
-                    }}
-                  >
-                    <MessageSquare aria-hidden="true" />
-                    <span>反馈建议</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <SidebarMenuButton asChild size="lg" tooltip={account.email}>
+                <div tabIndex={0} aria-label={account.email}>
+                  <Avatar>
+                    <AvatarFallback>
+                      <UserRound aria-hidden="true" className="size-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                    <span className="truncate text-sm font-medium">{account.email}</span>
+                    <span className="truncate text-xs text-muted-foreground">{account.summary}</span>
+                  </div>
+                </div>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>

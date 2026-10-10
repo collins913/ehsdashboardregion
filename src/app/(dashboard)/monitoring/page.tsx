@@ -24,7 +24,7 @@ export default async function MonitoringPage() {
     const repository = getMonitoringRepository();
     if (process.env.NODE_ENV !== "production") await seedMonitoringDemoData(repository);
     const snapshot = await repository.listSnapshot({}, new Date().toISOString() as MonitoringSnapshot["sampledAt"]);
-    return <MonitoringPageContent initialSnapshot={snapshot} storageMode={process.env.NODE_ENV === "production" ? "UNAVAILABLE" : "DEVELOPMENT_MEMORY"} />;
+    return <MonitoringPageContent initialSnapshot={snapshot} storageMode={process.env.NODE_ENV === "production" ? "PRODUCTION" : "DEVELOPMENT_MEMORY"} />;
   } catch {
     return <MonitoringPageContent initialSnapshot={emptySnapshot()} storageMode="UNAVAILABLE" />;
   }

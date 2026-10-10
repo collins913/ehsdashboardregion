@@ -31,6 +31,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
+import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
@@ -169,24 +170,6 @@ function ActionDetailSheet({
         {record ? <div className="space-y-4 px-4 pb-4"><ActionDetailContent record={record} showStatus={false} /></div> : null}
       </SheetContent>
     </Sheet>
-  );
-}
-
-function DataAvailabilityNotice({
-  availability,
-}: {
-  availability: DataAvailability;
-}) {
-  if (availability === "AVAILABLE" || availability === "CONFIRMED_EMPTY") {
-    return null;
-  }
-
-  return (
-    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-      {availability === "INCOMPLETE"
-        ? "行动项数据不完整，当前结果可能缺少记录。"
-        : "行动项数据不可用。"}
-    </div>
   );
 }
 
@@ -589,7 +572,7 @@ export function ActionsDataTable({
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 
-      <DataAvailabilityNotice availability={availability} />
+      <DataAvailabilityNotice availability={availability} subject="行动项" />
 
       <div
         ref={tableFrameRef}
@@ -643,7 +626,6 @@ export function ActionsDataTable({
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
-                  role="button"
                   tabIndex={isRetainingResolvedRows ? -1 : 0}
                   aria-hidden={
                     (isRetainingResolvedRows && pendingMode === "mask-content") || undefined

@@ -530,7 +530,6 @@ export function StoresDataTable({
                 <TableRow
                   key={row.id}
                   ref={rowIndex === 0 ? rowMeasurementRef : undefined}
-                  role="button"
                   tabIndex={isRetainingResolvedRows ? -1 : 0}
                   aria-hidden={isRetainingResolvedRows || undefined}
                   aria-label={`查看门店 ${row.original.storeNameCn}`}

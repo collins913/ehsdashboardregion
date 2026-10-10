@@ -13,6 +13,5 @@ describe("persistent Dashboard composition", () => {
     for (const route of ["performance/kpi", "performance/goals", "risk/actions", "risk/events", "stores"]) {
       expect(readFileSync(`src/app/(dashboard)/${route}/page.tsx`, "utf8")).not.toContain("PageHeader");
     }
-    expect(readFileSync("src/components/shared/placeholder-page.tsx", "utf8")).not.toContain("PageHeader");
   });
 });

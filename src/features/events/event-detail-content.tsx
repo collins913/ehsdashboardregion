@@ -3,12 +3,6 @@ import { StatusDisplay } from "@/components/shared/status-display";
 import type { NormalizedEventRecord } from "@/data/contracts/events";
 import { formatBusinessDateTime } from "@/lib/format-business-date-time";
 
-function astmAccidentLabel(value: string | null | undefined): string {
-  if (value === "Yes") return "是";
-  if (value === "No") return "否";
-  return "—";
-}
-
 export function EventDetailContent({
   record,
   showStatus = true,
@@ -28,15 +22,12 @@ export function EventDetailContent({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <DetailField label="提交人">{record.submittedBy}</DetailField>
-          <DetailField label="提交时间">
+          <DetailField label="事件时间">
             {formatBusinessDateTime(record.eventDate)}
           </DetailField>
         </div>
         <DetailField label="事件描述">
           <span className="whitespace-pre-wrap">{record.description}</span>
-        </DetailField>
-        <DetailField label="ASTM 事故">
-          {astmAccidentLabel(record.astmInjuryIllness)}
         </DetailField>
       </dl>
     </div>
