@@ -12,6 +12,14 @@ Status labels:
 
 The API paths are implemented but intentionally return `503 PRODUCTION_IMPORT_NOT_CONFIGURED` until company machine-auth and persistent import adapters are installed. OpenAPI: [`docs/api/production-api-v1.yaml`](../api/production-api-v1.yaml).
 
+Company implementation should start from the concise execution and go-live checklist in [`deployment-readiness-checklist.md`](deployment-readiness-checklist.md), then use this guide for the detailed contracts. The checklist does not replace any requirement in this document.
+
+After the company adapters are installed in a non-production environment, record evidence and sign-off in [`uat-acceptance-matrix.md`](uat-acceptance-matrix.md). A completed matrix cannot override an unresolved contract or NO-GO condition.
+
+Before adapter implementation, map verified company database objects and fields in [`source-field-mapping-template.md`](source-field-mapping-template.md). Unresolved keys, enums, coverage proof or required-set authority remain blockers; the template must not contain credentials or real personal data samples.
+
+Production traffic and data cutover must follow the staged checkpoints in [`production-cutover-rollback-runbook.md`](production-cutover-rollback-runbook.md). The repository provides no generic database rollback endpoint; company-specific atomic pointer recovery must be implemented, authorized and tested before go-live.
+
 ## A–C. Existing architecture and completed work
 
 The data chain is:

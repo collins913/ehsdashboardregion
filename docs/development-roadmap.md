@@ -1,6 +1,6 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-10-09
+- 更新日期：2026-10-10
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
@@ -40,6 +40,10 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - Production Import API V1（OpenAPI、运行时校验、批次生命周期与 fail-closed 接入边界）
 - Enterprise Access V1 接入边界（可信主体、Bootstrap 与持久化端口）
 - System Monitoring & Alerting V1 应用边界（事件、Incident、Outbox、管理页与 fail-closed 接入端口）
+- 公司部署接入与上线检查清单（公司 AI 执行边界、验收证据与 NO-GO 条件）
+- Production Integration UAT 验收矩阵（测试项、证据与签字模板）
+- 公司数据源字段映射模板（逻辑 Contract、物理字段、键与 Coverage Proof）
+- Production 切换与回滚 Runbook（检查点、停止条件、原子指针恢复与证据归档）
 
 ## Architecture Hardening
 
