@@ -1,3 +1,4 @@
+import { QueryError } from "@/data/contracts/query-result";
 import "server-only";
 import type { ProductionAccessPrincipal } from "@/data/contracts/production-import";
 import type { ServerIdentityProvider } from "@/data/contracts/server-identity";
@@ -29,7 +30,7 @@ export async function getVerifiedServerPrincipal(): Promise<ProductionAccessPrin
 
 export async function requireVerifiedServerPrincipal(): Promise<ProductionAccessPrincipal> {
   const principal = await getVerifiedServerPrincipal();
-  if (!principal) throw new Error("NOT_AUTHENTICATED");
+  if (!principal) throw new QueryError("AUTHENTICATION_REQUIRED");
   if (!principal.principalId.trim()) throw new Error("INVALID_TRUSTED_PRINCIPAL");
   return principal;
 }

@@ -8,7 +8,6 @@ import type {
   OperationalEventInput,
   OperationalIncident,
 } from "@/data/contracts/monitoring";
-import type { ProductionDomain } from "@/data/contracts/production-import";
 import type { TimezoneAwareIsoDateTime } from "@/types/ehs";
 import type { MonitoringRepository } from "@/data/repositories/monitoring/monitoring-repository";
 import { redactOperationalText, createMonitoringEventWrite, operationalFingerprint } from "./operational-event";

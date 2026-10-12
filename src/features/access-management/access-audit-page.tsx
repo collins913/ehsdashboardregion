@@ -1,4 +1,5 @@
 "use client";
+import { queryErrorMessage } from "@/data/contracts/query-result";
 
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { AuditEvent, ManualGrant } from "@/data/contracts/access";
@@ -29,7 +30,7 @@ export function AccessAuditTab({ active, email, onEmailChange, tableState, onTab
     { id: "scope", title: "权限范围", value: (event) => event.scopeDisplayName, sizeRole: "content" },
     { id: "view", title: "查看", value: () => "", sortable: false, sizeRole: "compact", render: (event) => <TableCellTrigger onClick={() => setSelected(event)}>查看</TableCellTrigger> },
   ], []);
-  return <div className="space-y-4"><label className="block w-72 space-y-1 text-sm">邮箱搜索<Input value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="操作人或授权对象" /></label>{query.status === "ERROR" ? <p role="alert" className="text-sm text-destructive">日志加载失败。</p> : null}
+  return <div className="space-y-4"><label className="block w-72 space-y-1 text-sm">邮箱搜索<Input value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="操作人或授权对象" /></label>{query.status === "ERROR" ? <p role="alert" className="text-sm text-destructive">{queryErrorMessage(query.errorCode)}</p> : null}
     <DataTable active={active} interactionState={tableState} onInteractionStateChange={onTableStateChange} rows={events} columns={columns} emptyMessage="暂无操作日志。" status={query.status === "SUCCESS" ? "READY" : query.status === "ERROR" ? "ERROR" : "LOADING"} semanticKey={email} />
     <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}><SheetContent className="overflow-y-auto"><DetailHeader title="操作详情" subtitle="手动权限变更记录" />{selected ? <div className="space-y-5 px-4 pb-5 text-sm"><dl className="grid grid-cols-[6rem_1fr] gap-2">{[["操作", auditActionLabels[selected.action]], ["时间", formatBusinessDateTime(selected.timestamp)], ["操作人", selected.actorEmail], ["授权对象", selected.targetEmail], ["权限类型", accessTypeLabels[selected.scopeType]], ["权限范围", selected.scopeDisplayName], ["备注", display(selected.note)]].map(([label, value]) => <div key={label} className="contents"><dt className="text-muted-foreground">{label}</dt><dd className="break-all">{value}</dd></div>)}</dl><GrantSnapshot title="变更前" grant={selected.before} /><GrantSnapshot title="变更后" grant={selected.after} /></div> : null}</SheetContent></Sheet>
   </div>;

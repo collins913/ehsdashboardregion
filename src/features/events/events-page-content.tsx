@@ -1,4 +1,5 @@
 "use client";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
@@ -17,12 +18,12 @@ import { EventsAnalytics } from "@/features/events/events-analytics";
 export type EventsQueryAction = (input: {
   referenceDateIso: string;
   query: EventsQuery;
-}) => Promise<EventsQueryResult>;
+}) => Promise<QueryOutcome<EventsQueryResult>>;
 
 export type EventsAnalyticsQueryAction = (input: {
   referenceDateIso: string;
   query: EventAnalyticsQuery;
-}) => Promise<EventAnalyticsResult>;
+}) => Promise<QueryOutcome<EventAnalyticsResult>>;
 
 export function EventsPageContent({
   queryEvents,

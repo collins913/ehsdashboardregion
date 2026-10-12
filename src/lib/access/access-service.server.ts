@@ -1,3 +1,4 @@
+import { QueryError, queryErrorCode } from "@/data/contracts/query-result";
 import "server-only";
 import type { AccessCatalog, AccessQuery, AccountSummary, AuditEvent, GrantInput, GrantUpdate, ManualGrant, MutationResult } from "@/data/contracts/access";
 import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
@@ -18,7 +19,7 @@ export async function currentAccess(now = new Date()) {
 }
 export async function requireAdmin() {
   const context = await currentAccess();
-  if (!context.effective.canManageAccess) throw new Error("NOT_AUTHORIZED");
+  if (!context.effective.canManageAccess) throw new QueryError("ACCESS_DENIED");
   return context;
 }
 export async function getAccountSummary(): Promise<AccountSummary> {
@@ -31,7 +32,7 @@ export async function getAuthorizedFilterStores(): Promise<readonly KpiStore[]> 
 export async function authorizeBusinessScope(requested: EhsStoreScope): Promise<EhsStoreScope> {
   const { stores, effective } = await currentAccess();
   const scope = authorizedScope(requested, effective, stores);
-  if (!scope) throw new Error("NOT_AUTHORIZED");
+  if (!scope) throw new QueryError("ACCESS_DENIED");
   return scope;
 }
 function scopeName(input: GrantUpdate, stores: readonly KpiStore[]): string | null {
@@ -65,7 +66,7 @@ export async function createManualGrant(input: GrantInput): Promise<MutationResu
     if (manuals.some((grant) => grant.email === email && grant.accessType === input.accessType && grant.scopeId === input.scopeId)) return failure("DUPLICATE_GRANT");
     const created = await repository.createManualGrant({ ...input, email }, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return { ok: true, value: created.id };
-  } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
+  } catch (error) { return failure(queryErrorCode(error) === "ACCESS_DENIED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function updateManualGrant(id: string, input: GrantUpdate): Promise<MutationResult<string>> {
   try {
@@ -79,7 +80,7 @@ export async function updateManualGrant(id: string, input: GrantUpdate): Promise
     const safeUpdate: GrantUpdate = { accessType: input.accessType, scopeId: input.scopeId, note: input.note };
     const updated = await repository.updateManualGrant(id, safeUpdate, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return updated ? { ok: true, value: updated.id } : failure("GRANT_NOT_FOUND");
-  } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
+  } catch (error) { return failure(queryErrorCode(error) === "ACCESS_DENIED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function deleteManualGrant(id: string): Promise<MutationResult<string>> {
   try {
@@ -88,7 +89,7 @@ export async function deleteManualGrant(id: string): Promise<MutationResult<stri
     if (!before) return failure("GRANT_NOT_FOUND");
     if (removesLastGlobalAdmin(before, null, manuals)) return failure("LAST_GLOBAL_ADMIN");
     return await repository.deleteManualGrant(id, { principalId: principal.principalId, verifiedEmail: identity.email }) ? { ok: true, value: id } : failure("GRANT_NOT_FOUND");
-  } catch (error) { return failure(error instanceof Error && error.message === "NOT_AUTHORIZED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
+  } catch (error) { return failure(queryErrorCode(error) === "ACCESS_DENIED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function queryAuditLog(email = ""): Promise<readonly AuditEvent[]> {
   const { repository } = await requireAdmin();

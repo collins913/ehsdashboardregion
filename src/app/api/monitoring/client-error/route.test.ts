@@ -1,3 +1,4 @@
+import { QueryError } from "@/data/contracts/query-result";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -28,7 +29,7 @@ describe("client monitoring error endpoint", () => {
   });
 
   it("rejects unauthenticated reports before touching monitoring storage", async () => {
-    mocks.principal.mockRejectedValue(new Error("NOT_AUTHENTICATED"));
+    mocks.principal.mockRejectedValue(new QueryError("AUTHENTICATION_REQUIRED"));
     const response = await POST(post({ kind: "UNHANDLED_ERROR", route: "/overview", digest: null }));
     expect(response.status).toBe(401);
     expect(mocks.getRepository).not.toHaveBeenCalled();

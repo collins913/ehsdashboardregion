@@ -1,11 +1,12 @@
 import { PRODUCTION_DOMAINS, type ImportDiagnostic, type ProductionDomain, type ProductionImportBatchInput } from "./production-import";
-import { parseTimezoneAwareInstant } from "@/data/contracts/kpi-period";
+import { parseTimezoneAwareInstant, periodFromMonthRange, type ParsedKpiPeriod } from "@/data/contracts/kpi-period";
+import type { Month } from "@/types/ehs";
 
 type UnknownRecord = Record<string, unknown>;
 const record = (value: unknown): value is UnknownRecord => value !== null && typeof value === "object" && !Array.isArray(value);
 const only = (value: UnknownRecord, keys: readonly string[]) => Object.keys(value).every((key) => keys.includes(key));
 const timestamp = (value: unknown): value is string => typeof value === "string" && parseTimezoneAwareInstant(value) !== null;
-const month = (value: unknown) => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+const month = (value: unknown): value is Month => typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 const storeReference = (value: unknown) => {
   if (!record(value) || !only(value, ["trtid", "storeNameEn"])) return false;
   const trtidValid = value.trtid === undefined || typeof value.trtid === "string" && value.trtid.trim() !== "";
@@ -20,7 +21,13 @@ const dateOnlyOrNull = (value: unknown) => {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 };
 const textOrNull = (value: unknown) => value === null || typeof value === "string";
-const timeRange = (value: unknown) => record(value) && only(value, ["startInclusive", "endExclusive"]) && timestamp(value.startInclusive) && timestamp(value.endExclusive) && Date.parse(value.startInclusive) < Date.parse(value.endExclusive);
+function parseTimeRange(value: unknown): ParsedKpiPeriod | null {
+  if (!record(value) || !only(value, ["startInclusive", "endExclusive"])) return null;
+  const startMilliseconds = typeof value.startInclusive === "string" ? parseTimezoneAwareInstant(value.startInclusive) : null;
+  const endMilliseconds = typeof value.endExclusive === "string" ? parseTimezoneAwareInstant(value.endExclusive) : null;
+  return startMilliseconds !== null && endMilliseconds !== null && startMilliseconds < endMilliseconds ? { startMilliseconds, endMilliseconds } : null;
+}
+const timeRange = (value: unknown) => parseTimeRange(value) !== null;
 const requiredFields: Partial<Record<ProductionDomain, readonly string[]>> = {
   "store-master": ["region", "area", "storeNameCn", "storeNameEn", "trtid"],
   training: ["storeReference", "month", "trainingName", "completionRate", "incompletePeople"],
@@ -56,7 +63,7 @@ const allowedFields: Partial<Record<ProductionDomain, readonly string[]>> = {
   "required-sets": ["storeReference", "month", "requiredTrainingItems", "expectedInspectionTasks"],
 };
 
-function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unknown, index: number): ImportDiagnostic[] {
+function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unknown, index: number, coveragePeriod: ParsedKpiPeriod | null): ImportDiagnostic[] {
   const errors: ImportDiagnostic[] = [];
   if (!record(value)) return [{ domain, batchId, recordIndex: index, recordId: null, field: null, code: "RECORD_NOT_OBJECT", message: "每条 records 项必须是对象。", severity: "ERROR" }];
   const recordId = [value.eventId, value.actionId, value.tchId, value.inspectionNumber, value.trtid, value.TRTID].find((candidate) => typeof candidate === "string") as string | undefined;
@@ -67,7 +74,8 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
   for (const key of requiredFields[domain] ?? []) if (!Object.hasOwn(value, key)) add(key, "REQUIRED_FIELD_MISSING", `缺少必需字段 ${key}。`);
   if ("storeReference" in value && !storeReference(value.storeReference)) add("storeReference", "INVALID_STORE_REFERENCE", "门店引用格式无效。");
   if ("month" in value && !month(value.month)) add("month", "INVALID_MONTH", "月份必须为 YYYY-MM。");
-  for (const key of ["eventDate", "submittedAt", "submittedDate", "closedDate"]) if (key in value && value[key] !== null && !timestamp(value[key])) add(key, "INVALID_DATETIME", `${key} 必须是带时区的 ISO datetime。`);
+  for (const key of ["eventDate", "submittedAt", "submittedDate", "startInclusive", "endExclusive"]) if (key in value && !timestamp(value[key])) add(key, "INVALID_DATETIME", `${key} 必须是带时区的 ISO datetime。`);
+  if ("closedDate" in value && value.closedDate !== null && !timestamp(value.closedDate)) add("closedDate", "INVALID_DATETIME", "closedDate 必须是带时区的 ISO datetime 或 null。");
   if ("dueDate" in value && domain === "inspection" && !dateOnlyOrNull(value.dueDate)) add("dueDate", "INVALID_DATE", "Inspection dueDate 必须是 YYYY-MM-DD 或 null。");
   if ("dueDate" in value && domain !== "inspection" && !timestamp(value.dueDate)) add("dueDate", "INVALID_DATETIME", "dueDate 必须是带时区的 ISO datetime。");
   if ("Expiry Date" in value && value["Expiry Date"] !== null && typeof value["Expiry Date"] !== "string") add("Expiry Date", "INVALID_TYPE", "Expiry Date 必须为 string 或 null。");
@@ -79,7 +87,7 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
   if (domain === "action-closure-rate" && timestamp(value.startInclusive) && timestamp(value.endExclusive) && Date.parse(value.startInclusive) >= Date.parse(value.endExclusive)) add("endExclusive", "INVALID_PERIOD", "周期必须满足 startInclusive < endExclusive。");
   if (domain === "certificates" && (typeof value.TRTID !== "string" || !value.TRTID.trim())) add("TRTID", "REQUIRED_FIELD_MISSING", "TRTID 不能为空。");
   if (domain === "environment" && (typeof value.TRTID !== "string" || !value.TRTID.trim())) add("TRTID", "REQUIRED_FIELD_MISSING", "TRTID 不能为空。");
-  for (const key of ["regionOwner", "regionOwnerEmail", "areaOwner", "areaOwnerEmail", "manager", "managerEmail", "ehsAmbassador", "ehsAmbassadorEmail", "inspector", "status", "Expiry Date", "closedDate"]) {
+  for (const key of ["regionOwner", "regionOwnerEmail", "areaOwner", "areaOwnerEmail", "manager", "managerEmail", "ehsAmbassador", "ehsAmbassadorEmail", "inspector", "status", "Expiry Date", "closedDate", "English Store Name"]) {
     if (key in value && !textOrNull(value[key])) add(key, "INVALID_TYPE", `${key} 必须为 string 或 null。`);
   }
   for (const key of ["region", "area", "storeNameCn", "storeNameEn", "trtid", "trainingName", "drillName", "inspectionNumber", "inspectionName", "eventId", "eventType", "submittedBy", "Status", "actionId", "problem", "action", "owner", "tchId", "summary", "Certificate Type", "Person", "Person Email", "Business Title"]) {
@@ -94,11 +102,33 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
     catch { add("sourceReference.sourceUrl", "INVALID_URI", "sourceUrl 必须是绝对 URI。"); }
   }
   if (domain === "required-sets") {
-    const hasTraining = Array.isArray(value.requiredTrainingItems);
-    const hasInspection = Array.isArray(value.expectedInspectionTasks);
+    const hasTraining = Object.hasOwn(value, "requiredTrainingItems");
+    const hasInspection = Object.hasOwn(value, "expectedInspectionTasks");
     if (hasTraining === hasInspection) add(null, "INVALID_REQUIRED_SET", "每条配置必须且只能包含一种 required set。");
     const list = hasTraining ? value.requiredTrainingItems : value.expectedInspectionTasks;
-    if (Array.isArray(list) && (list.length === 0 || !list.every((item) => typeof item === "string" && item.trim() !== "") || new Set(list).size !== list.length)) add(hasTraining ? "requiredTrainingItems" : "expectedInspectionTasks", "INVALID_REQUIRED_SET", "配置集合必须非空、无空项且无重复值。");
+    if (!Array.isArray(list) || list.length === 0 || !list.every((item) => typeof item === "string" && item.trim() !== "") || new Set(list).size !== list.length) add(hasTraining ? "requiredTrainingItems" : "expectedInspectionTasks", "INVALID_REQUIRED_SET", "配置集合必须是非空数组、无空项且无重复值。");
+  }
+  if (coveragePeriod) {
+    const instantFields: Partial<Record<ProductionDomain, string>> = { events: "eventDate", actions: "submittedDate", "take-charge": "submittedAt" };
+    let field = instantFields[domain];
+    const businessTime = field ? value[field] : null;
+    let start = typeof businessTime === "string" ? parseTimezoneAwareInstant(businessTime) : null;
+    let end: number | null = null;
+    if ((domain === "training" || domain === "drill") && month(value.month)) {
+      field = "month";
+      const period = periodFromMonthRange(value.month, value.month);
+      start = period ? parseTimezoneAwareInstant(period.startInclusive) : null;
+      end = period ? parseTimezoneAwareInstant(period.endExclusive) : null;
+    } else if (domain === "inspection" && typeof value.dueDate === "string" && dateOnlyOrNull(value.dueDate)) {
+      field = "dueDate";
+      start = parseTimezoneAwareInstant(`${value.dueDate}T00:00:00+08:00`);
+    } else if (domain === "action-closure-rate") {
+      field = "startInclusive";
+      const period = parseTimeRange({ startInclusive: value.startInclusive, endExclusive: value.endExclusive });
+      start = period?.startMilliseconds ?? null;
+      end = period?.endMilliseconds ?? null;
+    }
+    if (field && start !== null && (start < coveragePeriod.startMilliseconds || start >= coveragePeriod.endMilliseconds || end !== null && end > coveragePeriod.endMilliseconds)) add(field, "RECORD_OUTSIDE_COVERAGE_PERIOD", "记录的业务时间或统计范围超出声明的 coverage.businessPeriod。");
   }
   if (domain === "environment") {
     const nested = (field: string, required: readonly string[], optional: readonly string[] = []) => {
@@ -140,7 +170,6 @@ function recordDiagnostics(domain: ProductionDomain, batchId: string, value: unk
       });
     }
   }
-  if (domain === "take-charge-annual-aggregates") add(null, "DIRECT_REPOSITORY_INTEGRATION_REQUIRED", "年度指标的业务目标与逻辑输出已冻结；公司数据应由 Production Repository Adapter 直接映射，当前通用批量导入不接收该 Domain。");
   return errors;
 }
 
@@ -154,14 +183,17 @@ export function parseProductionImportBatch(input: unknown): { value: ProductionI
   if (!only(input, keys)) for (const key of Object.keys(input)) if (!keys.includes(key)) add(key, "UNEXPECTED_FIELD", `字段 ${key} 不受支持。`);
   if (input.schemaVersion !== "v1") add("schemaVersion", "UNSUPPORTED_SCHEMA_VERSION", "schemaVersion 必须为 v1。");
   if (!PRODUCTION_DOMAINS.includes(input.domain as ProductionDomain)) add("domain", "INVALID_DOMAIN", "Domain 不受支持。");
+  if (domain === "take-charge-annual-aggregates") add("domain", "DIRECT_REPOSITORY_INTEGRATION_REQUIRED", "年度指标的业务目标与逻辑输出已冻结；公司数据应由 Production Repository Adapter 直接映射，当前通用批量导入不接收该 Domain。");
   if (typeof input.sourceSystem !== "string" || !input.sourceSystem.trim() || input.sourceSystem.length > 120) add("sourceSystem", "INVALID_SOURCE_SYSTEM", "sourceSystem 必须为 1–120 字符的非空字符串。");
   for (const field of ["sourceVersion", "configurationVersion"] as const) if (input[field] !== undefined && (typeof input[field] !== "string" || !input[field].trim() || input[field].length > 120)) add(field, "INVALID_VERSION", `${field} 必须为 1–120 字符的非空字符串。`);
   if (typeof input.batchId !== "string" || !input.batchId.trim() || input.batchId.length > 160) add("batchId", "INVALID_BATCH_ID", "batchId 必须为 1–160 字符的非空字符串。");
   if (typeof input.idempotencyKey !== "string" || !input.idempotencyKey.trim() || input.idempotencyKey.length > 200) add("idempotencyKey", "INVALID_IDEMPOTENCY_KEY", "idempotencyKey 必须为 1–200 字符的非空字符串。");
   if (!timestamp(input.extractionTime)) add("extractionTime", "INVALID_DATETIME", "extractionTime 必须是带时区的 ISO datetime。");
-  if (input.businessPeriod !== undefined && !timeRange(input.businessPeriod)) add("businessPeriod", "INVALID_PERIOD", "businessPeriod 必须是有效的半开时区时间范围。");
+  const businessPeriod = parseTimeRange(input.businessPeriod);
+  const coveragePeriod = record(input.coverage) ? parseTimeRange(input.coverage.businessPeriod) : null;
+  if (input.businessPeriod !== undefined && businessPeriod === null) add("businessPeriod", "INVALID_PERIOD", "businessPeriod 必须是有效的半开时区时间范围。");
   if (input.effectiveTime !== undefined && !timeRange(input.effectiveTime)) add("effectiveTime", "INVALID_PERIOD", "effectiveTime 必须是有效的半开时区时间范围。");
-  if (record(input.businessPeriod) && record(input.coverage) && record(input.coverage.businessPeriod) && JSON.stringify(input.businessPeriod) !== JSON.stringify(input.coverage.businessPeriod)) add("coverage.businessPeriod", "COVERAGE_PERIOD_MISMATCH", "coverage.businessPeriod 必须与批次 businessPeriod 一致。");
+  if (businessPeriod && coveragePeriod && (businessPeriod.startMilliseconds !== coveragePeriod.startMilliseconds || businessPeriod.endMilliseconds !== coveragePeriod.endMilliseconds)) add("coverage.businessPeriod", "COVERAGE_PERIOD_MISMATCH", "coverage.businessPeriod 必须与批次 businessPeriod 一致。");
   if (!Number.isSafeInteger(input.expectedRecordCount) || (input.expectedRecordCount as number) < 0) add("expectedRecordCount", "INVALID_RECORD_COUNT", "expectedRecordCount 必须为非负整数。");
   if (!Array.isArray(input.records)) add("records", "INVALID_RECORDS", "records 必须是数组。");
   else if (input.records.length > 10_000) add("records", "BATCH_LIMIT_EXCEEDED", "单批最多接收 10,000 条记录。");
@@ -169,8 +201,8 @@ export function parseProductionImportBatch(input: unknown): { value: ProductionI
     ["SOURCE_CONTROL_TOTAL", "EXPORT_MANIFEST", "SCOPE_DIGEST", "AUTHORITATIVE_EMPTY"].includes(String(proof.kind)) &&
     typeof proof.reference === "string" && proof.reference.trim().length > 0 && proof.reference.length <= 500 &&
     (proof.controlRecordCount === undefined || Number.isSafeInteger(proof.controlRecordCount) && Number(proof.controlRecordCount) >= 0) &&
-    (proof.scope === undefined || typeof proof.scope === "string" && proof.scope.length <= 500) &&
-    (proof.digest === undefined || typeof proof.digest === "string" && proof.digest.length <= 256) &&
+    (proof.scope === undefined || typeof proof.scope === "string" && !!proof.scope.trim() && proof.scope.length <= 500) &&
+    (proof.digest === undefined || typeof proof.digest === "string" && !!proof.digest.trim() && proof.digest.length <= 256) &&
     (proof.kind === "SOURCE_CONTROL_TOTAL" ? Number.isSafeInteger(proof.controlRecordCount) && Number(proof.controlRecordCount) >= 0 : true) &&
     (proof.kind === "SCOPE_DIGEST" ? typeof proof.scope === "string" && !!proof.scope.trim() && typeof proof.digest === "string" && !!proof.digest.trim() : true) &&
     (proof.kind !== "AUTHORITATIVE_EMPTY" || proof.controlRecordCount === 0);
@@ -184,7 +216,7 @@ export function parseProductionImportBatch(input: unknown): { value: ProductionI
   if (Number.isSafeInteger(input.expectedRecordCount) && input.expectedRecordCount !== rows.length) add("expectedRecordCount", "RECORD_COUNT_MISMATCH", "records 数量与 expectedRecordCount 不一致；此比较仅校验请求自洽，不构成来源完整性证明。");
   if (PRODUCTION_DOMAINS.includes(input.domain as ProductionDomain)) {
     const selectedDomain = input.domain as ProductionDomain;
-    rows.forEach((row, index) => errors.push(...recordDiagnostics(selectedDomain, batchId, row, index)));
+    rows.forEach((row, index) => errors.push(...recordDiagnostics(selectedDomain, batchId, row, index, timeCoveredDomains.includes(selectedDomain) ? coveragePeriod : null)));
     const uniqueKey = (row: unknown): string | null => {
       if (!record(row)) return null;
       const fields: Partial<Record<ProductionDomain, string>> = { "store-master": "trtid", inspection: "inspectionNumber", events: "eventId", actions: "actionId", "take-charge": "tchId" };

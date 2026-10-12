@@ -18,6 +18,7 @@ import {
   useTable,
 } from "@tanstack/react-table";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
@@ -50,7 +51,6 @@ import {
   getStatusLabel,
   StatusDisplay,
 } from "@/components/shared/status-display";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
@@ -85,7 +85,8 @@ import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
   clampTablePageIndex,
-  paginationForPageSize,
+  resizeAdaptivePagination,
+  updateAdaptivePagination,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
@@ -301,7 +302,7 @@ function ActionsSheet({
           {queryState.status === "LOADING" ? (
             <AsyncQueryFeedback status="LOADING" />
           ) : queryState.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" />
+            <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} />
           ) : !actions || actions.availability === "UNAVAILABLE" ? (
             <p className="text-sm text-muted-foreground">行动项明细不可用。</p>
           ) : actions.availability === "INCOMPLETE" ? (
@@ -433,25 +434,9 @@ export function KpiDataTable({
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
       setPaginationState((current) => {
-        const currentPagination =
-          current.status === "READY"
-            ? current.pagination
-            : { pageIndex: 0, pageSize };
-        const nextPagination = paginationForPageSize(
-          currentPagination,
-          data.length,
-          pageSize,
-        );
-
-        if (
-          current.status === "READY" &&
-          current.pagination.pageIndex === nextPagination.pageIndex &&
-          current.pagination.pageSize === nextPagination.pageSize
-        ) {
-          return current;
-        }
-
-        return { status: "READY", pagination: nextPagination };
+        const previous = current.status === "READY" ? current.pagination : null;
+        const pagination = resizeAdaptivePagination(previous, data.length, pageSize);
+        return previous === pagination ? current : { status: "READY", pagination };
       });
     },
     [data.length],
@@ -459,37 +444,9 @@ export function KpiDataTable({
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
       setPaginationState((current) => {
-        if (current.status === "UNMEASURED") {
-          return current;
-        }
-
-        const currentPagination: PaginationState = {
-          pageIndex: clampTablePageIndex(
-            current.pagination.pageIndex,
-            data.length,
-            current.pagination.pageSize,
-          ),
-          pageSize: current.pagination.pageSize,
-        };
-        const proposedPagination =
-          typeof updater === "function" ? updater(currentPagination) : updater;
-        const nextPagination: AdaptivePagination = {
-          pageIndex: clampTablePageIndex(
-            proposedPagination.pageIndex,
-            data.length,
-            current.pagination.pageSize,
-          ),
-          pageSize: current.pagination.pageSize,
-        };
-
-        if (
-          current.pagination.pageIndex === nextPagination.pageIndex &&
-          current.pagination.pageSize === nextPagination.pageSize
-        ) {
-          return current;
-        }
-
-        return { status: "READY", pagination: nextPagination };
+        if (current.status === "UNMEASURED") return current;
+        const pagination = updateAdaptivePagination(current.pagination, updater, data.length);
+        return pagination === current.pagination ? current : { status: "READY", pagination };
       });
     },
     [data.length],
@@ -784,39 +741,23 @@ export function KpiDataTable({
         </Table>
       </div>
 
-      <div
+      <DataTablePagination
         ref={paginationRef}
-        aria-busy={isQueryLoading}
-        aria-hidden={!isPaginationReady}
-        className={`flex flex-wrap items-center justify-between gap-3${
-          isPaginationReady ? "" : " invisible"
-        }`}
+        ready={isPaginationReady}
+        busy={isQueryLoading}
+        disabled={isQueryLoading}
+        pageIndex={table.state.pagination.pageIndex}
+        pageCount={Math.max(table.getPageCount(), 1)}
+        metadataPending={isResolvedMetadataPending}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
       >
         <p className="text-sm text-muted-foreground">
           共 <DataTablePendingValue pending={isResolvedMetadataPending}>{data.length}</DataTablePendingValue> 家门店
         </p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            第 <DataTablePendingValue pending={isResolvedMetadataPending}>{table.state.pagination.pageIndex + 1}</DataTablePendingValue> / <DataTablePendingValue pending={isResolvedMetadataPending}>{Math.max(table.getPageCount(), 1)}</DataTablePendingValue> 页
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={isQueryLoading || !table.getCanPreviousPage()}
-          >
-            上一页
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={isQueryLoading || !table.getCanNextPage()}
-          >
-            下一页
-          </Button>
-        </div>
-      </div>
+      </DataTablePagination>
 
       <ActionsSheet
         row={selectedRow}

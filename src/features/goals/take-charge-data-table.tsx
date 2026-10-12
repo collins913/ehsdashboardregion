@@ -1,4 +1,6 @@
 "use client";
+import { queryErrorMessage } from "@/data/contracts/query-result";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import {
   useCallback,
@@ -23,11 +25,11 @@ import {
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { DetailField } from "@/components/shared/detail-field";
 import { DetailHeader } from "@/components/shared/detail-header";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
 import {
   DataTableLoadingCellContent,
-  DataTablePendingFeedback,
   DataTablePendingValue,
   useResolvedDataTableSnapshot,
   useRetainedDataTableRows,
@@ -47,7 +49,6 @@ import {
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
 import { getTakeChargeSourceStatusLabel } from "@/features/goals/take-charge-status-presentation";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
@@ -70,7 +71,8 @@ import type {
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
-  paginationForPageSize,
+  resizeAdaptivePagination,
+  updateAdaptivePagination,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
@@ -321,7 +323,7 @@ export function TakeChargeDataTable({
   queryRecords: (input: {
     referenceDateIso: string;
     query: TakeChargeRecordsQuery;
-  }) => Promise<TakeChargeRecordsResult>;
+  }) => Promise<QueryOutcome<TakeChargeRecordsResult>>;
 }) {
   const [selectedRecord, setSelectedRecord] =
     useState<NormalizedTakeChargeRecord | null>(null);
@@ -412,32 +414,20 @@ export function TakeChargeDataTable({
   const totalCount = result?.totalCount ?? 0;
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
-      setPaginationState((current) => ({
-        status: "READY",
-        pagination: paginationForPageSize(
-          current.status === "READY"
-            ? current.pagination
-            : { pageIndex: 0, pageSize },
-          totalCount,
-          pageSize,
-        ),
-      }));
+      setPaginationState((current) => {
+        const previous = current.status === "READY" ? current.pagination : null;
+        const pagination = resizeAdaptivePagination(previous, totalCount, pageSize);
+        return previous === pagination ? current : { status: "READY", pagination };
+      });
     },
     [totalCount],
   );
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
       setPaginationState((current) => {
-        if (current.status !== "READY") return current;
-        const proposed =
-          typeof updater === "function" ? updater(current.pagination) : updater;
-        return {
-          status: "READY",
-          pagination: {
-            pageIndex: Math.max(0, proposed.pageIndex),
-            pageSize: current.pagination.pageSize,
-          },
-        };
+        if (current.status === "UNMEASURED") return current;
+        const pagination = updateAdaptivePagination(current.pagination, updater);
+        return pagination === current.pagination ? current : { status: "READY", pagination };
       });
     },
     [],
@@ -602,7 +592,8 @@ export function TakeChargeDataTable({
       </div>
 
       {availability && !["AVAILABLE", "CONFIRMED_EMPTY"].includes(availability) ? (
-        <DataAvailabilityDisplay availability={availability} />
+        <div className="flex items-center gap-3"><DataAvailabilityDisplay availability={availability} />
+        {queryState.status === "ERROR" ? <span className="text-sm text-muted-foreground">{queryErrorMessage(queryState.errorCode)}</span> : null}</div>
       ) : null}
 
       <div
@@ -710,14 +701,19 @@ export function TakeChargeDataTable({
         </Table>
       </div>
 
-      <div
+      <DataTablePagination
         ref={paginationRef}
-        aria-busy={isQueryLoading}
-        aria-hidden={!isPaginationReady}
-        className={cn(
-          "flex flex-wrap items-center justify-between gap-3",
-          !isPaginationReady && "invisible",
-        )}
+        ready={isPaginationReady}
+        busy={isQueryLoading}
+        disabled={isQueryLoading}
+        pageIndex={resolvedPageIndex}
+        pageCount={resolvedPageCount}
+        metadataPending={isResolvedMetadataPending}
+        pendingFeedback={isQueryLoading && pendingMode === "preserve-visible"}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
       >
         <p className="text-sm text-muted-foreground">
           共{" "}
@@ -726,37 +722,7 @@ export function TakeChargeDataTable({
           </DataTablePendingValue>{" "}
           条记录
         </p>
-        <div className="flex items-center gap-2">
-          <DataTablePendingFeedback isPending={isQueryLoading && pendingMode === "preserve-visible"} />
-          <span className="text-sm text-muted-foreground">
-            第{" "}
-            <DataTablePendingValue pending={isResolvedMetadataPending}>
-              {resolvedPageIndex + 1}
-            </DataTablePendingValue>{" "}
-            /{" "}
-            <DataTablePendingValue pending={isResolvedMetadataPending}>
-              {resolvedPageCount}
-            </DataTablePendingValue>{" "}
-            页
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={isQueryLoading || !table.getCanPreviousPage()}
-          >
-            上一页
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={isQueryLoading || !table.getCanNextPage()}
-          >
-            下一页
-          </Button>
-        </div>
-      </div>
+      </DataTablePagination>
 
       <TakeChargeDetailSheet
         record={selectedRecord}

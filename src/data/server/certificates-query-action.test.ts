@@ -1,3 +1,4 @@
+import { unwrapQueryOutcome } from "@/data/contracts/query-result";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
@@ -16,7 +17,7 @@ describe("Certificates Server Action", () => {
       region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" },
     };
     const referenceDateIso = "2026-09-15T00:00:00+08:00";
-    const result = await queryCertificates({ referenceDateIso, query });
+    const result = unwrapQueryOutcome(await queryCertificates({ referenceDateIso, query }));
     expect(result).toMatchObject({ availability: "CONFIRMED_EMPTY", items: [], unknownTypeRecords: [] });
     expect(result.overview.items).toHaveLength(8);
     expect(result.overview.items.every((item) => item.actualCount === 0)).toBe(true);

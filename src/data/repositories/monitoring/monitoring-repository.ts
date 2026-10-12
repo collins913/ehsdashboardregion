@@ -1,5 +1,4 @@
 import type {
-  IncidentStatus,
   JobExecutionUpdate,
   JobMonitoringState,
   MonitoringAuditEvent,

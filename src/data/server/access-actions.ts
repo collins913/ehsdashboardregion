@@ -1,4 +1,5 @@
 "use server";
+import { queryErrorCode, queryFailure, type QueryOutcome } from "@/data/contracts/query-result";
 import { randomUUID } from "node:crypto";
 import type { AccessQuery, AccessType, GrantInput, GrantUpdate, MutationResult } from "@/data/contracts/access";
 import { createManualGrant, deleteManualGrant, getAccessCatalog, listManualGrants, queryAuditLog, updateManualGrant } from "@/lib/access/access-service.server";
@@ -43,14 +44,15 @@ function parseMutationId(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-export async function loadAccessCatalog() { return withAccessCapture("权限目录查询", () => getAccessCatalog()); }
+export async function loadAccessCatalog() { return withAccessQueryCapture("权限目录查询", () => getAccessCatalog()); }
 async function withAccessCapture<T>(component: string, action: () => Promise<T>): Promise<T> {
   try { return await action(); }
   catch (error) {
-    const expected = error instanceof Error && ["NOT_AUTHORIZED", "NOT_AUTHENTICATED", "INVALID_QUERY_INPUT"].includes(error.message);
+    const code = queryErrorCode(error);
+    const expected = code !== "SERVICE_UNAVAILABLE";
     await recordOperationalEvent({
       environment: process.env.NODE_ENV ?? "unknown", source: "Server Action", component,
-      severity: expected ? "INFO" : "ERROR", errorCode: error instanceof Error && error.message === "NOT_AUTHORIZED" ? "ACCESS_DENIED" : error instanceof Error && error.message === "NOT_AUTHENTICATED" ? "AUTHENTICATION_REQUIRED" : error instanceof InvalidQueryInputError ? "INVALID_QUERY_INPUT" : "ACCESS_ACTION_FAILED",
+      severity: expected ? "INFO" : "ERROR", errorCode: expected ? code : "ACCESS_ACTION_FAILED",
       safeMessage: expected ? "权限管理请求未通过服务端校验。" : "权限管理请求处理失败。", phenomenon: "服务端访问管理操作未正常完成。",
       causeStatus: expected ? "KNOWN" : "UNKNOWN", knownCause: expected ? "身份、权限或请求参数校验未通过。" : null,
       impact: { kind: "SYSTEM", id: component, summary: "权限管理功能可能暂时不可用。" },
@@ -59,6 +61,10 @@ async function withAccessCapture<T>(component: string, action: () => Promise<T>)
     });
     throw error;
   }
+}
+async function withAccessQueryCapture<T>(component: string, action: () => Promise<T>): Promise<QueryOutcome<T>> {
+  try { return await withAccessCapture(component, action); }
+  catch (error) { return queryFailure(error); }
 }
 async function captureAccessWriteFailure(component: string, code: string) {
   await recordOperationalEvent({
@@ -73,7 +79,7 @@ async function captureAccessWriteFailure(component: string, code: string) {
   });
 }
 export async function loadManualGrants(query: AccessQuery & { accessType?: string }) {
-  return withAccessCapture("权限列表查询", async () => {
+  return withAccessQueryCapture("权限列表查询", async () => {
     const parsed = parseAccessQuery(query);
     if (parsed === null) throw new InvalidQueryInputError();
     return listManualGrants(parsed);
@@ -99,7 +105,7 @@ export async function removeGrant(id: unknown): Promise<MutationResult<string>> 
   return result;
 }
 export async function loadAuditLog(email: string) {
-  return withAccessCapture("权限审计查询", async () => {
+  return withAccessQueryCapture("权限审计查询", async () => {
     const parsed = parseAccessAuditFilter(email);
     if (parsed === null) throw new InvalidQueryInputError();
     return queryAuditLog(parsed);

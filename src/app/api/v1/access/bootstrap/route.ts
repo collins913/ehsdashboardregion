@@ -1,3 +1,4 @@
+import { queryErrorCode } from "@/data/contracts/query-result";
 import { requireVerifiedServerPrincipal } from "@/data/server/identity-provider.server";
 import { createConfiguredFirstAdminBootstrapStore } from "@/data/server/first-admin-bootstrap-runtime.server";
 import { bootstrapFirstAdmin } from "@/data/repositories/access/first-admin-bootstrap";
@@ -17,7 +18,7 @@ export async function POST() {
     const status = result === "INITIALIZED" ? 201 : result === "ALREADY_INITIALIZED" ? 409 : 403;
     return Response.json({ result }, { status });
   } catch (error) {
-    const unauthenticated = error instanceof Error && error.message === "NOT_AUTHENTICATED";
+    const unauthenticated = queryErrorCode(error) === "AUTHENTICATION_REQUIRED";
     await recordOperationalEvent({
       environment: process.env.NODE_ENV ?? "unknown", source: "Enterprise Access", component: "First Admin Bootstrap",
       severity: unauthenticated ? "INFO" : "ERROR", errorCode: unauthenticated ? "AUTHENTICATION_REQUIRED" : "ADMIN_BOOTSTRAP_FAILED",

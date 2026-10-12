@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { TimezoneAwareIsoDateTime, StoreMasterData } from "@/types/ehs";
-import type { ImportDiagnostic, MachinePrincipal } from "@/data/contracts/production-import";
+import type { ImportDiagnostic, MachinePrincipal, ProductionImportBatchInput } from "@/data/contracts/production-import";
 import { MemoryImportBatchStore } from "./testing/memory-import-batch-store";
-import { ImportRequestError, ProductionImportService } from "./production-import-service";
+import { ProductionImportService } from "./production-import-service";
 
 const date = "2026-10-09T10:00:00Z" as TimezoneAwareIsoDateTime;
 const store: StoreMasterData = { region: "R1", area: "A1", storeNameCn: "门店", storeNameEn: "Store One", trtid: "S-1", regionOwner: null, regionOwnerEmail: null, areaOwner: null, areaOwnerEmail: null, manager: null, managerEmail: null, ehsAmbassador: null, ehsAmbassadorEmail: null };
@@ -43,6 +43,37 @@ describe("ProductionImportService", () => {
     ]);
     expect((await service.publish(principal, first.batchId)).publishedAt).toBe(published.publishedAt);
     expect(storeAdapter.publishedBatch("events")?.batchId).toBe(first.batchId);
+  });
+
+  it.each([
+    { domain: "events" as const, records: [{ ...input.records[0], eventDate: "2026-11-01T00:00:00+08:00" }], code: "RECORD_OUTSIDE_COVERAGE_PERIOD" },
+    { domain: "take-charge-annual-aggregates" as const, records: [], code: "DIRECT_REPOSITORY_INTEGRATION_REQUIRED" },
+  ])("rejects invalid $domain batches before storage and keeps previous publication intact", async ({ domain, records, code }) => {
+    const verifyProof = vi.fn(async () => true);
+    const { storeAdapter, service } = setup(verifyProof);
+    const first = await service.submit(principal, input);
+    await service.validate(principal, first.batchId);
+    await service.publish(principal, first.batchId);
+    verifyProof.mockClear();
+    const scopedPrincipal: MachinePrincipal = { ...principal, allowedDomains: ["events", "take-charge-annual-aggregates"] };
+    const invalid = {
+      ...input, domain, records, batchId: "invalid-batch", idempotencyKey: "invalid-batch", expectedRecordCount: records.length,
+      coverage: { ...input.coverage, proof: records.length === 0 ? { kind: "AUTHORITATIVE_EMPTY", reference: "source:empty", controlRecordCount: 0 } : input.coverage.proof },
+    };
+    await expect(service.submit(scopedPrincipal, invalid)).rejects.toMatchObject({
+      status: 422, code: "BATCH_VALIDATION_FAILED", diagnostics: expect.arrayContaining([expect.objectContaining({ code })]),
+    });
+    expect(await storeAdapter.getAuthorized(invalid.batchId, scopedPrincipal.allowedDomains)).toBeNull();
+    expect(verifyProof).not.toHaveBeenCalled();
+
+    // Simulate a batch staged by an older validator; current validation must still block it.
+    await storeAdapter.createOrGet(invalid as ProductionImportBatchInput, date, { principalId: principal.principalId, requestId: "legacy-stage" });
+    const checked = await service.validate(scopedPrincipal, invalid.batchId);
+    expect(checked.state).toBe("REJECTED");
+    expect(checked.diagnostics.map(({ code }) => code)).toContain(code);
+    await expect(service.publish(scopedPrincipal, invalid.batchId)).rejects.toMatchObject({ code: "BATCH_NOT_VALIDATED" });
+    expect(storeAdapter.publishedBatch("events")?.batchId).toBe(first.batchId);
+    expect(storeAdapter.publishedBatch("take-charge-annual-aggregates")).toBeNull();
   });
 
   it("applies deterministic idempotency and batch-id conflicts under concurrent submissions", async () => {

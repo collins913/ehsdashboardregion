@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { FilterScope, KpiStore } from "@/data/contracts/kpi";
 import type { Month, StoreId } from "@/types/ehs";
@@ -7,6 +8,8 @@ import {
   changeRegion,
   createInitialGlobalFilterState,
   includedMonthsBetween,
+  filterOptions,
+  toEhsStoreScope,
   periodForMode,
   periodFromMonthRange,
   toEhsFilterContext,
@@ -42,7 +45,7 @@ function stateWithSelection(): GlobalFilterState {
   return {
     ...createInitialGlobalFilterState(),
     region: include("甲区"),
-    area: include("甲一部"),
+    area: include(areaScopeId("甲区", "甲一部")),
     store: include<StoreId>("store-a1"),
   };
 }
@@ -62,15 +65,15 @@ describe("global filter hierarchy", () => {
     const input = stateWithSelection();
     const result = changeRegion(input, include("甲区"), stores);
 
-    expect(result.area).toEqual(include("甲一部"));
+    expect(result.area).toEqual(include(areaScopeId("甲区", "甲一部")));
     expect(result.store).toEqual(include("store-a1"));
   });
 
   it("clears a Store made invalid by an Area change", () => {
     const input = stateWithSelection();
-    const result = changeArea(input, include("甲二部"), stores);
+    const result = changeArea(input, include(areaScopeId("甲区", "甲二部")), stores);
 
-    expect(result.area).toEqual(include("甲二部"));
+    expect(result.area).toEqual(include(areaScopeId("甲区", "甲二部")));
     expect(result.store).toEqual({ kind: "ALL" });
     expect(input.store).toEqual(include("store-a1"));
   });
@@ -231,5 +234,29 @@ describe("natural-month periods", () => {
         stores,
       ),
     ).toBeNull();
+  });
+});
+
+
+describe("same-name Areas across Regions", () => {
+  const duplicated = [
+    { storeId: "canonical-east", displayName: "东门店", region: "东区", area: "一部" },
+    { storeId: "canonical-west", displayName: "西门店", region: "西区", area: "一部" },
+  ];
+  it("offers distinct labels and only the selected Area's Stores with Region ALL", () => {
+    const initial = createInitialGlobalFilterState();
+    expect(filterOptions(duplicated, initial).areas).toEqual([
+      { value: areaScopeId("东区", "一部"), label: "一部（东区）" },
+      { value: areaScopeId("西区", "一部"), label: "一部（西区）" },
+    ]);
+    const selected = changeArea(initial, include(areaScopeId("东区", "一部")), duplicated);
+    expect(filterOptions(duplicated, selected).stores.map((store) => store.storeId)).toEqual(["canonical-east"]);
+    expect(toEhsStoreScope(selected, duplicated)?.area).toEqual(include(areaScopeId("东区", "一部")));
+    expect(toEhsStoreScope({ ...initial, area: include("一部") }, duplicated)).toBeNull();
+  });
+  it("clears the previous Area on a Region change, even with an identical Area name", () => {
+    const initial = { ...createInitialGlobalFilterState(), area: include(areaScopeId("东区", "一部")) };
+    expect(changeRegion(initial, include("西区"), duplicated).area).toEqual({ kind: "ALL" });
+    expect(filterOptions(duplicated, { ...initial, region: include("东区") }).areas[0].label).toBe("一部");
   });
 });

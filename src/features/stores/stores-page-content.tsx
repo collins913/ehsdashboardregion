@@ -1,4 +1,6 @@
 "use client";
+import { unwrapQueryOutcome } from "@/data/contracts/query-result";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
@@ -13,7 +15,7 @@ import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 export type StoresQueryAction = (input: {
   referenceDateIso: string;
   query: EhsStoreScope;
-}) => Promise<StoresQueryResult>;
+}) => Promise<QueryOutcome<StoresQueryResult>>;
 
 export async function loadStoresPageData(
   context: EhsStoreScope | null,
@@ -22,7 +24,7 @@ export async function loadStoresPageData(
 ): Promise<StoresQueryResult | null> {
   return context === null
     ? null
-    : query({ referenceDateIso, query: context });
+    : unwrapQueryOutcome(await query({ referenceDateIso, query: context }));
 }
 
 export function StoresPageContent({
@@ -49,7 +51,7 @@ export function StoresPageContent({
       ) : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
           ) : null}
           <StoresDataTable
             rows={result?.items ?? []}

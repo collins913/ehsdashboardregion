@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import { createMockEhsRepository } from "./mock-ehs-repository";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
@@ -100,11 +101,11 @@ describe("Environment detail query", () => {
   });
 
   it.each([
-    ["region", "南屿区"], ["area", "西岭二部"], ["store", "TEST-002"],
+    ["region", "南屿区"], ["area", areaScopeId("西岭区", "西岭二部")], ["store", "TEST-002"],
   ] as const)("filters by %s using canonical Store scope", async (scope, value) => {
     const repository = createMockEhsRepository(referenceDate);
     const result = await repository.getEnvironment({ context: { ...context, [scope]: { kind: "INCLUDE", values: [value] } } });
-    const expected = dataset.stores.filter((store) => (scope === "store" ? store.trtid : store[scope]) === value);
+    const expected = dataset.stores.filter((store) => (scope === "store" ? store.trtid : scope === "area" ? areaScopeId(store.region, store.area) : store.region) === value);
     expect(result.items.map((record) => record.storeDisplayName)).toEqual(expected.map((store) => store.storeNameCn));
     expect(result.availability).toBe("AVAILABLE");
   });

@@ -1,4 +1,4 @@
-import type { DataAvailability, EhsFilterContext, EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
+import type { DataAvailability, EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
 import type { Month, StoreId } from "@/types/ehs";
 
 export type OverviewDimensionId = "PERFORMANCE" | "TAKE_CHARGE" | "CERTIFICATES" | "ENVIRONMENT";

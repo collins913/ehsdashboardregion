@@ -1,3 +1,4 @@
+import { queryErrorCode } from "@/data/contracts/query-result";
 import { randomUUID } from "node:crypto";
 import { parseClientOperationalErrorReport } from "@/data/contracts/monitoring-validation";
 import { clientOperationalErrorRateLimit } from "@/data/server/monitoring/client-error-policy.server";
@@ -12,7 +13,7 @@ const json = (code: string, status: number) => Response.json({ error: { code } }
 export async function POST(request: Request) {
   let principal;
   try { principal = await requireVerifiedServerPrincipal(); }
-  catch (error) { return json(error instanceof Error && error.message === "NOT_AUTHENTICATED" ? "AUTHENTICATION_REQUIRED" : "IDENTITY_PROVIDER_UNAVAILABLE", error instanceof Error && error.message === "NOT_AUTHENTICATED" ? 401 : 503); }
+  catch (error) { return json(queryErrorCode(error) === "AUTHENTICATION_REQUIRED" ? "AUTHENTICATION_REQUIRED" : "IDENTITY_PROVIDER_UNAVAILABLE", queryErrorCode(error) === "AUTHENTICATION_REQUIRED" ? 401 : 503); }
   if (!principal) return json("AUTHENTICATION_REQUIRED", 401);
   if (request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") return json("JSON_CONTENT_TYPE_REQUIRED", 415);
   const declaredLength = Number(request.headers.get("content-length") ?? 0);

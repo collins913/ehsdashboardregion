@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import { createMockEhsRepository } from "./mock-ehs-repository";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
@@ -89,9 +90,9 @@ describe("Certificates V1 Repository", () => {
     expect(overview.items.find((item) => item.certificateType === configuredType)?.requiredCount)
       .toBe(dataset.stores.length * CERTIFICATE_REQUIREMENTS[configuredType]);
   });
-  it.each([["region", dataset.stores[0].region], ["area", dataset.stores[0].area], ["store", dataset.stores[0].trtid]] as const)("filters %s", async (scope, value) => {
+  it.each([["region", dataset.stores[0].region], ["area", areaScopeId(dataset.stores[0].region, dataset.stores[0].area)], ["store", dataset.stores[0].trtid]] as const)("filters %s", async (scope, value) => {
     const result = await createMockEhsRepository(reference).getCertificates({ context: { ...context, [scope]: { kind: "INCLUDE", values: [value] } } });
-    const expected = dataset.stores.filter((store) => (scope === "store" ? store.trtid : store[scope]) === value);
+    const expected = dataset.stores.filter((store) => (scope === "store" ? store.trtid : scope === "area" ? areaScopeId(store.region, store.area) : store.region) === value);
     expect(result.items.map((item) => item.storeDisplayName)).toEqual(expected.map((store) => store.storeNameCn));
   });
   it("ignores Period but evaluates the Shanghai Dashboard reference day", async () => {

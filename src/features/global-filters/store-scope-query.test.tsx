@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import type { KpiStore } from "@/data/contracts/kpi";
@@ -8,6 +9,9 @@ import { StoresPageContent } from "@/features/stores/stores-page-content";
 import { EnvironmentPageContent } from "@/features/environment/environment-page-content";
 import { CertificatesPageContent } from "@/features/certificates/certificates-page-content";
 import { ActionsPageContent } from "@/features/actions/actions-page-content";
+import { KpiPageContent } from "@/features/kpi/kpi-page-content";
+import { buildKpiPageResult } from "@/features/kpi/build-kpi-rows";
+import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { createInitialGlobalFilterState, toEhsFilterContext, toEhsStoreScope, type GlobalFilterState } from "./global-filter-state";
 
 // Controlled hook lifecycle: execute the real async hook without needing browser layout.
@@ -65,6 +69,17 @@ function tableProps(element: ReactElement): Record<string, unknown> | undefined 
   for (const child of children) {
     if (child && typeof child === "object" && "props" in child) {
       const found = tableProps(child as ReactElement);
+      if (found) return found;
+    }
+  }
+}
+
+function availabilityNotice(element: ReactElement): ReactElement<{ availability: "AVAILABLE" | "INCOMPLETE"; subject: string }> | undefined {
+  if (element.type === DataAvailabilityNotice) return element as ReturnType<typeof availabilityNotice>;
+  const children = (element.props as { children?: unknown }).children;
+  for (const child of Array.isArray(children) ? children : [children]) {
+    if (child && typeof child === "object" && "props" in child) {
+      const found = availabilityNotice(child as ReactElement);
       if (found) return found;
     }
   }
@@ -146,7 +161,7 @@ describe.each(modules)("$name Store-scope dependency", ({ name, query, page, pro
   it.each(["region", "area", "store"] as const)("queries the changed %s scope even during invalid Period", async (dimension) => {
     query.mockClear();
     const before = await loaded();
-    state = { ...state, period: { mode: "CUSTOM", startMonth: null, endMonth: null }, [dimension]: { kind: "INCLUDE", values: [dimension === "store" ? stores[0].storeId : stores[0][dimension]] } };
+    state = { ...state, period: { mode: "CUSTOM", startMonth: null, endMonth: null }, [dimension]: { kind: "INCLUDE", values: [dimension === "store" ? stores[0].storeId : dimension === "area" ? areaScopeId(stores[0].region, stores[0].area) : stores[0].region] } };
     expect(tableProps(render(view))?.queryStatus).toBe("LOADING");
     const after = await loaded();
     expect(query).toHaveBeenCalledTimes(2);
@@ -169,4 +184,31 @@ it("Actions still waits for a complete Period and resumes with the actual Period
   state = { ...state, period: { mode: "THIS_MONTH" } };
   const ready = render(() => ActionsPageContent({ queryActions, queryActionsAnalytics }));
   expect(tableProps(ready)?.context).toEqual(toEhsFilterContext(state, "2026-09", stores));
+});
+
+it.each([false, true])("KPI preserves server-prepared rows and query diagnostics (orphan: %s)", async (withOrphan) => {
+  const source = withOrphan ? { ...dataset, trainingRecords: [...dataset.trainingRecords, {
+    ...dataset.trainingRecords[0], storeReference: { trtid: "MISSING-STORE" },
+  }] } : dataset;
+  const queryRepository = createMockEhsRepository(new Date(referenceDateIso), { dataset: source });
+  const queryRows = vi.fn(async ({ query }) => buildKpiPageResult(query, await queryRepository.getKpiData(query)));
+  const view = () => KpiPageContent({ queryRows, queryActions: vi.fn(), queryKpiDetails: {
+    training: vi.fn(), drill: vi.fn(), inspections: vi.fn(), astmEvents: vi.fn(),
+  } });
+  render(view);
+  await vi.waitFor(() => expect(tableProps(render(view))?.queryStatus).toBe("READY"));
+  const page = render(view);
+  const result = await queryRows.mock.results[0].value;
+  expect(tableProps(page)?.rows).toBe(result.rows);
+  const notice = availabilityNotice(page)!;
+  expect(notice.props.availability).toBe(result.availability);
+  const output = DataAvailabilityNotice(notice.props);
+  if (withOrphan) {
+    expect(result.availability).toBe("INCOMPLETE");
+    expect(output?.props.children).toContain("数据不完整");
+  } else {
+    expect(output).toBeNull();
+  }
+  state = { ...state, store: { kind: "INCLUDE", values: [stores[0].storeId] } };
+  expect(availabilityNotice(render(view))).toBeUndefined();
 });

@@ -44,7 +44,7 @@
 
 ### Store Reference
 
-只允许精确 TRTID，或 TRTID 缺失时使用精确且唯一的英文门店名。不得使用模糊匹配。
+优先精确 TRTID；TRTID 缺失或无法唯一解析时，允许回退到精确且唯一的英文门店名。TRTID 已唯一解析且英文名未匹配时保留 TRTID 结果；两者明确指向不同门店时拒绝。不得使用模糊匹配。
 
 | Logical field | Contract | 公司来源对象.字段 | Physical type | 转换 / null 处理 | 状态与证据 |
 |---|---|---|---|---|---|

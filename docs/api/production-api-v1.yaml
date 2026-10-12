@@ -280,6 +280,13 @@ components:
         sourceRecordId: { type: string }
         sourceUrl: { type: string, format: uri }
     ImportBatchInput:
+      description: >-
+        Runtime validation compares businessPeriod and coverage.businessPeriod by endpoint instants,
+        independent of JSON key order or equivalent UTC offsets. Records must belong to the declared
+        half-open coverage period: Training/Drill months and Action Closure Rate ranges must be fully
+        contained; Inspection uses Shanghai dueDate, Events eventDate, Actions submittedDate and
+        Take Charge submittedAt. Inspection dueDate null is retained for Domain diagnostics.
+        Take Charge annual aggregates require direct Repository integration, including empty results.
       oneOf:
         - { $ref: '#/components/schemas/StoreMasterBatchInput' }
         - { $ref: '#/components/schemas/TrainingBatchInput' }
@@ -289,7 +296,6 @@ components:
         - { $ref: '#/components/schemas/EventsBatchInput' }
         - { $ref: '#/components/schemas/ActionsBatchInput' }
         - { $ref: '#/components/schemas/TakeChargeBatchInput' }
-        - { $ref: '#/components/schemas/TakeChargeAnnualAggregatesBatchInput' }
         - { $ref: '#/components/schemas/CertificatesBatchInput' }
         - { $ref: '#/components/schemas/EnvironmentBatchInput' }
         - { $ref: '#/components/schemas/RequiredSetsBatchInput' }
@@ -304,7 +310,6 @@ components:
           events: '#/components/schemas/EventsBatchInput'
           actions: '#/components/schemas/ActionsBatchInput'
           take-charge: '#/components/schemas/TakeChargeBatchInput'
-          take-charge-annual-aggregates: '#/components/schemas/TakeChargeAnnualAggregatesBatchInput'
           certificates: '#/components/schemas/CertificatesBatchInput'
           environment: '#/components/schemas/EnvironmentBatchInput'
           required-sets: '#/components/schemas/RequiredSetsBatchInput'
@@ -455,20 +460,6 @@ components:
               maxItems: 10000
               items: { $ref: '#/components/schemas/TakeChargeRecord' }
       unevaluatedProperties: false
-    TakeChargeAnnualAggregatesBatchInput:
-      description: 'The generic batch transport does not accept this domain. Company integration maps database aggregates directly through the Production Repository adapter.'
-      x-implementation-status: DIRECT-REPOSITORY-INTEGRATION-REQUIRED
-      allOf:
-        - { $ref: '#/components/schemas/ImportBatchBase' }
-        - type: object
-          required: [domain, records]
-          properties:
-            domain: { const: take-charge-annual-aggregates }
-            records:
-              type: array
-              maxItems: 10000
-              items: { $ref: '#/components/schemas/UnresolvedAnnualAggregateRecord' }
-      unevaluatedProperties: false
     CertificatesBatchInput:
       allOf:
         - { $ref: '#/components/schemas/ImportBatchBase' }
@@ -577,9 +568,6 @@ components:
       description: 'Logical output names only. Company physical fields are mapped by the Production Repository adapter; this batch transport rejects the domain.'
       additionalProperties: false
       properties: { scope: { type: object }, currentYear: { type: integer }, asOfMonth: { type: string }, submissionsPerCapitaYtd: { type: object }, participationRateYtd: { type: object } }
-    UnresolvedAnnualAggregateRecord:
-      allOf: [{ $ref: '#/components/schemas/TakeChargeAnnualAggregateRecord' }]
-      x-implementation-status: DIRECT-REPOSITORY-INTEGRATION-REQUIRED
     CertificateRecord:
       type: object
       additionalProperties: false

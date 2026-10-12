@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Award,
+  CircleHelp,
   FileText,
   Gauge,
   LayoutDashboard,
@@ -85,6 +86,7 @@ export const routes = {
   stores: { title: "门店", href: "/stores", icon: Store, description: "浏览当前筛选范围内的门店主数据", showPeriodFilter: false },
   accessManagement: { title: "权限管理", href: "/access", icon: Shield, section: navigationLabels.systemManagement, description: "管理手动权限与查看操作日志", showGlobalFilters: false, showPeriodFilter: false },
   systemMonitoring: { title: "系统监控", href: "/monitoring", icon: ShieldAlert, description: "查看系统错误及诊断信息", showGlobalFilters: false, showPeriodFilter: false },
+  help: { title: "帮助", href: "/help", icon: CircleHelp, description: "查阅计算口径、字段含义和状态说明", showGlobalFilters: false, showPeriodFilter: false },
   devOverview: {
     title: "总览 Demo",
     href: "/dev/overview",

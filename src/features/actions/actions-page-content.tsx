@@ -1,4 +1,5 @@
 "use client";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
@@ -16,12 +17,12 @@ import { useGlobalFilters } from "@/features/global-filters/global-filter-provid
 export type ActionsQueryAction = (input: {
   referenceDateIso: string;
   query: ActionsQuery;
-}) => Promise<ActionsQueryResult>;
+}) => Promise<QueryOutcome<ActionsQueryResult>>;
 
 export type ActionsAnalyticsQueryAction = (input: {
   referenceDateIso: string;
   query: ActionAnalyticsQuery;
-}) => Promise<ActionAnalyticsResult>;
+}) => Promise<QueryOutcome<ActionAnalyticsResult>>;
 
 export function ActionsPageContent({
   queryActions,

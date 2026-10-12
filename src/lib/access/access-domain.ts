@@ -1,9 +1,10 @@
+import { areaScopeId } from "@/data/contracts/kpi";
+export { areaScopeId } from "@/data/contracts/kpi";
 import type { StoreMasterData } from "@/types/ehs";
 import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
 import type { AccessScope, AccountSummary, BaseGrant, EffectiveAccess, ManualGrant } from "@/data/contracts/access";
 
 export function canonicalEmail(value: string): string { return value.trim().toLowerCase(); }
-export function areaScopeId(region: string, area: string): string { return JSON.stringify([region, area]); }
 const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function isValidEmail(value: string): boolean { return validEmail.test(canonicalEmail(value)); }
 export function deriveBaseGrants(stores: readonly StoreMasterData[]): BaseGrant[] {
@@ -36,7 +37,7 @@ export function accountSummary(access: EffectiveAccess): AccountSummary {
   return { email: access.email, summary, scopes: access.globalRole ? [summary] : access.scopes.map((scope) => `${scope.accessType === "REGION" ? "区域" : scope.accessType === "AREA" ? "小区" : "门店"} · ${scope.scopeDisplayName}`), canManageAccess: access.canManageAccess };
 }
 function inFilter(store: KpiStore, scope: EhsStoreScope): boolean {
-  return (scope.region.kind === "ALL" || scope.region.values.includes(store.region)) && (scope.area.kind === "ALL" || scope.area.values.includes(store.area)) && (scope.store.kind === "ALL" || scope.store.values.includes(store.storeId));
+  return (scope.region.kind === "ALL" || scope.region.values.includes(store.region)) && (scope.area.kind === "ALL" || scope.area.values.includes(areaScopeId(store.region, store.area))) && (scope.store.kind === "ALL" || scope.store.values.includes(store.storeId));
 }
 export function authorizedScope(requested: EhsStoreScope, access: EffectiveAccess, stores: readonly KpiStore[]): EhsStoreScope | null {
   const requestedStores = stores.filter((store) => inFilter(store, requested));

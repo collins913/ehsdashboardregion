@@ -1,31 +1,33 @@
 "use client";
+import { unwrapQueryOutcome, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
+import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { PageContainer } from "@/components/shared/page-container";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import type { KpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
 import type { KpiDetailQueries } from "@/features/kpi/kpi-detail-sheet";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
-import type { KpiRow } from "@/features/kpi/types";
+import type { KpiPageResult } from "@/features/kpi/types";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
 export type KpiRowsQuery = (input: {
   referenceDateIso: string;
   query: EhsFilterContext;
-}) => Promise<readonly KpiRow[]>;
+}) => Promise<QueryOutcome<KpiPageResult>>;
 
 export async function loadKpiPageRows(
   context: EhsFilterContext | null,
   referenceDateIso: string,
   query: KpiRowsQuery,
-): Promise<readonly KpiRow[] | null> {
+): Promise<KpiPageResult | null> {
   if (context === null) {
     return null;
   }
 
-  return query({ referenceDateIso, query: context });
+  return unwrapQueryOutcome(await query({ referenceDateIso, query: context }));
 }
 
 export function KpiPageContent({
@@ -46,6 +48,11 @@ export function KpiPageContent({
     [filterContext, queryRows, referenceDateIso],
   );
   const state = useLatestAsyncQuery(queryKey, filterContext ? load : null);
+  const result = state.status === "SUCCESS"
+    ? state.data
+    : state.status === "LOADING" && state.resolved?.key === queryKey
+      ? state.resolved.data
+      : null;
 
   return (
     <PageContainer>
@@ -56,10 +63,11 @@ export function KpiPageContent({
       ) : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
           ) : null}
+          {result ? <DataAvailabilityNotice availability={result.availability} subject="KPI " /> : null}
           <KpiDataTable
-            rows={state.status === "SUCCESS" ? state.data ?? [] : []}
+            rows={state.status === "SUCCESS" ? state.data?.rows ?? [] : []}
             context={filterContext!}
             referenceDateIso={referenceDateIso}
             queryActions={queryActions}

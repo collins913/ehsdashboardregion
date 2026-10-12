@@ -1,4 +1,6 @@
 "use client";
+import { formatMetricNumber } from "@/lib/format-metric-number";
+import { unwrapQueryOutcome, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
@@ -17,7 +19,7 @@ import { formatBusinessPeriod } from "@/lib/format-business-period";
 export type GoalsSummaryQuery = (input: {
   referenceDateIso: string;
   query: EhsFilterContext;
-}) => Promise<TakeChargeGoalsSummary>;
+}) => Promise<QueryOutcome<TakeChargeGoalsSummary>>;
 
 export async function loadGoalsPageData(
   context: EhsFilterContext | null,
@@ -26,7 +28,7 @@ export async function loadGoalsPageData(
 ): Promise<TakeChargeGoalsSummary | null> {
   return context === null
     ? null
-    : query({ referenceDateIso, query: context });
+    : unwrapQueryOutcome(await query({ referenceDateIso, query: context }));
 }
 
 export function SummaryCards({
@@ -62,7 +64,7 @@ export function SummaryCards({
         value={periodUnavailable ? null : summary.period.closeRate.value}
         emptyLabel="无"
         valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
-        formatter={(value) => `${Math.round(value)}%`}
+        formatter={(value) => `${formatMetricNumber(value)}%`}
         info={
           <div className="space-y-1.5">
             <p>已进入终态的 Take Charge 数量占全部 Take Charge 的比例。</p>
@@ -76,7 +78,7 @@ export function SummaryCards({
         value={annualUnavailable ? null : summary.annual.submissionsPerCapitaYtd.value}
         emptyLabel="无"
         valueFallback={annualUnavailable ? <DataAvailabilityDisplay availability={summary.annual.availability} /> : undefined}
-        formatter={(value) => value.toFixed(1)}
+        formatter={(value) => formatMetricNumber(value, 1)}
         info={
           <div className="space-y-1.5">
             <p>本年度截至当前统计周期的平均 Take Charge 提交数量。</p>
@@ -90,7 +92,7 @@ export function SummaryCards({
         value={annualUnavailable ? null : summary.annual.participationRateYtd.value}
         emptyLabel="无"
         valueFallback={annualUnavailable ? <DataAvailabilityDisplay availability={summary.annual.availability} /> : undefined}
-        formatter={(value) => `${Math.round(value)}%`}
+        formatter={(value) => `${formatMetricNumber(value)}%`}
         info={
           <div className="space-y-1.5">
             <p>本年度截至当前统计周期的 Take Charge 参与率。</p>
@@ -166,7 +168,7 @@ export function GoalsPageContent({
       ) : filterContext === null ? null : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
           ) : null}
           <div className="relative" aria-busy={state.status === "LOADING" || undefined}>
             <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && summary !== null} />

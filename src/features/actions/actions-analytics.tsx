@@ -1,4 +1,6 @@
 "use client";
+import { queryErrorMessage } from "@/data/contracts/query-result";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useMemo } from "react";
 import { AnalyticsClosureRadial } from "@/components/shared/analytics-closure-radial";
@@ -16,7 +18,7 @@ import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 type QueryAction = (input: {
   referenceDateIso: string;
   query: ActionAnalyticsQuery;
-}) => Promise<ActionAnalyticsResult>;
+}) => Promise<QueryOutcome<ActionAnalyticsResult>>;
 
 function ActionsAnalyticsPlaceholder({
   loading = false,
@@ -70,7 +72,7 @@ export function ActionsAnalytics({
     [result],
   );
   if (state.status === "ERROR") {
-    return state.resolved ? <ActionsAnalyticsPlaceholder /> : <AsyncQueryFeedback status="ERROR" />;
+    return state.resolved ? <ActionsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />;
   }
   if (result === null) return <ActionsAnalyticsPlaceholder loading />;
 

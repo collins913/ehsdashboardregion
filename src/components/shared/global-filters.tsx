@@ -182,8 +182,8 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
                 <SelectContent>
                   <SelectItem value={ALL_VALUE}>全部小区</SelectItem>
                   {options.areas.map((area) => (
-                    <SelectItem key={area} value={area}>
-                      {area}
+                    <SelectItem key={area.value} value={area.value}>
+                      {area.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

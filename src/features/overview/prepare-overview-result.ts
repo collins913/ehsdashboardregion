@@ -139,13 +139,12 @@ export function prepareOverviewResult(input: {
   availableMonths: readonly Month[];
   sourceAvailability: OverviewResult["availability"];
 }): OverviewResult {
-  const { stores, selectedStores, attentionStores, context, requestedScope, availableMonths, sourceAvailability, referenceMonth } = input;
+  const { stores, selectedStores, attentionStores, requestedScope, availableMonths, sourceAvailability, referenceMonth } = input;
   const contributions = contributionIndex(input.contributions);
   const selectedMonths = [referenceMonth];
   const previousMonths = [monthOffset(referenceMonth, -1)];
   const availableMonthSet = new Set(availableMonths);
   const previousAvailable = previousMonths.every((month) => availableMonthSet.has(month));
-  const visibleMonths = selectedMonths.filter((month) => availableMonthSet.has(month));
   const allByStore = new Map(stores.map((store) => [store.storeId, store]));
   const currentPeriodLabel = referenceMonth;
   const previousPeriodLabel = previousAvailable ? periodLabel(previousMonths) : "无可比较历史";
@@ -321,7 +320,7 @@ export function prepareOverviewResult(input: {
   const areaRankings = ranking(selectedStores, contributions, selectedMonths, previousMonths, previousAvailable, "area", allByStore);
   const detailLevel = comparisons;
   const detailScoreDimensions = dimensionScores;
-  const scopeLabel = requestedScope.store.kind === "INCLUDE" ? `已选 ${selectedStores.length} 家门店` : requestedScope.area.kind === "INCLUDE" ? requestedScope.area.values[0] : requestedScope.region.kind === "INCLUDE" ? requestedScope.region.values[0] : "全部区域";
+  const scopeLabel = requestedScope.store.kind === "INCLUDE" ? `已选 ${selectedStores.length} 家门店` : requestedScope.area.kind === "INCLUDE" ? selectedStores[0]?.area ?? "所选小区" : requestedScope.region.kind === "INCLUDE" ? requestedScope.region.values[0] : "全部区域";
 
   return {
     availability: sourceAvailability,

@@ -1,4 +1,6 @@
 "use client";
+import { queryErrorMessage } from "@/data/contracts/query-result";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Cell, Pie, PieChart } from "recharts";
@@ -23,7 +25,7 @@ import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 type QueryAction = (input: {
   referenceDateIso: string;
   query: EventAnalyticsQuery;
-}) => Promise<EventAnalyticsResult>;
+}) => Promise<QueryOutcome<EventAnalyticsResult>>;
 
 const chartConfig = {
   eventCount: { label: "事件数量", color: "var(--analytics-primary)" },
@@ -134,7 +136,7 @@ export function EventsAnalytics({
   }, [result, selectedTrendKey]);
 
   if (state.status === "ERROR") {
-    return state.resolved ? <EventsAnalyticsPlaceholder /> : <AsyncQueryFeedback status="ERROR" />;
+    return state.resolved ? <EventsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />;
   }
   if (result === null) return <EventsAnalyticsPlaceholder loading />;
   if (result.availability === "UNAVAILABLE") {
@@ -161,6 +163,7 @@ export function EventsAnalytics({
                   options={result.trendSeries.map((series) => ({ value: series.key, label: series.label }))}
                   onValueChange={setSelectedTrendKey}
                   ariaLabel="事件趋势类型筛选"
+                  className="w-44"
                 />
               </div>
             )}

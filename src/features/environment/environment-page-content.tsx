@@ -1,4 +1,5 @@
 "use client";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
@@ -12,7 +13,7 @@ import { EnvironmentAnalytics, type EnvironmentAnalyticsQueryAction } from "./en
 import { EnvironmentDataTable } from "./environment-data-table";
 import { environmentQueryKey } from "./environment-view-model";
 
-export type EnvironmentQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<EnvironmentQueryResult>;
+export type EnvironmentQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<QueryOutcome<EnvironmentQueryResult>>;
 
 export async function loadEnvironmentPageData(context: EhsStoreScope | null, referenceDateIso: string, query: EnvironmentQueryAction) {
   return context ? query({ referenceDateIso, query: context }) : null;
@@ -35,7 +36,7 @@ export function EnvironmentPageContent({ queryEnvironment, queryEnvironmentAnaly
             referenceDateIso={referenceDateIso}
             queryEnvironmentAnalytics={queryEnvironmentAnalytics}
           />
-          {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" /> : null}
+          {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
           <EnvironmentDataTable rows={result?.items ?? []} queryKey={queryKey ?? ""} queryStatus={state.status === "SUCCESS" ? "READY" : state.status} />
         </div>
       )}

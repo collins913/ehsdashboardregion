@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
@@ -40,6 +41,31 @@ function takeCharge(
 }
 
 describe("Take Charge Goals repository", () => {
+  it("preserves orphan diagnostics in summary without changing valid Store scoring or annual aggregates", async () => {
+    const good = takeCharge("HEALTHY", "ClosedWithAction");
+    const clean = createMockEhsRepository(referenceDate, { takeChargeRecords: [good] });
+    const changed = createMockEhsRepository(referenceDate, { takeChargeRecords: [good, takeCharge("ORPHAN", "Submitted", "2026-09-10T09:00:00", "MISSING-STORE")] });
+    const filters = context("2026-09", "2026-09");
+    const summary = await changed.getTakeChargeGoals({ context: filters });
+    const details = await changed.getTakeChargeRecords({ context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 10 });
+    expect(details.availability).toBe("INCOMPLETE");
+    expect(summary.period).toMatchObject({
+      availability: "INCOMPLETE", submissionTotal: null, closedCount: null,
+      closeRate: { value: null, result: "UNDETERMINED", reason: "SOURCE_INCOMPLETE" },
+    });
+    expect(summary.annual).toEqual((await clean.getTakeChargeGoals({ context: filters })).annual);
+    const scope = { region: filters.region, area: filters.area, store: filters.store };
+    expect((await changed.getOverviewScoreData({ scope })).contributions).toEqual((await clean.getOverviewScoreData({ scope })).contributions);
+    expect(await changed.getTakeChargeGoals({ context: context("2026-08", "2026-08") }))
+      .toEqual(await clean.getTakeChargeGoals({ context: context("2026-08", "2026-08") }));
+  });
+
+  it("does not turn a wholly unresolvable source into a confirmed empty period", async () => {
+    const repository = createMockEhsRepository(referenceDate, { takeChargeRecords: [takeCharge("ORPHAN", "Submitted", "2026-09-31T09:00:00", "MISSING-STORE")] });
+    const summary = await repository.getTakeChargeGoals({ context: context() });
+    expect(summary.period).toMatchObject({ availability: "INCOMPLETE", submissionTotal: null, closeRate: { value: null, result: "UNDETERMINED" } });
+  });
+
   it("provides deterministic 2026 Q3 and current-year mock results", async () => {
     const dataset = createKpiMockData(referenceDate);
     const summary = await createMockEhsRepository(referenceDate).getTakeChargeGoals({
@@ -186,7 +212,7 @@ describe("Take Charge Goals repository", () => {
     const area = await repository.getTakeChargeGoals({
       context: {
         ...context(),
-        area: { kind: "INCLUDE", values: [mockStores[0].area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(mockStores[0].region, mockStores[0].area)] },
       },
     });
     const storeOnly = await repository.getTakeChargeGoals({

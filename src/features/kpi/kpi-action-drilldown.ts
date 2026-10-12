@@ -1,3 +1,4 @@
+import type { QueryOutcome } from "@/data/contracts/query-result";
 import type {
   ActionsQuery,
   ActionsQueryResult,
@@ -8,7 +9,7 @@ import type { StoreId } from "@/types/ehs";
 export type KpiActionDrilldownQuery = (input: {
   referenceDateIso: string;
   query: ActionsQuery;
-}) => Promise<ActionsQueryResult>;
+}) => Promise<QueryOutcome<ActionsQueryResult>>;
 
 export function buildKpiActionDrilldownQuery(
   context: EhsFilterContext,

@@ -1,4 +1,5 @@
 "use client"
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback"
@@ -17,7 +18,7 @@ import { ScopeDetailSheet } from "./components/scope-detail-sheet"
 export type OverviewQueryAction = (input: {
   referenceDateIso: string
   query: OverviewQuery
-}) => Promise<OverviewResult>
+}) => Promise<QueryOutcome<OverviewResult>>
 
 export function getOverviewPresentation(state: AsyncQueryState<OverviewResult>) {
   if (state.status === "SUCCESS") return { result: state.data, semanticKey: state.resolved.key, refreshing: false }
@@ -74,7 +75,7 @@ export function OverviewPage({ queryOverview }: { queryOverview: OverviewQueryAc
   const query = useLatestAsyncQuery(queryKey, storeScope ? load : null)
 
   if (query.status === "IDLE") return <PageContainer><div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">当前筛选条件尚不能生成 Overview 数据。</div></PageContainer>
-  if (query.status === "ERROR") return <PageContainer><AsyncQueryFeedback status="ERROR" /></PageContainer>
+  if (query.status === "ERROR") return <PageContainer><AsyncQueryFeedback status="ERROR" errorCode={query.errorCode} /></PageContainer>
   const presentation = getOverviewPresentation(query)
   if (presentation === null) return <PageContainer><AsyncQueryFeedback status="LOADING" /></PageContainer>
   return <OverviewContent result={presentation.result} semanticKey={presentation.semanticKey} requestedKey={queryKey!} refreshing={presentation.refreshing} />

@@ -17,12 +17,14 @@ export function FilterSelect<Value extends string>({
   onValueChange,
   disabled = false,
   ariaLabel,
+  className,
 }: {
   value: Value;
   options: readonly FilterSelectOption<Value>[];
   onValueChange: (value: Value) => void;
   disabled?: boolean;
   ariaLabel: string;
+  className?: string;
 }) {
   return (
     <Select
@@ -36,7 +38,7 @@ export function FilterSelect<Value extends string>({
         if (selectedOption) onValueChange(selectedOption.value);
       }}
     >
-      <SelectTrigger className="w-24" aria-label={ariaLabel}>
+      <SelectTrigger className={className ?? "w-24"} aria-label={ariaLabel}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

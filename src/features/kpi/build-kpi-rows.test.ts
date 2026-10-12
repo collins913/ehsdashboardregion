@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { evaluateKpiDomain } from "@/lib/rules/kpi-domain";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +16,8 @@ import type {
   KpiTrainingRecord,
 } from "@/data/contracts/kpi";
 import type { NormalizedEventRecord } from "@/data/contracts/event-record";
-import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { buildKpiPageResult, buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import type { StoreMasterData } from "@/types/ehs";
 
 const q1Context: EhsFilterContext = {
@@ -105,6 +107,24 @@ function event(
 }
 
 describe("KPI assembly", () => {
+  it("preserves query-level orphan diagnostics without overwriting valid Store results", async () => {
+    const referenceDate = new Date("2026-03-15T00:00:00+08:00");
+    const dataset = createKpiMockData(referenceDate);
+    const clean = await createMockEhsRepository(referenceDate, { dataset }).getKpiData(q1Context);
+    const changed = await createMockEhsRepository(referenceDate, { dataset: {
+      ...dataset, trainingRecords: [...dataset.trainingRecords, { ...dataset.trainingRecords[0], storeReference: { trtid: "MISSING-STORE" } }],
+    } }).getKpiData(q1Context);
+    const result = buildKpiPageResult(q1Context, changed);
+    expect(result.availability).toBe("INCOMPLETE");
+    expect(result.rows).toEqual(buildKpiRows(q1Context, clean));
+  });
+
+  it("retains source diagnostics when no Store rows can be returned", () => {
+    const input = snapshot({ stores: [], training: incomplete() });
+    expect(buildKpiPageResult(q1Context, input)).toEqual({ rows: [], availability: "INCOMPLETE" });
+    expect(buildKpiPageResult(q1Context, snapshot({ stores: [] }))).toEqual({ rows: [], availability: "CONFIRMED_EMPTY" });
+  });
+
   it("builds one normalized row per store", () => {
     const rows = buildKpiRows(q1Context, snapshot());
 
@@ -139,7 +159,7 @@ describe("KPI assembly", () => {
   it("honors repository Area filtering", async () => {
     const context: EhsFilterContext = {
       ...q1Context,
-      area: { kind: "INCLUDE", values: ["西岭二部"] },
+      area: { kind: "INCLUDE", values: [areaScopeId("西岭区", "西岭二部")] },
     };
     const rows = buildKpiRows(context, await mockEhsRepository.getKpiData(context));
 

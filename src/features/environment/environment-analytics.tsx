@@ -1,4 +1,5 @@
 "use client";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
@@ -13,7 +14,7 @@ import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 export type EnvironmentAnalyticsQueryAction = (input: {
   referenceDateIso: string;
   query: EnvironmentAnalyticsQuery;
-}) => Promise<EnvironmentAnalyticsResult>;
+}) => Promise<QueryOutcome<EnvironmentAnalyticsResult>>;
 
 function formatPeriod(months: readonly string[] | null): string {
   if (!months || months.length === 0) return "当前周期不可用";
@@ -35,7 +36,7 @@ export function EnvironmentAnalytics({
     ? JSON.stringify([referenceDateIso, storeScope])
     : null;
   const load = useCallback(
-    async (): Promise<EnvironmentAnalyticsResult> => {
+    async (): Promise<QueryOutcome<EnvironmentAnalyticsResult>> => {
       if (storeScope === null) throw new Error("Environment scope is unavailable.");
       return queryEnvironmentAnalytics({ referenceDateIso, query: { context: storeScope } });
     },
@@ -55,7 +56,7 @@ export function EnvironmentAnalytics({
       className="relative space-y-3"
     >
       <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && result !== null} />
-      {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" /> : null}
+      {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
       {result && result.availability !== "AVAILABLE" && result.availability !== "CONFIRMED_EMPTY" ? (
         <div className="flex"><DataAvailabilityDisplay availability={result.availability} /></div>
       ) : null}

@@ -94,3 +94,7 @@ Client Feature → Server Action → Repository / Adapter → Source
 ## Development Rules
 
 修改前必须阅读并遵守 [`../AGENTS.md`](../AGENTS.md)。
+
+## 用户帮助
+
+点击左下角用户菜单 → 帮助（`/help`），可搜索当前V1计算口径、状态和字段解释。说明目录维护于 `src/features/help/help-content.ts`；修改业务规则、界面字段或确认TBD时同步维护。页面不参与计算，也不替代 `metric-rules.md` / `status-dictionary.md` 与正式数据契约。

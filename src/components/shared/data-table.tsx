@@ -6,9 +6,9 @@ import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/da
 import { dataTableClassName, dataTableCompactPrimaryClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot } from "@/components/shared/data-table-loading";
-import { Button } from "@/components/ui/button";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { clampTablePageIndex, paginationForPageSize, useAdaptiveTablePageSize, type AdaptivePagination, type AdaptiveTablePageSize } from "@/hooks/use-adaptive-table-page-size";
+import { clampTablePageIndex, clampAdaptivePagination, resizeAdaptivePagination, updateAdaptivePagination, useAdaptiveTablePageSize, type AdaptivePagination, type AdaptiveTablePageSize } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
 
 const features = defineTableFeatures({ columnVisibilityFeature, rowPaginationFeature, rowSortingFeature, paginatedRowModel: createPaginatedRowModel(), sortedRowModel: createSortedRowModel(), sortFns: { text: sortFn_text, numeric: sortFn_basic } });
@@ -39,27 +39,17 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
     ? { pageIndex: clampTablePageIndex(adaptivePagination.pageIndex, displayedRows.length, adaptivePagination.pageSize), pageSize: adaptivePagination.pageSize }
     : { pageIndex: 0, pageSize: 1 }, [adaptivePagination, displayedRows.length]);
   const onPageSizeChange = useCallback((pageSize: AdaptiveTablePageSize) => {
-    setAdaptivePagination((current) => {
-      const next = paginationForPageSize(current ?? { pageIndex: 0, pageSize }, displayedRows.length, pageSize);
-      return current?.pageIndex === next.pageIndex && current.pageSize === next.pageSize ? current : next;
-    });
+    setAdaptivePagination((current) => resizeAdaptivePagination(current, displayedRows.length, pageSize));
   }, [displayedRows.length]);
   const onPaginationChange = useCallback((updater: PaginationState | ((current: PaginationState) => PaginationState)) => {
-    setAdaptivePagination((current) => {
-      if (!current) return current;
-      const resolved = { ...current, pageIndex: clampTablePageIndex(current.pageIndex, displayedRows.length, current.pageSize) };
-      const proposed = typeof updater === "function" ? updater(resolved) : updater;
-      return { ...current, pageIndex: clampTablePageIndex(proposed.pageIndex, displayedRows.length, current.pageSize) };
-    });
+    setAdaptivePagination((current) => current ? updateAdaptivePagination(current, updater, displayedRows.length) : current);
   }, [displayedRows.length]);
   const { tableFrameRef, tableBodyRef, rowMeasurementRef, paginationRef } = useAdaptiveTablePageSize({
     enabled: active, ready: adaptivePagination !== null, currentPageSize: adaptivePagination?.pageSize ?? null, onPageSizeChange,
   });
   useEffect(() => {
     setAdaptivePagination((current) => {
-      if (!current) return current;
-      const pageIndex = clampTablePageIndex(current.pageIndex, displayedRows.length, current.pageSize);
-      return current.pageIndex === pageIndex ? current : { ...current, pageIndex };
+      return current ? clampAdaptivePagination(current, displayedRows.length) : current;
     });
   }, [displayedRows.length]);
   const definitions = useMemo(() => {
@@ -102,13 +92,20 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
         return <TableRow key={row.id} ref={index === 0 ? rowMeasurementRef : undefined} aria-hidden={status === "LOADING" || undefined} aria-label={rowInteractive ? rowAriaLabel?.(row.original) : undefined} tabIndex={rowInteractive ? 0 : undefined} onClick={onRowClickEvent} onKeyDown={onRowKeyDown} className={cn(status !== "LOADING" && dataTableRowClassName, rowInteractive && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", status === "LOADING" && "hover:bg-transparent")}>{row.getVisibleCells().map((cell, cellIndex) => <TableCell key={cell.id} className={cn(columnClassName(columns.find((item) => item.id === cell.column.id)?.sizeRole ?? "standard"), "break-words", stickyFirstColumn && cellIndex === 0 && stickyStoreCellClassName)}><DataTableLoadingCellContent loading={status === "LOADING"} pendingMode={pendingMode}><table.FlexRender cell={cell} /></DataTableLoadingCellContent></TableCell>)}</TableRow>;
       })}{status === "LOADING" && renderedRows.length > 0 ? <DataTablePlaceholderRows columns={placeholderColumns} rowCount={Math.max(0, pagination.pageSize - renderedRows.length)} /> : null}{status === "READY" && displayedRows.length === 0 && adaptivePagination ? <TableRow ref={rowMeasurementRef}><TableCell colSpan={columns.length} className="py-8 text-center text-muted-foreground">{emptyMessage}</TableCell></TableRow> : null}</TableBody>
     </Table></div>
-    <div ref={paginationRef} aria-hidden={!adaptivePagination} className={cn("mt-3 flex flex-wrap items-center justify-between gap-3", !adaptivePagination && "invisible")}>
+    <DataTablePagination
+      ref={paginationRef}
+      className="mt-3"
+      ready={adaptivePagination !== null}
+      disabled={status !== "READY"}
+      pageIndex={pagination.pageIndex}
+      pageCount={Math.max(1, table.getPageCount())}
+      metadataPending={isResolvedMetadataPending}
+      canPreviousPage={table.getCanPreviousPage()}
+      canNextPage={table.getCanNextPage()}
+      onPreviousPage={() => table.previousPage()}
+      onNextPage={() => table.nextPage()}
+    >
       <span className="text-sm text-muted-foreground">共 <DataTablePendingValue pending={isResolvedMetadataPending}>{displayedRows.length}</DataTablePendingValue> 条</span>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">第 <DataTablePendingValue pending={isResolvedMetadataPending}>{pagination.pageIndex + 1}</DataTablePendingValue> / <DataTablePendingValue pending={isResolvedMetadataPending}>{Math.max(1, table.getPageCount())}</DataTablePendingValue> 页</span>
-        <Button size="sm" variant="outline" disabled={status !== "READY" || !table.getCanPreviousPage()} onClick={() => table.previousPage()}>上一页</Button>
-        <Button size="sm" variant="outline" disabled={status !== "READY" || !table.getCanNextPage()} onClick={() => table.nextPage()}>下一页</Button>
-      </div>
-    </div>
+    </DataTablePagination>
   </>;
 }

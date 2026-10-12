@@ -66,9 +66,9 @@ export function AnalyticsClosureRadial({
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 items-center justify-center px-4">
-        <div className="relative mx-auto h-36 w-64">
+        <div className="relative mx-auto aspect-[16/9] w-64 max-w-full">
           <ChartContainer config={config} className="absolute inset-0 aspect-auto">
-            <RadialBarChart data={chartData} startAngle={CLOSURE_RADIAL_START_ANGLE} endAngle={CLOSURE_RADIAL_END_ANGLE} innerRadius={92} outerRadius={124} cy="100%">
+            <RadialBarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }} startAngle={CLOSURE_RADIAL_START_ANGLE} endAngle={CLOSURE_RADIAL_END_ANGLE} innerRadius="128%" outerRadius="172%" cy="100%">
               <PolarAngleAxis type="number" dataKey="closedValue" domain={CLOSURE_RATE_DOMAIN} tick={false} axisLine={false} tickLine={false} />
               <RadialBar dataKey="closedValue" stackId="a" fill="var(--color-closedValue)" cornerRadius={5} className="stroke-transparent stroke-2" isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
               <RadialBar dataKey="otherValue" stackId="a" fill="var(--color-otherValue)" cornerRadius={5} className="stroke-transparent stroke-2" isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />

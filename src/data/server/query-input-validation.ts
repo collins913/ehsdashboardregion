@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import type { AccessQuery } from "@/data/contracts/access";
 import type { ActionsQuery, ActionSortDirection, ActionSortKey } from "@/data/contracts/actions";
 import type { EventsQuery, EventSortDirection, EventSortKey } from "@/data/contracts/events";
@@ -63,6 +64,15 @@ function parseFilterScope<T extends string>(
   return { kind: "INCLUDE", values: input.values as [T, ...T[]] };
 }
 
+function isAreaScopeId(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    const pair: unknown = JSON.parse(value);
+    return Array.isArray(pair) && pair.length === 2 && pair.every(nonEmptyString) &&
+      areaScopeId(pair[0], pair[1]) === value;
+  } catch { return false; }
+}
+
 function parseStoreScope(input: unknown): EhsStoreScope | null {
   if (
     !isRecord(input) ||
@@ -70,7 +80,7 @@ function parseStoreScope(input: unknown): EhsStoreScope | null {
     !hasKeys(input, ["region", "area", "store"])
   ) return null;
   const region = parseFilterScope(input.region, nonEmptyString);
-  const area = parseFilterScope(input.area, nonEmptyString);
+  const area = parseFilterScope(input.area, isAreaScopeId);
   const store = parseFilterScope(input.store, nonEmptyString);
   return region && area && store ? { region, area, store } : null;
 }

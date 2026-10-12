@@ -1,3 +1,5 @@
+import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodFromMonthRange } from "@/data/contracts/kpi-period";
@@ -50,7 +52,7 @@ describe("scoped Stores repository query", () => {
       context: {
         ...context(),
         region: { kind: "INCLUDE", values: [selected.region] },
-        area: { kind: "INCLUDE", values: [selected.area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(selected.region, selected.area)] },
         store: {
           kind: "INCLUDE",
           values: [mockStores[0].trtid, selected.trtid],
@@ -76,7 +78,7 @@ describe("scoped Stores repository query", () => {
     const area = await repository.getStores({
       context: {
         ...base,
-        area: { kind: "INCLUDE", values: [mockStores[0].area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(mockStores[0].region, mockStores[0].area)] },
       },
     });
     const store = await repository.getStores({
@@ -120,4 +122,18 @@ describe("scoped Stores repository query", () => {
 
     expect(result).toEqual({ availability: "CONFIRMED_EMPTY", items: [] });
   });
+});
+
+
+it("keeps identical Area names in different Regions separate with Region ALL", async () => {
+  const original = createKpiMockData(referenceDate);
+  const dataset = { ...original, stores: [
+    { ...original.stores[0], region: "东区", area: "一部" },
+    { ...original.stores[1], region: "西区", area: "一部" },
+  ] };
+  const repository = createMockEhsRepository(referenceDate, { dataset });
+  const selected = await repository.getStores({ context: { ...context(), area: { kind: "INCLUDE", values: [areaScopeId("东区", "一部")] } } });
+  expect(selected.items.map((store) => store.storeId)).toEqual([original.stores[0].trtid]);
+  const ambiguous = await repository.getStores({ context: { ...context(), area: { kind: "INCLUDE", values: ["一部"] } } });
+  expect(ambiguous.items).toEqual([]);
 });

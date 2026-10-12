@@ -60,7 +60,7 @@ V1 已确认：
 - Region、Area 初始为 `ALL`，支持 `ALL` 或单选。
 - Store 初始为 `ALL`，支持 `ALL`、单个或多个 canonical `storeId`。
 - Region 变化时清除无效 Area 与 Store；Area 变化时清除无效 Store。
-- Period 默认本季度，支持本年、本季度、本月及自定义完整自然月范围；本季度和本年均截至当前自然月，不纳入未来月份。
+- Period 默认本年，支持本年、本季度、本月及自定义完整自然月范围；本季度和本年均截至当前自然月，不纳入未来月份。
 - Period 使用 `Asia/Shanghai`，不支持具体日期、部分月份或自定义日范围。
 
 ### 3.2 规则执行边界
@@ -137,6 +137,8 @@ Training 和 Inspection 当前 source contract 不含必修 / 必检标记或对
 
 Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area、Store；Global Period 只影响提交总数与关闭率。今年人均提交数、今年参与率固定使用 Dashboard `referenceDate` 所在自然年的 1 月至当前月。
 
+达成判断始终使用未经展示格式化的原值；展示精度不参与规则计算，避免将低于目标的值四舍五入为目标值。
+
 ### 5.1 提交总数
 
 - 按当前 Global Period 内 `Submitted At` 统计 Take Charge 记录数。
@@ -147,19 +149,19 @@ Goals V1 展示 Take Charge 的四项结果。全部指标跟随 Region、Area�
 - 分母为当前 Global Period 内全部 Take Charge 记录数。
 - 分子为其中 `ClosedWithAction`、`ClosedWithoutAction`、`Declined` 的记录数。
 - 多月先汇总分子与分母，再计算百分比；禁止平均月度关闭率。
-- 目标值：`>= 90%`。
+- 目标值：`>= 90%`，展示最多 2 位小数；超出精度截断。
 - 完整 Coverage 下无记录时显示“无”，不显示 `0%` 或 `100%`。
 
 ### 5.3 今年人均提交数
 
 - 使用数据源提供的当前组织范围年度累计 aggregate，不平均门店最终指标。
-- 目标值：`>= 4`，展示 1 位小数。
+- 目标值：`>= 4`，展示至少 1 位、最多 2 位小数；超出精度截断。
 - 不受 Global Period 影响。
 
 ### 5.4 今年参与率
 
 - 使用数据源提供的当前组织范围年度累计 aggregate，不平均门店最终指标。
-- 目标值：`>= 50%`，展示 0 位小数。
+- 目标值：`>= 50%`，展示最多 2 位小数；超出精度截断。
 - 不受 Global Period 影响。
 
 Take Charge 明细按 `Submitted At` 使用 Asia/Shanghai 自然月半开区间。默认“全部”包含 OPEN、CLOSED 与 UNKNOWN；选择“未关闭”只显示 `RecordState = OPEN`。该视图切换只影响明细，不影响顶部四项汇总。表格展示门店、TCH ID、提交人、提交时间、摘要、Status；门店关联使用统一 TRTID primary / English Store Name optional fallback，不向用户展示源门店标识。

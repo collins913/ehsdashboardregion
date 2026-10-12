@@ -1,4 +1,4 @@
-import type { ImportActor, ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionDomain, ProductionImportBatch, ProductionImportBatchStatus } from "@/data/contracts/production-import";
+import type { ImportAuditEvent, ImportDiagnostic, MachinePrincipal, ProductionDomain, ProductionImportBatch, ProductionImportBatchStatus } from "@/data/contracts/production-import";
 import { parseProductionImportBatch } from "@/data/contracts/production-import-validation";
 import { BatchIdConflictError, BatchNotFoundError, BatchStateConflictError, IdempotencyConflictError, type ImportBatchStore } from "@/data/repositories/production-import-batch-store";
 import type { StoreMasterData } from "@/types/ehs";

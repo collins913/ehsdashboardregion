@@ -2,7 +2,7 @@
 
 import { type ReactNode, useId } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ANALYTICS_CARD_HEIGHT_CLASS_NAME,
 } from "@/components/shared/analytics-layout";
@@ -58,12 +58,12 @@ export function AnalyticsCountTrend({
   const gradientId = `count-gradient-${useId().replace(/:/g, "")}`;
 
   return (
-    <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-0 pt-0 pb-4`}>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 px-4 py-4">
+    <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col`}>
+      <CardHeader>
         <CardTitle>{title}</CardTitle>
-        {toolbar}
+        {toolbar ? <CardAction>{toolbar}</CardAction> : null}
       </CardHeader>
-      <CardContent className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col">
         <div className="relative min-h-0 flex-1 w-full">
           <ChartContainer config={config} className="absolute inset-0 aspect-auto">
             <AreaChart accessibilityLayer data={data} margin={{ left: 12, right: 12 }}>

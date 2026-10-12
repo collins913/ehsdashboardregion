@@ -3,11 +3,12 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   columnVisibilityFeature, type ColumnVisibilityState, createColumnHelper,
-  createPaginatedRowModel, createSortedRowModel, type OnChangeFn,
+  createPaginatedRowModel, createSortedRowModel,
   type PaginationState, rowPaginationFeature, rowSortingFeature,
   type SortingState, sortFn_text, tableFeatures as defineTableFeatures, useTable,
 } from "@tanstack/react-table";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
@@ -17,12 +18,11 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { NormalizedEnvironmentRecord } from "@/data/contracts/environment";
 import {
   type AdaptivePagination, type AdaptiveTablePageSize, clampTablePageIndex,
-  paginationForPageSize, useAdaptiveTablePageSize,
+  clampAdaptivePagination, resizeAdaptivePagination, updateAdaptivePagination, useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
 import { EnvironmentDetailSheet } from "./environment-detail-sheet";
@@ -60,18 +60,10 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
     ? { pageIndex: clampTablePageIndex(adaptivePagination.pageIndex, tableRows.length, adaptivePagination.pageSize), pageSize: adaptivePagination.pageSize }
     : { pageIndex: 0, pageSize: 1 }, [adaptivePagination, tableRows.length]);
   const onPageSizeChange = useCallback((pageSize: AdaptiveTablePageSize) => {
-    setAdaptivePagination((current) => {
-      const next = paginationForPageSize(current ?? { pageIndex: 0, pageSize }, tableRows.length, pageSize);
-      return current?.pageIndex === next.pageIndex && current.pageSize === next.pageSize ? current : next;
-    });
+    setAdaptivePagination((current) => resizeAdaptivePagination(current, tableRows.length, pageSize));
   }, [tableRows.length]);
-  const onPaginationChange = useCallback<OnChangeFn<PaginationState>>((updater) => {
-    setAdaptivePagination((current) => {
-      if (!current) return current;
-      const resolved = { ...current, pageIndex: clampTablePageIndex(current.pageIndex, tableRows.length, current.pageSize) };
-      const proposed = typeof updater === "function" ? updater(resolved) : updater;
-      return { ...current, pageIndex: clampTablePageIndex(proposed.pageIndex, tableRows.length, current.pageSize) };
-    });
+  const onPaginationChange = useCallback((updater: PaginationState | ((current: PaginationState) => PaginationState)) => {
+    setAdaptivePagination((current) => current ? updateAdaptivePagination(current, updater, tableRows.length) : current);
   }, [tableRows.length]);
   const { tableFrameRef, tableBodyRef, rowMeasurementRef, paginationRef } = useAdaptiveTablePageSize({
     ready: adaptivePagination !== null, currentPageSize: adaptivePagination?.pageSize ?? null, onPageSizeChange,
@@ -79,9 +71,7 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
   useLayoutEffect(() => { if (queryStatus !== "READY") setDetail(null); }, [queryStatus]);
   useLayoutEffect(() => {
     setAdaptivePagination((current) => {
-      if (!current) return current;
-      const pageIndex = clampTablePageIndex(current.pageIndex, tableRows.length, current.pageSize);
-      return current.pageIndex === pageIndex ? current : { ...current, pageIndex };
+      return current ? clampAdaptivePagination(current, tableRows.length) : current;
     });
   }, [tableRows.length]);
   const openDetail = useCallback((record: NormalizedEnvironmentRecord, kind: EnvironmentDetailKind) => {
@@ -135,14 +125,21 @@ export function EnvironmentDataTable({ rows, queryKey, queryStatus }: {
           </TableBody>
         </Table>
       </div>
-      <div ref={paginationRef} aria-busy={loading} aria-hidden={!adaptivePagination} className={cn("flex flex-wrap items-center justify-between gap-3", !adaptivePagination && "invisible")}>
+      <DataTablePagination
+        ref={paginationRef}
+        ready={adaptivePagination !== null}
+        busy={loading}
+        disabled={loading}
+        pageIndex={pagination.pageIndex}
+        pageCount={Math.max(table.getPageCount(), 1)}
+        metadataPending={isResolvedMetadataPending}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
+      >
         <p className="text-sm text-muted-foreground">共 <DataTablePendingValue pending={isResolvedMetadataPending}>{tableRows.length}</DataTablePendingValue> 家门店</p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">第 <DataTablePendingValue pending={isResolvedMetadataPending}>{pagination.pageIndex + 1}</DataTablePendingValue> / <DataTablePendingValue pending={isResolvedMetadataPending}>{Math.max(table.getPageCount(), 1)}</DataTablePendingValue> 页</span>
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={loading || !table.getCanPreviousPage()}>上一页</Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={loading || !table.getCanNextPage()}>下一页</Button>
-        </div>
-      </div>
+      </DataTablePagination>
       <EnvironmentDetailSheet detail={detail} onOpenChange={(open) => { if (!open) setDetail(null); }} />
     </div>
   );

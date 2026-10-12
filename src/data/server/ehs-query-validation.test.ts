@@ -16,7 +16,7 @@ vi.mock("@/data/repositories/create-ehs-repository.server", () => ({ createEhsRe
 vi.mock("@/lib/access/access-service.server", () => ({ authorizeBusinessScope: authorize }));
 
 import { queryActions, queryEnvironmentAnalytics, queryEvents, queryOverview, queryTakeChargeGoals } from "@/data/server/ehs-query-actions";
-import { InvalidQueryInputError } from "@/data/server/query-input-validation";
+import { QueryError } from "@/data/contracts/query-result";
 
 const validContext = {
   region: { kind: "ALL" },
@@ -54,29 +54,26 @@ describe("read-only Server Action input validation", () => {
     ["non-integer pagination", { ...validActionQuery, pageSize: 1.5 }],
     ["illegal view enum", { ...validActionQuery, viewMode: "CANCELLED" }],
   ])("rejects %s before authorization or repository access", async (_label, query) => {
-    await expect(queryActions(actionInput(query))).rejects.toMatchObject<Partial<InvalidQueryInputError>>({
-      name: "InvalidQueryInputError",
-      code: "INVALID_QUERY_INPUT",
-    });
+    await expect(queryActions(actionInput(query))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(authorize).not.toHaveBeenCalled();
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
   it("rejects malformed reference dates before constructing a Repository", async () => {
     await expect(queryActions(actionInput(validActionQuery, "2026-02-30T00:00:00Z")))
-      .rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+      .resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
   it("rejects malformed envelope and nested Event sorting inputs", async () => {
-    await expect(queryActions(null as never)).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+    await expect(queryActions(null as never)).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
     await expect(queryEvents(actionInput({
       context: validContext,
       viewMode: "ALL",
       sorting: { key: "certificateType", direction: "asc" },
       pageIndex: 0,
       pageSize: 5,
-    }))).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+    }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
@@ -94,8 +91,8 @@ describe("read-only Server Action input validation", () => {
   });
 
   it("does not initialize the business Repository when scope authorization fails", async () => {
-    authorize.mockRejectedValueOnce(new Error("NOT_AUTHORIZED"));
-    await expect(queryActions(actionInput(validActionQuery))).rejects.toThrow("NOT_AUTHORIZED");
+    authorize.mockRejectedValueOnce(new QueryError("ACCESS_DENIED"));
+    await expect(queryActions(actionInput(validActionQuery))).resolves.toEqual({ queryError: { code: "ACCESS_DENIED" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
@@ -114,7 +111,7 @@ describe("read-only Server Action input validation", () => {
     const scope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
     await queryOverview(actionInput({ context: scope }));
     expect(getOverviewScoreData).toHaveBeenCalledWith({ scope, attentionScope: scope });
-    await expect(queryOverview(actionInput({ context: validContext }))).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+    await expect(queryOverview(actionInput({ context: validContext }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
   });
 
   it("Environment Analytics derives the reference month and rejects client Period", async () => {
@@ -125,6 +122,6 @@ describe("read-only Server Action input validation", () => {
       endExclusive: "2026-10-01T00:00:00+08:00",
       includedMonths: ["2026-09"],
     } });
-    await expect(queryEnvironmentAnalytics(actionInput({ context: scope, period: validContext.period }))).rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+    await expect(queryEnvironmentAnalytics(actionInput({ context: scope, period: validContext.period }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
   });
 });

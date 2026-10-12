@@ -1,4 +1,6 @@
 "use client";
+import { queryErrorMessage } from "@/data/contracts/query-result";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useMemo } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
@@ -12,7 +14,7 @@ import { CertificateOverview, CertificateOverviewPlaceholder } from "./certifica
 import { CertificatesDataTable } from "./certificates-data-table";
 import { certificatesQueryKey, toCertificatesTableRows } from "./certificates-view-model";
 
-export type CertificatesQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<CertificatesPageQueryResult>;
+export type CertificatesQueryAction = (input: { referenceDateIso: string; query: EhsStoreScope }) => Promise<QueryOutcome<CertificatesPageQueryResult>>;
 
 export async function loadCertificatesPageData(context: EhsStoreScope | null, referenceDateIso: string, query: CertificatesQueryAction) {
   return context ? query({ referenceDateIso, query: context }) : null;
@@ -33,9 +35,9 @@ export function CertificatesPageContent({ queryCertificates }: { queryCertificat
           <p className="text-sm text-muted-foreground">当前筛选条件尚不能生成证件数据，请调整筛选条件。</p>
         ) : (
           <>
-            {state.status === "ERROR" && !state.resolved ? <AsyncQueryFeedback status="ERROR" /> : null}
+            {state.status === "ERROR" && !state.resolved ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
             {state.status === "LOADING" && overviewResult === null ? <CertificateOverviewPlaceholder loading /> : null}
-            {state.status === "ERROR" && state.resolved ? <CertificateOverviewPlaceholder /> : null}
+            {state.status === "ERROR" && state.resolved ? <CertificateOverviewPlaceholder message={queryErrorMessage(state.errorCode)} /> : null}
             {overviewResult ? <CertificateOverview availability={overviewResult.availability} overview={overviewResult.overview} refreshing={state.status === "LOADING"} /> : null}
             <CertificatesDataTable rows={rows} queryKey={queryKey ?? ""} queryStatus={state.status === "SUCCESS" ? "READY" : state.status} />
           </>

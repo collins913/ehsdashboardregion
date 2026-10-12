@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { periodForMode } from "@/data/contracts/kpi-period";
@@ -71,7 +72,7 @@ describe("performance profile Repository behavior", () => {
     const area = await repository.getEnvironment({
       context: {
         ...context(),
-        area: { kind: "INCLUDE", values: [firstStore.area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(firstStore.region, firstStore.area)] },
       },
     });
     const store = await repository.getEnvironment({
@@ -152,7 +153,7 @@ describe("performance profile Repository behavior", () => {
       context: {
         ...context(),
         region: { kind: "INCLUDE", values: [firstStore.region] },
-        area: { kind: "INCLUDE", values: [firstStore.area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(firstStore.region, firstStore.area)] },
         store: { kind: "INCLUDE", values: [firstStore.trtid] },
       },
       viewMode: "ALL",

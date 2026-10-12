@@ -44,7 +44,7 @@ describe("Access domain", () => {
     expect(authorizedScope({ ...all, store: { kind: "INCLUDE", values: ["TEST-002"] } }, user, stores)).toBeNull();
   });
   it("matches intersecting scope without upgrading Store grants to Area grants", () => {
-    const query = { scope: { ...all, area: { kind: "INCLUDE" as const, values: ["北辰一部"] as [string] } } };
+    const query = { scope: { ...all, area: { kind: "INCLUDE" as const, values: [areaScopeId("北辰区", "北辰一部")] as [string] } } };
     expect(grantMatchesScope(mockManualGrants[0], query.scope, stores)).toBe(true);
     expect(grantMatchesScope(bases.find((g) => g.email === "manager.1@example.test")!, query.scope, stores)).toBe(true);
     expect(access("manager.1@example.test").scopes.some((g) => g.accessType === "AREA")).toBe(false);
@@ -58,4 +58,20 @@ describe("Access domain", () => {
     expect(accountSummary(access("multi@example.test")).summary).toBe("2 个访问范围");
     expect(accountSummary(access("no.access@example.test")).scopes).toHaveLength(0);
   });
+});
+
+
+it("scopes canonical Store IDs and same-name Areas without relying on TRTID", () => {
+  const canonicalStores = [
+    { storeId: "canonical-east", displayName: "东门店", region: "东区", area: "一部" },
+    { storeId: "canonical-west", displayName: "西门店", region: "西区", area: "一部" },
+  ];
+  const areaGrant = { email: "area@example.test", accessType: "AREA" as const, scopeId: areaScopeId("东区", "一部"), scopeDisplayName: "一部", source: "AREA_OWNER" as const, sourceDetail: "负责人" };
+  const effective = resolveEffectiveAccess(areaGrant.email, [areaGrant], [], canonicalStores);
+  expect(effective.allowedStoreIds).toEqual(["canonical-east"]);
+  expect(authorizedScope({ ...all, area: { kind: "INCLUDE", values: [areaScopeId("西区", "一部")] } }, effective, canonicalStores)).toBeNull();
+  expect(authorizedScope({ ...all, area: { kind: "INCLUDE", values: [areaScopeId("东区", "一部")] } }, effective, canonicalStores)?.store).toEqual({ kind: "INCLUDE", values: ["canonical-east"] });
+  const storeGrant = { ...areaGrant, accessType: "STORE" as const, scopeId: "canonical-west", source: "STORE_MANAGER" as const };
+  expect(resolveEffectiveAccess(storeGrant.email, [storeGrant], [], canonicalStores).allowedStoreIds).toEqual(["canonical-west"]);
+  expect(authorizedScope({ ...all, store: { kind: "INCLUDE", values: ["external-trtid"] } }, effective, canonicalStores)).toBeNull();
 });

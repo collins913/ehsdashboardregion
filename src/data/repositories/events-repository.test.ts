@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { EventsViewMode } from "@/data/contracts/events";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
@@ -115,7 +116,7 @@ describe("scoped Events repository query", () => {
     });
     const area = await query("ALL", {
       ...base,
-      area: { kind: "INCLUDE", values: [mockStores[0].area] },
+      area: { kind: "INCLUDE", values: [areaScopeId(mockStores[0].region, mockStores[0].area)] },
     });
     const store = await query("ALL", {
       ...base,

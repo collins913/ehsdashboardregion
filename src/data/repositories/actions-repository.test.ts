@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
 import type { ActionsViewMode } from "@/data/contracts/actions";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
@@ -57,6 +58,46 @@ function rawAction(
 }
 
 describe("scoped Actions repository query", () => {
+  it.each([
+    ["another Store's bad date", rawAction("Assigned", { trtid: mockStores[1].trtid }, { dueDate: "2026-09-31T18:00:00" })],
+    ["another Store's identity conflict", rawAction("Assigned", { trtid: mockStores[1].trtid, storeNameEn: mockStores[0].storeNameEn })],
+    ["a prior month's bad due date", rawAction("Assigned", undefined, { submittedDate: "2026-08-01T09:00:00", dueDate: "2026-09-31T18:00:00" })],
+    ["a prior month's bad closed date", rawAction("Closed", undefined, { submittedDate: "2026-08-01T09:00:00", closedDate: "2026-09-31T18:00:00" })],
+  ])("isolates %s from the selected Store and month", async (_label, badRecord) => {
+    const healthyRecord = rawAction("Assigned", undefined, { actionId: "HEALTHY" });
+    const filters: EhsFilterContext = { ...context("2026-09", "2026-09"), store: { kind: "INCLUDE", values: [mockStores[0].trtid] } };
+    const clean = createMockEhsRepository(referenceDate, { actionRecords: [healthyRecord] });
+    const changed = createMockEhsRepository(referenceDate, { actionRecords: [healthyRecord, badRecord] });
+    const query = { context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 10 } as const;
+
+    expect(await changed.getActions(query)).toEqual(await clean.getActions(query));
+    expect(await changed.getActionsAnalytics({ context: filters })).toEqual(await clean.getActionsAnalytics({ context: filters }));
+    expect((await changed.getActions(query)).availability).toBe("AVAILABLE");
+  });
+
+  it("keeps a selected Store's bad date incomplete in its own period", async () => {
+    const repository = createMockEhsRepository(referenceDate, { actionRecords: [rawAction("Assigned", undefined, { dueDate: "2026-09-31T18:00:00" })] });
+    const filters: EhsFilterContext = { ...context("2026-09", "2026-09"), store: { kind: "INCLUDE", values: [mockStores[0].trtid] } };
+    expect(await repository.getActions({ context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 10 }))
+      .toMatchObject({ availability: "INCOMPLETE", items: [] });
+  });
+
+  it("keeps an undated defect within its identifiable Store", async () => {
+    const repository = createMockEhsRepository(referenceDate, { actionRecords: [rawAction("Assigned", { trtid: mockStores[1].trtid }, { submittedDate: "2026-09-31T09:00:00" })] });
+    const queryFor = (storeId: string) => repository.getActions({
+      context: { ...context("2026-09", "2026-09"), store: { kind: "INCLUDE", values: [storeId] } },
+      viewMode: "ALL", pageIndex: 0, pageSize: 10,
+    });
+    expect((await queryFor(mockStores[0].trtid)).availability).toBe("CONFIRMED_EMPTY");
+    expect((await queryFor(mockStores[1].trtid)).availability).toBe("INCOMPLETE");
+  });
+
+  it("retains orphan diagnostics only in periods they can affect", async () => {
+    const repository = createMockEhsRepository(referenceDate, { actionRecords: [rawAction("Assigned", { trtid: "MISSING-STORE" })] });
+    expect((await repository.getActions({ context: context("2026-09", "2026-09"), viewMode: "ALL", pageIndex: 0, pageSize: 10 })).availability).toBe("INCOMPLETE");
+    expect((await repository.getActions({ context: context("2026-08", "2026-08"), viewMode: "ALL", pageIndex: 0, pageSize: 10 })).availability).toBe("CONFIRMED_EMPTY");
+  });
+
   it("resolves TRTID and English-name fallback to canonical storeId", async () => {
     const result = await query("ALL");
     const storeOneRecords = result.items.filter(
@@ -81,7 +122,7 @@ describe("scoped Actions repository query", () => {
     const areaResult = await query("ALL", {
       ...base,
       region: { kind: "INCLUDE", values: ["北辰区"] },
-      area: { kind: "INCLUDE", values: ["北辰一部"] },
+      area: { kind: "INCLUDE", values: [areaScopeId("北辰区", "北辰一部")] },
     });
     const storeResult = await query("ALL", {
       ...base,

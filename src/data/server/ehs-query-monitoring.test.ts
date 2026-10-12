@@ -1,3 +1,4 @@
+import { unwrapQueryOutcome } from "@/data/contracts/query-result";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EnvironmentQueryResult } from "@/data/contracts/environment";
 
@@ -38,7 +39,7 @@ describe("Server Action monitoring classification", () => {
     ["production", "Production Repository"],
   ])("identifies %s data without changing the returned availability", async (mode, source) => {
     vi.stubEnv("EHS_DATA_SOURCE", mode);
-    const result = await queryEnvironment(input);
+    const result = unwrapQueryOutcome(await queryEnvironment(input));
 
     expect(result.availability).toBe("INCOMPLETE");
     expect(mocks.recordEvent).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
@@ -73,7 +74,7 @@ describe("Server Action monitoring classification", () => {
 
   it("records rejected query input as INFO instead of a server failure", async () => {
     await expect(queryEnvironment({ ...input, query: { ...input.query, unexpected: true } } as never))
-      .rejects.toMatchObject({ code: "INVALID_QUERY_INPUT" });
+      .resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(mocks.getEnvironment).not.toHaveBeenCalled();
     expect(mocks.recordEvent).toHaveBeenCalledWith(expect.objectContaining({
       severity: "INFO", errorCode: "INVALID_QUERY_INPUT", causeStatus: "KNOWN",
@@ -83,7 +84,7 @@ describe("Server Action monitoring classification", () => {
   it("still captures genuine exceptions without including their raw message", async () => {
     const failure = new Error("private database connection detail");
     mocks.getEnvironment.mockRejectedValueOnce(failure);
-    await expect(queryEnvironment(input)).rejects.toBe(failure);
+    await expect(queryEnvironment(input)).resolves.toEqual({ queryError: { code: "SERVICE_UNAVAILABLE" } });
     expect(mocks.recordEvent).toHaveBeenCalledWith(expect.objectContaining({
       severity: "ERROR", errorCode: "SERVER_ACTION_FAILED", causeStatus: "UNKNOWN",
     }));

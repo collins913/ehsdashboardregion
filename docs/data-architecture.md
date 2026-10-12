@@ -27,6 +27,7 @@ Client Feature
 → serializable async query
 → Server Action boundary
 → runtime query input validation
+→ verified identity / Effective Access / authorized scope
 → server-only Repository factory
 → Source Adapter / Mock Repository
 → normalized result
@@ -38,6 +39,8 @@ Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领
 受保护业务数据必须经过服务端身份解析、Effective Access、请求范围授权，再由 Repository 查询并返回授权后的 DTO。Client 不直接读取 protected production source / JSON，也不持有其 URL 或凭据；不能先返回全量数据再由 React 过滤。授权同样覆盖 `totalCount`、summary 与筛选选项。当前 Next.js Server Action 使用集中 `authorizeBusinessScope` adapter；未来 Production Repository 仍位于该 server boundary 之后。SharePoint Document Library JSON 只是可能的数据源实现，不是 Client API。
 
 Server Action 的 TypeScript DTO 不作为 runtime validation。只读查询入口在授权和 Repository 调用前验证 payload 的结构、基础类型、枚举、排序 key、分页整数及 ISO / Period 合法性；非法输入拒绝为稳定的 `INVALID_QUERY_INPUT` 错误，不能降级成默认筛选或日期。Scope 是否可访问仍由 Effective Access / `authorizeBusinessScope` 判断。
+
+只读 Server Action 通过 `QueryOutcome<T>` 返回安全错误码，UI 不依赖 production 会隐藏的异常消息。共享 `useLatestAsyncQuery` 处理分类并维持 requested/resolved 身份；身份或权限失败会清除旧结果。KPI 明细的 `storeId` 同样必须属于授权后的 Store 集合，校验在 Repository 初始化前完成。Area 筛选、授权和 Repository 共用 `areaScopeId(region, area)`，跨区域同名小区不得合并。
 
 Access Service 从 Store / Organization source 派生 Base Grants、读取独立 Manual Grant Repository 并解析 Effective Access；Manual Grant 存在即生效，删除即失效。`EHS_MOCK_USER_EMAIL` 仅在 server-only Mock identity resolver 使用，未配置时落到预置全局管理员；Production Identity Provider 后续替换它。Manual Grant 与审计由同一 Repository mutation 维护；Production 实现应原子写入两者。/access 的两个 Tab 只管理手动权限与呈现审计；UI 只展示 DTO、收集输入并触发 Server Action，Region / Area / Store 查询忽略 Period。
 
@@ -83,7 +86,7 @@ EhsFilterContext
 → normalized Store × Period sources
 → centralized KpiDomainResult
 → KPI presentation builder / ScoreContribution producer
-→ KpiRow[] / Overview pooled aggregation
+→ KpiPageResult (KpiRow[] + query availability) / Overview pooled aggregation
 ```
 
 - `EhsFilterContext` 显式提供 `[startInclusive, endExclusive)` 与 `includedMonths`；时间戳必须包含 `Z` 或 UTC offset，契约不一致时 Repository 安全降级为 `INCOMPLETE`。
@@ -91,6 +94,7 @@ EhsFilterContext
 - 只有数据源或 fixture 明确保证请求范围完整时，零记录才可表示 `CONFIRMED_EMPTY`。
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
 - `src/lib/rules/kpi-domain.ts` 统一评价五项 KPI；snapshot 必须携带 `domainResults`。`buildKpiRows` 只映射结果，不调用规则。Training / Inspection 共用注入的 required-set provider，不再保留 KPI 与 Overview 两套解释。
+- Server Action 返回 `KpiPageResult`，同时保留门店行与查询级 source availability。无法关联门店的记录只触发查询级不完整提示，不覆盖有效门店的 Domain Result；没有行时也不能丢失该提示。Client 只展示服务端提供的 availability。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI 初始汇总查询不携带 Action 明细。用户打开 Action 下钻后，再复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 获取目标门店明细。Store Resolution、Status 解析、RecordState 和 OPEN 过滤仍只由 Repository 执行。
 - KPI feature 读取 Dashboard 共享 Filter Context，经 Server Action 调用 Repository 与 Builder；Client 不读取 mock、不创建 Repository、不执行业务计算。
@@ -118,11 +122,12 @@ Training and Inspection requirement membership comes from an injected `OverviewR
 
 ## Architecture Hardening V1
 
-- KPI / Event / Inspection source normalization and Store × Month indexes are prepared once per immutable Dataset instance. Action aggregates use exact parsed Period keys. Certificate identity/category normalization is also reused; expiry evaluation still uses each injected referenceDate.
+- KPI / Event / Inspection / Action source normalization and Store × Month indexes are prepared once per immutable Dataset instance. Action Closure Rate source aggregates use exact parsed Period keys. Certificate identity/category normalization is also reused; expiry evaluation still uses each injected referenceDate.
 - Coverage bounds, month sets and Store membership are prepared outside scoring loops. Query Period is validated once per domain reader; reference dates are computed once per month. The Shanghai formatter is module-scoped. No contribution/result cache was added.
 - Store × metric × known period owns source diagnostics; Dataset-level availability is a query summary and never overwrites another Store's Domain Result or contribution. Conflicting identity rows remain rejected; an identifiable primary TRTID owns their diagnostic rather than contaminating the English-name target.
 - If a date cannot establish Period membership, its defect remains limited to that Store/domain but conservatively affects its requested periods. If no Store can be identified, the orphan remains a query-level incomplete-source diagnostic and is not assigned to arbitrary Stores. Production must provide authoritative source scope/coverage to resolve these cases; no fabricated date, Store or historical fact is introduced.
 - `goal-domain.ts` evaluates normalized Goal inputs; the Mock annual adapter alone knows fixture numerator/denominator fields and pools them before division. Consumers share Goal Results with independent metric reasons. Certificate category Results include their reason; Overview never reconstructs it from records.
+- Client boundary tests follow runtime imports and re-exports through helpers/hooks, stopping at Server Action proxies. Domain calculators and server presentation builders must remain outside that dependency graph; DTO types, static display metadata, natural-month query construction and chart/layout arithmetic retain their existing presentation roles.
 
 ## Goals / Take Charge scoped queries
 
@@ -136,6 +141,7 @@ Raw Take Charge (TRTID + optional English Store Name)
 ```
 
 - 提交总数与关闭率按 Submitted At 使用 Global Period；关闭率先汇总月度分子与分母，再计算百分比。
+- 无法关联门店的 Take Charge 记录在可能涉及的 Period 保留查询级不完整诊断；Goals 周期汇总与明细保持一致，提交数、关闭数和关闭率返回 null，结果为 UNDETERMINED。该诊断不改变有效门店的 Overview contribution 或独立年度源汇总。
 - 今年人均提交数与今年参与率由年度组织范围 aggregate 提供，不读取 Global Period，也不平均门店最终指标。
 - Take Charge 明细查询在 Repository 边界接收 view mode、sorting、`pageIndex / pageSize` 并返回 `totalCount`；Repository 对完整 scoped result 先过滤、排序，再分页。视图和排序不影响 Goals summary。
 - 动态扩展字段只能由字段定义驱动，默认隐藏，不能覆盖核心字段或直接暴露 raw object。
@@ -214,7 +220,7 @@ Import HTTP responses expose batch metadata, state, coverage assessment, audit a
 
 Status boundary: API routes, DTO validation, lifecycle service, adapter interfaces, GLIFE display adapter, server identity seam, and test doubles are implemented. Enterprise database, persistent transaction adapter, trusted SSO verification, M2M credentials, access persistence and initial-admin storage remain integration-required. Take Charge annual logical outputs and targets are frozen; company physical fields are mapped directly by the Production Repository Adapter, while the generic batch API intentionally rejects that Domain. See `docs/integration/corporate-ai-integration.md` before enabling any production mode.
 
-Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同记录计分子；到期记录数按 normalized 合同记录与 referenceDate 所在自然月计算，不接收 Global Period。设施信息和 Monitoring 新字段保持 TBD。
+Environment Detail 不进入 Rule Engine，不产生 Business Result。Region / Area / canonical Store 有效，Period 与 referenceDate 忽略。中文名称来自 Store Master，Raw 不携带中文名；Repository 逐字段规范化环保证照、应急预案、监测及废弃物合同，Feature 仅做五类详情的 presentation routing。Environment Analytics 在 server-side rule 中以当前 scope 全部门店为持有率分母，按每店是否至少有一条对应废弃物合同在 referenceDate 当天有效计分子；有效要求 validTo 为合法 date-only 日期且 validTo >= referenceDate，缺失、无效或过期合同不计入。到期记录数按 normalized 合同记录与 referenceDate 所在自然月计算，不接收 Global Period。设施信息和 Monitoring 新字段保持 TBD。
 
 Environment 采用现有轻量 master 表格模式，对 scoped normalized result 进行 Client sorting / pagination，并复用一个 Detail Sheet；不创建独立 Repository runtime、Table 或 Detail framework。废弃物合同数组保留所有源记录及顺序，不去重、不截断。Standard Mock 使用既有 Store Master 为每家门店生成 deterministic detail record；Performance Profile 为其 500 家 Store 各生成一条 deterministic Environment record。未覆盖门店明确返回不完整数据。
 

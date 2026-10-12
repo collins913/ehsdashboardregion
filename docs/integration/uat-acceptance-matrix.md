@@ -61,15 +61,17 @@
 | IMP-02 | 机器主体访问未授权 Domain | Storage predicate 在返回批次前拒绝；不会泄露批次是否存在 | Domain allowlist 负向测试 | NOT_RUN |
 | IMP-03 | 合法提交批次 | 返回生命周期元数据和诊断，不返回 staged source records | API 响应与 OpenAPI 对照 | NOT_RUN |
 | IMP-04 | 相同 idempotency key 重试相同请求，再提交不同请求 | 相同请求返回原批次；不同请求冲突；无重复数据 | 唯一约束与重试结果 | NOT_RUN |
-| IMP-05 | 提交未知字段、错误类型、重复键、非法时间、未解析 Store | 生成稳定诊断并阻止发布；异常行不被静默丢弃 | 诊断响应与数据库状态 | NOT_RUN |
+| IMP-05 | 提交未知字段、错误类型、重复键、非法时间、必填时间为 null、混合 Required Set 属性、未解析 Store | 生成稳定诊断并阻止发布；异常行不被静默丢弃；Action closedDate / Inspection dueDate 的合法 null 仍保留 | 诊断响应与数据库状态 | NOT_RUN |
 | IMP-06 | `PARTIAL`、`UNKNOWN`、缺少独立证明或证明不匹配 | 不得达到可发布的 `VERIFIED_COMPLETE` | Validation 结果与审计 | NOT_RUN |
 | IMP-07 | 有效独立 Coverage Proof | 证明由可信来源校验器验证，不依赖请求自行声明；只在验证成功后允许发布 | Proof 校验记录 | NOT_RUN |
 | IMP-08 | 并发 Validate / Publish 或使用过期 revision | 原子 CAS 只允许一个合法状态迁移；冲突不会覆盖新状态 | 并发测试与 revision 记录 | NOT_RUN |
 | IMP-09 | 在数据、指针、批次终态或成功审计写入期间注入失败 | 整个发布回滚，上一已发布版本保持有效 | 事务失败注入与读回结果 | NOT_RUN |
 | IMP-10 | 发布前从业务 Repository 查询 staged 数据 | staged 数据完全不可见；业务读取只返回当前已发布版本 | 发布前后查询对照 | NOT_RUN |
 | IMP-11 | 超过 10 MiB、单批超过 10,000 records 或 coverage stores | 请求按契约拒绝，不发生部分写入 | 边界测试结果 | NOT_RUN |
-| IMP-12 | 通过通用 Import API 提交 Take Charge 年度 aggregate | 返回 `DIRECT_REPOSITORY_INTEGRATION_REQUIRED`；年度 aggregate 只由 Production Repository 直读映射 | API 结果与 Adapter 测试 | NOT_RUN |
+| IMP-12 | 通过通用 Import API 提交 Take Charge 年度 aggregate，包括零条记录的权威空结果 | 均返回 `DIRECT_REPOSITORY_INTEGRATION_REQUIRED`；年度 aggregate 只由 Production Repository 直读映射 | API 结果与 Adapter 测试 | NOT_RUN |
 | IMP-13 | 发布 Store Master 完整批次 | records 与 coverage TRTID 集合完全一致，TRTID 唯一；冲突或遗漏会阻止发布 | Store Master 校验结果 | NOT_RUN |
+| IMP-14 | 记录业务时间、Training/Drill 完整月份或 Closure Rate 统计范围超出 coverage 周期 | 返回 `RECORD_OUTSIDE_COVERAGE_PERIOD` 并阻止提交 / 发布；起点计入、终点排除；Actions 按 submittedDate，不能按 dueDate / closedDate 判断 | 各 Domain 周期边界测试与发布指针记录 | NOT_RUN |
+| IMP-15 | 批次与 coverage 周期交换 JSON 键顺序、使用等价时区，或改变实际端点 | 等价端点正常接受；实际端点不一致返回 `COVERAGE_PERIOD_MISMATCH` | 正反例 API 响应 | NOT_RUN |
 
 ## 数据、业务规则与页面
 

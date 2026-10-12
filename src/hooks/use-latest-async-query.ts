@@ -1,4 +1,5 @@
 "use client";
+import { unwrapQueryOutcome, queryErrorCode, type QueryErrorCode, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reportClientOperationalError } from "@/features/monitoring/report-client-error";
@@ -12,7 +13,7 @@ export type AsyncQueryState<T> =
   | { status: "IDLE"; resolved: null }
   | { status: "LOADING"; resolved: ResolvedAsyncQuery<T> | null }
   | { status: "SUCCESS"; data: T; resolved: ResolvedAsyncQuery<T> }
-  | { status: "ERROR"; resolved: ResolvedAsyncQuery<T> | null };
+  | { status: "ERROR"; errorCode?: QueryErrorCode; resolved: ResolvedAsyncQuery<T> | null };
 
 type StoredAsyncQueryState<T> = {
   key: string | null;
@@ -39,7 +40,7 @@ export function createLatestRequestGuard() {
 
 export function useLatestAsyncQuery<T>(
   queryKey: string | null,
-  load: (() => Promise<T>) | null,
+  load: (() => Promise<QueryOutcome<T>>) | null,
 ): AsyncQueryState<T> & { reload: () => Promise<void> } {
   const guardRef = useRef<ReturnType<typeof createLatestRequestGuard> | null>(
     null,
@@ -91,19 +92,19 @@ export function useLatestAsyncQuery<T>(
       resolved: current.resolved,
     }));
 
-    const settleError = () => {
+    const settleError = (error: unknown) => {
       if (active && guard.isLatest(requestId)) {
-        reportClientOperationalError("DATA_REQUEST_FAILED");
-        setStored((current) => ({
-          key: queryKey,
-          state: { status: "ERROR", resolved: current.resolved },
-          resolved: current.resolved,
-        }));
+        if (queryErrorCode(error) === "SERVICE_UNAVAILABLE") reportClientOperationalError("DATA_REQUEST_FAILED");
+        setStored((current) => {
+          const errorCode = queryErrorCode(error);
+          const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;
+          return { key: queryKey, state: { status: "ERROR", errorCode, resolved }, resolved };
+        });
       }
     };
 
     try {
-      void execute().then(
+      void execute().then(unwrapQueryOutcome).then(
         (data) => {
           if (active && guard.isLatest(requestId)) {
             const resolved = { key: queryKey, data };
@@ -116,8 +117,8 @@ export function useLatestAsyncQuery<T>(
         },
         settleError,
       );
-    } catch {
-      settleError();
+    } catch (error) {
+      settleError(error);
     }
 
     return () => {
@@ -136,7 +137,7 @@ export function useLatestAsyncQuery<T>(
       resolved: current.resolved,
     }));
     try {
-      const data = await execute();
+      const data = unwrapQueryOutcome(await execute());
       if (
         mountedRef.current &&
         guard.isLatest(requestId) &&
@@ -151,12 +152,12 @@ export function useLatestAsyncQuery<T>(
         guard.isLatest(requestId) &&
         requestedKeyRef.current === queryKey
       ) {
-        reportClientOperationalError("DATA_REQUEST_FAILED");
-        setStored((current) => ({
-          key: queryKey,
-          state: { status: "ERROR", resolved: current.resolved },
-          resolved: current.resolved,
-        }));
+        if (queryErrorCode(error) === "SERVICE_UNAVAILABLE") reportClientOperationalError("DATA_REQUEST_FAILED");
+        setStored((current) => {
+          const errorCode = queryErrorCode(error);
+          const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;
+          return { key: queryKey, state: { status: "ERROR", errorCode, resolved }, resolved };
+        });
       }
       throw error;
     }

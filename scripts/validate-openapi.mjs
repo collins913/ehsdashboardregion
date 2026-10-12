@@ -40,4 +40,9 @@ const storeMasterWithoutEffectiveTime = {
 };
 if (validateInput(storeMasterWithoutEffectiveTime)) throw new Error("Snapshot-domain schema must require effectiveTime");
 
-console.log("OpenAPI examples and required Domain coverage constraints are valid.");
+for (const records of [[], [{}]]) {
+  const annualBatch = { ...structuredClone(requestExample), domain: "take-charge-annual-aggregates", records, expectedRecordCount: records.length };
+  if (validateInput(annualBatch)) throw new Error("Annual aggregates must use direct Repository integration, including empty batches");
+}
+
+console.log("OpenAPI examples, required Domain coverage and supported import domains are valid.");

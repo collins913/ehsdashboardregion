@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import type {
   FilterScope,
   EhsFilterContext,
@@ -68,7 +69,7 @@ function storesInScope(
 ): readonly KpiStore[] {
   return stores.filter(
     (store) =>
-      scopeIncludes(region, store.region) && scopeIncludes(area, store.area),
+      scopeIncludes(region, store.region) && scopeIncludes(area, areaScopeId(store.region, store.area)),
   );
 }
 
@@ -99,7 +100,7 @@ export function changeRegion(
   const validAreas = new Set(
     stores
       .filter((store) => scopeIncludes(region, store.region))
-      .map((store) => store.area),
+      .map((store) => areaScopeId(store.region, store.area)),
   );
   const area =
     state.area.kind === "INCLUDE" &&
@@ -181,7 +182,7 @@ export function hasValidFilterScopes(
   const validAreas = new Set(
     stores
       .filter((store) => scopeIncludes(state.region, store.region))
-      .map((store) => store.area),
+      .map((store) => areaScopeId(store.region, store.area)),
   );
   const validStoreIds = new Set(
     storesInScope(stores, state.region, state.area).map(
@@ -203,13 +204,15 @@ export function hasValidFilterScopes(
 
 export function filterOptions(stores: readonly KpiStore[], state: GlobalFilterState) {
   const regions = [...new Set(stores.map((store) => store.region))].sort();
-  const areas = [
-    ...new Set(
-      stores
-        .filter((store) => scopeIncludes(state.region, store.region))
-        .map((store) => store.area),
-    ),
-  ].sort();
+  const candidates = [...new Map(stores
+    .filter((store) => scopeIncludes(state.region, store.region))
+    .map((store) => [areaScopeId(store.region, store.area), store])).values()];
+  const names = new Map<string, number>();
+  for (const store of candidates) names.set(store.area, (names.get(store.area) ?? 0) + 1);
+  const areas = candidates.map((store) => ({
+    value: areaScopeId(store.region, store.area),
+    label: names.get(store.area)! > 1 ? `${store.area}（${store.region}）` : store.area,
+  })).sort((a, b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
   const scopedStores = storesInScope(stores, state.region, state.area);
 
   return { regions, areas, stores: scopedStores };

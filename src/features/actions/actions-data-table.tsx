@@ -1,4 +1,5 @@
 "use client";
+import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import {
   useCallback,
@@ -30,20 +31,19 @@ import {
   type DataTableColumnSizeRole,
 } from "@/components/shared/data-table-layout";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { FilterSelect } from "@/components/shared/filter-select";
 import {
   DataTableLoadingCellContent,
-  DataTablePendingFeedback,
   DataTablePendingValue,
   useResolvedDataTableSnapshot,
   useRetainedDataTableRows,
 } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
@@ -66,7 +66,8 @@ import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import {
   type AdaptivePagination,
   type AdaptiveTablePageSize,
-  paginationForPageSize,
+  resizeAdaptivePagination,
+  updateAdaptivePagination,
   useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
@@ -181,7 +182,7 @@ type ActionsDataTableProps = {
   queryActions: (input: {
     referenceDateIso: string;
     query: ActionsQuery;
-  }) => Promise<ActionsQueryResult>;
+  }) => Promise<QueryOutcome<ActionsQueryResult>>;
 };
 
 export function ActionsDataTable({
@@ -261,21 +262,9 @@ export function ActionsDataTable({
   const handleAdaptivePageSizeChange = useCallback(
     (pageSize: AdaptiveTablePageSize) => {
       setPaginationState((current) => {
-        const currentPagination =
-          current.status === "READY"
-            ? current.pagination
-            : { pageIndex: 0, pageSize };
-        const nextPagination = paginationForPageSize(
-          currentPagination,
-          totalCount,
-          pageSize,
-        );
-
-        return current.status === "READY" &&
-          current.pagination.pageIndex === nextPagination.pageIndex &&
-          current.pagination.pageSize === nextPagination.pageSize
-          ? current
-          : { status: "READY", pagination: nextPagination };
+        const previous = current.status === "READY" ? current.pagination : null;
+        const pagination = resizeAdaptivePagination(previous, totalCount, pageSize);
+        return previous === pagination ? current : { status: "READY", pagination };
       });
     },
     [totalCount],
@@ -283,21 +272,9 @@ export function ActionsDataTable({
   const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
     (updater) => {
       setPaginationState((current) => {
-        if (current.status === "UNMEASURED") {
-          return current;
-        }
-
-        const currentPagination: PaginationState = current.pagination;
-        const proposedPagination =
-          typeof updater === "function" ? updater(currentPagination) : updater;
-        const nextPagination: AdaptivePagination = {
-          pageIndex: Math.max(0, proposedPagination.pageIndex),
-          pageSize: current.pagination.pageSize,
-        };
-
-        return current.pagination.pageIndex === nextPagination.pageIndex
-          ? current
-          : { status: "READY", pagination: nextPagination };
+        if (current.status === "UNMEASURED") return current;
+        const pagination = updateAdaptivePagination(current.pagination, updater);
+        return pagination === current.pagination ? current : { status: "READY", pagination };
       });
     },
     [],
@@ -572,7 +549,7 @@ export function ActionsDataTable({
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 
-      <DataAvailabilityNotice availability={availability} subject="行动项" />
+      <DataAvailabilityNotice availability={availability} subject="行动项" queryErrorCode={queryState.status === "ERROR" ? queryState.errorCode : undefined} />
 
       <div
         ref={tableFrameRef}
@@ -684,13 +661,19 @@ export function ActionsDataTable({
         </Table>
       </div>
 
-      <div
+      <DataTablePagination
         ref={paginationRef}
-        aria-busy={isQueryLoading}
-        aria-hidden={!isPaginationReady}
-        className={`flex flex-wrap items-center justify-between gap-3${
-          isPaginationReady ? "" : " invisible"
-        }`}
+        ready={isPaginationReady}
+        busy={isQueryLoading}
+        disabled={isQueryLoading}
+        pageIndex={resolvedPageIndex}
+        pageCount={resolvedPageCount}
+        metadataPending={isResolvedMetadataPending}
+        pendingFeedback={isQueryLoading && pendingMode === "preserve-visible"}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
       >
         <p className="text-sm text-muted-foreground">
           共{" "}
@@ -699,37 +682,7 @@ export function ActionsDataTable({
           </DataTablePendingValue>{" "}
           条行动项
         </p>
-        <div className="flex items-center gap-2">
-          <DataTablePendingFeedback isPending={isQueryLoading && pendingMode === "preserve-visible"} />
-          <span className="text-sm text-muted-foreground">
-            第{" "}
-            <DataTablePendingValue pending={isResolvedMetadataPending}>
-              {resolvedPageIndex + 1}
-            </DataTablePendingValue>{" "}
-            /{" "}
-            <DataTablePendingValue pending={isResolvedMetadataPending}>
-              {resolvedPageCount}
-            </DataTablePendingValue>{" "}
-            页
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={isQueryLoading || !table.getCanPreviousPage()}
-          >
-            上一页
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={isQueryLoading || !table.getCanNextPage()}
-          >
-            下一页
-          </Button>
-        </div>
-      </div>
+      </DataTablePagination>
 
       <ActionDetailSheet
         record={selectedRecord}

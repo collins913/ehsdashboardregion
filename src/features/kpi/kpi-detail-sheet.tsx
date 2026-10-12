@@ -1,4 +1,5 @@
 "use client";
+import { unwrapQueryOutcome, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
@@ -31,10 +32,10 @@ import { formatBusinessPeriod } from "@/lib/format-business-period";
 type QueryEnvelope = { referenceDateIso: string; query: KpiDetailQuery };
 
 export type KpiDetailQueries = {
-  training: (input: QueryEnvelope) => Promise<KpiDetailRecords<KpiTrainingDetailRecord>>;
-  drill: (input: QueryEnvelope) => Promise<KpiDetailRecords<KpiDrillDetailRecord>>;
-  inspections: (input: QueryEnvelope) => Promise<KpiDetailRecords<KpiInspectionDetailRecord>>;
-  astmEvents: (input: QueryEnvelope) => Promise<KpiDetailRecords<KpiAstmDetailRecord>>;
+  training: (input: QueryEnvelope) => Promise<QueryOutcome<KpiDetailRecords<KpiTrainingDetailRecord>>>;
+  drill: (input: QueryEnvelope) => Promise<QueryOutcome<KpiDetailRecords<KpiDrillDetailRecord>>>;
+  inspections: (input: QueryEnvelope) => Promise<QueryOutcome<KpiDetailRecords<KpiInspectionDetailRecord>>>;
+  astmEvents: (input: QueryEnvelope) => Promise<QueryOutcome<KpiDetailRecords<KpiAstmDetailRecord>>>;
 };
 
 export type KpiDetailCategory = keyof KpiDetailQueries;
@@ -235,13 +236,13 @@ export function KpiDetailSheet({
   const load = useCallback(async (): Promise<LoadedKpiDetails> => {
     switch (selection!.category) {
       case "training":
-        return { category: "training", result: await queries.training(queryInput!) };
+        return { category: "training", result: unwrapQueryOutcome(await queries.training(queryInput!)) };
       case "drill":
-        return { category: "drill", result: await queries.drill(queryInput!) };
+        return { category: "drill", result: unwrapQueryOutcome(await queries.drill(queryInput!)) };
       case "inspections":
-        return { category: "inspections", result: await queries.inspections(queryInput!) };
+        return { category: "inspections", result: unwrapQueryOutcome(await queries.inspections(queryInput!)) };
       case "astmEvents":
-        return { category: "astmEvents", result: await queries.astmEvents(queryInput!) };
+        return { category: "astmEvents", result: unwrapQueryOutcome(await queries.astmEvents(queryInput!)) };
     }
   }, [queries, queryKey]);
   const queryState = useLatestAsyncQuery(queryKey, queryInput === null ? null : load);
@@ -272,7 +273,7 @@ export function KpiDetailSheet({
               {queryState.status === "LOADING" ? (
                 <AsyncQueryFeedback status="LOADING" />
               ) : queryState.status === "ERROR" ? (
-                <AsyncQueryFeedback status="ERROR" />
+                <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} />
               ) : queryState.status === "SUCCESS" && queryState.data ? (
                 <DetailRecords data={queryState.data} />
               ) : null}

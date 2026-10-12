@@ -80,6 +80,37 @@ export function paginationForPageSize(
   };
 }
 
+export function resizeAdaptivePagination(
+  current: AdaptivePagination | null,
+  itemCount: number,
+  pageSize: AdaptiveTablePageSize,
+): AdaptivePagination {
+  const next = paginationForPageSize(current ?? { pageIndex: 0, pageSize }, itemCount, pageSize);
+  return current?.pageIndex === next.pageIndex && current.pageSize === next.pageSize ? current : next;
+}
+
+export function clampAdaptivePagination(
+  current: AdaptivePagination,
+  itemCount: number,
+): AdaptivePagination {
+  const pageIndex = clampTablePageIndex(current.pageIndex, itemCount, current.pageSize);
+  return pageIndex === current.pageIndex ? current : { ...current, pageIndex };
+}
+
+export function updateAdaptivePagination(
+  current: AdaptivePagination,
+  updater: PaginationState | ((current: PaginationState) => PaginationState),
+  itemCount?: number,
+): AdaptivePagination {
+  // Repository pagination is bounded by the server; retained counts may be stale.
+  const resolved = itemCount === undefined ? current : clampAdaptivePagination(current, itemCount);
+  const proposed = typeof updater === "function" ? updater(resolved) : updater;
+  const pageIndex = itemCount === undefined
+    ? Math.max(0, proposed.pageIndex)
+    : clampTablePageIndex(proposed.pageIndex, itemCount, current.pageSize);
+  return pageIndex === current.pageIndex ? current : { ...current, pageIndex };
+}
+
 type UseAdaptiveTablePageSizeOptions = {
   enabled?: boolean;
   ready: boolean;

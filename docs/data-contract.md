@@ -35,11 +35,12 @@ KPI 组装层当前使用最小规范化查询契约：
 
 - Region、Area、Store 均显式表达 `ALL` 或非空选择集合；
 - Store 使用规范化 `storeId`；
+- Area 使用共享 `areaScopeId(region, area)`（JSON 编码的 `[region, area]`），不得用显示名称作为筛选值；同名小区跨区域保持独立，Store DTO 的 `area` 仍是显示名称；
 - Period 提供半开区间 `[startInclusive, endExclusive)`；
 - `startInclusive`、`endExclusive` 必须携带 `Z` 或明确 UTC offset；
 - Period 必须显式提供 `includedMonths`。
 
-Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认本季度，并支持本年、本季度、本月及自定义月份范围。本季度从当前自然季度首月至当前月，本年从当年 1 月至当前月，均不纳入未来月份。Region、Area 初始为 `ALL` 且为单选，Store 初始为 `ALL` 且支持多选；层级变化时清除无效下级选择。V1 不提供部分月份或日级日期输入。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
+Filter UI 使用 `Asia/Shanghai` 下的完整自然月生成该契约，默认本年，并支持本年、本季度、本月及自定义月份范围。本季度从当前自然季度首月至当前月，本年从当年 1 月至当前月，均不纳入未来月份。Region、Area 初始为 `ALL` 且为单选，Store 初始为 `ALL` 且支持多选；层级变化时清除无效下级选择。V1 不提供部分月份或日级日期输入。日期范围与 `includedMonths` 明显不一致时 Repository 标记为 `INCOMPLETE`；KPI Builder 不推断或替换月份。
 
 ### 2.2 Store Reference
 
@@ -220,10 +221,10 @@ Repository 向页面提供两组明确分离的结果：
 | 范围 | 逻辑字段 | 含义 |
 |---|---|---|
 | Global Period | submissionTotal / closedCount / closeRate | 当前 Submitted At 范围内的提交与关闭汇总 |
-| 当前年度累计 | submissionsPerCapitaYtd | 当前组织范围的数据源人均提交数 aggregate，1 位小数 |
-| 当前年度累计 | participationRateYtd | 当前组织范围的数据源 aggregate，0 位小数 |
+| 当前年度累计 | submissionsPerCapitaYtd | 当前组织范围的数据源人均提交数 aggregate，至少 1 位、最多 2 位小数，超出截断 |
+| 当前年度累计 | participationRateYtd | 当前组织范围的数据源 aggregate，最多 2 位小数，超出截断 |
 
-`submissionsPerCapitaYtd` 与 `participationRateYtd` 由 upstream / company Production Repository Adapter 提供 aggregate，Dashboard 不从明细重新计算。年度指标不携带 Global Period。多 Store、Area、Region 查询必须返回该授权范围的 aggregate，不允许平均门店最终值。`submissionsPerCapitaYtd >= 4`、`participationRateYtd >= 50` 为达成；关闭率字段为 `closeRate`，目标为 `>= 90`。百分比统一使用 0–100。公司物理字段名由 Adapter 映射到这些英文逻辑字段；Dashboard 不定义公司表字段或反推 denominator。
+`submissionsPerCapitaYtd` 与 `participationRateYtd` 由 upstream / company Production Repository Adapter 提供 aggregate，Dashboard 不从明细重新计算。年度指标不携带 Global Period。多 Store、Area、Region 查询必须返回该授权范围的 aggregate，不允许平均门店最终值。`submissionsPerCapitaYtd >= 4`、`participationRateYtd >= 50` 为达成；关闭率字段为 `closeRate`，目标为 `>= 90`。百分比统一使用 0–100。Goals 关闭率与参与率最多展示 2 位小数，人均提交数至少 1 位、最多 2 位；超出精度截断，达成判断始终使用原值。公司物理字段名由 Adapter 映射到这些英文逻辑字段；Dashboard 不定义公司表字段或反推 denominator。
 
 ### 5.2 Take Charge Record
 
@@ -443,7 +444,7 @@ Required 的布尔值编码与 Permit Information 的最小有效结构：TBD。
 
 字段命名、枚举编码和错误返回结构：TBD。
 
-KPI Repository snapshot 必须包含集中 `KpiDomainResult[]`（`src/data/contracts/domain-result.ts`），各 Store 的 result、availability 与 reason 一起返回；Training / Inspection 输入中的月份来自规范化数据，Inspection 月份仅由合法 dueDate 派生。KPI 页面使用纯 presentation Builder 输出的 `KpiRow[]`。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
+KPI Repository snapshot 必须包含集中 `KpiDomainResult[]`（`src/data/contracts/domain-result.ts`），各 Store 的 result、availability 与 reason 一起返回；Training / Inspection 输入中的月份来自规范化数据，Inspection 月份仅由合法 dueDate 派生。KPI Server Action 返回纯 presentation Builder 准备的 `KpiPageResult`：`rows: readonly KpiRow[]` 与查询级 `availability: DataAvailability`。无法定位门店的来源诊断保留在查询级，不改写有效门店行；零行结果仍保留诊断。任一源不完整或部分源不可用时查询级为 INCOMPLETE，全部源不可用时为 UNAVAILABLE；来源完整时按是否有门店行返回 AVAILABLE / CONFIRMED_EMPTY。每行只包含规范化门店身份、Training、Drill、Actions、Inspections 和 ASTM Events 的汇总结果及 Data Availability，不嵌入业务明细。Training、Drill、Inspection 与 ASTM 明细按需通过 typed Repository 查询，显式使用当前 Store 与 Global Period；ASTM 明细复用 normalized Event 数据并由 Repository 按 `ASTMInjuryIllness = "Yes"` 筛选。Action 下钻按需调用统一 Actions Repository `OPEN_ONLY` 查询，并按当前 Region / Area / Store 及 Submitted Date Period 过滤；`EXCLUDED`、`UNKNOWN` 和 `CLOSED` 不进入。Closure Rate aggregate 仍使用独立的精确 Period scope，不能从下钻明细重算。
 
 ## 11. Overview ScoreContribution
 
@@ -513,6 +514,8 @@ Historical data from 2026-01 through the current business month produces one con
 
 An import batch carries `schemaVersion`, `sourceSystem`, optional `sourceVersion` / `configurationVersion`, `domain`, `batchId`, `extractionTime`, optional `businessPeriod` / `effectiveTime`, coverage declaration and optional source proof, `expectedRecordCount`, `idempotencyKey` and domain-specific records. Date-times require an explicit UTC offset; periods are half-open. Training, Drill, Inspection, Action Closure Rate, Events, Actions and Take Charge require business-period coverage. Store Master, Certificates, Environment and required-set configuration require an effective-time range. `sourceSystem` is business provenance, never caller identity.
 
+Record business times must fall within `coverage.businessPeriod`: Training/Drill whole Shanghai months and Action Closure Rate aggregate ranges must be contained; Inspection uses Shanghai date-only `dueDate`, Events `eventDate`, Actions `submittedDate`, and Take Charge `submittedAt`. Inspection `dueDate: null` remains permitted for existing Domain diagnostics. When batch `businessPeriod` is supplied, its endpoint instants must equal coverage endpoints regardless of JSON key order or equivalent offsets. Required date-times cannot be null except Action `closedDate`; each required-set row contains exactly one nonempty set array, with the other property absent. The generic transport rejects Take Charge annual aggregates even for zero-record authoritative-empty batches.
+
 Lifecycle: `RECEIVED → VALIDATED | REJECTED → PUBLISHED`. Identical retries use `(sourceSystem, domain, idempotencyKey)` and return the prior batch; reusing that key for a different body is a conflict. Source `COMPLETE` means `DECLARED_COMPLETE`; only an independently checked proof permits `VERIFIED_COMPLETE` and formal publication. `PARTIAL` is `INCOMPLETE`; unknown source completeness remains `UNKNOWN`; both are unpublishable. Expected count versus request count checks self-consistency only. Proof kinds are control total, export manifest, scope digest, or authoritative empty declaration; no proof is fabricated by this service. A production adapter must atomically CAS the batch revision/state, persist audit, publish records and switch the active pointer in one transaction. Validation must never update `PUBLISHED`; stale validation/publish revisions conflict; same-batch repeat publish returns its published result. Failure must leave the prior active data and pointer queryable. Test memory stores are contract test doubles only.
 
 The trusted `MachinePrincipal` contains stable `principalId`, authorized Domain IDs and authorized operations (`SUBMIT`, `READ`, `VALIDATE`, `PUBLISH`). Each batch records trusted `createdByPrincipalId`, monotonically increasing `revision`, coverage assessment, and append-only submit/validate/publish audit events with actor principal, timestamp, outcome, request ID, and diagnostics. Principal IDs come only from the server Machine Identity Provider; request payload identity fields are rejected. Never persist credentials or tokens. Source version, configuration version, business/effective periods, extraction and publication times support traceability. Snapshot `referenceDate` and historical replay semantics remain TBD.
@@ -536,3 +539,8 @@ Incident transitions are `OPEN → ACKNOWLEDGED → RESOLVED`, with an additiona
 Browser reports accept only an allowlisted error kind, sanitized route and optional framework digest; they require a trusted authenticated principal, have an 8 KiB request limit and an atomic per-principal rate limit. Client-supplied identity, message, stack and arbitrary fields are rejected. Server Action and import capture preserve existing authorization, ImportDiagnostic and DataAvailability semantics. DataAvailability warnings describe source coverage; they are not converted into EHS business outcomes.
 
 Job Monitoring stores execution and heartbeat state. Watchdog policy is read only from explicit `EHS_MONITORING_JOBS` configuration; an empty configuration is a no-op and does not invent tasks or schedules. A company scheduler must invoke the watchdog and notification worker. Durable Monitoring storage, cross-worker atomicity, company Email, scheduler, log retention and an independent monitoring-storage failure channel remain `INTEGRATION REQUIRED`.
+
+
+### 只读查询失败契约
+
+EHS 查询和 Access 只读查询使用 `QueryOutcome<T>`：成功时保留现有 DTO；请求失败时仅返回 `{ queryError: { code } }`。稳定分类为 `AUTHENTICATION_REQUIRED`、`ACCESS_DENIED`、`INVALID_QUERY_INPUT`、`SERVICE_UNAVAILABLE`，不返回异常原文或堆栈。此传输状态独立于成功 DTO 内的 `DataAvailability` 与领域 `reason`。共享 async hook 解包结果并保存分类；身份或权限失败时清除已解析结果。Access 写入继续使用现有 `MutationResult`。

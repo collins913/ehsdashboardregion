@@ -46,12 +46,12 @@ function CertificateOverviewCardFrame({ children, status }: { children: ReactNod
   );
 }
 
-export function CertificateOverviewPlaceholder({ loading = false }: { loading?: boolean }) {
+export function CertificateOverviewPlaceholder({ loading = false, message = "数据查询失败，请稍后重试。" }: { loading?: boolean; message?: string }) {
   return (
     <section className="space-y-3" aria-label="证件配置概览" aria-busy={loading || undefined}>
       <CertificateOverviewCardFrame>
         <div className="flex min-h-0 flex-1 items-center justify-center">
-          {loading ? <Skeleton className="h-40 w-full" /> : <p className="text-sm text-muted-foreground">数据查询失败，请稍后重试。</p>}
+          {loading ? <Skeleton className="h-40 w-full" /> : <p className="text-sm text-muted-foreground">{message}</p>}
         </div>
       </CertificateOverviewCardFrame>
     </section>

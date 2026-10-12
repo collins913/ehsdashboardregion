@@ -35,7 +35,7 @@ Global Filters 共享 Region、Area、Store 与 Period 状态，但 Period 控�
 
 Region、Area 初始为 `ALL` 并支持单选；Store 初始为 `ALL` 并支持 canonical `storeId` 多选。Region / Area 变化时清除失效的下级选择。
 
-Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本季度，支持本年、本季度、本月及自定义月份范围。本季度为季度首月至当前月，本年为当年 1 月至当前月，不纳入未来月份；不提供日级日期或部分月份输入。
+Period V1 使用 `Asia/Shanghai` 下的完整自然月，默认本年，支持本年、本季度、本月及自定义月份范围。本季度为季度首月至当前月，本年为当年 1 月至当前月，不纳入未来月份；不提供日级日期或部分月份输入。
 
 ### D-004 先定义底层业务，再定义 Overview
 
@@ -110,9 +110,9 @@ ASTM 不维护独立数据源；以 Events 的 `ASTMInjuryIllness` 作为判断�
 | Goal | 目标 | 展示精度 |
 |---|---:|---:|
 | 提交总数 | 无目标 | 整数 |
-| Take Charge Close Rate | >= 90% | 0 位小数 |
-| 今年人均提交数 | >= 4 | 1 位小数 |
-| 今年参与率 | >= 50% | 0 位小数 |
+| Take Charge Close Rate | >= 90% | 最多 2 位小数，超出截断 |
+| 今年人均提交数 | >= 4 | 至少 1 位、最多 2 位小数，超出截断 |
+| 今年参与率 | >= 50% | 最多 2 位小数，超出截断 |
 
 提交总数与关闭率跟随 Global Period；关闭率由 Take Charge 明细的月度分子/分母汇总计算。两个“今年”指标固定为 reference year 年初至当前月，只跟随 Region / Area / Store，并由 upstream 提供数据源范围 aggregate；Dashboard 不从明细重算，也不得平均门店最终值。只有完整明细与正式 denominator 定义后，才可评估迁移为 Dashboard-derived metric。
 
@@ -200,7 +200,7 @@ Environment 主表保持门店维度，仅提供设施信息、环保证照、�
 
 ### D-029 KPI 使用集中数据组装契约
 
-KPI 页面只消费 `KpiRow[]`。Repository 根据 `EhsFilterContext` 返回规范化 scoped snapshot，集中 KPI Domain service 评价 Store × Period normalized sources 并返回带 reason 的 Domain Results；KPI Builder 仅映射 presentation，ScoreContribution producer 消费同一结果。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
+KPI 页面只消费服务端准备的 `KpiRow[]` 与查询级 Data Availability（`KpiPageResult`）。Repository 根据 `EhsFilterContext` 返回规范化 scoped snapshot，集中 KPI Domain service 评价 Store × Period normalized sources 并返回带 reason 的 Domain Results；KPI Builder 仅映射 presentation 并保留查询诊断，ScoreContribution producer 消费同一领域结果。页面不读取 mock、不关联门店、不推断月份、不计算 KPI。
 
 ### D-030 数据可用性必须显式表达
 

@@ -20,8 +20,14 @@ export interface KpiPeriod {
   includedMonths: NonEmptySelection<Month>;
 }
 
+/** Stable organization key shared by filters, authorization and repositories. */
+export function areaScopeId(region: string, area: string): string {
+  return JSON.stringify([region, area]);
+}
+
 export interface EhsStoreScope {
   region: FilterScope<string>;
+  /** Values are areaScopeId(region, area), never an unqualified display name. */
   area: FilterScope<string>;
   store: FilterScope<StoreId>;
 }

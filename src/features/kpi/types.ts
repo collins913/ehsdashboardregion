@@ -31,3 +31,8 @@ export interface KpiRow {
   inspections: PerformanceKpiValue;
   astmEvents: AstmKpiValue;
 }
+
+export interface KpiPageResult {
+  rows: readonly KpiRow[];
+  availability: DataAvailability;
+}

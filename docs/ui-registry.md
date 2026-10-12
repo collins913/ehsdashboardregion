@@ -15,16 +15,16 @@
 | Table | `src/components/ui/table.tsx` | KPI, Actions, Events, Take Charge, Stores, Environment and Certificates Data Tables plus detail tables |
 | Badge | `src/components/ui/badge.tsx` | Shared status and data-availability display |
 | Avatar | `src/components/ui/avatar.tsx` | AppSidebar account fallback, UI Lab reference |
-| Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab |
-| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment, Certificates and Access Audit |
-| Accordion | `src/components/ui/accordion.tsx` | Shared DetailAccordion primitive composition for Environment license sections and Certificates Type groups |
+| Skeleton | `src/components/ui/skeleton.tsx` | Sidebar dependency, UI Lab; disables pulse animation when reduced motion is requested |
+| Sheet | `src/components/ui/sheet.tsx` | Mobile Sidebar dependency plus existing domain details, including Environment, Certificates and Access Audit. Shared SheetContent uses `scrollbar-gutter: stable` to reserve classic scrollbar space before vertical overflow, keeping the content width stable as detail groups expand or collapse. Overlay scrollbars retain native behavior. |
+| Accordion | `src/components/ui/accordion.tsx` | Shared DetailAccordion plus Help and UI Lab; restored to the Nova height reveal/collapse, original content wrapper and up/down chevron behavior. No extra fade, slide or final-item divider. |
 | Select | `src/components/ui/select.tsx` | Global Region, Area and natural-month Period controls; shared FilterSelect |
 | Popover | `src/components/ui/popover.tsx` | MonthPicker floating panel and Global Store selector |
 | Command | `src/components/ui/command.tsx` | Installed shadcn primitive; Store multi-select uses Checkbox semantics |
 | Checkbox | `src/components/ui/checkbox.tsx` | Global Store multi-select with actual checked state |
 | Input Group | `src/components/ui/input-group.tsx` | Global Store search and Command dependency |
 | Textarea | `src/components/ui/textarea.tsx` | Input Group dependency; no current feature usage |
-| Card | `src/components/ui/card.tsx` | AnalyticsMetricCard, DetailRecordCard and feature-composed Cards |
+| Card | `src/components/ui/card.tsx` | AnalyticsMetricCard, DetailRecordCard and feature-composed Cards; inset 1px ring preserves the Nova color and dimensions while preventing borders from being clipped inside Accordion / overflow containers |
 | Dialog | `src/components/ui/dialog.tsx` | Access Manual Grant create / edit |
 | AlertDialog | `src/components/ui/alert-dialog.tsx` | Access Manual Grant delete confirmation |
 | Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
@@ -38,7 +38,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 
 | Component | Responsibility |
 | --- | --- |
-| AppSidebar | Renders centralized navigation, active state and the account footer using shadcn SidebarMenu, Avatar and Dropdown Menu primitives |
+| AppSidebar | Renders centralized navigation, active state and the account footer using shadcn SidebarMenu, Avatar and Dropdown Menu primitives. Account menu links to Help; feedback retains the explicit not-yet-open notice. |
 | DashboardShell | Composes SidebarProvider, AppSidebar, page inset, persistent Global Filter Provider and PageHeader / GlobalFilters; header text reuses centralized navigation metadata, with UI Lab opting out |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
@@ -47,18 +47,18 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | DetailHeader | Accessible Sheet title/subtitle and optional caller-provided result/status display; body content must not repeat header information or invent a result; used by KPI, Actions, Events, Take Charge, Certificates, Environment, Stores and Access Audit details |
 | DetailRecordCard | Neutral official Nova Card shell for one record in a collection; contract multiplicity, not the current result count, determines use. Used by Certificates, KPI Training/Drill/Inspection/ASTM and embedded Action collections, plus Environment waste-contract collections. Singleton contracts render without a Card; one record has at most one primary shell. |
 | DetailAccordion / DetailAccordionItem | Business-neutral shadcn Accordion presentation; caller supplies title, optional summary slot, count, disabled state, accessible neutral attention icon and default-open values. Count Badge is neutral and excluded from title hover underline. Used by Certificates, Environment and Overview score details; summary values and feature choices such as default-open groups are owned by callers. |
-| DetailField | Shared label/value spacing, typography and wrapping only; does not format dates, infer status or calculate business values. Used by KPI, Actions, Events, Take Charge, Stores and Environment detail fields |
-| GlobalFilters | One persistent shared compact filter bar; route metadata opts Period visibility per page. The default Period is 本年 (January through the current Shanghai month); user selections persist across dashboard navigation. Select and Store Button retain official presentation, while Store uses Popover + InputGroup search + Checkbox canonical multi-select |
+| DetailField | Shared label/value spacing, typography and wrapping only; does not format dates, infer status or calculate business values. Used by KPI, Actions, Events, Take Charge, Stores, Environment and Certificates detail fields; Certificates retains its text-sm and normal-whitespace presentation. |
+| GlobalFilters | One persistent shared compact filter bar; route metadata opts Period visibility per page. The default Period is 本年 (January through the current Shanghai month); user selections persist across dashboard navigation. Select and Store Button retain official presentation, while Store uses Popover + InputGroup search + Checkbox canonical multi-select. Area values use the shared Region + Area key; duplicate names display their Region |
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present. Optional `renderTrigger(label)` composes the actual focusable trigger; its measured text adds no Tab stop, and the trigger remains mounted when overflow changes. Overview ranking and store links use this contract. |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
-| FilterSelect | Shared low-cardinality mutually exclusive filter control built on shadcn Select; Features supply values and labels |
+| FilterSelect | Shared low-cardinality mutually exclusive filter control built on shadcn Select; Features supply values and labels. Events type, Monitoring time-window and Access type filters also reuse it with their existing trigger widths. Grant form fields retain Select for placeholders and validation attributes. |
 | DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
-| DataAvailabilityNotice | Shared table-level notice for normalized `INCOMPLETE` / `UNAVAILABLE` results; callers provide the domain subject only |
-| AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback |
+| DataAvailabilityNotice | Shared table-level notice for normalized `INCOMPLETE` / `UNAVAILABLE` results; callers provide the domain subject and optionally a safe query error code |
+| AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback; query failures use stable safe messages for authentication, authorization, invalid input and service availability |
 | Chart | `src/components/ui/chart.tsx` provides the shadcn chart container, tooltip and color configuration primitives used by shared Analytics charts; axis text targets the Recharts tick-value class and uses the semantic muted-foreground token |
-| AnalyticsClosureRadial | Business-neutral half-circle radial chart using the shadcn Radial Chart - Stacked pattern and chart-1 / chart-2 theme tokens. The two stacked segments use the caller-provided percentage and its presentation remainder (fixed total 100); the center percentage is the same value used by the geometry. Caller-provided numerator / remainder counts remain tooltip details only. |
-| AnalyticsCountTrend | Business-neutral monthly count chart for Events and Actions. Only the plot follows official Area Chart - Gradient: vertical gradient, horizontal grid, simplified axes and shared tooltip. Monotone interpolation preserves nonnegative count geometry through consecutive zero months, avoiding the template natural curve's overshoot. Callers retain precomputed rows, Card composition and optional toolbar. The hidden vertical domain starts at zero with headroom. A single-month series retains one visible point, gradient IDs are unique, and the stable AreaChart gates native animation through the shared reduced-motion hook. |
+| AnalyticsClosureRadial | Business-neutral half-circle radial chart using the shadcn Radial Chart - Stacked pattern and chart-1 / chart-2 theme tokens. The two stacked segments use the caller-provided percentage and its presentation remainder (fixed total 100); the center percentage is the same value used by the geometry. Caller-provided numerator / remainder counts remain tooltip details only. A bounded 16:9 container and proportional radii keep the semicircle inside narrow cards. |
+| AnalyticsCountTrend | Business-neutral monthly count chart for Events and Actions. Only the plot follows official Area Chart - Gradient: vertical gradient, horizontal grid, simplified axes and shared tooltip. Monotone interpolation preserves nonnegative count geometry through consecutive zero months, avoiding the template natural curve's overshoot. Callers retain precomputed rows and the optional toolbar. Card composition uses Nova default spacing, with the toolbar in the existing CardAction slot so titles align with adjacent analytics cards. The hidden vertical domain starts at zero with headroom. A single-month series retains one visible point, gradient IDs are unique, and the stable AreaChart gates native animation through the shared reduced-motion hook. |
 | AnalyticsMetricCard | Single presentation for numeric Dashboard summary cards: title, optional inline Info HoverCard, description, animated value, and a shared natural-height, spacing and typography contract. Used by Goals, Environment and UI Lab. Features provide business content and Grid composition; the component does not own grids, calculations, queries or status evaluation. |
 | AnalyticsRefreshIndicator | Compact group-level updating status for stale Analytics results; positioned without changing layout and accepts only a refreshing flag |
 | Analytics layout | `src/components/shared/analytics-layout.ts` owns the shared 17.125rem Card height, 24px page section spacing, 325ms number timing and 375ms chart timing |
@@ -68,6 +68,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | DataTable | Shared TanStack row rendering, header sorting, adaptive 5 / 7 / 10 pagination, loading and empty shell for Access lists and the Overview store score list; Features provide columns, rows and column size roles; optional numeric sortValue separates sorting from display and keeps missing numbers last. Opt-in `stickyFirstColumn` fixes the first header, body and placeholder cells using shared opaque backgrounds; callers put the identity column first. Independent opt-ins `compactPrimaryColumn` and `compactOnMobile` adapt narrow containers or mobile column widths. Opt-in `onRowClick` adds whole-row pointer and keyboard activation without changing default tables, ignores nested interactive targets, and preserves row semantics. |
 | SheetContent | Shared shadcn Sheet primitive; restores the connected originating element on close unless a caller handles focus explicitly. Opt-in `mobileWidth="full"` uses the full viewport for left/right sheets below 640px. The default 75% mobile width and desktop maximum width remain unchanged. Overview scope details opt in; mobile Sidebar and other callers retain their defaults. |
 | DataTableColumnVisibility | Reusable column visibility menu using existing Dropdown Menu primitives |
+| DataTablePagination | Shared measured footer for Actions, Events, Take Charge, KPI, Stores, Certificates, Environment and DataTable. Callers retain count wording and supply resolved page metadata. Preserves outline / sm buttons, pending digits, invisible measurement geometry and the optional fixed-width repository query feedback slot; exercised by the existing UI Lab DataTable and KPI examples. |
 | DataTablePlaceholderRows | Preserves adaptive table body height and visible column geometry while async data is loading or unavailable |
 | DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content with fixed-width footer feedback, semantic scope pending masks content and only unknown footer digits |
 | DataTable layout helpers | Shared body row geometry, fixed table layout, minimum width, horizontal overflow, sticky hover/selected state and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles |
@@ -84,7 +85,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 
 | Hook | Responsibility |
 | --- | --- |
-| useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state |
+| useAdaptiveTablePageSize | Measures viewport space, actual row and pagination dimensions, then reports only the 5 / 7 / 10 page-size bucket; it owns no pagination state. Co-located pure resize / clamp / update helpers preserve measured sizes and caller state ownership; client pagination clamps against local row counts, while repository pagination leaves the upper page bound to the server. |
 | useLatestAsyncQuery | Provides IDLE / LOADING / SUCCESS / ERROR with the last successful resolved result and guarded imperative reload; prevents stale async responses from replacing the latest query |
 | `useAnalyticsChartAnimationEnabled` (`src/components/shared/use-analytics-motion.ts`) | Disables initial chart tweening and gates 375ms Recharts data transitions when `prefers-reduced-motion` is enabled |
 
@@ -93,7 +94,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | Component | Responsibility |
 | --- | --- |
 | KpiDataTable | KPI V1 table, including status/availability cells, abnormal filtering, single-state adaptive 5 / 7 / 10 pagination, sticky Store column and Action detail Sheet |
-| KpiPageContent | Sends shared Global Filter Context through the injected server query boundary and renders KpiDataTable |
+| KpiPageContent | Sends shared Global Filter Context through the injected server query boundary and renders prepared KpiPageResult rows in KpiDataTable. Query-level source diagnostics use the existing DataAvailabilityNotice without changing Store results; complete results render no additional UI, and scope changes mask old diagnostics while pending. |
 | ActionsDataTable | Actions record table with view switching, sorting, column visibility, adaptive pagination, row drill-down and Action Detail Sheet |
 | ActionsAnalytics | Requests Actions-owned analytics from Global Filter Context only and supplies precomputed results to shared chart presentation |
 | ActionsPageContent | Connects shared Global Filter Context, Actions Analytics and table view mode to their injected server query boundaries |
@@ -101,7 +102,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | EventsDataTable | Events table with view mode, dynamic Event Type filter, column visibility, adaptive pagination and row detail Sheet |
 | EventsPageContent | Connects shared Global Filter Context and feature-local filters to the injected server query boundary |
 | CertificatesDataTable | Certificates table and category detail Sheet; formal Type groups use collapsed shadcn Accordion items with neutral counts, disabled empty groups and an accessible neutral attention icon for caller-evaluated abnormal records |
-| GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; four metric cards reuse AnalyticsMetricCard and retain the latest resolved summary during refresh |
+| GoalsPageContent | Connects Global Filter Context to injected async Take Charge summary and record queries; four metric cards reuse AnalyticsMetricCard and retain the latest resolved summary during refresh; authorization failures clear it. Metric display uses at most two decimal places with truncation (per-capita at least one), while server rules use raw values |
 | TakeChargeDataTable | Repository-paginated Take Charge records with centrally translated source-status labels and All / Open Only view mode (defaults to All), repository-side sorting, dynamic hidden fields, adaptive page size and row detail Sheet |
 | StoresDataTable | Store Master browser with sortable confirmed fields, column visibility, adaptive pagination, sticky Store column and Store Detail Sheet |
 | StoresPageContent | Connects shared canonical Store scope to the injected async Stores query; Period does not affect query readiness or identity |
@@ -126,3 +127,7 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | Component | Responsibility |
 | --- | --- |
 | MonitoringPageContent | GLOBAL_ADMIN-only incident list using the shared DataTable and Sheet. The table shows latest error time, incident summary and aggregated occurrence count, sorted by latest occurrence descending; an independent time filter and refresh remain above it. Selecting a row shows error code, processing status / time, a shadcn Switch for status changes, then “复制诊断信息” above one JSON code block of linked diagnostic details. Development in-memory storage is explicitly labelled and seeds two clearly marked demo Incidents; an unconfigured production adapter shows “监控服务尚未配置” without an empty table implying no errors. Collection, incident correlation, notifications, retries, job monitoring, watchdog, recovery records and audit remain backend capabilities and are not exposed as separate tables. |
+
+### Help
+
+`/help` reuses Input, Button and Accordion to browse and search static Chinese explanations of current calculations and user-visible fields across 11 modules. Content lives in `src/features/help/help-content.ts`, with no evaluation or protected source data. Route metadata disables Global Filters; account menu is the entry. Search expands matching modules and permits manual collapse. Update explanations alongside confirmed rules and contracts; unresolved source definitions remain explicit TBDs.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
-import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { buildKpiPageResult } from "@/features/kpi/build-kpi-rows";
 import { loadKpiPageRows } from "@/features/kpi/kpi-page-content";
 
 const q1Context: EhsFilterContext = {
@@ -19,7 +19,7 @@ const mockEhsRepository = createMockEhsRepository(
 );
 const referenceDateIso = "2026-03-15T00:00:00+08:00";
 const queryRows = async ({ query }: { referenceDateIso: string; query: EhsFilterContext }) =>
-  buildKpiRows(query, await mockEhsRepository.getKpiData(query));
+  buildKpiPageResult(query, await mockEhsRepository.getKpiData(query));
 
 function singleMonthContext(month: "2026-01" | "2026-02"): EhsFilterContext {
   const nextMonth = month === "2026-01" ? "2026-02" : "2026-03";
@@ -40,7 +40,7 @@ describe("KPI page data connection", () => {
     const rows = await loadKpiPageRows(q1Context, referenceDateIso, queryRows);
 
     expect(rows).not.toBeNull();
-    expect(rows).toHaveLength((await mockEhsRepository.getFilterStores()).length);
+    expect(rows?.rows).toHaveLength((await mockEhsRepository.getFilterStores()).length);
   });
 
   it("reflects Period changes without calculating Action aggregates in the page", async () => {
@@ -55,8 +55,8 @@ describe("KPI page data connection", () => {
       queryRows,
     );
 
-    expect(januaryRows?.[0].actions.value).toBe(65);
-    expect(februaryRows?.[0].actions.value).toBe(72);
+    expect(januaryRows?.rows[0].actions.value).toBe(65);
+    expect(februaryRows?.rows[0].actions.value).toBe(72);
   });
 
   it("does not query the Repository when the Filter Context is invalid", async () => {

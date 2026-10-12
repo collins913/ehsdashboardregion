@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   clampTablePageIndex,
+  clampAdaptivePagination,
+  resizeAdaptivePagination,
+  updateAdaptivePagination,
   pageSizeForRowCapacity,
   paginationForPageSize,
   selectStableAdaptivePageSize,
@@ -55,6 +58,36 @@ describe("adaptive table page size", () => {
 });
 
 describe("adaptive table pagination", () => {
+  it("starts measurement on page zero and avoids redundant size updates", () => {
+    expect(resizeAdaptivePagination(null, 12, 7)).toEqual({ pageIndex: 0, pageSize: 7 });
+    const current = { pageIndex: 1, pageSize: 7 } as const;
+    expect(resizeAdaptivePagination(current, 12, 7)).toBe(current);
+    expect(resizeAdaptivePagination(current, 4, 10)).toEqual({ pageIndex: 0, pageSize: 10 });
+  });
+
+  it("clamps client pagination before an updater sees a reduced data set", () => {
+    const current = { pageIndex: 3, pageSize: 5 } as const;
+    let observedPageIndex: number | undefined;
+    const next = updateAdaptivePagination(current, (resolved) => {
+      observedPageIndex = resolved.pageIndex;
+      return { pageIndex: resolved.pageIndex + 1, pageSize: 100 };
+    }, 6);
+    expect(observedPageIndex).toBe(1);
+    expect(next).toEqual({ pageIndex: 1, pageSize: 5 });
+    expect(updateAdaptivePagination(next, { pageIndex: -1, pageSize: 100 }, 6)).toEqual({ pageIndex: 0, pageSize: 5 });
+    expect(clampAdaptivePagination(current, 0)).toEqual({ pageIndex: 0, pageSize: 5 });
+    expect(clampAdaptivePagination(next, 6)).toBe(next);
+  });
+
+  it("lets the repository resolve the upper page bound without using stale counts", () => {
+    const current = { pageIndex: 3, pageSize: 7 } as const;
+    expect(updateAdaptivePagination(current, (page) => ({ ...page, pageIndex: page.pageIndex + 1 })))
+      .toEqual({ pageIndex: 4, pageSize: 7 });
+    expect(updateAdaptivePagination(current, { pageIndex: -1, pageSize: 100 }))
+      .toEqual({ pageIndex: 0, pageSize: 7 });
+    expect(updateAdaptivePagination(current, { pageIndex: 3, pageSize: 100 })).toBe(current);
+  });
+
   it("updates pageSize and clamps pageIndex in one result", () => {
     expect(paginationForPageSize({ pageIndex: 2, pageSize: 5 }, 12, 7)).toEqual({
       pageIndex: 1,

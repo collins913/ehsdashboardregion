@@ -1,3 +1,4 @@
+import { areaScopeId } from "@/data/contracts/kpi";
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
@@ -37,7 +38,7 @@ describe("Overview UX semantics", () => {
   it.each([
     ["REGION", all, stores, ["东区", "西区"]],
     ["AREA", { ...all, region: { kind: "INCLUDE", values: ["东区"] } }, stores.slice(0, 3), ["甲小区", "乙小区"]],
-    ["STORE", { ...all, area: { kind: "INCLUDE", values: ["甲小区"] } }, stores.slice(0, 2), ["甲门店", "乙门店"]],
+    ["STORE", { ...all, area: { kind: "INCLUDE", values: [areaScopeId("东区", "甲小区")] } }, stores.slice(0, 2), ["甲门店", "乙门店"]],
   ] as const)("groups actual %s objects sharing coordinates and opens their own details", (level, scope, selected, labels) => {
     const view = prepare(scope as EhsStoreScope, [...selected])
     expect(view.attentionMatrix.groups).toHaveLength(1)

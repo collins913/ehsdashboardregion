@@ -63,8 +63,21 @@ describe("Goals summary cards", () => {
     expect(markup).toContain(">48<");
     expect(markup).toContain(">50%<");
     expect(markup).toContain(">5.5<");
-    expect(markup).toContain(">59%<");
+    expect(markup).toContain(">58.7%<");
     expect(markup.match(/text-2xl font-semibold tabular-nums/g)).toHaveLength(4);
+    expect(markup).not.toContain('data-slot="badge"');
+  });
+
+  it("does not round below-target source values into the target", () => {
+    const input = summary(89.999);
+    input.annual.submissionsPerCapitaYtd = { value: 3.999, result: "NOT_ACHIEVED", reason: "RULE_NOT_MET" };
+    input.annual.participationRateYtd = { value: 49.999, result: "NOT_ACHIEVED", reason: "RULE_NOT_MET" };
+    const markup = renderToStaticMarkup(createElement(SummaryCards, { summary: input }));
+    expect(markup).toContain(">89.99%<");
+    expect(markup).toContain(">3.99<");
+    expect(markup).toContain(">49.99%<");
+    expect(input.period.closeRate.value).toBe(89.999);
+    expect(markup.match(/data-slot="card"/g)).toHaveLength(4);
     expect(markup).not.toContain('data-slot="badge"');
   });
 

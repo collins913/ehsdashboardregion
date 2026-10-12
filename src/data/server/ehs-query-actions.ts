@@ -1,4 +1,6 @@
 "use server";
+import { areaScopeId } from "@/data/contracts/kpi";
+import { QueryError, queryErrorCode, queryFailure, type QueryOutcome } from "@/data/contracts/query-result";
 
 import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
@@ -28,13 +30,12 @@ import { createEhsRepository } from "@/data/repositories/create-ehs-repository.s
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { recordOperationalEvent } from "@/data/server/monitoring/monitoring-service.server";
-import { buildKpiRows } from "@/features/kpi/build-kpi-rows";
+import { buildKpiPageResult } from "@/features/kpi/build-kpi-rows";
 import { prepareOverviewResult } from "@/features/overview/prepare-overview-result";
 import { buildCertificateOverview } from "@/lib/rules/certificate-requirements";
 import { authorizeBusinessScope, getAuthorizedFilterStores } from "@/lib/access/access-service.server";
-import type { KpiRow } from "@/features/kpi/types";
+import type { KpiPageResult } from "@/features/kpi/types";
 import {
-  InvalidQueryInputError,
   parseActionAnalyticsQuery,
   parseActionsQuery,
   parseEhsFilterContext,
@@ -54,11 +55,11 @@ function runtimeFor(referenceDateIso: string) {
   return { referenceDate, repository: createEhsRepository(referenceDate) };
 }
 
-async function queryKpiRowsCore(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<readonly KpiRow[]> {
+async function queryKpiRowsCore(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<KpiPageResult> {
   const { referenceDateIso, query: context } = parseQueryEnvelope(input, parseEhsFilterContext);
   const authorized = { ...context, ...await authorizeBusinessScope(context) };
   const snapshot = await runtimeFor(referenceDateIso).repository.getKpiData(authorized);
-  return buildKpiRows(authorized, snapshot);
+  return buildKpiPageResult(authorized, snapshot);
 }
 
 function parseOverviewQuery(input: unknown): OverviewQuery | null {
@@ -81,7 +82,7 @@ async function queryOverviewCore(input: { referenceDateIso: string; query: Overv
     if (selectedStore) {
       attentionScope = await authorizeBusinessScope({
         region: { kind: "INCLUDE", values: [selectedStore.region] },
-        area: { kind: "INCLUDE", values: [selectedStore.area] },
+        area: { kind: "INCLUDE", values: [areaScopeId(selectedStore.region, selectedStore.area)] },
         store: { kind: "ALL" },
       });
     }
@@ -105,13 +106,11 @@ async function queryOverviewCore(input: { referenceDateIso: string; query: Overv
 async function authorizeKpiDetailQuery(
   query: KpiDetailQuery,
 ): Promise<KpiDetailQuery> {
-  return {
-    ...query,
-    context: {
-      ...query.context,
-      ...await authorizeBusinessScope(query.context),
-    },
-  };
+  const scope = await authorizeBusinessScope(query.context);
+  if (scope.store.kind !== "INCLUDE" || !scope.store.values.includes(query.storeId)) {
+    throw new QueryError("ACCESS_DENIED");
+  }
+  return { ...query, context: { ...query.context, ...scope } };
 }
 
 async function queryKpiTrainingDetailsCore(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiTrainingDetailRecord>> {
@@ -235,7 +234,7 @@ function summarizeAvailability(value: unknown) {
   return counts;
 }
 
-async function withOperationalCapture<T>(component: string, action: () => Promise<T>, scope?: unknown): Promise<T> {
+async function withOperationalCapture<T>(component: string, action: () => Promise<T>, scope?: unknown): Promise<QueryOutcome<T>> {
   const scopeId = scope === undefined ? null : createHash("sha256").update(stableString(scope)).digest("hex").slice(0, 20);
   try {
     const result = await action();
@@ -262,11 +261,12 @@ async function withOperationalCapture<T>(component: string, action: () => Promis
     return result;
   }
   catch (error) {
-    const expected = error instanceof InvalidQueryInputError || (error instanceof Error && ["NOT_AUTHORIZED", "NOT_AUTHENTICATED", "INVALID_QUERY_INPUT"].includes(error.message));
+    const code = queryErrorCode(error);
+    const expected = code !== "SERVICE_UNAVAILABLE";
     await recordOperationalEvent({
       environment: process.env.NODE_ENV ?? "unknown", source: "Server Action", component,
       severity: expected ? "INFO" : "ERROR",
-      errorCode: error instanceof Error && error.name === "InvalidQueryInputError" ? "INVALID_QUERY_INPUT" : error instanceof Error && error.message === "NOT_AUTHORIZED" ? "ACCESS_DENIED" : error instanceof Error && error.message === "NOT_AUTHENTICATED" ? "AUTHENTICATION_REQUIRED" : "SERVER_ACTION_FAILED",
+      errorCode: expected ? code : "SERVER_ACTION_FAILED",
       safeMessage: expected ? "请求未通过身份、权限或参数校验。" : "服务器处理数据请求时发生异常。",
       phenomenon: expected ? "请求在服务端边界被拒绝。" : "Server Action 未能完成请求。",
       causeStatus: expected ? "KNOWN" : "UNKNOWN", knownCause: expected ? "服务端身份、权限或输入校验未通过。" : null,
@@ -274,7 +274,7 @@ async function withOperationalCapture<T>(component: string, action: () => Promis
       actionTaken: "未向客户端返回原始异常堆栈或内部消息。", nextStep: expected ? "检查当前登录身份与请求参数。" : "管理员请在系统监控中查看关联诊断。",
       correlationId: randomUUID(), relatedBatchId: null, relatedJobId: null, relatedDomain: null, diagnostics: [],
     });
-    throw error;
+    return queryFailure(error);
   }
 }
 
@@ -282,19 +282,19 @@ function monitoringScope(input: unknown): unknown {
   return input !== null && typeof input === "object" && "query" in input ? input.query : input;
 }
 
-export async function queryKpiRows(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<readonly KpiRow[]> { return withOperationalCapture("KPI 查询", () => queryKpiRowsCore(input), monitoringScope(input)); }
-export async function queryOverview(input: { referenceDateIso: string; query: OverviewQuery }): Promise<OverviewResult> { return withOperationalCapture("Overview 查询", () => queryOverviewCore(input), monitoringScope(input)); }
-export async function queryKpiTrainingDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiTrainingDetailRecord>> { return withOperationalCapture("Training 明细查询", () => queryKpiTrainingDetailsCore(input), monitoringScope(input)); }
-export async function queryKpiDrillDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiDrillDetailRecord>> { return withOperationalCapture("Drill 明细查询", () => queryKpiDrillDetailsCore(input), monitoringScope(input)); }
-export async function queryKpiInspectionDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiInspectionDetailRecord>> { return withOperationalCapture("Inspection 明细查询", () => queryKpiInspectionDetailsCore(input), monitoringScope(input)); }
-export async function queryKpiAstmDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<KpiDetailRecords<KpiAstmDetailRecord>> { return withOperationalCapture("ASTM 明细查询", () => queryKpiAstmDetailsCore(input), monitoringScope(input)); }
-export async function queryActions(input: { referenceDateIso: string; query: ActionsQuery }): Promise<ActionsQueryResult> { return withOperationalCapture("Actions 查询", () => queryActionsCore(input), monitoringScope(input)); }
-export async function queryActionsAnalytics(input: { referenceDateIso: string; query: ActionAnalyticsQuery }): Promise<ActionAnalyticsResult> { return withOperationalCapture("Actions Analytics 查询", () => queryActionsAnalyticsCore(input), monitoringScope(input)); }
-export async function queryEvents(input: { referenceDateIso: string; query: EventsQuery }): Promise<EventsQueryResult> { return withOperationalCapture("Events 查询", () => queryEventsCore(input), monitoringScope(input)); }
-export async function queryEventsAnalytics(input: { referenceDateIso: string; query: EventAnalyticsQuery }): Promise<EventAnalyticsResult> { return withOperationalCapture("Events Analytics 查询", () => queryEventsAnalyticsCore(input), monitoringScope(input)); }
-export async function queryTakeChargeGoals(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<TakeChargeGoalsSummary> { return withOperationalCapture("Take Charge Goals 查询", () => queryTakeChargeGoalsCore(input), monitoringScope(input)); }
-export async function queryTakeChargeRecords(input: { referenceDateIso: string; query: TakeChargeRecordsQuery }): Promise<TakeChargeRecordsResult> { return withOperationalCapture("Take Charge 记录查询", () => queryTakeChargeRecordsCore(input), monitoringScope(input)); }
-export async function queryStores(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<StoresQueryResult> { return withOperationalCapture("Stores 查询", () => queryStoresCore(input), monitoringScope(input)); }
-export async function queryEnvironment(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<EnvironmentQueryResult> { return withOperationalCapture("Environment 查询", () => queryEnvironmentCore(input), monitoringScope(input)); }
-export async function queryEnvironmentAnalytics(input: { referenceDateIso: string; query: EnvironmentAnalyticsQuery }): Promise<EnvironmentAnalyticsResult> { return withOperationalCapture("Environment Analytics 查询", () => queryEnvironmentAnalyticsCore(input), monitoringScope(input)); }
-export async function queryCertificates(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<CertificatesPageQueryResult> { return withOperationalCapture("Certificates 查询", () => queryCertificatesCore(input), monitoringScope(input)); }
+export async function queryKpiRows(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<KpiPageResult>> { return withOperationalCapture("KPI 查询", () => queryKpiRowsCore(input), monitoringScope(input)); }
+export async function queryOverview(input: { referenceDateIso: string; query: OverviewQuery }): Promise<QueryOutcome<OverviewResult>> { return withOperationalCapture("Overview 查询", () => queryOverviewCore(input), monitoringScope(input)); }
+export async function queryKpiTrainingDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiTrainingDetailRecord>>> { return withOperationalCapture("Training 明细查询", () => queryKpiTrainingDetailsCore(input), monitoringScope(input)); }
+export async function queryKpiDrillDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiDrillDetailRecord>>> { return withOperationalCapture("Drill 明细查询", () => queryKpiDrillDetailsCore(input), monitoringScope(input)); }
+export async function queryKpiInspectionDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiInspectionDetailRecord>>> { return withOperationalCapture("Inspection 明细查询", () => queryKpiInspectionDetailsCore(input), monitoringScope(input)); }
+export async function queryKpiAstmDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiAstmDetailRecord>>> { return withOperationalCapture("ASTM 明细查询", () => queryKpiAstmDetailsCore(input), monitoringScope(input)); }
+export async function queryActions(input: { referenceDateIso: string; query: ActionsQuery }): Promise<QueryOutcome<ActionsQueryResult>> { return withOperationalCapture("Actions 查询", () => queryActionsCore(input), monitoringScope(input)); }
+export async function queryActionsAnalytics(input: { referenceDateIso: string; query: ActionAnalyticsQuery }): Promise<QueryOutcome<ActionAnalyticsResult>> { return withOperationalCapture("Actions Analytics 查询", () => queryActionsAnalyticsCore(input), monitoringScope(input)); }
+export async function queryEvents(input: { referenceDateIso: string; query: EventsQuery }): Promise<QueryOutcome<EventsQueryResult>> { return withOperationalCapture("Events 查询", () => queryEventsCore(input), monitoringScope(input)); }
+export async function queryEventsAnalytics(input: { referenceDateIso: string; query: EventAnalyticsQuery }): Promise<QueryOutcome<EventAnalyticsResult>> { return withOperationalCapture("Events Analytics 查询", () => queryEventsAnalyticsCore(input), monitoringScope(input)); }
+export async function queryTakeChargeGoals(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<TakeChargeGoalsSummary>> { return withOperationalCapture("Take Charge Goals 查询", () => queryTakeChargeGoalsCore(input), monitoringScope(input)); }
+export async function queryTakeChargeRecords(input: { referenceDateIso: string; query: TakeChargeRecordsQuery }): Promise<QueryOutcome<TakeChargeRecordsResult>> { return withOperationalCapture("Take Charge 记录查询", () => queryTakeChargeRecordsCore(input), monitoringScope(input)); }
+export async function queryStores(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<StoresQueryResult>> { return withOperationalCapture("Stores 查询", () => queryStoresCore(input), monitoringScope(input)); }
+export async function queryEnvironment(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<EnvironmentQueryResult>> { return withOperationalCapture("Environment 查询", () => queryEnvironmentCore(input), monitoringScope(input)); }
+export async function queryEnvironmentAnalytics(input: { referenceDateIso: string; query: EnvironmentAnalyticsQuery }): Promise<QueryOutcome<EnvironmentAnalyticsResult>> { return withOperationalCapture("Environment Analytics 查询", () => queryEnvironmentAnalyticsCore(input), monitoringScope(input)); }
+export async function queryCertificates(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<CertificatesPageQueryResult>> { return withOperationalCapture("Certificates 查询", () => queryCertificatesCore(input), monitoringScope(input)); }

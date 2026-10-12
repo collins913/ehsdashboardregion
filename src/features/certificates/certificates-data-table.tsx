@@ -3,11 +3,12 @@
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   columnVisibilityFeature, type ColumnVisibilityState, createColumnHelper,
-  createPaginatedRowModel, createSortedRowModel, type OnChangeFn,
+  createPaginatedRowModel, createSortedRowModel,
   type PaginationState, rowPaginationFeature, rowSortingFeature,
   type SortingState, sortFn_text, tableFeatures as defineTableFeatures, useTable,
 } from "@tanstack/react-table";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { DataTableColumnVisibility } from "@/components/shared/data-table-column-visibility";
 import { FilterSelect } from "@/components/shared/filter-select";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
@@ -22,14 +23,14 @@ import { StatusDisplay } from "@/components/shared/status-display";
 import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { DetailRecordCard } from "@/components/shared/detail-record-card";
-import { Button } from "@/components/ui/button";
+import { DetailField } from "@/components/shared/detail-field";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CertificatesTableRow } from "./certificates-view-model";
 
 import {
   type AdaptivePagination, type AdaptiveTablePageSize, clampTablePageIndex,
-  paginationForPageSize, useAdaptiveTablePageSize,
+  clampAdaptivePagination, resizeAdaptivePagination, updateAdaptivePagination, useAdaptiveTablePageSize,
 } from "@/hooks/use-adaptive-table-page-size";
 import { cn } from "@/lib/utils";
 import { buildCertificatesDetail, CERTIFICATES_ITEMS, DEFAULT_CERTIFICATES_VIEW_MODE, filterCertificatesTableRows, type CertificatesDetail, type CertificatesItemKey, type CertificatesViewMode } from "./certificates-view-model";
@@ -67,18 +68,11 @@ export function CertificatesDetailContent({ detail }: { detail: CertificatesDeta
                         <p className="break-all text-sm text-muted-foreground">{record.personEmail}</p>
                       </div>
                       <dl>
-                        <dt className="text-xs text-muted-foreground">岗位</dt>
-                        <dd className="mt-1 break-words text-sm">{record.businessTitle}</dd>
+                        <DetailField label="岗位" valueClassName="whitespace-normal text-sm">{record.businessTitle}</DetailField>
                       </dl>
                       <dl className="grid grid-cols-2 gap-4">
-                        <div className="min-w-0">
-                          <dt className="text-xs text-muted-foreground">到期日期</dt>
-                          <dd className="mt-1 break-words text-sm">{record.expiryDate || "—"}</dd>
-                        </div>
-                        <div className="min-w-0">
-                          <dt className="text-xs text-muted-foreground">距离到期</dt>
-                          <dd className="mt-1 text-sm">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</dd>
-                        </div>
+                        <DetailField label="到期日期" valueClassName="whitespace-normal text-sm">{record.expiryDate || "—"}</DetailField>
+                        <DetailField label="距离到期" valueClassName="whitespace-normal break-normal text-sm">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</DetailField>
                       </dl>
                     </div>
                 </DetailRecordCard>
@@ -110,18 +104,10 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
     ? { pageIndex: clampTablePageIndex(adaptivePagination.pageIndex, tableRows.length, adaptivePagination.pageSize), pageSize: adaptivePagination.pageSize }
     : { pageIndex: 0, pageSize: 1 }, [adaptivePagination, tableRows.length]);
   const onPageSizeChange = useCallback((pageSize: AdaptiveTablePageSize) => {
-    setAdaptivePagination((current) => {
-      const next = paginationForPageSize(current ?? { pageIndex: 0, pageSize }, tableRows.length, pageSize);
-      return current?.pageIndex === next.pageIndex && current.pageSize === next.pageSize ? current : next;
-    });
+    setAdaptivePagination((current) => resizeAdaptivePagination(current, tableRows.length, pageSize));
   }, [tableRows.length]);
-  const onPaginationChange = useCallback<OnChangeFn<PaginationState>>((updater) => {
-    setAdaptivePagination((current) => {
-      if (!current) return current;
-      const resolved = { ...current, pageIndex: clampTablePageIndex(current.pageIndex, tableRows.length, current.pageSize) };
-      const proposed = typeof updater === "function" ? updater(resolved) : updater;
-      return { ...current, pageIndex: clampTablePageIndex(proposed.pageIndex, tableRows.length, current.pageSize) };
-    });
+  const onPaginationChange = useCallback((updater: PaginationState | ((current: PaginationState) => PaginationState)) => {
+    setAdaptivePagination((current) => current ? updateAdaptivePagination(current, updater, tableRows.length) : current);
   }, [tableRows.length]);
   const { tableFrameRef, tableBodyRef, rowMeasurementRef, paginationRef } = useAdaptiveTablePageSize({
     ready: adaptivePagination !== null, currentPageSize: adaptivePagination?.pageSize ?? null, onPageSizeChange,
@@ -129,9 +115,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
   useLayoutEffect(() => { if (queryStatus !== "READY") setDetail(null); }, [queryStatus]);
   useLayoutEffect(() => {
     setAdaptivePagination((current) => {
-      if (!current) return current;
-      const pageIndex = clampTablePageIndex(current.pageIndex, tableRows.length, current.pageSize);
-      return current.pageIndex === pageIndex ? current : { ...current, pageIndex };
+      return current ? clampAdaptivePagination(current, tableRows.length) : current;
     });
   }, [tableRows.length]);
   const openDetail = useCallback((record: CertificatesTableRow, key: CertificatesItemKey) => setDetail(buildCertificatesDetail(record, key)), []);
@@ -200,14 +184,21 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
           </TableBody>
         </Table>
       </div>
-      <div ref={paginationRef} aria-busy={loading} aria-hidden={!adaptivePagination} className={cn("flex flex-wrap items-center justify-between gap-3", !adaptivePagination && "invisible")}>
+      <DataTablePagination
+        ref={paginationRef}
+        ready={adaptivePagination !== null}
+        busy={loading}
+        disabled={loading}
+        pageIndex={pagination.pageIndex}
+        pageCount={Math.max(table.getPageCount(), 1)}
+        metadataPending={isResolvedMetadataPending}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onPreviousPage={() => table.previousPage()}
+        onNextPage={() => table.nextPage()}
+      >
         <p className="text-sm text-muted-foreground">共 <DataTablePendingValue pending={isResolvedMetadataPending}>{tableRows.length}</DataTablePendingValue> 家门店</p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">第 <DataTablePendingValue pending={isResolvedMetadataPending}>{pagination.pageIndex + 1}</DataTablePendingValue> / <DataTablePendingValue pending={isResolvedMetadataPending}>{Math.max(table.getPageCount(), 1)}</DataTablePendingValue> 页</span>
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={loading || !table.getCanPreviousPage()}>上一页</Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={loading || !table.getCanNextPage()}>下一页</Button>
-        </div>
-      </div>
+      </DataTablePagination>
       <Sheet open={detail !== null} onOpenChange={(open) => { if (!open) setDetail(null); }}>
         <SheetContent className="overflow-y-auto">
           <DetailHeader

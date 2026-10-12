@@ -11,7 +11,7 @@ import { DetailHeader } from "@/components/shared/detail-header";
 import { PageContainer } from "@/components/shared/page-container";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FilterSelect } from "@/components/shared/filter-select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 
@@ -126,12 +126,18 @@ export function MonitoringPageContent({ initialSnapshot, storageMode }: { initia
     <PageContainer className="space-y-5 pb-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={timeWindow} onValueChange={(value) => setTimeWindow(value as TimeWindow)}>
-            <SelectTrigger aria-label="监控时间范围" className="w-[150px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="24h">近 24 小时</SelectItem><SelectItem value="7d">近 7 天</SelectItem><SelectItem value="30d">近 30 天</SelectItem><SelectItem value="all">全部时间</SelectItem>
-            </SelectContent>
-          </Select>
+          <FilterSelect<TimeWindow>
+            ariaLabel="监控时间范围"
+            className="w-[150px]"
+            value={timeWindow}
+            onValueChange={setTimeWindow}
+            options={[
+              { value: "24h", label: "近 24 小时" },
+              { value: "7d", label: "近 7 天" },
+              { value: "30d", label: "近 30 天" },
+              { value: "all", label: "全部时间" },
+            ]}
+          />
           <Button variant="outline" onClick={refresh} disabled={queryState.status === "LOADING"}>刷新</Button>
           {storageMode === "DEVELOPMENT_MEMORY" ? <span className="rounded-md bg-muted px-2.5 py-1.5 text-xs text-muted-foreground">开发模式 · 含 2 条演示记录</span> : null}
         </div>
@@ -144,8 +150,8 @@ export function MonitoringPageContent({ initialSnapshot, storageMode }: { initia
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="incident-list-title" className="text-base font-semibold">错误记录</h2>
         </div>
-        {queryState.status === "ERROR" && !queryState.resolved ? <AsyncQueryFeedback status="ERROR" /> : <>
-          {queryState.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" /> : null}
+        {queryState.status === "ERROR" && !queryState.resolved ? <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} /> : <>
+          {queryState.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} /> : null}
           <DataTable
           rows={snapshot.incidents.map((incident) => ({ ...incident, id: incident.incidentId }))}
           columns={incidentColumns}
