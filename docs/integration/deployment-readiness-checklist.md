@@ -13,9 +13,8 @@
 - 实现 server-only `ProductionStorageAdapter`，使用公司数据库的事务、唯一约束和原子 CAS。
 - 实现并组合 `ProductionRepositoryAdapter`，把公司物理字段映射到现有逻辑字段。
 - 实现可信 `ServerIdentityProvider` 与独立的 `MachineIdentityProvider`。
-- 实现持久化 Access、Bootstrap、Monitoring、Outbox 和 Email Adapter。
+- 实现持久化 Access 与 Bootstrap Adapter。
 - 把密钥放入公司部署平台的服务端 Secret Store，并配置非生产、UAT、Production 环境。
-- 根据已批准的调度配置接入 Watchdog 与 Notification Worker。
 - 编写公司 Adapter 的集成测试、并发测试、失败注入测试和回滚验证。
 
 公司 AI 不得修改现有指标阈值、状态含义、评分规则、权限继承或缺失数据语义来迎合公司数据。
@@ -33,8 +32,7 @@
 | 初始管理员 | 唯一允许 Bootstrap 的稳定 `principalId`，以及对应已验证邮箱 |
 | 机器身份 | 调用方、Domain allowlist、操作 allowlist、凭据轮换与撤销方式 |
 | GLIFE 嵌入 | 精确 Parent Origin、消息 envelope、是否允许 iframe，以及 CSP `frame-ancestors` 策略 |
-| 通知和调度 | Email Provider、收件人、任务名称、频率、失联阈值、责任人 |
-| 运维 | 日志/监控保留、备份、独立故障信号、Incident 响应负责人 |
+| 运维 | 部署平台日志保留、备份及故障响应负责人 |
 | 历史数据 | 是否需要历史 Snapshot；若需要，确认冻结时点与重放语义后另行设计 |
 
 Take Charge 的逻辑字段与目标已经确认；公司直接读取并映射 `submissionsPerCapitaYtd`、`participationRateYtd`，不得重新计算未批准的分母或平均门店最终结果。`closeRate` 继续由已发布 Take Charge records 通过现有 Repository / Rule 链路产生。
@@ -49,9 +47,6 @@ Take Charge 的逻辑字段与目标已经确认；公司直接读取并映射 `
 | Import 机器身份 | `src/data/contracts/server-identity.ts` 中的 `MachineIdentityProvider`；`src/data/contracts/production-import.ts` 中的 `MachinePrincipal` |
 | Access 持久化 | `src/data/repositories/access/access-repository.ts`、`access-runtime.server.ts` |
 | 首位管理员 | `src/data/repositories/access/first-admin-bootstrap.ts` |
-| Monitoring 持久化 | `src/data/repositories/monitoring/monitoring-repository.ts` |
-| Monitoring 运行时 | `src/data/server/monitoring/monitoring-runtime.server.ts` |
-| Email | `src/data/server/monitoring/notification-provider.server.ts` |
 | Import API | `src/app/api/v1/import/`、`docs/api/production-api-v1.yaml` |
 
 测试目录中的内存 Adapter 只能作为契约示例，禁止导入 Production Runtime。
@@ -64,7 +59,7 @@ Take Charge 的逻辑字段与目标已经确认；公司直接读取并映射 `
 4. 接入 Store Master，验证 TRTID 唯一性、层级、联系人邮箱和授权投影。
 5. 选择一个不影响 Overview 的 Domain 做 Production Pilot；核对原始数量、规范化结果、覆盖证明和回滚。
 6. 逐个接入其他 Repository Domain；不得用 Mock 数据补齐缺失的 Production Domain。
-7. 接入持久化 Monitoring、Outbox、Email 和公司 Scheduler，并完成故障注入。
+7. 验证部署平台日志和故障响应流程；应用不提供系统监控模块。
 8. 只有全部评分输入、authoritative required sets、来源 aggregate 和历史要求就绪后，才允许切换 Overview。
 9. UAT 通过后显式设置 `EHS_DATA_SOURCE=production`；再次执行 fail-closed、回滚和权限隔离验证。
 
@@ -78,7 +73,6 @@ Take Charge 的逻辑字段与目标已经确认；公司直接读取并映射 `
 - 身份与权限测试：未登录拒绝、跨 Store/Area/Region 越权拒绝、撤权生效、最后一名管理员保护。
 - 数据验证：字段映射表、异常行诊断、Store Resolution、Domain Coverage、独立完整性证明。
 - 业务链验证：至少一条 Production source record 经过现有 Repository、Domain Rule、Contribution 到 UI，期间不复制业务规则。
-- Monitoring 演练：存储故障、重复事件、并发 Outbox claim、通知超时、恢复信号和 Watchdog 失联。
 - 切换与回滚：保留上一已发布版本，证明失败发布和 Adapter 移除不会回退到 Mock。
 - UAT：由授权用户核对可见范围、关键页面、导入诊断和管理员操作日志。
 
@@ -104,12 +98,12 @@ git diff --check
 出现任一情况即为 **NO-GO**：
 
 - 任何 Production Adapter 仍抛出 `*_NOT_CONFIGURED`。
-- Production 使用 Mock identity、Mock Repository、内存 Access/Monitoring 或测试 Adapter。
+- Production 使用 Mock identity、Mock Repository、内存 Access 或测试 Adapter。
 - Client 可覆盖服务端身份、授权 Scope 或上海时区 `referenceDate`。
 - 未验证来源完整性却发布批次，或把 `DECLARED_COMPLETE` 当作 `VERIFIED_COMPLETE`。
 - Store Master、字段映射、Required Sets 或 Take Charge aggregate 映射仍未确认。
 - 权限检查发生在读取受保护数据之后，或缓存未按身份/Scope 隔离。
-- 没有持久化审计、失败监控、回滚证据或 UAT 记录。
+- 没有持久化审计、回滚证据或 UAT 记录。
 - 密钥、Token、连接串或真实个人数据进入 Git、浏览器配置或日志。
 - 任一质量门失败。
 
@@ -117,10 +111,10 @@ git diff --check
 
 向公司 AI 提供仓库、冻结 commit 和本清单，并要求它先输出以下内容，获得公司确认后再改代码：
 
-1. 当前数据库、SSO、机器身份、部署平台和 Scheduler 的已验证事实。
+1. 当前数据库、SSO、机器身份、部署平台的已验证事实。
 2. 计划实现的 Adapter 与对应现有接口，不新增第二套 Repository 或业务规则。
 3. 使用 [`source-field-mapping-template.md`](source-field-mapping-template.md) 完成字段映射，以及所有无法确认的 TBD。
-4. 事务、权限、Monitoring、回滚和 UAT 测试计划。
+4. 事务、权限、回滚和 UAT 测试计划。
 5. 需要公司人员提供的账号、Origin、收件人、调度参数和业务确认。
 
 公司 AI 每完成一个接入批次，都应提交：改动文件、测试证据、剩余 TBD、NO-GO 项和回滚方法。

@@ -2,10 +2,40 @@ import { QueryError, queryErrorCode } from "@/data/contracts/query-result";
 import "server-only";
 import type { AccessCatalog, AccessQuery, AccountSummary, AuditEvent, GrantInput, GrantUpdate, ManualGrant, MutationResult } from "@/data/contracts/access";
 import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi";
+import type { StoreMasterData } from "@/types/ehs";
 import { toKpiStore } from "@/data/normalize-store-master";
 import { getAccessRuntime } from "@/data/repositories/access/access-runtime.server";
 import { requireVerifiedServerPrincipal } from "@/data/server/identity-provider.server";
 import { accountSummary, areaScopeId, authorizedScope, canonicalEmail, deriveBaseGrants, grantMatchesScope, isValidEmail, resolveEffectiveAccess } from "@/lib/access/access-domain";
+
+function accessUserNames(storeMaster: readonly StoreMasterData[], manuals: readonly ManualGrant[]): AccessCatalog["users"] {
+  const storeNames = new Map<string, Set<string>>();
+  const manualNames = new Map<string, Set<string>>();
+  const add = (target: Map<string, Set<string>>, email: string | null, name: string | null | undefined) => {
+    if (!email?.trim() || !isValidEmail(email)) return;
+    const key = canonicalEmail(email);
+    const names = target.get(key) ?? new Set<string>();
+    if (name?.trim()) names.add(name.trim());
+    target.set(key, names);
+  };
+  for (const store of storeMaster) {
+    add(storeNames, store.managerEmail, store.manager);
+    add(storeNames, store.ehsAmbassadorEmail, store.ehsAmbassador);
+    add(storeNames, store.regionOwnerEmail, store.regionOwner);
+    add(storeNames, store.areaOwnerEmail, store.areaOwner);
+  }
+  for (const grant of manuals) add(manualNames, grant.email, grant.name);
+  return [...new Set([...storeNames.keys(), ...manualNames.keys()])].map((email) => {
+    const nameFromStore = storeNames.has(email);
+    const names = (nameFromStore ? storeNames : manualNames).get(email)!;
+    return { email, name: names.size === 1 ? [...names][0] : null, nameFromStore };
+  });
+}
+
+function grantUserName(email: string, requested: string | null | undefined, storeMaster: readonly StoreMasterData[], manuals: readonly ManualGrant[]) {
+  const user = accessUserNames(storeMaster, manuals).find((item) => item.email === canonicalEmail(email));
+  return user?.nameFromStore ? user.name : requested !== undefined ? requested?.trim() || null : user?.name ?? null;
+}
 
 export async function currentAccess(now = new Date()) {
   const principal = await requireVerifiedServerPrincipal();
@@ -15,7 +45,7 @@ export async function currentAccess(now = new Date()) {
   const stores = runtime.stores.map(toKpiStore);
   const manuals = await runtime.repository.listManualGrants();
   const bases = deriveBaseGrants(runtime.stores);
-  return { identity, principal, stores, bases, manuals, effective: resolveEffectiveAccess(identity.email, bases, manuals, stores), repository: runtime.repository };
+  return { identity, principal, stores, storeMaster: runtime.stores, bases, manuals, effective: resolveEffectiveAccess(identity.email, bases, manuals, stores), repository: runtime.repository };
 }
 export async function requireAdmin() {
   const context = await currentAccess();
@@ -23,7 +53,12 @@ export async function requireAdmin() {
   return context;
 }
 export async function getAccountSummary(): Promise<AccountSummary> {
-  return accountSummary((await currentAccess()).effective);
+  const { effective, principal } = await currentAccess();
+  return {
+    ...accountSummary(effective),
+    displayName: principal.displayName?.trim() || null,
+    avatarUrl: principal.avatarUrl?.trim() || null,
+  };
 }
 export async function getAuthorizedFilterStores(): Promise<readonly KpiStore[]> {
   const { stores, effective } = await currentAccess();
@@ -49,35 +84,37 @@ function failure(code: "EMAIL_REQUIRED" | "INVALID_EMAIL" | "DUPLICATE_GRANT" | 
 }
 function validInput(input: GrantUpdate, stores: readonly KpiStore[]): string | null { return scopeName(input, stores); }
 export async function listManualGrants(query: AccessQuery & { accessType?: string } = {}): Promise<readonly ManualGrant[]> {
-  const { manuals, stores } = await requireAdmin();
-  return manuals.filter((grant) => (!query.email || grant.email.includes(canonicalEmail(query.email))) && (!query.accessType || query.accessType === "ALL" || grant.accessType === query.accessType) && grantMatchesScope(grant, query.scope, stores));
+  const { manuals, stores, storeMaster } = await requireAdmin();
+  const names = new Map(accessUserNames(storeMaster, manuals).map((user) => [user.email, user.name]));
+  return manuals.filter((grant) => (!query.email || grant.email.includes(canonicalEmail(query.email))) && (!query.accessType || query.accessType === "ALL" || grant.accessType === query.accessType) && grantMatchesScope(grant, query.scope, stores))
+    .map((grant) => ({ ...grant, name: names.get(canonicalEmail(grant.email)) ?? null }));
 }
 function removesLastGlobalAdmin(before: ManualGrant, nextType: GrantUpdate["accessType"] | null, manuals: readonly ManualGrant[]): boolean {
   return before.accessType === "GLOBAL_ADMIN" && nextType !== "GLOBAL_ADMIN" && !manuals.some((grant) => grant.id !== before.id && grant.accessType === "GLOBAL_ADMIN");
 }
 export async function createManualGrant(input: GrantInput): Promise<MutationResult<string>> {
   try {
-    const { identity, principal, stores, manuals, repository } = await requireAdmin();
+    const { identity, principal, stores, storeMaster, manuals, repository } = await requireAdmin();
     const email = canonicalEmail(input.email);
     if (!email) return failure("EMAIL_REQUIRED");
     if (!isValidEmail(email)) return failure("INVALID_EMAIL");
     const name = validInput(input, stores);
     if (!name) return failure("INVALID_SCOPE");
     if (manuals.some((grant) => grant.email === email && grant.accessType === input.accessType && grant.scopeId === input.scopeId)) return failure("DUPLICATE_GRANT");
-    const created = await repository.createManualGrant({ ...input, email }, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
+    const created = await repository.createManualGrant({ ...input, email, name: grantUserName(email, input.name, storeMaster, manuals) }, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return { ok: true, value: created.id };
   } catch (error) { return failure(queryErrorCode(error) === "ACCESS_DENIED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
 }
 export async function updateManualGrant(id: string, input: GrantUpdate): Promise<MutationResult<string>> {
   try {
-    const { identity, principal, stores, manuals, repository } = await requireAdmin();
+    const { identity, principal, stores, storeMaster, manuals, repository } = await requireAdmin();
     const before = manuals.find((grant) => grant.id === id);
     if (!before) return failure("GRANT_NOT_FOUND");
     if (removesLastGlobalAdmin(before, input.accessType, manuals)) return failure("LAST_GLOBAL_ADMIN");
     const name = validInput(input, stores);
     if (!name) return failure("INVALID_SCOPE");
     if (manuals.some((grant) => grant.id !== id && grant.email === before.email && grant.accessType === input.accessType && grant.scopeId === input.scopeId)) return failure("DUPLICATE_GRANT");
-    const safeUpdate: GrantUpdate = { accessType: input.accessType, scopeId: input.scopeId, note: input.note };
+    const safeUpdate: GrantUpdate = { accessType: input.accessType, scopeId: input.scopeId, note: input.note, name: grantUserName(before.email, input.name, storeMaster, manuals) };
     const updated = await repository.updateManualGrant(id, safeUpdate, { principalId: principal.principalId, verifiedEmail: identity.email }, name);
     return updated ? { ok: true, value: updated.id } : failure("GRANT_NOT_FOUND");
   } catch (error) { return failure(queryErrorCode(error) === "ACCESS_DENIED" ? "NOT_AUTHORIZED" : "WRITE_FAILED"); }
@@ -97,8 +134,9 @@ export async function queryAuditLog(email = ""): Promise<readonly AuditEvent[]> 
   return (await repository.listAuditEvents()).filter((event) => !normalized || event.actorEmail.includes(normalized) || event.targetEmail.includes(normalized));
 }
 export async function getAccessCatalog(): Promise<AccessCatalog> {
-  const { stores } = await requireAdmin();
+  const { stores, storeMaster, manuals } = await requireAdmin();
   return {
+    users: accessUserNames(storeMaster, manuals),
     regions: [...new Set(stores.map((store) => store.region))].map((name) => ({ id: name, name })),
     areas: [...new Map(stores.map((store) => [areaScopeId(store.region, store.area), { id: areaScopeId(store.region, store.area), name: store.area, regionId: store.region }])).values()],
     stores: stores.map((store) => ({ id: store.storeId, name: store.displayName, regionId: store.region, areaId: areaScopeId(store.region, store.area) })),

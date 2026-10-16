@@ -5,5 +5,10 @@ import { canonicalEmail } from "@/lib/access/access-domain";
 
 // Mock development identity source. A production identity provider replaces this resolver.
 export function getCurrentIdentity(): Identity {
-  return { email: canonicalEmail(process.env.EHS_MOCK_USER_EMAIL?.trim() || MOCK_GLOBAL_ADMIN_EMAIL) };
+  const email = canonicalEmail(process.env.EHS_MOCK_USER_EMAIL?.trim() || MOCK_GLOBAL_ADMIN_EMAIL);
+  return {
+    email,
+    displayName: process.env.EHS_MOCK_USER_NAME?.trim() || (email === MOCK_GLOBAL_ADMIN_EMAIL ? "San Zhang（张 三）" : null),
+    avatarUrl: process.env.EHS_MOCK_USER_AVATAR_URL?.trim() || null,
+  };
 }

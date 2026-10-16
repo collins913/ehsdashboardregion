@@ -9,7 +9,7 @@ export function scopeLabel(scope: AccessScope): string {
 export function display(value: string | null | undefined): string { return value?.trim() ? value : "—"; }
 export function grantFields(grant: ManualGrant | null) {
   return grant ? [
-    ["邮箱", grant.email], ["权限类型", accessTypeLabels[grant.accessType]], ["权限范围", scopeLabel(grant)],
+    ["姓名", display(grant.name)], ["邮箱", grant.email], ["权限类型", accessTypeLabels[grant.accessType]], ["权限范围", scopeLabel(grant)],
     ["授权人", grant.grantedBy], ["授权时间", formatBusinessDateTime(grant.grantedAt)],
     ["备注", display(grant.note)], ["更新人", display(grant.updatedBy)], ["更新时间", formatBusinessDateTime(grant.updatedAt)],
   ] as const : [];

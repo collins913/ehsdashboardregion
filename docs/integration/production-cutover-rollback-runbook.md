@@ -27,7 +27,6 @@
 | 技术执行负责人 | 待填写 |
 | 数据负责人 | 待填写 |
 | Identity / Security 负责人 | 待填写 |
-| Monitoring / Incident 负责人 | 待填写 |
 | Go / No-Go 决策人 | 待填写 |
 | 上一可用应用 Artifact | 待填写 |
 | 上一已发布数据指针 | 按 Domain 待填写 |
@@ -50,23 +49,22 @@
 | GATE-01 | 所有适用 UAT 项为 PASS，无未接受的 FAIL / BLOCKED | 已签字 UAT Matrix | 待填写 |
 | GATE-02 | 字段映射、自然键、枚举、Required Sets 和 Coverage Proof 已批准 | 已签字 Mapping Template | 待填写 |
 | GATE-03 | 完整 CI 与 Production build 使用冻结 commit / artifact 通过 | CI run 与 artifact digest | 待填写 |
-| GATE-04 | Production Identity、Access、Import、Repository、Monitoring、Email Adapter 均已配置 | Adapter 清单与 fail-closed 测试 | 待填写 |
+| GATE-04 | Production Identity、Access、Import、Repository Adapter 均已配置 | Adapter 清单与 fail-closed 测试 | 待填写 |
 | GATE-05 | 上一应用 artifact 和每个 Domain 的上一发布指针可读取 | 读回结果 | 待填写 |
-| GATE-06 | 应用、配置、数据指针、身份和 Monitoring 回滚均已在非生产环境演练 | 演练记录 | 待填写 |
+| GATE-06 | 应用、配置、数据指针和身份回滚均已在非生产环境演练 | 演练记录 | 待填写 |
 | GATE-07 | 公司已批准性能 / 容量标准或明确记录阻塞 | 性能报告与批准记录 | 待填写 |
-| GATE-08 | Monitoring、独立存储故障信号和 Incident 响应链可用 | 测试告警与响应记录 | 待填写 |
+| GATE-08 | 部署平台日志与故障响应责任链可用 | 平台配置与责任记录 | 待填写 |
 | GATE-09 | 变更窗口、执行人、决策人和通知对象已确认 | Change record | 待填写 |
 
 ## 阶段 1：切换前状态冻结
 
-1. 停止或隔离会与本次切换冲突的 Import、Scheduler 和后台发布任务；不得停止公司要求持续运行的安全监控。
+1. 停止或隔离会与本次切换冲突的 Import 和后台发布任务；不得停止公司要求持续运行的安全监控。
 2. 确认没有未知发布事务或未处理的并发切换。`RECEIVED` / `VALIDATED` 批次可以保留，但不得在切换期间由其他执行者发布。
 3. 记录以下不含密钥的状态：
    - 当前应用 artifact、Git commit、数据库 Schema / Adapter 版本；
    - `EHS_DATA_SOURCE`、`EHS_IDENTITY_MODE` 等配置的名称与版本；
    - 每个 Domain 当前已发布 batch / pointer、source version、configuration version、publishedAt；
    - 当前 Access / Bootstrap 数据版本和最后一名有效 `GLOBAL_ADMIN`；
-   - active Monitoring incidents、待处理 Outbox 数量和 Scheduler 配置版本。
 4. 验证上一 artifact 仍可部署，上一数据指针仍可读取，恢复权限已授权给执行人。
 5. 对冻结状态生成证据包，并由技术执行负责人确认。
 
@@ -77,19 +75,19 @@
 使用公司支持的 inactive slot、隔离实例或等价机制；本 Runbook 不规定具体平台。
 
 1. 部署已批准 artifact，不在服务器现场构建未审查代码。
-2. 从公司 Secret Store 注入数据库、SSO、M2M、Email 和 Monitoring 配置；禁止写入 Git、浏览器环境或普通日志。
+2. 从公司 Secret Store 注入数据库、SSO 和 M2M 配置；禁止写入 Git、浏览器环境或普通日志。
 3. 显式配置 Production 数据与身份模式：
    - `EHS_DATA_SOURCE=production`
    - `EHS_IDENTITY_MODE=enterprise`
-4. 配置精确 `NEXT_PUBLIC_GLIFE_PARENT_ORIGIN`、Monitoring recipients 和 Scheduler 参数；仅当一次性 Bootstrap 尚未完成时配置已批准的 Bootstrap principal。未使用的能力要明确禁用，不能留作未知默认值。
+4. 配置精确 `NEXT_PUBLIC_GLIFE_PARENT_ORIGIN`；仅当一次性 Bootstrap 尚未完成时配置已批准的 Bootstrap principal。未使用的能力要明确禁用，不能留作未知默认值。
 5. 在未开放用户流量时执行启动检查：
    - 所有必需 Adapter 可创建；
    - 任一 Adapter 临时移除时失败关闭，不回退 Mock / memory；
    - 未登录和无权限身份无法读取 Repository；
    - Security Headers 与公司 CSP / TLS 配置生效；
-   - Monitoring 可写入持久化存储并触发测试告警。
+   - 部署平台可查询应用运行日志。
 
-出现身份绕过、Mock fallback、Adapter 未配置或 Monitoring 无法提供独立故障信号时，结果为 `ABORTED`。
+出现身份绕过、Mock fallback、Adapter 未配置时，结果为 `ABORTED`。
 
 ## 阶段 3：Production 数据准备与发布
 
@@ -136,10 +134,10 @@
    - Store / Area / Region Scope 用户；
    - Global User；
    - Global Admin。
-4. 检查 `/overview`、KPI、Goals、Events、Actions、Certificates、Environment、Stores；管理员另检查 `/access` 与 `/monitoring`。
+4. 检查 `/overview`、KPI、Goals、Events、Actions、Certificates、Environment、Stores；管理员另检查 `/access`。
 5. 对每个身份核对：页面、汇总、筛选选项、详情、分页与 Server Action 均不超出授权 Scope。
 6. 核对缺失 / 未知 / 不完整数据仍显示不可用或诊断状态，没有变成 0、Normal、Achieved 或 Closed。
-7. 持续观察公司已批准的错误率、延迟、数据库、身份、Monitoring、Outbox、Email 和 Scheduler 指标。
+7. 持续观察公司已批准的错误率、延迟、数据库和身份指标。
 
 未经 Go / No-Go 决策人确认，不得宣布切换完成。
 
@@ -149,12 +147,11 @@
 
 - 未授权用户读取到受保护数据，或不同身份 / Scope 发生数据串用。
 - SSO、M2M 或 Bootstrap 可被 Client 输入、Header、URL 或 `GLIFE_CONTEXT` 冒充。
-- Production 回退到 Mock Repository、Mock identity、内存 Access / Monitoring 或测试 Adapter。
+- Production 回退到 Mock Repository、Mock identity、内存 Access 或测试 Adapter。
 - 错误字段映射、Store Resolution、时间范围或枚举映射造成业务结果失真。
 - 未得到 `VERIFIED_COMPLETE` 就发布，或 staged records 提前可见。
 - active data、pointer、batch 状态和审计出现部分提交或无法确认的一致性。
 - 缺失 / 未知数据被展示为 0、正常、已达成或已关闭。
-- Monitoring 失效且独立故障渠道也不可用。
 - Artifact、数据库 Schema、Adapter 或配置版本与批准记录不一致。
 - 触发公司已经批准的错误率、延迟、容量或安全阈值。
 
@@ -165,17 +162,17 @@
 ### A. 先控制影响
 
 1. 停止新流量或进入公司批准的维护模式。
-2. 停止新的 Import submit / validate / publish 和相关 Scheduler；保留证据采集与独立监控。
+2. 停止新的 Import submit / validate / publish 和相关发布任务；保留证据采集与独立监控。
 3. 若涉及 M2M、SSO 或密钥风险，按公司流程撤销受影响凭据。
 4. 记录触发时间、发现人、影响身份 / Scope / Domain、当前 artifact 和发布指针。
-5. 不删除失败批次、审计、Incident、Outbox 或日志。
+5. 不删除失败批次、审计或日志。
 
 ### B. 应用与配置回滚
 
 1. 使用已验证的上一 artifact，不从工作区临时重新构建。
 2. 恢复对应的已批准配置版本；Secret 值从公司 Secret Store 恢复。
 3. 验证旧版本仍使用 enterprise identity 和 Production Repository，不允许通过切换到 Mock 来“恢复页面”。
-4. 在恢复流量前重复未登录、授权 Scope、Security Headers 和 Monitoring smoke checks。
+4. 在恢复流量前重复未登录、授权 Scope、Security Headers smoke checks。
 
 ### C. 数据指针回滚
 
@@ -185,12 +182,10 @@
 4. 回滚后从业务 Repository 读回并核对旧版本；新失败批次保留用于调查，不再作为 active data。
 5. 当前仓库没有通用数据回滚 endpoint。若公司尚未实现并演练该能力，Production 数据切换为 NO-GO。
 
-### D. Identity、Monitoring 与 Scheduler 回滚
+### D. Identity 回滚
 
 1. 身份配置回滚后验证稳定 `principalId`、服务端验证邮箱和 Effective Access。
 2. Access 数据回滚不得删除追加式审计，也不得绕过最后一名 `GLOBAL_ADMIN` 保护。
-3. Monitoring / Email / Scheduler 恢复后验证 durable Incident、Outbox lease、Provider 状态和 Watchdog。
-4. 没有正向恢复信号时不得自动关闭 Incident。
 
 ## 回滚后验证
 
@@ -200,11 +195,10 @@
 | RB-02 | Data pointer | 每个受影响 Domain 指向已验证旧 batch | 待填写 |
 | RB-03 | Authorization | 所有测试身份恢复正确 Scope，无泄露 | 待填写 |
 | RB-04 | Business data | 页面、汇总、筛选和详情与旧版本对账 | 待填写 |
-| RB-05 | Monitoring | Incident、Outbox、Email、Watchdog 正常且保留失败证据 | 待填写 |
 | RB-06 | Import isolation | 失败 / staged 批次不可被业务 Repository 读取 | 待填写 |
 | RB-07 | Audit | 切换、失败、停止和回滚操作均可追溯 | 待填写 |
 
-回滚完成不等于 Incident 关闭。只有影响已验证消除、数据与权限复核完成并收到正向恢复信号后，才能由授权人员关闭 Incident。
+回滚完成后仍须验证影响已消除，并完成数据与权限复核，再由负责人确认恢复。
 
 ## 切换完成与证据归档
 
@@ -213,11 +207,11 @@
 - 公司批准的观察期完成，期间未触发停止 / 回滚条件；
 - UAT 抽样在正式环境重复通过；
 - 所有发布 Domain、pointer、source / configuration version 已记录；
-- Monitoring、Email、Scheduler 和责任链正常；
+- 部署平台日志和责任链正常；
 - 未解决 Warning、TBD 和后续任务有明确负责人；
 - Go / No-Go 决策人、数据负责人、EHS 负责人、Identity / Security 和运维完成签字。
 
-证据包至少包含：commit、artifact digest、CI run、无密钥配置版本、发布 batch / pointer、Coverage Proof、诊断、权限抽样、页面对账、Monitoring 演练、切换时间线、Incident 和回滚结果。
+证据包至少包含：commit、artifact digest、CI run、无密钥配置版本、发布 batch / pointer、Coverage Proof、诊断、权限抽样、页面对账、切换时间线和回滚结果。
 
 ## 最终记录
 

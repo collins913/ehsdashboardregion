@@ -21,8 +21,6 @@ vi.mock("react", () => ({
     }
   },
 }));
-const report = vi.hoisted(() => vi.fn());
-vi.mock("@/features/monitoring/report-client-error", () => ({ reportClientOperationalError: report }));
 import { useLatestAsyncQuery } from "./use-latest-async-query";
 
 function render(key: string, load: () => Promise<QueryOutcome<number>>) {
@@ -42,14 +40,12 @@ describe("async query failure lifecycle", () => {
     expect(success.status).toBe("SUCCESS");
     await expect(success.reload()).rejects.toMatchObject({ code });
     expect(render("scope-a", load)).toMatchObject({ status: "ERROR", errorCode: code, resolved: null });
-    expect(report).not.toHaveBeenCalled();
   });
 
   it("classifies a transported parameter error without treating it as successful data", async () => {
     const load = async (): Promise<QueryOutcome<number>> => ({ queryError: { code: "INVALID_QUERY_INPUT" } });
     render("invalid", load); await flush();
     expect(render("invalid", load)).toMatchObject({ status: "ERROR", errorCode: "INVALID_QUERY_INPUT" });
-    expect(report).not.toHaveBeenCalled();
   });
 
   it("does not let an old denial overwrite the latest successful scope", async () => {
@@ -66,6 +62,5 @@ describe("async query failure lifecycle", () => {
     const load = async () => { throw new Error("private server detail"); };
     render("failed", load); await flush();
     expect(render("failed", load)).toMatchObject({ status: "ERROR", errorCode: "SERVICE_UNAVAILABLE" });
-    expect(report).toHaveBeenCalledExactlyOnceWith("DATA_REQUEST_FAILED");
   });
 });

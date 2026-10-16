@@ -273,12 +273,11 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 
 页面不得直接导入 `src/data/mock/`。当前统一从 repository 入口访问；未来替换 API 或数据库实现时保持 repository 接口稳定。
 
-## System Monitoring V1
 
-Monitoring is an independent operational service and persistence port; it does not enter EHS Events, Actions, Domain Rules, ScoreContribution or Overview aggregation. Capture points are the shared client error endpoint / Error Boundaries, `useLatestAsyncQuery`, exported EHS Server Actions, Access Server Actions, Production Import API and configured Job / Notification workers. These boundaries translate only detectable failures and explicit DataAvailability diagnostics; expected authorization / input rejection remains low-severity and normal EHS facts are never reported as system faults.
+## 当前用户资料（2026-10-16）
 
-`MonitoringRepository.recordEvent` is the transaction boundary for Event + Incident aggregation + optional opening/repeat Outbox entries. Production adapters must enforce fingerprint and idempotency uniqueness, atomic incident revision updates, admin state CAS, cross-worker Outbox leasing and result CAS, rate-limit atomicity, and transactional audit writes. Manual `reopenIncident` must atomically require the expected resolved revision, ensure no other active Incident has the fingerprint, restore the active fingerprint mapping, clear resolution/acknowledgement fields, and append the trusted administrator audit. `resolveAfterVerifiedRecovery` must resolve the active Incident and queue its recovery notification atomically. The development/test Memory adapter is not a production fallback. Production runtime currently raises `PRODUCTION_MONITORING_ADAPTER_NOT_CONFIGURED` and emits a redacted structured server diagnostic as best-effort fallback.
+访问用户的头像、姓名和邮箱来自访问时带入的资料：独立登录由可信 `ServerIdentityProvider` 提供；嵌入入口由已校验 origin / source 的 `GLIFE_CONTEXT` 提供 `name`、可选 `avatarUrl` 与 `email`，且显示资料须对应当前服务端账号邮箱。Sidebar 不再用权限管理的姓名覆盖访问资料。邮箱仍由服务端验证后用于权限匹配，浏览器显示资料不构成认证凭据，也不改变 Effective Access。
 
-In non-production development, the `/monitoring` page seeds two visibly labelled demo Incidents into the in-memory adapter once per process so the list and detail workflow can be previewed. The seed is rejected in production and never runs against a non-memory repository; these records are not source data and must not be used for operational conclusions.
+权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
 
-The vendor-neutral Email provider interface and test recording provider are separated from the business capture path. `EHS_MONITORING_ALERT_RECIPIENTS`, optional WARNING routing, bounded retry policy and `EHS_MONITORING_JOBS` are deployment configuration seams, not real enterprise integrations. The company scheduler calls the watchdog and Outbox worker; the repository does not create schedules. `/monitoring` is a GLOBAL_ADMIN-only route with an independent time-range filter and uses the shared DataTable / Sheet / Select / Switch / Sonner primitives.
+系统监控模块已移除，含页面、错误上报 API、事件捕获、通知、任务监控与相关持久化端口。安全错误码、错误重试界面、领域 DataAvailability、Access / Import 审计仍保留。Environment 的环境监测数据不受影响。

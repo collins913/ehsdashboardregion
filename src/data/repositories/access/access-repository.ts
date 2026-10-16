@@ -5,6 +5,8 @@ import type { AuditEvent, GrantInput, GrantUpdate, ManualGrant } from "@/data/co
  * current grant key while stable principalId is retained in the audit event. Production adapters must persist each grant mutation and append-only audit event in one
  * transaction. update/delete must also enforce the last-effective-admin invariant atomically,
  * not rely only on the Access Service's preflight check.
+ * A supplied name belongs to the email identity: create/update must synchronize it across that
+ * email's manual grants and append the corresponding UPDATE audits in the same transaction.
  */
 export interface AccessRepository {
   listManualGrants(): Promise<readonly ManualGrant[]>;

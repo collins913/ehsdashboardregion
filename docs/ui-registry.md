@@ -30,7 +30,7 @@
 | Tabs | `src/components/ui/tabs.tsx` | /access Manual Grants and Audit sections |
 | Input | `src/components/ui/input.tsx` | Access email and grant form fields |
 | Sonner | `src/components/ui/sonner.tsx` | Access mutation feedback |
-| Switch | `src/components/ui/switch.tsx` | System Monitoring Detail Sheet 未处理 / 已处理 toggle |
+| Switch | `src/components/ui/switch.tsx` | Installed shadcn primitive; no current feature usage |
 
 Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10). Local additions preserve Chinese labels, reduced motion, controlled Sheet focus, the existing mobile-width opt-in and Recharts 3 tick selectors. Select defaults to `position="popper"` and `align="start"`, keeping its menu outside the trigger with Radix collision handling instead of aligning the selected item over the trigger.
 
@@ -38,21 +38,21 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 
 | Component | Responsibility |
 | --- | --- |
-| AppSidebar | Renders centralized navigation, active state and the account footer using shadcn SidebarMenu, Avatar and Dropdown Menu primitives. Account menu links to Help; feedback retains the explicit not-yet-open notice. |
+| AppSidebar | Renders centralized navigation, active state and the account footer using shadcn SidebarMenu, Avatar and Dropdown Menu primitives. Footer shows the supplied avatar, the incoming login/embedded-profile name, and authorized scope summary. The menu shows avatar, name and email in the header, followed by authorized scopes at the same level as menu entries. A separator below the scopes groups them apart from 提交建议 and Help; suggestions retain the explicit not-yet-open notice. |
 | DashboardShell | Composes SidebarProvider, AppSidebar, page inset, persistent Global Filter Provider and PageHeader / GlobalFilters; header text reuses centralized navigation metadata, with UI Lab opting out |
 | ThemeProvider | Applies the global Light, Dark or System theme through `next-themes` |
 | ThemeToggle | Shared Chinese theme selector for Dashboard headers and UI Lab |
 | PageHeader | Sidebar trigger, breadcrumb, title, optional actions and a focusable HoverCard description when route metadata provides one |
 | PageContainer | Shared content width, responsive page padding and vertical spacing |
 | DetailHeader | Accessible Sheet title/subtitle and optional caller-provided result/status display; body content must not repeat header information or invent a result; used by KPI, Actions, Events, Take Charge, Certificates, Environment, Stores and Access Audit details |
-| DetailRecordCard | Neutral official Nova Card shell for one record in a collection; contract multiplicity, not the current result count, determines use. Used by Certificates, KPI Training/Drill/Inspection/ASTM and embedded Action collections, plus Environment waste-contract collections. Singleton contracts render without a Card; one record has at most one primary shell. |
+| DetailRecordCard | Neutral official Nova Card shell for one record in a collection; contract multiplicity, not the current result count, determines use. Used by Certificates, KPI Training/Drill/Inspection/ASTM and embedded Action collections, plus Environment waste-contract collections. KPI Action collections share the standard 16px Sheet body inset with their period and request feedback; the card itself does not own the Sheet margin. Singleton contracts render without a Card; one record has at most one primary shell. |
 | DetailAccordion / DetailAccordionItem | Business-neutral shadcn Accordion presentation; caller supplies title, optional summary slot, count, disabled state, accessible neutral attention icon and default-open values. Count Badge is neutral and excluded from title hover underline. Used by Certificates, Environment and Overview score details; summary values and feature choices such as default-open groups are owned by callers. |
 | DetailField | Shared label/value spacing, typography and wrapping only; does not format dates, infer status or calculate business values. Used by KPI, Actions, Events, Take Charge, Stores, Environment and Certificates detail fields; Certificates retains its text-sm and normal-whitespace presentation. |
 | GlobalFilters | One persistent shared compact filter bar; route metadata opts Period visibility per page. The default Period is 本年 (January through the current Shanghai month); user selections persist across dashboard navigation. Select and Store Button retain official presentation, while Store uses Popover + InputGroup search + Checkbox canonical multi-select. Area values use the shared Region + Area key; duplicate names display their Region |
 | MonthPicker | Selects one `YYYY-MM` value using Button, Popover and Select without date-level input |
 | OverflowTooltip | Truncates single-line text and enables Tooltip only when DOM overflow is present. Optional `renderTrigger(label)` composes the actual focusable trigger; its measured text adds no Tab stop, and the trigger remains mounted when overflow changes. Overview ranking and store links use this contract. |
 | StatusDisplay | Maps normalized business statuses to centralized labels and semantic appearance; supports custom value labels, optional icons and opt-in interactive hover |
-| FilterSelect | Shared low-cardinality mutually exclusive filter control built on shadcn Select; Features supply values and labels. Events type, Monitoring time-window and Access type filters also reuse it with their existing trigger widths. Grant form fields retain Select for placeholders and validation attributes. |
+| FilterSelect | Shared low-cardinality mutually exclusive filter control built on shadcn Select; Features supply values and labels. Events type and Access type filters also reuse it with their existing trigger widths. Grant form fields retain Select for placeholders and validation attributes. |
 | DataAvailabilityDisplay | Centralized DataAvailability badge and explanation used by KPI and Goals |
 | DataAvailabilityNotice | Shared table-level notice for normalized `INCOMPLETE` / `UNAVAILABLE` results; callers provide the domain subject and optionally a safe query error code |
 | AsyncQueryFeedback | Reuses Skeleton and DataAvailabilityDisplay for shared loading and query-failure feedback; query failures use stable safe messages for authentication, authorization, invalid input and service availability |
@@ -122,12 +122,10 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | AttentionMatrix | Same-level comparison offers existing Tabs for detail rows and the matrix. The matrix is always the first/default tab. Average score rate appears as muted text beneath the title; repeated scope/count captions are omitted. Panels flex within the shared Card row, while detail rows scroll inside their viewport. Scatter hover uses shared ChartTooltip with prepared names, score and delta; point buttons retain single-object drill-down and overlapping-object DropdownMenu selection. No Top N filter is applied. Detail rows preserve every member and reuse its group's prepared values; the matrix retains prepared grouping, domains and reference lines. Semantic scope changes reset the view. |
 | OverviewMonthlyTrendChart | Shared by the Overview hero and scope detail Sheet. Both use a fixed 0–100% vertical domain with 0 / 25 / 50 / 75 / 100% ticks, visible month labels, shadcn chart color token, 3px dots and a 6px active dot. Hover / keyboard interaction reports the prepared month and value. Only available history months are passed to the chart; gaps are not interpolated. The hero chart fills available card height with a 160px minimum, matching the detail chart's 160px plot viewport without forcing equal parent heights. Existing animation duration and reduced-motion behavior are preserved. |
 
-### System Monitoring
-
-| Component | Responsibility |
-| --- | --- |
-| MonitoringPageContent | GLOBAL_ADMIN-only incident list using the shared DataTable and Sheet. The table shows latest error time, incident summary and aggregated occurrence count, sorted by latest occurrence descending; an independent time filter and refresh remain above it. Selecting a row shows error code, processing status / time, a shadcn Switch for status changes, then “复制诊断信息” above one JSON code block of linked diagnostic details. Development in-memory storage is explicitly labelled and seeds two clearly marked demo Incidents; an unconfigured production adapter shows “监控服务尚未配置” without an empty table implying no errors. Collection, incident correlation, notifications, retries, job monitoring, watchdog, recovery records and audit remain backend capabilities and are not exposed as separate tables. |
-
 ### Help
 
-`/help` reuses Input, Button and Accordion to browse and search static Chinese explanations of current calculations and user-visible fields across 11 modules. Content lives in `src/features/help/help-content.ts`, with no evaluation or protected source data. Route metadata disables Global Filters; account menu is the entry. Search expands matching modules and permits manual collapse. Update explanations alongside confirmed rules and contracts; unresolved source definitions remain explicit TBDs.
+`/help` reuses Input, Button and Accordion to browse and search static Chinese explanations of current calculations and user-visible fields across 10 modules. Content lives in `src/features/help/help-content.ts`, with no evaluation or protected source data. Route metadata disables Global Filters; account menu is the entry. Search expands matching modules and permits manual collapse. Update explanations alongside confirmed rules and contracts; unresolved source definitions remain explicit TBDs.
+
+### Access user names
+
+AccessManagementPage adds a 姓名 column and an optional name field to the existing create/edit Dialog; email remains required. Prepared catalog users supply contact names and `nameFromStore`; those names remain read-only. Other names can be maintained manually. Successful mutations refresh the list, catalog and server layout without making manual names the source of the visiting user profile. Audit snapshots include 姓名. Automatic grants remain derived from Store Master and are not added to the manual-grant table.

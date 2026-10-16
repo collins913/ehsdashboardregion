@@ -131,13 +131,13 @@ Stores Repository 按 Global Region / Area / canonical Store scope 返回上述�
 
 ## 3A. Access Management 逻辑契约
 
-`src/data/contracts/access/` 定义 Identity、Base Grant、Manual Grant、Effective Access、统一 Mutation Result 与 Audit Event。Email 在 Access Domain 中统一 trim + lowercase。Base Grant 从 Store 主数据实时派生，不写入 Manual Grant Repository；相同邮箱、来源类型和范围只产生一条规范化授权。Manual Grant 包含目标邮箱、权限类型、范围、授权人和时间、可选备注；更新记录保留更新人和时间。授权存在即生效，删除即失效，没有截止时间或过期状态。
+`src/data/contracts/access/` 定义 Identity、Base Grant、Manual Grant、Effective Access、统一 Mutation Result 与 Audit Event。Email 在 Access Domain 中统一 trim + lowercase。Base Grant 从 Store 主数据实时派生，不写入 Manual Grant Repository；相同邮箱、来源类型和范围只产生一条规范化授权。Manual Grant 包含目标邮箱、可选姓名 `name`、权限类型、范围、授权人和时间、可选备注；更新记录保留更新人和时间。授权存在即生效，删除即失效，没有截止时间或过期状态。
 
 GLOBAL_USER 和 GLOBAL_ADMIN 均有全局数据范围，只有 GLOBAL_ADMIN 可管理权限。REGION 继承下级 Area / Store；AREA 继承下级 Store；STORE 仅授权当前门店。服务端保留自动授权来源元数据、Effective Access、Account Summary 和可访问筛选选项；Client 不计算继承或合并。UI 在 /access 仅维护 Manual Grants，并在操作日志 Tab 追踪变更；Period 不进入 Access 查询身份。
 
 Manual Grant Repository 的写入契约需与 append-only Audit Event 原子保存；当前 Mock 用 server-memory 模拟，Production 持久化实现待定。变更失败返回明确代码和安全文案。生产身份提供者、数据库结构与 API 物理格式未在本阶段冻结。
 
-Create / Update / Delete Server Action 对运行时输入逐项解析：Email、Access Type、Scope ID、Note 与 mutation ID。全局类型要求 `scopeId: null`，Region / Area / Store 要求非空范围 ID；Access Service 再按组织目录核验范围，并阻止修改或删除最后一名有效 GLOBAL_ADMIN。无效输入返回 `INVALID_INPUT`，最后管理员保护返回 `LAST_GLOBAL_ADMIN`。
+Create / Update / Delete Server Action 对运行时输入逐项解析：Email、可选 Name（string / null）、Access Type、Scope ID、Note 与 mutation ID。全局类型要求 `scopeId: null`，Region / Area / Store 要求非空范围 ID；Access Service 再按组织目录核验范围，并阻止修改或删除最后一名有效 GLOBAL_ADMIN。无效输入返回 `INVALID_INPUT`，最后管理员保护返回 `LAST_GLOBAL_ADMIN`。
 
 ## 4. Performance → KPI 输入
 
@@ -526,21 +526,11 @@ Diagnostics identify Domain, batch, row index or source record ID where availabl
 
 Current implementation status is explicitly not equivalent to production service readiness: route handlers and generic contract validation exist, while the machine verifier and durable storage are unconfigured. The OpenAPI marks those endpoints `INTEGRATION_REQUIRED`; runtime responds 503 until adapters are installed.
 
-## 14. System Monitoring V1
 
-The authoritative TypeScript field and runtime validation contracts are `src/data/contracts/monitoring.ts` and `src/data/contracts/monitoring-validation.ts`; the persistence port is `src/data/repositories/monitoring/monitoring-repository.ts`. This document records semantic boundaries and does not duplicate those implementation schemas. The authenticated browser-report endpoint is documented separately in [`api/monitoring-client-error.md`](api/monitoring-client-error.md).
+## 当前用户资料（2026-10-16）
 
-Operational Events are system diagnostics and remain separate from EHS business Events. `OperationalEvent` records a safe message, source/component, severity, stable error code, `KNOWN` / `UNKNOWN` cause status, impact, correlation ID, optional batch/job/domain links and bounded structured diagnostics. Original exception messages and stacks are not persisted or returned by these generic capture paths. `OperationalIncident` groups by SHA-256 of source + component + error code + impact kind/id; repeated Events remain individually stored and update the active Incident occurrence count, last-occurrence time and revision. A later occurrence after resolution creates a new Incident. A GLOBAL_ADMIN may manually reopen a resolved Incident; reopening clears its resolution and acknowledgement fields, returns it to OPEN, and restores it as the active Incident only when no other active Incident has the same fingerprint. This transition uses expected-revision CAS and an audited REOPEN operation.
+访问用户的头像、姓名和邮箱来自访问时带入的资料：独立登录由可信 `ServerIdentityProvider` 提供；嵌入入口由已校验 origin / source 的 `GLIFE_CONTEXT` 提供 `name`、可选 `avatarUrl` 与 `email`，且显示资料须对应当前服务端账号邮箱。Sidebar 不再用权限管理的姓名覆盖访问资料。邮箱仍由服务端验证后用于权限匹配，浏览器显示资料不构成认证凭据，也不改变 Effective Access。
 
-Incident transitions are `OPEN → ACKNOWLEDGED → RESOLVED`, with an additional audited administrator transition `RESOLVED → OPEN` for manual reopening. Administrator writes use expected-revision compare-and-swap and trusted principal audit. Reopening must atomically enforce one active Incident per fingerprint; a conflicting active Incident prevents reopening. Automated resolution requires a positive recovery signal from a successful configured task or explicit health probe; silence alone is not recovery. Notification policy is centralized: ERROR / CRITICAL queue immediately, WARNING is opt-in, INFO is recorded only, and Notification failures are excluded from notification recursion. Repeats are summarized no more often than once per configured interval. Automatic sends are bounded to five attempts with finite backoff.
+权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
 
-`NotificationOutboxItem` distinguishes `PENDING`, `SENDING`, `SENT`, and `FAILED`; `SENT` means provider acceptance unless the provider explicitly confirms delivery, in which case `deliveredAt` is populated. Event + Incident + initial outbox insertion must be one production transaction. Claim leases, unique idempotency keys, compare-and-swap result writes, and abandoned-lease recovery must be atomic in the company Adapter. The in-memory adapter is development/test only. Production Monitoring storage and Email provider are currently unconfigured and fail closed.
-
-Browser reports accept only an allowlisted error kind, sanitized route and optional framework digest; they require a trusted authenticated principal, have an 8 KiB request limit and an atomic per-principal rate limit. Client-supplied identity, message, stack and arbitrary fields are rejected. Server Action and import capture preserve existing authorization, ImportDiagnostic and DataAvailability semantics. DataAvailability warnings describe source coverage; they are not converted into EHS business outcomes.
-
-Job Monitoring stores execution and heartbeat state. Watchdog policy is read only from explicit `EHS_MONITORING_JOBS` configuration; an empty configuration is a no-op and does not invent tasks or schedules. A company scheduler must invoke the watchdog and notification worker. Durable Monitoring storage, cross-worker atomicity, company Email, scheduler, log retention and an independent monitoring-storage failure channel remain `INTEGRATION REQUIRED`.
-
-
-### 只读查询失败契约
-
-EHS 查询和 Access 只读查询使用 `QueryOutcome<T>`：成功时保留现有 DTO；请求失败时仅返回 `{ queryError: { code } }`。稳定分类为 `AUTHENTICATION_REQUIRED`、`ACCESS_DENIED`、`INVALID_QUERY_INPUT`、`SERVICE_UNAVAILABLE`，不返回异常原文或堆栈。此传输状态独立于成功 DTO 内的 `DataAvailability` 与领域 `reason`。共享 async hook 解包结果并保存分类；身份或权限失败时清除已解析结果。Access 写入继续使用现有 `MutationResult`。
+系统监控模块已移除，含页面、错误上报 API、事件捕获、通知、任务监控与相关持久化端口。安全错误码、错误重试界面、领域 DataAvailability、Access / Import 审计仍保留。Environment 的环境监测数据不受影响。

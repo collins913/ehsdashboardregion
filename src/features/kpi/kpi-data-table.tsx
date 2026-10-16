@@ -290,9 +290,9 @@ function ActionsSheet({
               : <StatusDisplay status={row.actions.result} />
             : undefined}
         />
-        <div className="space-y-6 pb-4">
+        <div className="space-y-6 px-4 pb-4">
           {row ? (
-            <dl className="space-y-4 px-4">
+            <dl className="space-y-4">
               <div>
                 <dt className="text-xs text-muted-foreground">统计周期</dt>
                 <dd className="mt-1">{formatBusinessPeriod(context.period)}</dd>

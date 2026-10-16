@@ -4,7 +4,7 @@ import { isTrustedGLifeMessage, parseGLifeContextMessage } from "./glife-context
 describe("GLIFE_CONTEXT display adapter", () => {
   it("normalizes only user-profile fields and omits publicMediaToken", () => {
     expect(parseGLifeContextMessage({ type: "GLIFE_CONTEXT", payload: { userId: " u-1 ", teslaId: "t-1", name: "Name", email: "name@example.com", publicMediaToken: "secret" } })).toEqual({
-      displayName: "Name", email: "name@example.com", enterpriseUserId: "u-1", employeeId: "t-1", department: null, title: null,
+      displayName: "Name", avatarUrl: null, email: "name@example.com", enterpriseUserId: "u-1", employeeId: "t-1", department: null, title: null,
     });
   });
   it("rejects bad envelope and payload shape", () => {

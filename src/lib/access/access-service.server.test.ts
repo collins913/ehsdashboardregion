@@ -2,13 +2,35 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { authorizeBusinessScope, createManualGrant, deleteManualGrant, getAccountSummary, getAuthorizedFilterStores, listManualGrants, queryAuditLog, requireAdmin, updateManualGrant } from "@/lib/access/access-service.server";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
+import * as identityProvider from "@/data/server/identity-provider.server";
 const all: EhsStoreScope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe("Access server service", () => {
   it("defaults to the mock Global Admin identity", async () => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", "");
     expect((await getAccountSummary()).summary).toBe("全局管理员");
     expect(await requireAdmin()).toBeDefined();
+  });
+  it("returns explicit profile fields without exposing identity attributes or widening access", async () => {
+    vi.spyOn(identityProvider, "requireVerifiedServerPrincipal").mockResolvedValue({
+      principalId: "profile-test", verifiedEmail: "manager.1@example.test",
+      displayName: " San Zhang（张 三） ", avatarUrl: "https://example.test/avatar.png",
+      attributes: { privateTestValue: "must-stay-server-only" },
+    });
+    const account = await getAccountSummary();
+    expect(account).toMatchObject({
+      email: "manager.1@example.test", displayName: "San Zhang（张 三）",
+      avatarUrl: "https://example.test/avatar.png",
+      canManageAccess: false, summary: "云川引力场中心",
+    });
+    expect(JSON.stringify(account)).not.toContain("must-stay-server-only");
+    expect(await getAuthorizedFilterStores()).toHaveLength(1);
+  });
+  it("keeps missing profile fields empty instead of inventing a name from email", async () => {
+    vi.stubEnv("EHS_MOCK_USER_EMAIL", "no.access@example.test");
+    vi.stubEnv("EHS_MOCK_USER_NAME", "");
+    vi.stubEnv("EHS_MOCK_USER_AVATAR_URL", "");
+    expect(await getAccountSummary()).toMatchObject({ displayName: null, avatarUrl: null });
   });
   it("blocks non-admin reads and mutations", async () => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", "global.user@example.test");

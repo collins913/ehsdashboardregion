@@ -97,5 +97,6 @@ export interface ProductionAccessPrincipal {
   principalId: string;
   verifiedEmail: string | null;
   displayName: string | null;
+  avatarUrl?: string | null;
   attributes: Readonly<Record<string, string>>;
 }

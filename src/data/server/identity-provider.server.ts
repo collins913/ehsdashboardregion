@@ -23,7 +23,7 @@ export function createConfiguredServerIdentityProvider(): ServerIdentityProvider
 export async function getVerifiedServerPrincipal(): Promise<ProductionAccessPrincipal | null> {
   if (resolveIdentityMode() === "mock") {
     const identity = getCurrentIdentity();
-    return { principalId: `mock:${identity.email}`, verifiedEmail: identity.email, displayName: null, attributes: { source: "mock" } };
+    return { principalId: `mock:${identity.email}`, verifiedEmail: identity.email, displayName: identity.displayName ?? null, avatarUrl: identity.avatarUrl ?? null, attributes: { source: "mock" } };
   }
   return createConfiguredServerIdentityProvider().getVerifiedPrincipal();
 }

@@ -32,26 +32,26 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const route = getDashboardRoute(usePathname());
   return (
-    <SidebarProvider>
-      <AppSidebar account={account} />
-      <SidebarInset className="min-w-0">
-        <GLifeContextProvider>
-        <GlobalFilterProvider stores={stores} initialState={initialFilterState} nowIso={nowIso} referenceMonth={referenceMonth}>
-          {route && route.showDashboardHeader !== false ? (
-            <PageHeader
-              title={route.title}
-              description={route.description}
-              showGlobalFilters={route.showGlobalFilters}
-              showPeriodFilter={route.showPeriodFilter}
-              breadcrumbs={route.section
-                ? [{ label: route.section }, { label: route.title }]
-                : [{ label: route.title }]}
-            />
-          ) : null}
-          {children}
-        </GlobalFilterProvider>
-        </GLifeContextProvider>
-      </SidebarInset>
-    </SidebarProvider>
+    <GLifeContextProvider>
+      <SidebarProvider>
+        <AppSidebar account={account} />
+        <SidebarInset className="min-w-0">
+          <GlobalFilterProvider stores={stores} initialState={initialFilterState} nowIso={nowIso} referenceMonth={referenceMonth}>
+            {route && route.showDashboardHeader !== false ? (
+              <PageHeader
+                title={route.title}
+                description={route.description}
+                showGlobalFilters={route.showGlobalFilters}
+                showPeriodFilter={route.showPeriodFilter}
+                breadcrumbs={route.section
+                  ? [{ label: route.section }, { label: route.title }]
+                  : [{ label: route.title }]}
+              />
+            ) : null}
+            {children}
+          </GlobalFilterProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </GLifeContextProvider>
   );
 }

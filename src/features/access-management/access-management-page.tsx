@@ -2,6 +2,7 @@
 import { unwrapQueryOutcome, queryErrorCode, queryErrorMessage } from "@/data/contracts/query-result";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import type { AccessCatalog, AccessType, GrantInput, ManualGrant } from "@/data/contracts/access";
@@ -24,7 +25,7 @@ import { isValidEmail } from "@/lib/access/access-domain";
 
 type FormInput = Omit<GrantInput, "accessType"> & { accessType: AccessType | ""; regionId: string; areaId: string };
 type FieldErrors = Partial<Record<"email" | "accessType" | "regionId" | "areaId" | "scopeId", string>>;
-const emptyInput: FormInput = { email: "", accessType: "", scopeId: null, note: null, regionId: "", areaId: "" };
+const emptyInput: FormInput = { email: "", name: "", accessType: "", scopeId: null, note: null, regionId: "", areaId: "" };
 const mutationToastDuration = 4000;
 const types: AccessType[] = ["GLOBAL_USER", "GLOBAL_ADMIN", "REGION", "AREA", "STORE"];
 
@@ -34,6 +35,7 @@ function formInputFor(editing: ManualGrant | null, catalog: AccessCatalog): Form
   const area = catalog.areas.find((item) => item.id === editing.scopeId || item.id === store?.areaId);
   return {
     email: editing.email,
+    name: editing.name ?? null,
     accessType: editing.accessType,
     scopeId: editing.scopeId,
     note: editing.note,
@@ -72,6 +74,8 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
   const pendingRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const focusInvalidRef = useRef(false);
+  const selectedUser = catalog.users.find((user) => user.email === input.email.trim().toLowerCase());
+  const userName = selectedUser?.nameFromStore ? selectedUser.name : input.name;
   useEffect(() => {
     if (!focusInvalidRef.current) return;
     focusInvalidRef.current = false;
@@ -94,8 +98,8 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
     setPending(true);
     const toastId = toast.loading("正在保存…", { duration: Infinity });
     try {
-      const payload: GrantInput = { email: input.email, accessType: input.accessType as AccessType, scopeId: input.scopeId, note: input.note };
-      const result = editing ? await reviseGrant(editing.id, { accessType: payload.accessType, scopeId: payload.scopeId, note: payload.note }) : await submitGrant(payload);
+      const payload: GrantInput = { email: input.email, name: userName?.trim() || null, accessType: input.accessType as AccessType, scopeId: input.scopeId, note: input.note };
+      const result = editing ? await reviseGrant(editing.id, { name: payload.name, accessType: payload.accessType, scopeId: payload.scopeId, note: payload.note }) : await submitGrant(payload);
       if (!result.ok) { toast.error(mutationErrorMessage(result.code, "save"), { id: toastId, duration: mutationToastDuration }); return; }
       try { await onSaved(); } catch { onOpenChange(false); toast.error("权限已保存，但列表刷新失败，请刷新页面", { id: toastId, duration: mutationToastDuration }); return; }
       onOpenChange(false); toast.success(editing ? "权限已更新" : "权限已新增", { id: toastId, duration: mutationToastDuration });
@@ -104,7 +108,9 @@ function GrantDialog({ open, onOpenChange, editing, catalog, onSaved }: { open: 
   return <Dialog open={open} onOpenChange={(nextOpen) => { if (!pending) onOpenChange(nextOpen); }}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{editing ? "编辑权限" : "新增权限"}</DialogTitle><DialogDescription>手动授权独立于组织角色自动权限。</DialogDescription></DialogHeader>
     <form ref={formRef} className="contents" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
     <div className="max-h-[65vh] space-y-3 overflow-y-auto">
-      <label className="block space-y-1 text-sm">邮箱<Input id="grant-email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "grant-email-error" : undefined} type="email" value={input.email} disabled={!!editing} onChange={(event) => { clearError("email"); setInput({ ...input, email: event.target.value }); }} placeholder={editing ? undefined : "name@example.com"} /><FieldError id="grant-email-error">{errors.email}</FieldError></label>
+      <label className="block space-y-1 text-sm">邮箱（必填）<Input required id="grant-email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "grant-email-error" : undefined} type="email" value={input.email} disabled={!!editing} onChange={(event) => { clearError("email"); const email = event.target.value; const user = catalog.users.find((item) => item.email === email.trim().toLowerCase()); setInput({ ...input, email, name: user?.name ?? null }); }} placeholder={editing ? undefined : "name@example.com"} /><FieldError id="grant-email-error">{errors.email}</FieldError></label>
+      <label className="block space-y-1 text-sm">姓名（可选）<Input id="grant-name" value={userName ?? ""} readOnly={selectedUser?.nameFromStore} aria-describedby={selectedUser?.nameFromStore ? "grant-name-source" : undefined} onChange={(event) => setInput({ ...input, name: event.target.value })} placeholder="如 San Zhang（张 三）" /></label>
+      {selectedUser?.nameFromStore ? <p id="grant-name-source" className="text-xs text-muted-foreground">姓名来自门店主数据，在此不可修改。</p> : null}
       <label className="block space-y-1 text-sm">权限类型<Select value={input.accessType} onValueChange={(value) => { setErrors((current) => ({ email: current.email })); setInput({ ...input, accessType: value as AccessType, scopeId: null, regionId: "", areaId: "" }); }}><SelectTrigger id="grant-access-type" aria-invalid={!!errors.accessType} aria-describedby={errors.accessType ? "grant-access-type-error" : undefined} className="w-full"><SelectValue placeholder="请选择权限类型" /></SelectTrigger><SelectContent>{types.map((type) => <SelectItem key={type} value={type}>{accessTypeLabels[type]}</SelectItem>)}</SelectContent></Select><FieldError id="grant-access-type-error">{errors.accessType}</FieldError></label>
       {input.accessType ? <><ScopeFields key={`${editing?.id ?? "new"}-${input.accessType}`} value={input} onChange={setInput} catalog={catalog} errors={errors} clearError={clearError} /><label className="block space-y-1 text-sm">备注（可选）<Input value={input.note ?? ""} onChange={(event) => setInput({ ...input, note: event.target.value || null })} /></label></> : null}
     </div><DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>取消</Button><Button type="submit" disabled={pending} aria-busy={pending}>{pending ? <Loader2 data-icon="inline-start" className="animate-spin motion-reduce:animate-none" /> : null}{pending ? "正在保存…" : "保存"}</Button></DialogFooter>
@@ -131,6 +137,7 @@ function DeleteGrantDialog({ grant, onOpenChange, onDeleted }: { grant: ManualGr
 }
 
 export function AccessManagementPage() {
+  const router = useRouter();
   const { storeScope } = useGlobalFilters();
   const [tab, setTab] = useState("manual");
   const [email, setEmail] = useState("");
@@ -139,7 +146,7 @@ export function AccessManagementPage() {
   const [visitedAudit, setVisitedAudit] = useState(false);
   const [manualTableState, setManualTableState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
   const [auditTableState, setAuditTableState] = useState<DataTableInteractionState>({ sorting: [], pagination: null });
-  const [catalog, setCatalog] = useState<AccessCatalog>({ regions: [], areas: [], stores: [] });
+  const [catalog, setCatalog] = useState<AccessCatalog>({ users: [], regions: [], areas: [], stores: [] });
   const [editing, setEditing] = useState<ManualGrant | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<ManualGrant | null>(null);
@@ -156,8 +163,13 @@ export function AccessManagementPage() {
     manualActive && storeScope ? () => loadManualGrants({ email, scope: storeScope, accessType }) : null,
   );
   const manuals = query.status === "SUCCESS" ? query.data : query.resolved?.data ?? [];
-  const refresh = query.reload;
+  const refresh = async () => {
+    router.refresh();
+    await query.reload();
+    setCatalog(unwrapQueryOutcome(await loadAccessCatalog()));
+  };
   const columns = useMemo<DataTableColumn<ManualGrant>[]>(() => [
+    { id: "name", title: "姓名", value: (grant) => display(grant.name), sizeRole: "standard" },
     { id: "email", title: "邮箱", value: (grant) => grant.email, sizeRole: "primary" },
     { id: "type", title: "权限类型", value: (grant) => accessTypeLabels[grant.accessType], sizeRole: "standard" },
     { id: "scope", title: "权限范围", value: scopeLabel, sizeRole: "standard" },

@@ -2,7 +2,6 @@
 import { unwrapQueryOutcome, queryErrorCode, type QueryErrorCode, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { reportClientOperationalError } from "@/features/monitoring/report-client-error";
 
 export type ResolvedAsyncQuery<T> = {
   key: string;
@@ -94,7 +93,7 @@ export function useLatestAsyncQuery<T>(
 
     const settleError = (error: unknown) => {
       if (active && guard.isLatest(requestId)) {
-        if (queryErrorCode(error) === "SERVICE_UNAVAILABLE") reportClientOperationalError("DATA_REQUEST_FAILED");
+
         setStored((current) => {
           const errorCode = queryErrorCode(error);
           const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;
@@ -152,7 +151,7 @@ export function useLatestAsyncQuery<T>(
         guard.isLatest(requestId) &&
         requestedKeyRef.current === queryKey
       ) {
-        if (queryErrorCode(error) === "SERVICE_UNAVAILABLE") reportClientOperationalError("DATA_REQUEST_FAILED");
+
         setStored((current) => {
           const errorCode = queryErrorCode(error);
           const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;

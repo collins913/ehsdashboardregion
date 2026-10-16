@@ -331,12 +331,14 @@ Import Batch 使用单调 `revision`。Repository/数据库 Adapter 必须通过
 
 Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`sourceSystem` 仅为来源描述。批次保留 source/configuration version、business/effective period、extraction/publication 时间与 request ID。Snapshot `referenceDate` 的历史冻结语义仍 TBD。Training 技术重复检查暂用 Store × Month × trainingName 复合键，不代表企业确认的自然键；企业接入需补充稳定 source record ID/自然键决策。
 
-### D-049 System Monitoring & Alerting V1 边界
+### D-049 / D-050 System Monitoring（已撤销）
 
-Operational Event / Incident 与 EHS 业务 Events 分离，错误分组使用稳定 source + component + code + impact scope fingerprint；每次发生保留单独 Event。Incident 状态写入采用 revision CAS；自动恢复只能由正向验证信号触发，GLOBAL_ADMIN 可手动将 RESOLVED Incident 重新打开为 OPEN。重新打开必须清除处理与确认字段，并原子确保同一 fingerprint 没有其他活动 Incident；冲突时拒绝操作。通知通过同事务 Outbox 入队，生产存储 Adapter 必须提供跨 Worker 原子 claim、幂等、有限重试及审计事务；没有外部独立通道时，监控存储不可用只能 best-effort 输出脱敏结构化服务端日志，不能声称错误已持久化或告警已送达。
+2026-10-16 用户明确移除全部系统监控功能。旧 Monitoring / Alerting 与管理界面决策撤销：不保留页面、API、客户端上报、服务端事件捕获、Incident、Outbox、通知或 Watchdog。现有授权、业务数据诊断、导入校验与审计、错误界面和安全错误码继续独立工作。Environment 的环境监测属于业务领域，不受此变更影响。
 
-开发/测试可以使用内存 Monitoring Repository 和测试通知 Provider；Production 不允许回退到内存存储。Email Provider、企业持久化 Adapter、独立 Watchdog / Scheduler、监控存储故障外部信号及日志保留均为 `INTEGRATION REQUIRED`。未配置任务计划不产生失联告警；没有确认送达回执时 `SENT` 仅代表通知服务接受请求。系统监控仅由服务端验证的 `GLOBAL_ADMIN` 操作，浏览器错误采用身份验证、字段白名单、大小限制及跨 Worker 限流。
+### D-051 当前用户资料与侧栏菜单
 
-### D-050 System Monitoring 管理界面与导航
+访问用户的头像、姓名和邮箱来自访问时带入的资料：独立登录由可信 `ServerIdentityProvider` 提供；嵌入入口由已校验 origin / source 的 `GLIFE_CONTEXT` 提供 `name`、可选 `avatarUrl` 与 `email`，且显示资料须对应当前服务端账号邮箱。Sidebar 不再用权限管理的姓名覆盖访问资料。邮箱仍由服务端验证后用于权限匹配，浏览器显示资料不构成认证凭据，也不改变 Effective Access。
 
-全局管理员侧栏将“系统监控”和“权限管理”归入“系统管理”。系统监控页面使用单张错误表，仅列最近报错时间、报错内容与累计发生次数，默认按最近发生时间倒序；顶部保留独立时间范围和刷新。整行进入详情 Sheet，复制诊断信息位于诊断明细代码块之前。处理状态操作保留在详情内，不扩展错误列表列数；开发存储和生产未配置状态必须显式区分。
+权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
+
+左下角维持头像与两行布局：姓名在上、权限摘要在下。展开菜单顶部展示头像、姓名与邮箱，分隔线下按同级行展示全部授权范围（不加“权限范围”标题），再依次提供“提交建议”和“帮助”。提交建议维持尚未开放的提示，不新增提交或邮件接口。Mock 默认管理员使用明确的模拟入口资料；正式用户资料由企业登录或嵌入入口提供。

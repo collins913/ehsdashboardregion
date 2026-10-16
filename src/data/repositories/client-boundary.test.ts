@@ -13,7 +13,7 @@ const forbiddenClientImports = [
   /@\/data\/mock\/performance/,
   /@\/data\/repositories\//,
   /@\/lib\/access\/access-service\.server/,
-  /EHS_MOCK_USER_EMAIL/,
+  /EHS_MOCK_USER_(?:EMAIL|NAME|AVATAR_URL)/,
   /\bfetch\s*\(/,
   /@\/data\/production\//,
 ] as const;
@@ -39,11 +39,7 @@ function isClientBoundaryFile(file: string, source: string): boolean {
 }
 
 function boundaryViolations(source: string) {
-  const fetchPattern = /\bfetch\s*\(/;
-  const fetchCalls = [...source.matchAll(/\bfetch\s*\(/g)];
-  const approvedMonitoringCalls = [...source.matchAll(/\bfetch\s*\(\s*["']\/api\/monitoring\/client-error["']/g)];
-  return forbiddenClientImports.filter((pattern) => pattern.source !== fetchPattern.source && pattern.test(source))
-    .concat(fetchCalls.length === 1 && approvedMonitoringCalls.length === 1 ? [] : fetchCalls.length ? [fetchPattern] : []);
+  return forbiddenClientImports.filter((pattern) => pattern.test(source));
 }
 
 // Follow runtime imports, including helpers/hooks and re-exports. Server Actions
@@ -143,7 +139,7 @@ describe("client data boundary", () => {
     expect(boundaryViolations('import { raw } from "@/data/mock/future";')).not.toEqual([]);
     expect(boundaryViolations('import { service } from "@/lib/access/access-service.server";')).not.toEqual([]);
     expect(boundaryViolations('fetch("/sharepoint/actions.json")')).not.toEqual([]);
-    expect(boundaryViolations('fetch("/api/monitoring/client-error", { method: "POST" })')).toEqual([]);
+    expect(boundaryViolations('fetch("/api/private", { method: "POST" })')).not.toEqual([]);
     expect(boundaryViolations('process.env.EHS_MOCK_USER_EMAIL')).not.toEqual([]);
   });
 });

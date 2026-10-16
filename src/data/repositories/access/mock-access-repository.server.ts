@@ -11,18 +11,30 @@ function record(action: AuditEvent["action"], actor: { principalId: string; veri
   const grant = after ?? before!;
   audit.push({ id: nextId("audit"), timestamp: new Date().toISOString(), action, actorEmail: actor.verifiedEmail, actorPrincipalId: actor.principalId, targetEmail: grant.email, grantId: grant.id, scopeType: grant.accessType, scopeId: grant.scopeId, scopeDisplayName: grant.scopeDisplayName, before, after, note: grant.note });
 }
+function synchronizeUserName(email: string, name: string | null, actor: { principalId: string; verifiedEmail: string }, exceptId: string) {
+  grants = grants.map((grant) => {
+    if (grant.email !== email || grant.id === exceptId || grant.name === name) return grant;
+    const updated = { ...grant, name, updatedBy: actor.verifiedEmail, updatedAt: new Date().toISOString() };
+    record("UPDATE", actor, grant, updated);
+    return updated;
+  });
+}
 export const mockAccessRepository: AccessRepository = {
   async listManualGrants() { return grants.map((grant) => ({ ...grant })); },
   async listAuditEvents() { return [...audit].sort((a, b) => b.timestamp.localeCompare(a.timestamp) || b.id.localeCompare(a.id)); },
   async createManualGrant(input: GrantInput, actor, scopeDisplayName) {
     const grant: ManualGrant = { ...input, id: nextId("grant"), scopeDisplayName, grantedBy: actor.verifiedEmail, grantedAt: new Date().toISOString(), updatedBy: null, updatedAt: null };
-    grants = [...grants, grant]; record("CREATE", actor, null, grant); return grant;
+    grants = [...grants, grant]; record("CREATE", actor, null, grant);
+    if (input.name !== undefined) synchronizeUserName(grant.email, input.name, actor, grant.id);
+    return grant;
   },
   async updateManualGrant(id: string, input: GrantUpdate, actor, scopeDisplayName) {
     const before = grants.find((grant) => grant.id === id);
     if (!before) return null;
     const after: ManualGrant = { ...before, ...input, scopeDisplayName, updatedBy: actor.verifiedEmail, updatedAt: new Date().toISOString() };
-    grants = grants.map((grant) => grant.id === id ? after : grant); record("UPDATE", actor, before, after); return after;
+    grants = grants.map((grant) => grant.id === id ? after : grant); record("UPDATE", actor, before, after);
+    if (input.name !== undefined) synchronizeUserName(after.email, input.name, actor, after.id);
+    return after;
   },
   async deleteManualGrant(id: string, actor) {
     const before = grants.find((grant) => grant.id === id);
