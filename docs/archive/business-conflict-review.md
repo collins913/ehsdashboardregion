@@ -1,4 +1,6 @@
-# Business Documentation Conflict Review
+# Business Documentation Conflict Review（历史归档）
+
+当前文档入口：[文档地图](../README.md)。本记录不更新为现行规则，避免将历史结论误当作当前定义。
 
 - 定位：historical / resolved review，保留早期迁移记录，不是当前 active rule source。
 - 以下结论是早期审查快照，后续 Certificates V1、Environment V1、Goals 与 Store Resolution 已有更新。当前实施以 `business-requirements.md`、`data-contract.md`、`metric-rules.md`、`status-dictionary.md` 和 `decisions.md` 的现行定义为准。

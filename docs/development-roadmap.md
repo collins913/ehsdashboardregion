@@ -1,11 +1,11 @@
 # EHS Dashboard Development Roadmap
 
-- 更新日期：2026-10-10
+- 更新日期：2026-10-16
 - 职责：记录当前进度、后续顺序和阶段依赖；业务规则与架构决策仍以对应专项文档为准。
 
 ## 当前阶段
 
-项目已完成基础架构、七个正式业务模块、Overview Data V1、Production Import API V1 接口边界。Training / Inspection 使用合成 Mock V1 集合验证规则；Production authoritative required-set source/config 仍待提供。Prototype 文件保留，但正式路由不依赖 Prototype 数据、评分或历史 fixture。Access Management V1 Demo：completed；当前进入公司 Production Integration 阶段，尚未达到生产部署就绪。
+项目已完成基础架构、七个正式业务模块、Overview Data V1、Production Import API V1 接口边界。Training / Inspection 使用合成 Mock V1 集合验证规则；Production authoritative required-set source/config 仍待提供。旧 Overview Prototype 代码、夹具和专属测试已移除，设计记录归档于 `archive/overview-prototype.md`；正式路由使用统一 ScoreContribution 链路。Access Management V1 Demo：completed；当前进入公司 Production Integration 阶段，尚未达到生产部署就绪。
 
 Environment Detail Expansion：completed。主表保持门店维度并提供五个详情入口；typed 环保证照、应急预案与废弃物合同明细已完成，设施信息及 Monitoring 新字段保持 TBD。
 
@@ -19,6 +19,7 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 - KPI Rules / Repository
 - KPI Formal Page
 - KPI Actions Drilldown
+- ASTM KPI Drilldown（使用 normalized Event Repository）
 - Adaptive Data Table
 - Milestone Architecture Audit
 - Risk & Compliance → Actions
@@ -60,9 +61,8 @@ Certificates V1：completed，Architecture / Docs audit、完整质量门与人�
 
 1. 为 Production 提供 authoritative Training required item catalog 与 Inspection expected task set，并替换 Mock provider；Overview contract 与聚合不变。
 2. 生产历史若无法按月末 referenceDate 从可靠 Domain records 回算，再定义 snapshot；本阶段没有建立 snapshot。
-3. ASTM KPI Drilldown（独立后续增强，不是 Overview 前置条件）。
 
-依赖原则：Overview 只组合既有 Domain Results，不复制业务规则。Standard / Performance Mock 与正式 Overview 共用 Repository、Domain rules、contribution producer 和 aggregation。Production Import API 已定义；业务查询 API 与 snapshot 仍未冻结。ASTM KPI Drilldown 复用现有 normalized Event Repository。
+依赖原则：Overview 只组合既有 Domain Results，不复制业务规则。Standard / Performance Mock 与正式 Overview 共用 Repository、Domain rules、contribution producer 和 aggregation。Production Import API 已定义；业务查询 API 与 snapshot 仍未冻结。
 
 ## Performance & Scale Validation
 

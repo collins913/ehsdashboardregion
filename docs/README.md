@@ -25,9 +25,13 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 15. [`integration/source-field-mapping-template.md`](integration/source-field-mapping-template.md)：对接字段工作表：访问身份、权限、业务数据、年度直读与批次证明，含必传／可选、空值规则和请求样例。
 16. [`integration/production-cutover-rollback-runbook.md`](integration/production-cutover-rollback-runbook.md)：正式流量与数据切换、停止条件、回滚和证据归档流程。
 
-涉及历史业务文档迁移时，再查阅 [`business-conflict-review.md`](business-conflict-review.md)。
+历史材料集中在 [`archive/`](archive/)，只用于追溯，不作为当前实现依据。
 
 ## Documentation Map
+
+当前规范保留在 `docs/` 根目录，机器接口契约放在 `api/`，接入与上线材料放在 `integration/`，已退出当前实现的材料放在 `archive/`。新增文档按职责归类，不另建重复规则来源。
+
+### 当前规范
 
 | Document | Purpose |
 | --- | --- |
@@ -40,13 +44,24 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 | [`ui-guidelines.md`](ui-guidelines.md) | 定义主题、密度、布局、交互和可访问性等通用 UI 原则。 |
 | [`ui-registry.md`](ui-registry.md) | 登记已采用的 shadcn、shared、hook 和 feature pattern，防止重复实现。 |
 | [`development-roadmap.md`](development-roadmap.md) | 记录已完成阶段、开发顺序和未来 Performance / Production / Permissions 阶段。 |
+
+### 接口、对接与上线
+
+| Document | Purpose |
+| --- | --- |
 | [`api/production-api-v1.yaml`](api/production-api-v1.yaml) | 定义 Production Import API 路由、请求、状态响应与错误契约。 |
 | [`integration/corporate-ai-integration.md`](integration/corporate-ai-integration.md) | 区分已实现边界、公司接入项和仍被业务决策阻塞的事项。 |
 | [`integration/deployment-readiness-checklist.md`](integration/deployment-readiness-checklist.md) | 提供公司接入执行入口、验收证据和禁止上线条件，不替代详细契约。 |
 | [`integration/uat-acceptance-matrix.md`](integration/uat-acceptance-matrix.md) | 记录 Production Integration UAT 测试项、通过标准、证据和最终签字。 |
 | [`integration/source-field-mapping-template.md`](integration/source-field-mapping-template.md) | 按接入类别列出字段含义、传递要求、类型与空值；公司填写来源、转换和证据，附待确认项及可复制请求样例。 |
 | [`integration/production-cutover-rollback-runbook.md`](integration/production-cutover-rollback-runbook.md) | 规定 Production 切换检查点、立即停止条件、应用及数据指针回滚和证据归档。 |
-| [`business-conflict-review.md`](business-conflict-review.md) | 保存 2026-09-10 业务文档迁移审查快照；当前规则仍以专项文档和后续决策为准。 |
+
+### 历史归档
+
+| Document | Purpose |
+| --- | --- |
+| [`archive/business-conflict-review.md`](archive/business-conflict-review.md) | 早期业务文档迁移审查快照，历史结论不覆盖当前规范。 |
+| [`archive/overview-prototype.md`](archive/overview-prototype.md) | 旧总览设计与原型 README 的合并记录；旧代码、夹具和专属测试通过 Git 历史追溯。 |
 
 ## Architecture at a Glance
 
@@ -67,13 +82,17 @@ Client Feature → Server Action → Repository / Adapter → Source
 | `src/app` | App Router 路由与页面组合。 |
 | `src/features` | 业务页面 UI、view model 和 feature-local 行为。 |
 | `src/data/contracts` | 中立的 normalized / query contracts。 |
+| `src/data/server` | 身份、授权、查询／写入入口、运行时输入校验和生产接入装配。 |
 | `src/data/repositories` | 数据访问、范围过滤与 availability 边界。 |
+| `src/data/server/testing` | 仅测试使用的内存接入 Adapter。 |
 | `src/data/mock` | Standard / Performance Mock Dataset 与 server-only profile source。 |
 | `src/lib/rules` | 纯业务规则和规范化结果类型。 |
 | `src/components/ui` | shadcn primitives。 |
 | `src/components/shared` | 已确认可跨项目复用的 UI 与 pattern。 |
 | `src/hooks` | 共享 React 行为。 |
 | `src/config` | 导航和全局筛选配置。 |
+| `scripts` | API 契约验证和独立性能基线入口。 |
+| `.github/workflows` | 持续集成检查。 |
 
 ## Current Modules
 
