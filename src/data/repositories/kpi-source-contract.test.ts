@@ -19,6 +19,19 @@ const context: EhsFilterContext = {
 };
 
 describe("KPI source contracts", () => {
+  it.each([
+    [100, "ACHIEVED"], [99.9, "NOT_ACHIEVED"], [0, "NOT_ACHIEVED"],
+    [null, "UNDETERMINED"], [Number.NaN, "UNDETERMINED"], [101, "UNDETERMINED"],
+  ] as const)("prepares Training record status for source rate %s on the server", async (completionRate, expected) => {
+    const original = sourceDataset.trainingRecords[0]!;
+    const dataset = { ...sourceDataset, trainingRecords: sourceDataset.trainingRecords.map((record) => record === original ? { ...record, completionRate } : record) };
+    const result = await createMockEhsRepository(referenceDate, { dataset }).getKpiTrainingDetails({ context, storeId: targetStore.trtid });
+    const record = result.items.find((item) => item.trainingName === original.trainingName && item.month === original.month)!;
+    expect(record).toBeDefined();
+    expect(record.completionRate).toBe(completionRate);
+    expect(record.incompletePeople).toEqual(original.incompletePeople);
+    expect(record.completionResult).toBe(expected);
+  });
   it("uses consistent open-text Inspection labels while retaining unfinished records", () => {
     const textualStatuses = sourceDataset.inspectionRecords
       .map((record) => record.status)

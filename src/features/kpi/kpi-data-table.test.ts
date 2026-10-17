@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   ActionsCell,
+  AstmResultCell,
   KPI_COLUMN_SIZE_ROLES,
   KpiDataTable,
 } from "@/features/kpi/kpi-data-table";
@@ -57,7 +58,7 @@ const emptyKpiDetails: KpiDetailQueries = {
 };
 
 describe("KPI Actions cell", () => {
-  it("renders a confirmed no-actions result as a clickable secondary status value", () => {
+  it("renders a confirmed no-actions result as clickable plain text", () => {
     const markup = renderActions({
       availability: "CONFIRMED_EMPTY",
       value: null,
@@ -65,8 +66,8 @@ describe("KPI Actions cell", () => {
     });
 
     expect(markup).toContain('aria-label="查看未关闭行动项，关闭率 无"');
-    expect(markup).toContain('data-emphasis="secondary"');
-    expect(markup).toContain(">无</span>");
+    expect(markup).not.toContain('data-slot="badge"');
+    expect(markup).toContain(">无</button>");
     expect(markup).not.toContain("100%");
   });
 
@@ -83,8 +84,41 @@ describe("KPI Actions cell", () => {
         availability === "INCOMPLETE" ? "数据不完整" : "数据不可用",
       );
       expect(markup).not.toContain("关闭率 无");
+      expect(markup).not.toContain('data-slot="badge"');
     },
   );
+});
+
+describe("KPI plain result cells", () => {
+  it.each([0, 77, 100])("retains the action rate %s and detail trigger without a badge", (value) => {
+    const markup = renderActions({ availability: "AVAILABLE", value, result: "NOT_ACHIEVED" });
+    expect(markup).toContain(`>${value}%</button>`);
+    expect(markup).toContain('data-table-cell-trigger');
+    expect(markup).toContain('data-variant="link"');
+    expect(markup).not.toContain('data-slot="badge"');
+  });
+
+  it.each([["OCCURRED", "发生"], ["NOT_OCCURRED", "无"]] as const)("keeps ASTM %s as clickable plain text", (result, label) => {
+    const markup = renderToStaticMarkup(createElement(TooltipProvider, null,
+      createElement(AstmResultCell, { value: { availability: "AVAILABLE", result }, label: "查看事件详情", onOpen: () => {} }),
+    ));
+    expect(markup).toContain(`>${label}</button>`);
+    expect(markup).toContain(`aria-label="查看事件详情，${label}"`);
+    expect(markup).toContain('data-variant="link"');
+    expect(markup).not.toContain('data-slot="badge"');
+    expect(markup).not.toContain('<svg');
+  });
+
+  it("keeps the ASTM data warning without a badge or a fabricated outcome", () => {
+    const markup = renderToStaticMarkup(createElement(TooltipProvider, null,
+      createElement(AstmResultCell, { value: { availability: "INCOMPLETE", result: null }, label: "查看事件详情", onOpen: () => {} }),
+    ));
+    expect(markup).toContain("数据不完整");
+    expect(markup).toContain('aria-label="查看事件详情，数据不完整"');
+    expect(markup).toContain('data-state="closed"');
+    expect(markup).not.toContain('data-slot="badge"');
+    expect(markup).not.toContain('>无<');
+  });
 });
 
 describe("KPI Actions drill-down query", () => {
@@ -140,6 +174,8 @@ describe("KPI adaptive table hydration", () => {
       ),
     );
 
+    const headings = [...markup.matchAll(/<th\b[^>]*>[\s\S]*?<\/th>/g)].map(([header]) => header.replace(/<[^>]*>/g, ""));
+    expect(headings).toEqual(["门店", "培训", "演练", "检查", "行动项", "ASTM 事件"]);
     expect(markup).toContain("data-adaptive-table-measurement-row");
     expect(markup).not.toContain("测试门店");
   });

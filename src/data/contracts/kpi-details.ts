@@ -12,6 +12,7 @@ export interface KpiTrainingDetailRecord {
   trainingName: string;
   month: Month;
   completionRate: number | null;
+  completionResult: PerformanceResult;
   incompletePeople: readonly string[] | null;
 }
 

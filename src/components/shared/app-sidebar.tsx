@@ -147,10 +147,10 @@ export function AppSidebar({ account, activePathname, onNavigate }: {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {account.scopes.map((scope) => (
-                    <DropdownMenuItem key={scope} onSelect={(event) => event.preventDefault()}>
+                    <DropdownMenuLabel key={scope} className="flex items-center gap-1.5 text-sm font-normal text-foreground">
                       <ShieldCheck aria-hidden="true" className="size-4 shrink-0" />
                       <span className="min-w-0 break-words">{scope}</span>
-                    </DropdownMenuItem>
+                    </DropdownMenuLabel>
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => { toast.info("提交建议功能暂未开放"); setOpenMobile(false); }}>

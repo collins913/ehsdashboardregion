@@ -5,7 +5,8 @@ import type { MockDataset } from "@/data/mock/mock-dataset";
 import { createMockKpiCoverage } from "@/data/mock/kpi-coverage";
 import { createEnvironmentMockRecords } from "@/data/mock/environment-v1";
 import { createMockCertificateRecords } from "@/data/mock/certificates";
-import { mockPersonAt } from "@/data/mock/people";
+import { mockPeople, mockPersonAt } from "@/data/mock/people";
+import { MOCK_V1_REQUIRED_TRAINING_ITEMS } from "@/data/mock/overview-required-sets";
 import { mockStores } from "@/data/mock/stores";
 import { createMockInspectionRecordsForStores } from "@/data/mock/inspections";
 import { createMockTrainingRecordsForStores } from "@/data/mock/training";
@@ -331,7 +332,13 @@ export function createPerformanceMockDataset(referenceDate: Date): MockDataset {
       actionAggregateScopes,
     ),
     trainingRecords: createMockTrainingRecordsForStores(stores, supportedMonths, (storeIndex, monthIndex) =>
-      requirementScenario("training", stores[storeIndex], supportedMonths[monthIndex])),
+      requirementScenario("training", stores[storeIndex], supportedMonths[monthIndex])).map((record) => {
+        // Targeted long-text fixture: 云川北岸001号引力场中心, October 2026.
+        const wrappingExample = record.month === "2026-10"
+          && "trtid" in record.storeReference && record.storeReference.trtid === "PERF-0001"
+          && record.trainingName === MOCK_V1_REQUIRED_TRAINING_ITEMS[0];
+        return wrappingExample ? { ...record, completionRate: 84, incompletePeople: mockPeople } : record;
+      }),
     drillRecords: performanceDrills(stores, supportedMonths),
     inspectionRecords: createMockInspectionRecordsForStores(stores, supportedMonths, (storeIndex, monthIndex) =>
       requirementScenario("inspections", stores[storeIndex], supportedMonths[monthIndex])),

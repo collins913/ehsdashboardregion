@@ -9,7 +9,7 @@ import { AnimatedNumber } from "@/components/shared/animated-number";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
 import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
-import { DetailField } from "@/components/shared/detail-field";
+import { DetailField, DetailFields } from "@/components/shared/detail-field";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -162,16 +162,14 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
           <DetailAccordion>
             <DetailAccordionItem title="焊接作业证" value="welding" count={1} attention>
               <DetailRecordCard
-                header={<p className="text-base font-medium">Yue SUN（孙悦）</p>}
+                header="Yue SUN（孙悦）"
                 action={<StatusDisplay status="ABNORMAL" />}
               >
-                <div className="space-y-4">
-                  <DetailField label="岗位">可自然换行的岗位名称示例</DetailField>
-                  <dl className="grid grid-cols-2 gap-4">
-                    <DetailField label="到期日期">2026-09-21</DetailField>
-                    <DetailField label="距离到期">-5 天</DetailField>
-                  </dl>
-                </div>
+                <DetailFields className="grid-cols-2">
+                  <DetailField label="岗位" className="col-span-2">可自然换行的岗位名称示例</DetailField>
+                  <DetailField label="到期日期">2026-09-21</DetailField>
+                  <DetailField label="距离到期">-5 天</DetailField>
+                </DetailFields>
               </DetailRecordCard>
             </DetailAccordionItem>
             <DetailAccordionItem title="空证件类别" value="empty" count={0} disabled>
@@ -355,7 +353,7 @@ export default function UiLabPage() {
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <DemoSurface
               title="StatusDisplay"
-              description="覆盖全部业务状态；Badge 外形继承共享 primitive。"
+              description="覆盖全部业务状态；统一描边标签、加载图标和绿色勾选。标签按内容自适应宽度，沿用官方 Badge 间距。"
             >
               <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
                 {businessStatuses.map((status) => (
@@ -365,7 +363,7 @@ export default function UiLabPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">未关闭记录：时钟图标</span>
+                  <span className="text-xs text-muted-foreground">未关闭记录：加载图标</span>
                   <StatusDisplay status="OPEN" label="进行中" />
                 </div>
               </div>
@@ -466,9 +464,11 @@ export default function UiLabPage() {
             </DemoSurface>
             <DemoSurface
               title="TableCellTrigger"
-              description="使用官方 ghost / sm Button 的尺寸、键盘、焦点和按压行为。"
+              description="复用官方 link / sm Button；文字、数字和“查看”默认悬停下划线，标签不加下划线或额外背景，保留键盘、焦点和按压行为。"
             >
               <div className="flex flex-wrap gap-2">
+                <TableCellTrigger variant="link" aria-label="77% 纯数字可点击示例">77%</TableCellTrigger>
+                <TableCellTrigger variant="link" aria-label="ASTM 事件可点击示例">无</TableCellTrigger>
                 <TableCellTrigger aria-label="92% 可点击示例">
                   <StatusDisplay
                     status="ACHIEVED"
@@ -518,6 +518,11 @@ export default function UiLabPage() {
         </GlobalFilterProvider>
 
         <PageContainer className="space-y-6 py-6 lg:py-6">
+          <section aria-label="详情卡片动画与 Item 标题">
+            <h3 className="mb-3 text-sm font-medium">详情记录卡片</h3>
+            <DetailRecordCard header="月度应急演练 10" description="2026 年 10 月" action={<StatusDisplay status="ACHIEVED" label="已完成" />} />
+            <p className="mt-3 text-xs text-muted-foreground">统一复用官方 Item / ItemContent / ItemTitle，标题与简短说明间距 4px，标题说明组与字段区间距 12px；字段名与值 4px，字段行之间 12px，状态位于右上角。鼠标悬停时倾斜、轻微放大并增加轻阴影；移出复位，触屏或减少动态效果时关闭动画。</p>
+          </section>
           <div>
             <h3 className="text-sm font-medium">Representative Data Table</h3>
             <p className="mt-1 text-xs text-muted-foreground">

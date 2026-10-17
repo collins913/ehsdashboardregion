@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { CircleAlert, Info } from "lucide-react";
+import { statusBadgeClassName } from "@/components/shared/status-display";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -25,21 +27,31 @@ export function DataAvailabilityDisplay({
   availability,
   label,
   description,
+  appearance = "badge",
 }: {
   availability: DataAvailability;
   label?: ReactNode;
   description?: ReactNode;
+  appearance?: "badge" | "text";
 }) {
+  const Icon = availability === "INCOMPLETE" || availability === "UNAVAILABLE" ? CircleAlert : Info;
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge
+        {appearance === "text" ? (
+          <span data-availability={availability.toLowerCase()} className="text-muted-foreground">
+            {label ?? availabilityLabels[availability]}
+          </span>
+        ) : <Badge
           variant="outline"
           data-availability={availability.toLowerCase()}
-          className="border-dashed bg-background text-muted-foreground"
+          data-status-badge=""
+          className={`${statusBadgeClassName} group-hover/table-cell-trigger:bg-muted`}
         >
-          {label ?? availabilityLabels[availability]}
-        </Badge>
+          <Icon aria-hidden="true" />
+          <span className="min-w-0 text-center">{label ?? availabilityLabels[availability]}</span>
+        </Badge>}
       </TooltipTrigger>
       <TooltipContent>{description ?? availabilityDescriptions[availability]}</TooltipContent>
     </Tooltip>

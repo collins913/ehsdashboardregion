@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import {
   CheckCircle2,
   CircleAlert,
-  Clock3,
+  Loader,
   Minus,
   type LucideIcon,
 } from "lucide-react";
@@ -42,7 +42,7 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
     label: "进行中",
     intent: "NEGATIVE",
     emphasis: "PRIMARY",
-    icon: Clock3,
+    icon: Loader,
   },
   UNDETERMINED: {
     label: "未确定",
@@ -66,7 +66,7 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
     label: "未关闭",
     intent: "NEUTRAL",
     emphasis: "PRIMARY",
-    icon: Clock3,
+    icon: Loader,
   },
   CLOSED: {
     label: "已关闭",
@@ -100,25 +100,13 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
   },
 };
 
-const emphasisVariants = {
-  PRIMARY: "default",
-  SECONDARY: "secondary",
-  NEUTRAL: "outline",
-} as const;
+// Shared visual treatment; business intent/emphasis remain independent metadata.
+// Match dashboard-01: the Badge primitive retains its natural content width.
+export const statusBadgeClassName =
+  "px-1.5 text-muted-foreground";
 
-const emphasisClassNames: Record<StatusEmphasis, string> = {
-  PRIMARY: "",
-  SECONDARY: "",
-  NEUTRAL: "text-muted-foreground",
-};
-
-const interactiveClassNames: Record<StatusEmphasis, string> = {
-  PRIMARY: "group-hover/table-cell-trigger:bg-primary/80",
-  SECONDARY:
-    "group-hover/table-cell-trigger:bg-secondary/80",
-  NEUTRAL:
-    "group-hover/table-cell-trigger:bg-muted group-hover/table-cell-trigger:text-muted-foreground",
-};
+const completedIconClassName =
+  "[&_circle]:fill-green-500 [&_circle]:stroke-green-500 [&_path]:stroke-white dark:[&_circle]:fill-green-400 dark:[&_circle]:stroke-green-400";
 
 export function getStatusIcon(status: BusinessStatus): LucideIcon {
   return statusDefinitions[status].icon;
@@ -155,20 +143,22 @@ export function StatusDisplay({
 }: StatusDisplayProps) {
   const definition = statusDefinitions[status];
   const Icon = icon ?? definition.icon;
+  const content = label ?? definition.label;
 
   return (
     <Badge
-      variant={emphasisVariants[definition.emphasis]}
+      variant="outline"
+      data-status-badge=""
       data-intent={definition.intent.toLowerCase()}
       data-emphasis={definition.emphasis.toLowerCase()}
       className={cn(
-        emphasisClassNames[definition.emphasis],
-        interactive && interactiveClassNames[definition.emphasis],
+        statusBadgeClassName,
+        interactive && "group-hover/table-cell-trigger:bg-muted",
         className,
       )}
     >
-      {showIcon ? <Icon aria-hidden="true" /> : null}
-      {label ?? definition.label}
+      {showIcon ? <Icon aria-hidden="true" className={Icon === CheckCircle2 ? completedIconClassName : undefined} /> : null}
+      {content}
     </Badge>
   );
 }

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { createElement } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { loadCertificatesPageData } from "./certificates-page-content";
@@ -142,5 +143,29 @@ describe("Certificates V1 feature", () => {
     expect(table).not.toMatch(/setAdaptivePagination\(null\)|key=\{queryKey\}/);
     const route = readFileSync("src/app/(dashboard)/risk/certificates/page.tsx", "utf8");
     expect(route).not.toMatch(/PageHeader|GlobalFilters|PlaceholderPage/);
+  });
+});
+
+
+describe("Certificate record card shared presentation", () => {
+  it("supplies name, email and status through shared slots without local title typography", () => {
+    const detail = buildCertificatesDetail(tableRow, "safetyHealth");
+    const cards: ReactNode[] = [];
+    function collect(node: ReactNode) {
+      if (Array.isArray(node)) { node.forEach(collect); return; }
+      if (!isValidElement<{ children?: ReactNode }>(node)) return;
+      if (node.type === DetailRecordCard) cards.push(node);
+      collect(node.props.children);
+    }
+    collect(CertificatesDetailContent({ detail }));
+    expect(cards).toHaveLength(1);
+    const markup = renderToStaticMarkup(cards[0]);
+    expect(markup).toContain('data-slot="item-title"');
+    expect(markup).toContain('data-slot="item-description"');
+    expect(markup).toContain('data-slot="item-actions"');
+    expect(markup).toContain(certificate.person);
+    expect(markup).toContain(certificate.personEmail);
+    expect(markup).toContain(certificate.businessTitle);
+    expect(markup).not.toContain("text-base");
   });
 });

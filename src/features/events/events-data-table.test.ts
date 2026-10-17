@@ -1,3 +1,5 @@
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
+import { StatusDisplay } from "@/components/shared/status-display";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -102,5 +104,22 @@ describe("Event detail", () => {
     expect(markup).not.toContain("门店英文");
     expect(markup).not.toContain("Severity");
     expect(markup).not.toContain('data-slot="card"');
+  });
+});
+
+
+describe("events embedded record-card presentation", () => {
+  it("lets the shared card own the only title, action and header/body spacing", () => {
+    const markup = renderToStaticMarkup(createElement(TooltipProvider, null,
+      createElement(DetailRecordCard, {
+        header: record.eventId, action: createElement(StatusDisplay, { status: record.recordState }),
+        children: createElement(EventDetailContent, { record, showHeading: false }),
+      }),
+    ));
+    expect((markup.match(/data-slot="item-title"/g) ?? []).length).toBe(1);
+    expect((markup.match(/data-slot="item-actions"/g) ?? []).length).toBe(1);
+    expect(markup).toContain("完整事件描述");
+    expect(markup).not.toContain("text-base");
+    expect(markup).toContain("data-[tilting=true]:shadow-sm");
   });
 });

@@ -1,4 +1,5 @@
 import { storeFieldDefinitions } from "@/data/contracts/store-fields";
+import { evaluateTrainingRecords } from "@/lib/rules/training-inspection-rules";
 import { sourceStatusPerformanceResult } from "@/lib/rules/performance-rules";
 import { areaScopeId } from "@/data/contracts/kpi";
 import { toKpiStore } from "@/data/normalize-store-master";
@@ -593,8 +594,9 @@ export function createMockEhsRepository(
     if (!scope) return { availability: "UNAVAILABLE", items: [] } as const;
     const source = kpiSources.training.read(query.storeId, query.context.period.includedMonths,
       coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "training"));
-    const items: KpiTrainingDetailRecord[] = source.items.map(({ trainingName, month, completionRate, incompletePeople }) =>
-      ({ trainingName, month, completionRate, incompletePeople })).sort((a, b) => b.month.localeCompare(a.month) || a.trainingName.localeCompare(b.trainingName));
+    const items: KpiTrainingDetailRecord[] = source.items.map((record) =>
+      ({ trainingName: record.trainingName, month: record.month, completionRate: record.completionRate, incompletePeople: record.incompletePeople,
+        completionResult: evaluateTrainingRecords([record], "AVAILABLE").result })).sort((a, b) => b.month.localeCompare(a.month) || a.trainingName.localeCompare(b.trainingName));
     return source.reason ? incompleteDataSet(items) : completeDataSet(items);
   }
   async function getKpiDrillDetails(query: KpiDetailQuery) {

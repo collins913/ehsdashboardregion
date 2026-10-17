@@ -4,11 +4,10 @@ import { unwrapQueryOutcome, type QueryOutcome } from "@/data/contracts/query-re
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityDisplay } from "@/components/shared/data-availability-display";
-import { DetailField } from "@/components/shared/detail-field";
+import { DetailField, DetailFields } from "@/components/shared/detail-field";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { DetailRecordCard } from "@/components/shared/detail-record-card";
-import { StatusDisplay } from "@/components/shared/status-display";
-import { CardTitle } from "@/components/ui/card";
+import { KpiStatusDisplay } from "@/features/kpi/kpi-status-display";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
@@ -67,20 +66,20 @@ function SummaryResult(selection: KpiDetailSelection) {
     case "training":
       return selection.row.training.availability === "INCOMPLETE" || selection.row.training.availability === "UNAVAILABLE"
         ? <DataAvailabilityDisplay availability={selection.row.training.availability} description={selection.row.training.diagnostics?.join("；")} />
-        : <StatusDisplay status={selection.row.training.result} />;
+        : <KpiStatusDisplay status={selection.row.training.result} />;
     case "drill":
       return selection.row.drill.availability === "INCOMPLETE" || selection.row.drill.availability === "UNAVAILABLE"
         ? <DataAvailabilityDisplay availability={selection.row.drill.availability} />
-        : <StatusDisplay status={selection.row.drill.result} />;
+        : <KpiStatusDisplay status={selection.row.drill.result} />;
     case "inspections":
       return selection.row.inspections.availability === "INCOMPLETE" || selection.row.inspections.availability === "UNAVAILABLE"
         ? <DataAvailabilityDisplay availability={selection.row.inspections.availability} description={selection.row.inspections.diagnostics?.join("；")} />
-        : <StatusDisplay status={selection.row.inspections.result} />;
+        : <KpiStatusDisplay status={selection.row.inspections.result} />;
     case "astmEvents":
       return selection.row.astmEvents.availability === "INCOMPLETE" || selection.row.astmEvents.availability === "UNAVAILABLE"
         ? <DataAvailabilityDisplay availability={selection.row.astmEvents.availability} />
         : selection.row.astmEvents.result
-          ? <StatusDisplay status={selection.row.astmEvents.result} />
+          ? <KpiStatusDisplay status={selection.row.astmEvents.result} />
           : null;
   }
 }
@@ -97,41 +96,34 @@ function Field({
   );
 }
 
-function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
+export function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
   const incompletePeople = record.incompletePeople?.join("、") ?? null;
   return (
-    <DetailRecordCard header={<CardTitle>{record.trainingName}</CardTitle>}>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <Field label="时间" value={formatBusinessMonth(record.month)} />
-          <Field label="完成率" value={record.completionRate === null ? null : `${record.completionRate}%`} />
-          <div className="col-span-2">
-            <Field label="未完成人员" value={incompletePeople} />
-          </div>
-        </dl>
+    <DetailRecordCard header={record.trainingName} description={formatBusinessMonth(record.month)} action={<KpiStatusDisplay status={record.completionResult} />}>
+      <DetailFields className="grid-cols-[max-content_minmax(0,1fr)] gap-x-5">
+        <Field label="完成率" value={record.completionRate === null ? null : `${record.completionRate}%`} />
+        <Field label="未完成人员" value={incompletePeople} />
+      </DetailFields>
     </DetailRecordCard>
   );
 }
 
-function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
+export function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle>{record.drillName}</CardTitle>} action={<StatusDisplay status={record.completionResult} label={displayValue(record.status)} />}>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <Field label="时间" value={formatBusinessMonth(record.month)} />
-        </dl>
-    </DetailRecordCard>
+    <DetailRecordCard header={record.drillName} description={formatBusinessMonth(record.month)} action={<KpiStatusDisplay status={record.completionResult} label={displayValue(record.status)} />} />
   );
 }
 
 function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle>{record.inspectionName}</CardTitle>} action={<StatusDisplay status={record.completionResult} label={displayValue(record.status)} />}>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+    <DetailRecordCard header={record.inspectionName} action={<KpiStatusDisplay status={record.completionResult} label={displayValue(record.status)} />}>
+        <DetailFields className="grid-cols-2">
           <Field label="检查编号" value={record.inspectionNumber} />
           <Field label="截止日期" value={record.dueDate === null ? null : formatBusinessDate(record.dueDate)} />
           <div className="col-span-2">
             <Field label="检查人" value={record.inspector} />
           </div>
-        </dl>
+        </DetailFields>
     </DetailRecordCard>
   );
 }
@@ -193,8 +185,8 @@ function DetailRecords({
     <div className="space-y-3">
       {warning}
       {data.result.items.map((record) => (
-        <DetailRecordCard key={record.eventId}>
-          <EventDetailContent record={record} />
+        <DetailRecordCard key={record.eventId} header={record.eventId} action={<KpiStatusDisplay status={record.recordState} />}>
+          <EventDetailContent record={record} showHeading={false} />
         </DetailRecordCard>
       ))}
     </div>

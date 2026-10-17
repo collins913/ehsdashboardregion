@@ -19,11 +19,11 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
-import { StatusDisplay } from "@/components/shared/status-display";
+import { getStatusLabel, StatusDisplay } from "@/components/shared/status-display";
 import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion";
 import { DetailHeader } from "@/components/shared/detail-header";
 import { DetailRecordCard } from "@/components/shared/detail-record-card";
-import { DetailField } from "@/components/shared/detail-field";
+import { DetailField, DetailFields } from "@/components/shared/detail-field";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { CertificatesTableRow } from "./certificates-view-model";
@@ -58,23 +58,17 @@ export function CertificatesDetailContent({ detail }: { detail: CertificatesDeta
             contentClassName="space-y-3"
           >
               {group.records.map((record, index) => (
-                <DetailRecordCard key={`${record.certificateType}-${record.personEmail}-${index}`}>
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="min-w-0 break-words text-base font-medium">{record.person}</p>
-                          <StatusDisplay status={record.certificateStatus} className="shrink-0" />
-                        </div>
-                        <p className="break-all text-sm text-muted-foreground">{record.personEmail}</p>
-                      </div>
-                      <dl>
-                        <DetailField label="岗位" valueClassName="whitespace-normal text-sm">{record.businessTitle}</DetailField>
-                      </dl>
-                      <dl className="grid grid-cols-2 gap-4">
-                        <DetailField label="到期日期" valueClassName="whitespace-normal text-sm">{record.expiryDate || "—"}</DetailField>
-                        <DetailField label="距离到期" valueClassName="whitespace-normal break-normal text-sm">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</DetailField>
-                      </dl>
-                    </div>
+                <DetailRecordCard
+                  key={`${record.certificateType}-${record.personEmail}-${index}`}
+                  header={record.person}
+                  description={record.personEmail}
+                  action={<StatusDisplay status={record.certificateStatus} />}
+                >
+                  <DetailFields className="grid-cols-2">
+                    <DetailField label="岗位" className="col-span-2" valueClassName="whitespace-normal">{record.businessTitle}</DetailField>
+                    <DetailField label="到期日期" valueClassName="whitespace-normal">{record.expiryDate || "—"}</DetailField>
+                    <DetailField label="距离到期" valueClassName="whitespace-normal break-normal">{record.daysUntilExpiry === null ? "—" : `${record.daysUntilExpiry} 天`}</DetailField>
+                  </DetailFields>
                 </DetailRecordCard>
               ))}
           </DetailAccordionItem>
@@ -128,7 +122,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
     ...CERTIFICATES_ITEMS.map(({ key, label }) => columnHelper.accessor(key, {
       id: key, header: ({ column }) => <DataTableColumnHeader column={column} title={label} align="center" />,
       cell: ({ row, getValue }) => (
-        <TableCellTrigger aria-label={`查看${row.original.storeDisplayName}的${label}详情`} onClick={() => openDetail(row.original, key)}>
+        <TableCellTrigger aria-label={`查看${row.original.storeDisplayName}的${label}详情，${getStatusLabel(getValue())}`} onClick={() => openDetail(row.original, key)}>
           <StatusDisplay status={getValue()} interactive />
         </TableCellTrigger>
       ), sortFn: "text",

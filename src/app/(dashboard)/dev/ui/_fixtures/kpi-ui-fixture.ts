@@ -101,13 +101,13 @@ export const queryDemoKpiDetails: KpiDetailQueries = {
       {
         trainingName: "门店安全基础培训",
         month: "2026-09",
-        completionRate: 92,
+        completionRate: 92, completionResult: "NOT_ACHIEVED",
         incompletePeople: ["张晓雨"],
       },
       {
         trainingName: "应急处置培训",
         month: "2026-08",
-        completionRate: 100,
+        completionRate: 100, completionResult: "ACHIEVED",
         incompletePeople: [],
       },
     ],

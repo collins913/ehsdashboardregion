@@ -19,3 +19,14 @@ export function DetailField({
     </div>
   );
 }
+
+
+export function DetailFields({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <dl className={cn("grid gap-x-4 gap-y-3", className)}>{children}</dl>;
+}

@@ -27,14 +27,14 @@ const allStatuses: readonly BusinessStatus[] = [
 describe("StatusDisplay semantics", () => {
   it("can use the shared pending icon without reclassifying lifecycle intent", () => {
     const html = renderToStaticMarkup(createElement(StatusDisplay, { status: "OPEN", label: "进行中", icon: getStatusIcon("NOT_ACHIEVED") }));
-    expect(html).toContain("lucide-clock");
+    expect(html).toContain("lucide-loader");
     expect(html).toContain('data-intent="neutral"');
     expect(html).toContain('data-emphasis="primary"');
     expect(html).toContain("进行中");
   });
 
   it("uses shared lifecycle icons consistently without changing labels or emphasis", () => {
-    for (const [status, icon] of [["OPEN", "lucide-clock"], ["CLOSED", "lucide-circle-check"], ["UNKNOWN", "lucide-minus"], ["EXCLUDED", "lucide-minus"]] as const) {
+    for (const [status, icon] of [["OPEN", "lucide-loader"], ["CLOSED", "lucide-circle-check"], ["UNKNOWN", "lucide-minus"], ["EXCLUDED", "lucide-minus"]] as const) {
       const html = renderToStaticMarkup(createElement(StatusDisplay, { status }));
       expect(html).toContain(icon);
       expect(html).toContain(getStatusLabel(status));
@@ -141,7 +141,7 @@ describe("StatusDisplay semantics", () => {
     expect(markup).toContain("<svg");
   });
 
-  it("adds emphasis-specific hover only when interactive", () => {
+  it("uses the same outline hover without changing business emphasis", () => {
     const plain = renderToStaticMarkup(
       createElement(StatusDisplay, { status: "ACHIEVED" }),
     );
@@ -166,10 +166,10 @@ describe("StatusDisplay semantics", () => {
 
     expect(plain).not.toContain("group-hover/table-cell-trigger");
     expect(primary).toContain(
-      "group-hover/table-cell-trigger:bg-primary/80",
+      "group-hover/table-cell-trigger:bg-muted",
     );
     expect(secondary).toContain(
-      "group-hover/table-cell-trigger:bg-secondary/80",
+      "group-hover/table-cell-trigger:bg-muted",
     );
     expect(neutral).toContain(
       "group-hover/table-cell-trigger:bg-muted",

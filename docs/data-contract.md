@@ -201,6 +201,8 @@ Source 不包含 `isRequired` 或等价必检标记，也不需要补充必检�
 
 Mock V1 的 KPI 与 Overview 共用 required-set Domain Result；KPI 按所选范围已有记录评价，月度 contribution 直接映射该月已有记录结果；完整空月份为达成。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
 
+培训详情 DTO 由服务端复用集中完成率规则生成 `completionResult: PerformanceResult`：有效完成率 100 → ACHIEVED，有效完成率不足 100 → NOT_ACHIEVED，空或非法 → UNDETERMINED。该字段仅供详情卡片标签展示，上游无需提供；原 completionRate / incompletePeople 保持源值，KPI 汇总和诊断规则不变。
+
 演练与检查详情 DTO 增加内部派生字段 `completionResult: PerformanceResult`，由服务端 Repository 复用既有 source-status completion 规则生成（已完成 → ACHIEVED，其他非空 → NOT_ACHIEVED，空 → UNDETERMINED）。UI 只消费该字段选择共享状态样式，标签仍保留源 `status` 原文；此字段不要求上游填写，也不改变 KPI 汇总口径。
 
 ### 4.5 ASTM Incident 输入

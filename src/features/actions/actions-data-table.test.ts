@@ -1,3 +1,5 @@
+import { DetailRecordCard } from "@/components/shared/detail-record-card";
+import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -163,5 +165,22 @@ describe("Action detail", () => {
 
     expect(markup).toContain("未知");
     expect(markup).toContain('data-emphasis="neutral"');
+  });
+});
+
+
+describe("actions embedded record-card presentation", () => {
+  it("lets the shared card own the only title, action and header/body spacing", () => {
+    const markup = renderToStaticMarkup(createElement(TooltipProvider, null,
+      createElement(DetailRecordCard, {
+        header: record.actionId, action: createElement(ActionStatusDisplay, { status: record.sourceStatus }),
+        children: createElement(ActionDetailContent, { record, showHeading: false }),
+      }),
+    ));
+    expect((markup.match(/data-slot="item-title"/g) ?? []).length).toBe(1);
+    expect((markup.match(/data-slot="item-actions"/g) ?? []).length).toBe(1);
+    expect(markup).toContain("完整问题内容");
+    expect(markup).not.toContain("text-base");
+    expect(markup).toContain("data-[tilting=true]:shadow-sm");
   });
 });

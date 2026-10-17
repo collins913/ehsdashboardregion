@@ -49,8 +49,6 @@ import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import {
   getStatusIntent,
-  getStatusLabel,
-  StatusDisplay,
 } from "@/components/shared/status-display";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
@@ -72,6 +70,8 @@ import type {
   PerformanceKpiValue,
 } from "@/features/kpi/types";
 import { ActionDetailContent } from "@/features/actions/action-detail-content";
+import { KpiStatusDisplay, getKpiStatusLabel } from "@/features/kpi/kpi-status-display";
+import { ActionStatusDisplay } from "@/features/actions/action-status-display";
 import { DetailRecordCard } from "@/components/shared/detail-record-card";
 import {
   KpiDetailSheet,
@@ -118,8 +118,8 @@ const columnLabels: Record<string, string> = {
   store: "门店",
   training: "培训",
   drill: "演练",
-  actions: "行动项",
   inspections: "检查",
+  actions: "行动项",
   astmEvents: "ASTM 事件",
 };
 
@@ -127,8 +127,8 @@ export const KPI_COLUMN_SIZE_ROLES = {
   store: "primary",
   training: "compact",
   drill: "compact",
-  actions: "compact",
   inspections: "compact",
+  actions: "compact",
   astmEvents: "compact",
 } satisfies Record<string, DataTableColumnSizeRole>;
 
@@ -150,17 +150,17 @@ function ResultCell({
   onOpen: () => void;
 }) {
   return (
-    <TableCellTrigger onClick={onOpen} aria-label={label}>
+    <TableCellTrigger onClick={onOpen} aria-label={`${label}，${statusSortValue(value.availability, value.result)}`}>
       {value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE" ? (
         <DataAvailabilityDisplay availability={value.availability} description={value.diagnostics?.join("；")} />
       ) : (
-        <StatusDisplay status={value.result} interactive />
+        <KpiStatusDisplay status={value.result} interactive />
       )}
     </TableCellTrigger>
   );
 }
 
-function AstmResultCell({
+export function AstmResultCell({
   value,
   label,
   onOpen,
@@ -173,11 +173,11 @@ function AstmResultCell({
     return null;
   }
   return (
-    <TableCellTrigger onClick={onOpen} aria-label={label}>
+    <TableCellTrigger variant="link" onClick={onOpen} aria-label={`${label}，${statusSortValue(value.availability, value.result)}`}>
       {value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE" ? (
-        <DataAvailabilityDisplay availability={value.availability} />
+        <DataAvailabilityDisplay availability={value.availability} appearance="text" />
       ) : value.result ? (
-        <StatusDisplay status={value.result} interactive />
+        getKpiStatusLabel(value.result)
       ) : null}
     </TableCellTrigger>
   );
@@ -191,7 +191,7 @@ function statusSortValue(
     return availabilityLabels[availability];
   }
 
-  return result ? getStatusLabel(result) : "";
+  return result ? getKpiStatusLabel(result) : "";
 }
 
 function rowHasNegativeResult(row: KpiRow): boolean {
@@ -226,20 +226,16 @@ export function ActionsCell({
   onOpen: () => void;
 }) {
   if (value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE") {
-    return <DataAvailabilityDisplay availability={value.availability} />;
+    return <DataAvailabilityDisplay availability={value.availability} appearance="text" />;
   }
 
   return (
     <TableCellTrigger
+      variant="link"
       onClick={onOpen}
       aria-label={`查看未关闭行动项，关闭率 ${formatActionClosureRate(value.value)}`}
     >
-      <StatusDisplay
-        status={value.result}
-        label={formatActionClosureRate(value.value)}
-        showIcon={false}
-        interactive
-      />
+      {formatActionClosureRate(value.value)}
     </TableCellTrigger>
   );
 }
@@ -287,7 +283,7 @@ function ActionsSheet({
           result={row
             ? row.actions.availability === "INCOMPLETE" || row.actions.availability === "UNAVAILABLE"
               ? <DataAvailabilityDisplay availability={row.actions.availability} />
-              : <StatusDisplay status={row.actions.result} />
+              : <KpiStatusDisplay status={row.actions.result} />
             : undefined}
         />
         <section className="space-y-3 px-4 pb-4" aria-label="未关闭行动项明细">
@@ -310,8 +306,8 @@ function ActionsSheet({
           ) : (
             <div className="space-y-3">
               {actions.items.map((action) => (
-                <DetailRecordCard key={action.actionId}>
-                  <ActionDetailContent record={action} />
+                <DetailRecordCard key={action.actionId} header={action.actionId} action={<ActionStatusDisplay status={action.sourceStatus} />}>
+                  <ActionDetailContent record={action} showHeading={false} />
                 </DetailRecordCard>
               ))}
             </div>
@@ -534,23 +530,6 @@ export function KpiDataTable({
             sortFn: "text",
           },
         ),
-        columnHelper.accessor((row) => row.actions.value ?? undefined, {
-          id: "actions",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.actions} align="center" />
-          ),
-          cell: ({ row }) => (
-            <ActionsCell
-              value={row.original.actions}
-              onOpen={() => {
-                setSelectedRow(row.original);
-                setActionsSheetOpen(true);
-              }}
-            />
-          ),
-          sortFn: "basic",
-          sortUndefined: "last",
-        }),
         columnHelper.accessor(
           (row) =>
             statusSortValue(row.inspections.availability, row.inspections.result),
@@ -572,6 +551,23 @@ export function KpiDataTable({
             sortFn: "text",
           },
         ),
+        columnHelper.accessor((row) => row.actions.value ?? undefined, {
+          id: "actions",
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={columnLabels.actions} align="center" />
+          ),
+          cell: ({ row }) => (
+            <ActionsCell
+              value={row.original.actions}
+              onOpen={() => {
+                setSelectedRow(row.original);
+                setActionsSheetOpen(true);
+              }}
+            />
+          ),
+          sortFn: "basic",
+          sortUndefined: "last",
+        }),
         columnHelper.accessor(
           (row) => statusSortValue(row.astmEvents.availability, row.astmEvents.result),
           {
