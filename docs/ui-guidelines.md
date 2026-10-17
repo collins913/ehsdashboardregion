@@ -13,7 +13,7 @@
 - 组件外观以项目配置的 shadcn/ui `radix-nova / neutral / lucide` 为准；尺寸、间距、字重、边界、阴影及交互状态使用官方实现和已有 size / variant。页面只组合业务布局，不重复覆盖 primitive 外观。
 - 使用 shadcn/ui CSS 变量主题，不在页面写业务语义颜色。
 - 可用通用语义色：`background`、`foreground`、`card`、`popover`、`primary`、`secondary`、`muted`、`accent`、`destructive`、`border`、`input`、`ring`。
-- `destructive` 只表达破坏性操作，不代表业务状态。
+- `destructive` 通常表达破坏性操作，不代表业务状态；按已确认的 UI 要求，DetailAccordion 的“需要关注”感叹号使用此主题红色。证件数量进度条复用关闭情况图表的 `chart-2`（已持有深蓝）/ `chart-1`（剩余浅蓝）；未设置目标的底条也使用 `chart-2` 深蓝，但不表示比例或达成状态。
 
 ## Score rate change presentation
 
@@ -48,7 +48,7 @@
 - 导航名称、路径和图标只从 `src/config/navigation.ts` 读取。
 - PageHeader 仅常驻显示页面标题；导航元数据中的非空说明通过标题的悬停或键盘焦点触发共享 shadcn HoverCard，不在标题旁增加提示图标；无说明时不渲染浮层。
 - 正式 Detail Sheet 复用 shared `DetailHeader`：标题表达所选业务列、指标、分类或实体，副标题在适用时显示 Store Master 中文门店名；只有调用方提供正式结果/状态时才显示对应区块。正文不重复 Header 已表达的信息或虚构结果。
-- Detail Accordion 表达业务分类 / 信息组。是否使用 `DetailRecordCard` 由正式 contract 的 multiplicity 决定，而非当前 mock 返回条数：singleton contract 直接展示 `DetailField` / layout；collection contract（0 / 1 / N）为每条 record 使用一个 `DetailRecordCard`。同一条 record 最多一个主要 DetailRecordCard shell；collection renderer 负责 record 边界，嵌入其中的业务内容不得再套 Card。不得为装饰添加 Card 或嵌套 Card。`DetailAccordion` 只负责 presentation；title、count、disabled、attention 与 default-open values 由调用方提供。空组可用 disabled semantics；count Badge 保持中性且不继承标题 hover 下划线；attention 使用带“需要关注”标签的中性图标，不用 destructive 表达业务异常。展开默认值属于 feature 选择，不是全局默认行为。
+- Detail Accordion 表达业务分类 / 信息组。是否使用 `DetailRecordCard` 由正式 contract 的 multiplicity 决定，而非当前 mock 返回条数：singleton contract 直接展示 `DetailField` / layout；collection contract（0 / 1 / N）为每条 record 使用一个 `DetailRecordCard`。同一条 record 最多一个主要 DetailRecordCard shell；collection renderer 负责 record 边界，嵌入其中的业务内容不得再套 Card。不得为装饰添加 Card 或嵌套 Card。`DetailAccordion` 只负责 presentation；title、count、disabled、attention 与 default-open values 由调用方提供。空组可用 disabled semantics；count Badge 保持中性且不继承标题 hover 下划线；attention 使用带“需要关注”标签的图标，并按已确认要求使用主题 `text-destructive` 红色；不改变业务判定或其它状态标签。展开默认值属于 feature 选择，不是全局默认行为。
 - `DetailField` 只负责 label、value、间距、排版与换行；不格式化日期、不推断状态、不计算业务值，也不把 null 转成零。业务组件按字段与 contract 提供已准备好的显示值。
 - 保留 shadcn/ui 的键盘操作、焦点环、ARIA 属性和移动端 Sheet 行为。受控 Sheet 关闭后由共享 primitive 恢复原触发器焦点，并尊重调用方显式焦点处理。
 - 表单使用原生 submit 语义，回车与点击共用提交入口，校验失败聚焦首个错误字段。mutation feedback：字段校验显示在字段附近；pending 显示在触发操作的控件内；成功与服务端 / mutation 失败使用 Sonner。
@@ -66,7 +66,7 @@
 - 异步表格保持 fixed layout 与稳定 table / tbody / row 几何。requested query 与 resolved rows / metadata 分离，新成功结果原子替换，并保留 Repository corrected page index。
 - 相同语义范围的分页/排序 pending 可保留不可交互的 resolved presentation；语义筛选变化遮蔽旧业务内容。footer 固定文字、分页 DOM 与数字槽位保持，只对真正未知的数字呈现 pending，不先归零或把旧数据当作新筛选结果。
 - 异步分页/排序 pending 在固定宽度的 footer 槽位显示轻量反馈，同时禁用重复操作；同步客户端分页不显示请求反馈。
-- Events、Actions、Certificates Analytics Card 复用统一高度；Analytics 查询刷新时保留最近成功图表。事件及行动项 CountTrend 只将绘图区改为官方 Area Chart - Gradient 样式，保留卡片、标题、筛选及数据；最新预计算数据直接交给稳定的 AreaChart。图表数据更新动画 375ms，数字动画 325ms，均尊重 `prefers-reduced-motion`。
+- Events、Actions Analytics Card 复用统一高度；证件配置概览按内容自适应高度，完整展示小类，不设置内部纵向滚动；Analytics 查询刷新时保留最近成功图表。事件及行动项 CountTrend 只将绘图区改为官方 Area Chart - Gradient 样式，保留卡片、标题、筛选及数据；最新预计算数据直接交给稳定的 AreaChart。图表数据更新动画 375ms，数字动画 325ms，均尊重 `prefers-reduced-motion`。
 - Dashboard Analytics 统一使用移动端（<640px）、中间屏（640–1151px）、桌面（>=1152px）的响应阶段。图表按组合与最小可读宽度选择列宽；必要时可在中间屏使用现有断点，不为统一列数牺牲可读性。
 - 同类 AnalyticsMetricCard 组使用一致的响应式列断点：小于 640px 为 1 列，640–1151px 为 2 列，1152px 起按该页面卡片数量使用完整列数。统一断点，不统一业务卡片数量；具体列数由 feature 布局决定。
 - 数字型 Dashboard summary cards 统一使用 shared `AnalyticsMetricCard` presentation contract。Feature 只负责 Grid composition 和业务内容，不覆盖卡片高度、间距、字体、Info trigger 或数值样式。

@@ -98,7 +98,7 @@ export function DataTableLoadingCellContent({
         <div
           aria-hidden="true"
           data-table-loading-overlay
-          className="pointer-events-none absolute inset-0 flex items-center"
+          className="pointer-events-none absolute inset-0 flex items-center justify-(--table-content-justify)"
         >
           <Skeleton className="h-4 w-full max-w-32 animate-none" />
         </div>

@@ -6,6 +6,8 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import type {
@@ -26,6 +28,10 @@ import {
   toEhsFilterContext,
   toEhsStoreScope,
 } from "@/features/global-filters/global-filter-state";
+
+import { globalFilterStorageKey, loadGlobalFilters, restoreGlobalFilterState } from "./global-filter-storage";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
+import { PageContainer } from "@/components/shared/page-container";
 
 type GlobalFiltersProviderValue = {
   state: GlobalFilterState;
@@ -51,6 +57,7 @@ type GlobalFilterProviderProps = {
   initialState?: GlobalFilterState;
   nowIso: string;
   referenceMonth: Month;
+  userEmail?: string;
 };
 
 export function GlobalFilterProvider({
@@ -59,8 +66,25 @@ export function GlobalFilterProvider({
   initialState = createInitialGlobalFilterState(),
   nowIso,
   referenceMonth,
+  userEmail,
 }: GlobalFilterProviderProps) {
-  const [state, setState] = useState(initialState);
+  const storageKey = globalFilterStorageKey(userEmail);
+  const initialStateRef = useRef(initialState);
+  const [snapshot, setSnapshot] = useState({ key: storageKey, stores, state: initialState, restored: storageKey === null });
+  const state = snapshot.state;
+  const restored = snapshot.restored && snapshot.key === storageKey && snapshot.stores === stores;
+  const setState = useCallback((update: (current: GlobalFilterState) => GlobalFilterState) => {
+    setSnapshot((current) => ({ ...current, state: update(current.state) }));
+  }, []);
+  useEffect(() => {
+    let restoredState = restoreGlobalFilterState(initialStateRef.current, stores, initialStateRef.current);
+    try {
+      if (storageKey !== null) restoredState = loadGlobalFilters(window.localStorage, storageKey, stores, restoredState);
+    } catch {
+      // Storage may be disabled; keep usable defaults and continue normally.
+    }
+    setSnapshot({ key: storageKey, stores, state: restoredState, restored: true });
+  }, [storageKey, stores]);
   const storeScope = useMemo(
     () => toEhsStoreScope(state, stores),
     [state.region, state.area, state.store, stores],
@@ -69,6 +93,14 @@ export function GlobalFilterProvider({
     () => toEhsFilterContext(state, referenceMonth, stores),
     [referenceMonth, state, stores],
   );
+  useEffect(() => {
+    if (!restored || storageKey === null || filterContext === null) return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch {
+      // Persistence is optional; unavailable storage must not block filtering.
+    }
+  }, [restored, storageKey, state, filterContext]);
   const readiness = useMemo(
     () =>
       filterContext !== null
@@ -158,7 +190,7 @@ export function GlobalFilterProvider({
 
   return (
     <GlobalFiltersStateContext.Provider value={value}>
-      {children}
+      {restored ? children : <PageContainer><AsyncQueryFeedback status="LOADING" /></PageContainer>}
     </GlobalFiltersStateContext.Provider>
   );
 }

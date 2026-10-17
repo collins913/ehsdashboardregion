@@ -1,12 +1,12 @@
-import type { DomainSource, KpiDomainResult, PerformanceDomainValue, AchievementResult } from "@/data/contracts/domain-result";
+import type { KpiDomainDiagnostics, DomainSource, KpiDomainResult, PerformanceDomainValue, AchievementResult } from "@/data/contracts/domain-result";
 import type { KpiTrainingRecord, KpiDrillRecord, KpiInspectionRecord, KpiActionClosureRateRecord, KpiStore } from "@/data/contracts/kpi";
 import type { NormalizedEventRecord } from "@/data/contracts/event-record";
 import type { OverviewRequiredSetProvider } from "@/data/contracts/overview-requirements";
 import type { Month } from "@/types/ehs";
-import { evaluateRequiredTraining, evaluateExpectedInspections } from "./overview-required-set-rules";
+import { evaluateTrainingRecords, evaluateInspectionRecords } from "./training-inspection-rules";
 import { evaluateDrillPerformance, sourceStatusCompletion, evaluateActionClosureRate } from "./performance-rules";
 import { evaluateAstmOccurrence } from "./event-rules";
-import { combineAchievementResults, mostSpecificReason } from "./domain-diagnostics";
+import { mostSpecificReason } from "./domain-diagnostics";
 
 export interface KpiDomainInput {
   store: KpiStore;
@@ -28,16 +28,18 @@ function performanceValue(source: DomainSource<unknown>, evaluation: Achievement
 }
 
 /** One authoritative evaluation; consumers never reinterpret normalized records. */
-export function evaluateKpiDomain(input: KpiDomainInput, requirements: OverviewRequiredSetProvider | null): KpiDomainResult {
+export function evaluateKpiDomain(input: KpiDomainInput, _legacyRequirements: OverviewRequiredSetProvider | null, diagnostics?: KpiDomainDiagnostics): KpiDomainResult {
   const { store, months, training, drills, inspections, actionClosureRates: actions, events } = input;
-  const trainingResult = combineAchievementResults(months.map((month) => evaluateRequiredTraining(
-    requirements?.getRequiredTrainingItems({ storeId: store.storeId, month }) ?? null,
-    training.items.filter((record) => record.month === month), training.availability,
-  )));
-  const inspectionResult = combineAchievementResults(months.map((month) => evaluateExpectedInspections(
-    requirements?.getExpectedInspectionTasks({ storeId: store.storeId, month }) ?? null,
-    inspections.items.filter((record) => record.month === month), inspections.availability,
-  )));
+  const trainingResult = evaluateTrainingRecords(training.items, training.availability, diagnostics?.training);
+  const inspectionResult = evaluateInspectionRecords(inspections.items, inspections.availability, diagnostics?.inspections);
+  if (diagnostics) {
+    for (const [source, details] of [[training, diagnostics.training], [inspections, diagnostics.inspections]] as const) {
+      if (source.reason === "SOURCE_INVALID") details.push("来源记录格式或门店关联无效，无法完整归入当前统计周期");
+      else if (source.reason === "SOURCE_MISSING") details.push("来源记录缺少用于归属门店或统计周期的必要信息");
+      else if (source.availability === "UNAVAILABLE") details.push("当前统计周期的数据源不可用");
+      else if (source.availability === "INCOMPLETE") details.push("当前统计周期的数据覆盖不完整");
+    }
+  }
   const drillResult = evaluateDrillPerformance(months.map((month) => ({
     drillCompletion: drills.items.filter((record) => record.month === month).map((record) => sourceStatusCompletion(record.status)),
   })));

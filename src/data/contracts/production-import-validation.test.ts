@@ -256,3 +256,18 @@ describe("production import batch schema", () => {
     expect(result.diagnostics.map(({ code }) => code)).toContain("INVALID_OBJECT");
   });
 });
+
+
+it("accepts scalar Store Master extension fields in both API schema and runtime validation", () => {
+  const input = {
+    ...valid, domain: "store-master",
+    effectiveTime: { startInclusive: "2026-01-01T00:00:00Z", endExclusive: "2027-01-01T00:00:00Z" },
+    coverage: { completeness: "PARTIAL", stores: [] },
+    records: [{ region: "R", area: "A", storeNameCn: "门店", storeNameEn: "Store", trtid: "S-1", extraFields: { 新增文本字段: "内容", 新增数值字段: 0, 新增布尔字段: false, 新增空值字段: null } }],
+  };
+  expect(validateOpenApi(input)).toBe(true);
+  expect(parseProductionImportBatch(input).value).not.toBeNull();
+  const invalid = { ...input, records: [{ ...input.records[0], extraFields: { 不支持的嵌套字段: { nested: true } } }] };
+  expect(validateOpenApi(invalid)).toBe(false);
+  expect(parseProductionImportBatch(invalid).diagnostics.some(({ field, code }) => field === "extraFields" && code === "INVALID_OBJECT")).toBe(true);
+});

@@ -34,6 +34,8 @@ Client Feature
 → Client Feature
 ```
 
+全局筛选偏好由共享 GlobalFilterProvider 按登录邮箱写入浏览器 localStorage，仅保存区域、小区、门店选择及周期模式 / 自定义月份。恢复前不挂载页面查询消费者；恢复时仅用服务端已授权的 Store options 清理失效选择，不把浏览器偏好作为授权依据。相对周期保存模式并按当前 referenceMonth 解析；服务端身份、Scope 授权与业务计算流程保持不变。
+
 Client 不创建 Repository、不读取 Mock。Public Repository 仅暴露按领域组织的 normalized async query；raw source access 留在 Adapter / Repository implementation 内部。当前 server-only factory 在 Mock Source / Dataset 层选择 Standard 或 Performance profile，未来 Production Adapter 在同一边界替换，不改变 Feature query contract。
 
 受保护业务数据必须经过服务端身份解析、Effective Access、请求范围授权，再由 Repository 查询并返回授权后的 DTO。Client 不直接读取 protected production source / JSON，也不持有其 URL 或凭据；不能先返回全量数据再由 React 过滤。授权同样覆盖 `totalCount`、summary 与筛选选项。当前 Next.js Server Action 使用集中 `authorizeBusinessScope` adapter；未来 Production Repository 仍位于该 server boundary 之后。SharePoint Document Library JSON 只是可能的数据源实现，不是 Client API。
@@ -93,7 +95,7 @@ EhsFilterContext
 - Repository 返回带 `AVAILABLE`、`CONFIRMED_EMPTY`、`INCOMPLETE` 或 `UNAVAILABLE` 的数据集。
 - 只有数据源或 fixture 明确保证请求范围完整时，零记录才可表示 `CONFIRMED_EMPTY`。
 - `Store = ALL` 的覆盖校验使用 Region / Area / Store 范围内实际门店 ID，不以空集合跳过校验。
-- `src/lib/rules/kpi-domain.ts` 统一评价五项 KPI；snapshot 必须携带 `domainResults`。`buildKpiRows` 只映射结果，不调用规则。Training / Inspection 共用注入的 required-set provider，不再保留 KPI 与 Overview 两套解释。
+- `src/lib/rules/kpi-domain.ts` 统一评价五项 KPI；snapshot 必须携带 `domainResults`。`buildKpiRows` 只映射结果，不调用规则。Training / Inspection 共用 `training-inspection-rules.ts`，仅评价已有记录；不依赖 required-set provider，不检查缺月。完整空数据达成并计满分，已有记录的空值／非法字段仍保留诊断。
 - Server Action 返回 `KpiPageResult`，同时保留门店行与查询级 source availability。无法关联门店的记录只触发查询级不完整提示，不覆盖有效门店的 Domain Result；没有行时也不能丢失该提示。Client 只展示服务端提供的 availability。
 - Action Closure Rate 必须由 Repository 提供与请求 Period 对应的汇总值，不计算、不平均。
 - KPI 初始汇总查询不携带 Action 明细。用户打开 Action 下钻后，再复用 Actions Repository 的规范化 `OPEN_ONLY` 查询，按 Region / Area / Store 及 Submitted Date Period 获取目标门店明细。Store Resolution、Status 解析、RecordState 和 OPEN 过滤仍只由 Repository 执行。

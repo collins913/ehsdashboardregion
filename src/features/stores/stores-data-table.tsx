@@ -54,6 +54,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { STORE_FIELD_DEFINITIONS, storeFieldColumnId, type StoreFieldDefinition } from "@/data/contracts/store-fields";
 import type { NormalizedStoreRecord } from "@/data/contracts/stores";
 import {
   type AdaptivePagination,
@@ -78,15 +79,6 @@ type StoresTableFeatures = typeof storesTableFeatures;
 const columnHelper =
   createColumnHelper<StoresTableFeatures, NormalizedStoreRecord>();
 
-const columnLabels: Record<string, string> = {
-  store: "门店",
-  region: "区域",
-  area: "小区",
-  trtid: "TRTID",
-  manager: "门店经理",
-  ehsAmbassador: "EHS&S 代表",
-};
-
 export const STORE_COLUMN_SIZE_ROLES = {
   store: "primary",
   region: "standard",
@@ -96,12 +88,21 @@ export const STORE_COLUMN_SIZE_ROLES = {
   ehsAmbassador: "standard",
 } satisfies Record<string, DataTableColumnSizeRole>;
 
+const storeShortColumnWidth = "w-[calc(14%*2/3)] min-w-[calc(7rem*2/3)] max-w-[calc(11rem*2/3)]";
+const storeContactColumnWidth = "w-auto min-w-28 max-w-none";
+const storeColumnWidthOverrides: Record<string, string> = {
+  region: storeShortColumnWidth,
+  area: storeShortColumnWidth,
+  trtid: "w-26 min-w-20 max-w-28",
+  manager: storeContactColumnWidth,
+  ehsAmbassador: storeContactColumnWidth,
+};
+
 function storeColumnSizeClassName(columnId: string) {
   const role = STORE_COLUMN_SIZE_ROLES[
     columnId as keyof typeof STORE_COLUMN_SIZE_ROLES
   ];
-
-  return role ? dataTableColumnSizeClassNames[role] : undefined;
+  return cn(dataTableColumnSizeClassNames[role ?? "standard"], storeColumnWidthOverrides[columnId]);
 }
 
 export const DEFAULT_VISIBLE_STORE_COLUMN_IDS = [
@@ -130,8 +131,14 @@ export function isStoreRowActivationKey(key: string) {
   return key === "Enter" || key === " ";
 }
 
-function displayValue(value: string | null | undefined) {
-  return value?.trim() ? value : "—";
+function displayValue(value: unknown) {
+  if (value === null || value === undefined || typeof value === "string" && !value.trim()) return "—";
+  return String(value);
+}
+
+export function defaultStoreColumnVisibility(fields: readonly StoreFieldDefinition[]): ColumnVisibilityState {
+  const visible = new Set<string>(DEFAULT_VISIBLE_STORE_COLUMN_IDS);
+  return Object.fromEntries(fields.map((field) => [storeFieldColumnId(field), visible.has(storeFieldColumnId(field))]));
 }
 
 export function StoreDetailContent({
@@ -164,6 +171,9 @@ export function StoreDetailContent({
             <span className="block break-all text-sm text-muted-foreground">{displayValue(email)}</span>
           </DetailField>
         ))}
+        {Object.entries(record.extraFields ?? {}).map(([label, value]) => (
+          <DetailField key={`extra:${label}`} label={label}>{displayValue(value)}</DetailField>
+        ))}
       </dl>
     </div>
   );
@@ -190,10 +200,12 @@ function StoreDetailSheet({
 
 export function StoresDataTable({
   rows,
+  fieldDefinitions = STORE_FIELD_DEFINITIONS,
   queryKey = "stores",
   queryStatus = "READY",
 }: {
   rows: readonly NormalizedStoreRecord[];
+  fieldDefinitions?: readonly StoreFieldDefinition[];
   queryKey?: string;
   queryStatus?: "READY" | "LOADING" | "ERROR";
 }) {
@@ -206,15 +218,22 @@ export function StoresDataTable({
   const [paginationState, setPaginationState] =
     useState<StoresPaginationState>({ status: "UNMEASURED" });
   const isQueryLoading = queryStatus === "LOADING";
+  const incomingSnapshot = useMemo(() => ({ rows, fieldDefinitions }), [rows, fieldDefinitions]);
   const {
     snapshot: resolvedRows,
     isResolvedMetadataPending,
   } = useResolvedDataTableSnapshot({
-    snapshot: rows,
+    snapshot: incomingSnapshot,
     status: queryStatus,
     metadataKey: queryKey,
   });
-  const tableRows = resolvedRows ?? [];
+  const tableRows = resolvedRows?.rows ?? [];
+  const resolvedFields = resolvedRows?.fieldDefinitions ?? fieldDefinitions;
+  const columnLabels = useMemo(() => ({ store: "门店", ...Object.fromEntries(resolvedFields.map((field) => [storeFieldColumnId(field), field.label])) }), [resolvedFields]);
+  const defaultVisibility = useMemo(() => defaultStoreColumnVisibility(resolvedFields), [resolvedFields]);
+  const handleColumnVisibilityChange: OnChangeFn<ColumnVisibilityState> = (updater) => {
+    setColumnVisibility((current) => typeof updater === "function" ? updater({ ...defaultVisibility, ...current }) : updater);
+  };
   useLayoutEffect(() => {
     if (isQueryLoading) {
       setSelectedRecord(null);
@@ -315,81 +334,19 @@ export function StoresDataTable({
           enableHiding: false,
           sortFn: "text",
         }),
-        columnHelper.accessor("region", {
-          id: "region",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.region} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={displayValue(getValue())}
-              className={dataTableColumnContentClassNames.standard}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("area", {
-          id: "area",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.area} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={displayValue(getValue())}
-              className={dataTableColumnContentClassNames.standard}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("trtid", {
-          id: "trtid",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.trtid} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={displayValue(getValue())}
-              className={dataTableColumnContentClassNames.compact}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("manager", {
-          id: "manager",
-          header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.manager} />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={displayValue(getValue())}
-              className={dataTableColumnContentClassNames.standard}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
-        }),
-        columnHelper.accessor("ehsAmbassador", {
-          id: "ehsAmbassador",
-          header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={columnLabels.ehsAmbassador}
-            />
-          ),
-          cell: ({ getValue }) => (
-            <OverflowTooltip
-              text={displayValue(getValue())}
-              className={dataTableColumnContentClassNames.standard}
-              focusable={false}
-            />
-          ),
-          sortFn: "text",
+        ...resolvedFields.map((field) => {
+          const id = storeFieldColumnId(field);
+          return columnHelper.accessor((record) => displayValue(field.source === "extra"
+            ? record.extraFields?.[field.key]
+            : record[field.key as keyof NormalizedStoreRecord]), {
+            id,
+            header: ({ column }) => <DataTableColumnHeader column={column} title={field.label} />,
+            cell: ({ getValue }) => <OverflowTooltip text={getValue()} className={cn(dataTableColumnContentClassNames[id === "trtid" ? "compact" : "standard"], (id === "manager" || id === "ehsAmbassador") && "max-w-none")} focusable={false} />,
+            sortFn: "text",
+          });
         }),
       ]),
-    [],
+    [resolvedFields, columnLabels],
   );
   const table = useTable({
     features: storesTableFeatures,
@@ -397,9 +354,9 @@ export function StoresDataTable({
     data: tableRows,
     getRowId: getStoreRowId,
     onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
     onPaginationChange: handlePaginationChange,
-    state: { sorting, columnVisibility, pagination },
+    state: { sorting, columnVisibility: { ...defaultVisibility, ...columnVisibility }, pagination },
   });
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   const displayedRows = table.getRowModel().rows;

@@ -48,7 +48,7 @@ import {
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { StatusDisplay } from "@/components/shared/status-display";
-import { getTakeChargeSourceStatusLabel } from "@/features/goals/take-charge-status-presentation";
+import { getTakeChargeSourceStatusLabel, getTakeChargeStatusIcon } from "@/features/goals/take-charge-status-presentation";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Table,
@@ -175,7 +175,7 @@ export function TakeChargeDetailContent({
           <DetailField label="提交人">{record.submittedBy}</DetailField>
           <DetailField label="提交时间">{formatBusinessDateTime(record.submittedAt)}</DetailField>
         </div>
-          <DetailField label="摘要" valueClassName="whitespace-pre-wrap text-sm text-muted-foreground">
+          <DetailField label="摘要">
             {record.summary}
           </DetailField>
         </dl>
@@ -199,7 +199,7 @@ function TakeChargeDetailSheet({
           title="Take Charge"
           subtitle={record?.storeDisplayName ?? ""}
           resultLabel="当前状态"
-          result={record ? <StatusDisplay status={record.recordState} label={statusLabel(record)} /> : undefined}
+          result={record ? <StatusDisplay status={record.recordState} label={statusLabel(record)} icon={getTakeChargeStatusIcon(record.recordState)} /> : undefined}
         />
         {record ? <TakeChargeDetailContent record={record} /> : null}
       </SheetContent>
@@ -290,6 +290,7 @@ function createColumns(fieldDefinitions: readonly TakeChargeFieldDefinition[]) {
         <StatusDisplay
           status={row.original.recordState}
           label={statusLabel(row.original)}
+          icon={getTakeChargeStatusIcon(row.original.recordState)}
         />
       ),
     }),

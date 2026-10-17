@@ -1,3 +1,4 @@
+import { STORE_FIELD_DEFINITIONS } from "@/data/contracts/store-fields";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { areaScopeId } from "@/data/contracts/kpi";
 import { describe, expect, it } from "vitest";
@@ -120,7 +121,7 @@ describe("scoped Stores repository query", () => {
       },
     });
 
-    expect(result).toEqual({ availability: "CONFIRMED_EMPTY", items: [] });
+    expect(result).toEqual({ availability: "CONFIRMED_EMPTY", items: [], fieldDefinitions: STORE_FIELD_DEFINITIONS });
   });
 });
 
@@ -136,4 +137,18 @@ it("keeps identical Area names in different Regions separate with Region ALL", a
   expect(selected.items.map((store) => store.storeId)).toEqual([original.stores[0].trtid]);
   const ambiguous = await repository.getStores({ context: { ...context(), area: { kind: "INCLUDE", values: ["一部"] } } });
   expect(ambiguous.items).toEqual([]);
+});
+
+
+it("returns source extension columns only from the selected Store scope", async () => {
+  const original = createKpiMockData(referenceDate);
+  const dataset: typeof original = { ...original, stores: [
+    { ...original.stores[0], extraFields: { 门店性质: "直营", 停车位: 8, 有停车场: false, 地址: null } },
+    { ...original.stores[1], extraFields: { 不在授权查询范围的字段: "不可见" } },
+  ] };
+  const repository = createMockEhsRepository(referenceDate, { dataset });
+  const result = await repository.getStores({ context: { ...context(), store: { kind: "INCLUDE", values: [original.stores[0].trtid] } } });
+  expect(result.items[0]?.extraFields).toEqual(dataset.stores[0].extraFields);
+  expect(result.fieldDefinitions?.filter((field) => field.source === "extra").map((field) => field.key)).toEqual(["门店性质", "停车位", "有停车场", "地址"]);
+  expect(result.fieldDefinitions?.some((field) => field.key === "不在授权查询范围的字段")).toBe(false);
 });

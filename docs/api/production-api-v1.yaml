@@ -527,7 +527,7 @@ components:
       type: object
       additionalProperties: false
       required: [region, area, storeNameCn, storeNameEn, trtid]
-      properties: { region: { type: string }, area: { type: string }, storeNameCn: { type: string }, storeNameEn: { type: string }, trtid: { type: string, minLength: 1, pattern: '.*\S.*' }, regionOwner: { type: [string, 'null'] }, regionOwnerEmail: { type: [string, 'null'] }, areaOwner: { type: [string, 'null'] }, areaOwnerEmail: { type: [string, 'null'] }, manager: { type: [string, 'null'] }, managerEmail: { type: [string, 'null'] }, ehsAmbassador: { type: [string, 'null'] }, ehsAmbassadorEmail: { type: [string, 'null'] } }
+      properties: { region: { type: string }, area: { type: string }, storeNameCn: { type: string }, storeNameEn: { type: string }, trtid: { type: string, minLength: 1, pattern: '.*\S.*' }, regionOwner: { type: [string, 'null'] }, regionOwnerEmail: { type: [string, 'null'] }, areaOwner: { type: [string, 'null'] }, areaOwnerEmail: { type: [string, 'null'] }, manager: { type: [string, 'null'] }, managerEmail: { type: [string, 'null'] }, ehsAmbassador: { type: [string, 'null'] }, ehsAmbassadorEmail: { type: [string, 'null'] }, extraFields: { type: object, additionalProperties: { type: [string, number, boolean, 'null'] } } }
     TrainingRecord:
       type: object
       additionalProperties: false

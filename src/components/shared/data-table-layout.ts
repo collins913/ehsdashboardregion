@@ -32,3 +32,11 @@ export const stickyStoreCellClassName =
 // Opt-in primary sizing for narrow table containers; independent of sticky positioning.
 export const dataTableCompactPrimaryClassName =
   "@max-[480px]/data-table:w-[18%] @max-[480px]/data-table:min-w-32";
+
+// Explicit presentation policy, independent of column sizing and business semantics.
+export type DataTableColumnAlignment = "left" | "center" | "right";
+export const dataTableColumnAlignmentClassNames = {
+  left: "text-left [--table-content-justify:flex-start] [&_[data-table-cell-trigger]:first-child]:-ml-2.5",
+  center: "text-center [--table-content-justify:center]",
+  right: "text-right [--table-content-justify:flex-end]",
+} as const;

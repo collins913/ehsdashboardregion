@@ -1,3 +1,4 @@
+import { STORE_FIELD_DEFINITIONS, storeFieldDefinitions, storeFieldColumnId } from "@/data/contracts/store-fields";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -5,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import type { NormalizedStoreRecord } from "@/data/contracts/stores";
 import {
   DEFAULT_VISIBLE_STORE_COLUMN_IDS,
+  defaultStoreColumnVisibility,
   getStoreRowId,
   isStoreRowActivationKey,
   STORE_COLUMN_SIZE_ROLES,
@@ -52,6 +54,18 @@ describe("Stores Data Table contract", () => {
     });
   });
 
+
+  it("offers contact and source extension columns while keeping only the original five optional columns visible", () => {
+    const fields = storeFieldDefinitions([{ ...record, extraFields: { 门店性质: "直营", 停车位: 8, 已开业: false } }]);
+    const visibility = defaultStoreColumnVisibility(fields);
+    expect(fields).toContainEqual({ key: "regionOwner", label: "区域负责人", source: "record" });
+    expect(fields).toContainEqual({ key: "areaOwner", label: "小区负责人", source: "record" });
+    expect(Object.keys(visibility).filter((id) => visibility[id])).toEqual(["region", "area", "trtid", "manager", "ehsAmbassador"]);
+    for (const id of ["regionOwner", "areaOwner", "regionOwnerEmail", "storeNameEn", "extra:门店性质", "extra:停车位", "extra:已开业"]) expect(visibility[id]).toBe(false);
+    expect(fields.map(storeFieldColumnId)).not.toContain("storeId");
+    expect(fields.map(storeFieldColumnId)).not.toContain("extraFields");
+    expect(defaultStoreColumnVisibility([...STORE_FIELD_DEFINITIONS, { key: "新增字段", label: "新增字段", source: "extra" }])["extra:新增字段"]).toBe(false);
+  });
   it("uses canonical storeId as stable row identity", () => {
     expect(getStoreRowId(record)).toBe("TEST-001");
   });
@@ -78,6 +92,8 @@ describe("Stores Data Table contract", () => {
     expect(markup).toContain("门店经理: 未排序");
     expect(markup).toContain("EHS&amp;S 代表: 未排序");
     expect(markup).toContain("列显示");
+    expect(markup).not.toContain("区域负责人: 未排序");
+    expect(markup).not.toContain("小区负责人: 未排序");
     expect(markup).toContain("data-adaptive-table-measurement-row");
     expect(markup).not.toContain("测试中文门店");
   });
@@ -116,4 +132,13 @@ describe("Store detail", () => {
     expect(markup).not.toContain("null");
     expect(markup).not.toContain("undefined");
   });
+  it("displays source extension values without dropping zero or false", () => {
+    const markup = renderToStaticMarkup(createElement(StoreDetailContent, { record: { ...record, extraFields: { 门店性质: "直营", 停车位: 0, 已搬迁: false } } }));
+    expect(markup).toContain("门店性质");
+    expect(markup).toContain("直营");
+    expect(markup).toContain("停车位");
+    expect(markup).toContain(">0<");
+    expect(markup).toContain(">false<");
+  });
+
 });

@@ -18,12 +18,12 @@ export function ScopeComparison({ comparisons, onSelect, semanticKey, comparison
       render: (row) => <OverflowTooltip text={row.label} className="flex-1 font-medium" renderTrigger={(label) =>
         <TableCellTrigger data-detail-trigger="scope" aria-label={`查看${row.label}得分详情`} className="w-full justify-start text-left" onClick={() => onSelect(row.id)}>{label}</TableCellTrigger>
       } /> },
-    { id: "rank", title: "排名", value: (row) => row.rankLabel ?? "—", sizeRole: "compact", sortValue: (row) => row.rank },
-    { id: "scoreRate", title: "得分率", value: (row) => row.score === null ? "—" : `${formatOverviewRate(row.score)}%`, sizeRole: "compact", sortValue: (row) => row.score },
-    { id: "rateChange", title: "得分率变化", value: (row) => formatOverviewScore(row.delta), sizeRole: "compact", sortValue: (row) => row.delta,
+    { id: "rank", title: "排名", value: (row) => row.rankLabel ?? "—", sizeRole: "compact", align: "right", sortValue: (row) => row.rank },
+    { id: "scoreRate", title: "得分率", value: (row) => row.score === null ? "—" : `${formatOverviewRate(row.score)}%`, sizeRole: "compact", align: "right", sortValue: (row) => row.score },
+    { id: "rateChange", title: "得分率变化", value: (row) => formatOverviewScore(row.delta), sizeRole: "compact", align: "right", sortValue: (row) => row.delta,
       render: (row) => <ScoreChange value={row.delta} /> },
-    { id: "points", title: "得分数", value: (row) => `${formatOverviewScore(row.earnedPoints)}/${formatOverviewScore(row.totalPoints)}`, sizeRole: "compact", sortValue: (row) => row.earnedPoints },
-    { id: "pointChange", title: "得分变化（分）", value: (row) => formatOverviewScore(row.pointDelta), sizeRole: "compact", sortValue: (row) => row.pointDelta,
+    { id: "points", title: "得分数", value: (row) => `${formatOverviewScore(row.earnedPoints)}/${formatOverviewScore(row.totalPoints)}`, sizeRole: "compact", align: "right", sortValue: (row) => row.earnedPoints },
+    { id: "pointChange", title: "得分变化（分）", value: (row) => formatOverviewScore(row.pointDelta), sizeRole: "compact", align: "right", sortValue: (row) => row.pointDelta,
       render: (row) => <ScoreChange value={row.pointDelta} suffix="" /> },
   ], [onSelect])
   return <Card>

@@ -14,7 +14,7 @@ import { FilterSelect } from "@/components/shared/filter-select";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot, useRetainedDataTableRows } from "@/components/shared/data-table-loading";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import {
-  dataTableColumnContentClassNames, dataTableColumnSizeClassNames, dataTableClassName,
+  dataTableColumnContentClassNames, dataTableColumnAlignmentClassNames, dataTableColumnSizeClassNames, dataTableClassName,
   dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName,
 } from "@/components/shared/data-table-layout";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
@@ -126,7 +126,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
       enableHiding: false, sortFn: "text",
     }),
     ...CERTIFICATES_ITEMS.map(({ key, label }) => columnHelper.accessor(key, {
-      id: key, header: ({ column }) => <DataTableColumnHeader column={column} title={label} />,
+      id: key, header: ({ column }) => <DataTableColumnHeader column={column} title={label} align="center" />,
       cell: ({ row, getValue }) => (
         <TableCellTrigger aria-label={`查看${row.original.storeDisplayName}的${label}详情`} onClick={() => openDetail(row.original, key)}>
           <StatusDisplay status={getValue()} interactive />
@@ -139,7 +139,7 @@ export function CertificatesDataTable({ rows, queryKey, queryStatus }: {
     state: { sorting, columnVisibility, pagination },
   });
   const { rows: renderedRows, isRetainingResolvedRows } = useRetainedDataTableRows({ rows: table.getRowModel().rows, status: queryStatus });
-  const sizeClassName = (id: string) => dataTableColumnSizeClassNames[id === "store" ? "primary" : "standard"];
+  const sizeClassName = (id: string) => cn(dataTableColumnSizeClassNames[id === "store" ? "primary" : "standard"], dataTableColumnAlignmentClassNames[id === "store" ? "left" : "center"]);
   const placeholderColumns = table.getVisibleLeafColumns().map(({ id }) => ({ id, className: cn(sizeClassName(id), id === "store" && stickyStoreCellClassName) }));
   const visibleColumnCount = table.getVisibleLeafColumns().length;
   return (

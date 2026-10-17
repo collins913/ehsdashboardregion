@@ -1,3 +1,4 @@
+import type { DefaultCertificateCategory } from "@/types/ehs";
 import type { CertificateOverviewResult, CertificatesQueryResult } from "@/data/contracts/certificates";
 import { CERTIFICATE_CATEGORIES, CERTIFICATE_OVERVIEW_TYPE_DISPLAY, CERTIFICATE_TYPE_CATEGORIES } from "./certificate-types";
 
@@ -16,6 +17,7 @@ export const CERTIFICATE_REQUIREMENTS: CertificateRequirementConfig = {
 export function buildCertificateOverview(
   result: CertificatesQueryResult,
   requirements: CertificateRequirementConfig = CERTIFICATE_REQUIREMENTS,
+  typeCategories: Readonly<Record<string, DefaultCertificateCategory>> = CERTIFICATE_TYPE_CATEGORIES,
 ): CertificateOverviewResult {
   const storeCount = result.items.length;
   const actualByType = new Map<string, number>();
@@ -37,20 +39,27 @@ export function buildCertificateOverview(
     );
   }
 
-  const items = CERTIFICATE_OVERVIEW_TYPE_DISPLAY.map(({ certificateType, shortLabel }) => {
-    const requiredCount = Object.hasOwn(requirements, certificateType)
-      ? storeCount * requirements[certificateType]
-      : null;
-    return {
-      certificateCategory: CERTIFICATE_TYPE_CATEGORIES[certificateType],
-      categoryLabel: CERTIFICATE_TYPE_CATEGORIES[certificateType],
-      certificateType,
-      shortLabel,
-      fullLabel: certificateType,
-      requiredCount,
-      actualCount: actualByType.get(certificateType) ?? 0,
-    };
-  });
+  const shortLabels = new Map<string, string>(CERTIFICATE_OVERVIEW_TYPE_DISPLAY.map(({ certificateType, shortLabel }) => [certificateType, shortLabel]));
+  const items = CERTIFICATE_CATEGORIES.flatMap((category) =>
+    Object.entries(typeCategories).filter(([, itemCategory]) => itemCategory === category).map(([certificateType]) => {
+      const requiredCount = Object.hasOwn(requirements, certificateType)
+        ? storeCount * requirements[certificateType]
+        : null;
+      const actualCount = actualByType.get(certificateType) ?? 0;
+      return {
+        certificateCategory: category,
+        categoryLabel: category,
+        certificateType,
+        shortLabel: shortLabels.get(certificateType) ?? certificateType,
+        fullLabel: certificateType,
+        requiredCount,
+        actualCount,
+        // Display geometry only; actual counts and certificate compliance stay unchanged.
+        progressValue: requiredCount !== null && requiredCount > 0
+          ? Math.min(100, Math.max(0, actualCount / requiredCount * 100))
+          : null,
+      };
+    }));
 
   const groups = CERTIFICATE_CATEGORIES.flatMap((certificateCategory) => {
     const startIndex = items.findIndex((item) => item.certificateCategory === certificateCategory);

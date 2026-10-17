@@ -27,3 +27,9 @@ export interface DomainSource<T> {
   availability: DataAvailability;
   reason?: DomainReason;
 }
+
+/** Server-prepared explanations; never used to evaluate the business result. */
+export interface KpiDomainDiagnostics {
+  training: string[];
+  inspections: string[];
+}

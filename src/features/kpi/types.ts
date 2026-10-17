@@ -8,6 +8,7 @@ import type {
 } from "@/lib/rules/result-types";
 
 export interface PerformanceKpiValue {
+  diagnostics?: readonly string[];
   availability: DataAvailability;
   result: PerformanceResult;
 }

@@ -180,7 +180,7 @@ describe("current-year KPI mock factory", () => {
     ).toBe(true);
   });
 
-  it("uses authoritative required-set Domain Results for Training and Inspection", async () => {
+  it("uses received-record Domain Results for Training and Inspection", async () => {
     const referenceDate = new Date("2026-09-11T00:00:00+08:00");
     const repository = createMockEhsRepository(referenceDate);
     const context = contextFor(referenceDate);
@@ -201,10 +201,10 @@ describe("current-year KPI mock factory", () => {
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-002")).toMatchObject({
-      training: { availability: "INCOMPLETE", result: "UNDETERMINED" },
+      training: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       drill: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       actions: { availability: "AVAILABLE", value: 86, result: "NOT_ACHIEVED" },
-      inspections: { availability: "INCOMPLETE", result: "UNDETERMINED" },
+      inspections: { availability: "AVAILABLE", result: "NOT_ACHIEVED" },
       astmEvents: { availability: "AVAILABLE", result: "NOT_OCCURRED" },
     });
     expect(byStore.get("TEST-003")?.astmEvents).toEqual({

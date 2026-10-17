@@ -81,7 +81,10 @@ export interface SourceReference {
   sourceUrl?: string;
 }
 
+export type StoreExtraFieldValue = string | number | boolean | null;
+
 export interface StoreMasterData {
+  extraFields?: Readonly<Record<string, StoreExtraFieldValue>>;
   region: string;
   area: string;
   storeNameCn: string;

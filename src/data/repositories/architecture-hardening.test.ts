@@ -59,7 +59,7 @@ interface Mutation {
 const mutations: Mutation[] = [
   { name: "Training NaN", metric: "TRAINING", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     trainingRecords: data.trainingRecords.map((row) => isB(row.storeReference) && row.month === month ? { ...row, completionRate: Number.NaN } : row) }) },
-  { name: "Training missing required record", metric: "TRAINING", reason: "SOURCE_MISSING", change: (data) => ({ ...data,
+  { name: "Training no scheduled records", metric: "TRAINING", reason: "ACHIEVED", change: (data) => ({ ...data,
     trainingRecords: data.trainingRecords.filter((row) => !(isB(row.storeReference) && row.month === month)) }) },
   { name: "Training incomplete", metric: "TRAINING", reason: "SOURCE_INCOMPLETE", change: (data) => ({ ...data,
     trainingRecords: data.trainingRecords.map((row) => isB(row.storeReference) && row.month === month ? { ...row, completionRate: null } : row) }) },
@@ -73,7 +73,7 @@ const mutations: Mutation[] = [
     drillRecords: data.drillRecords.filter((row) => !(isB(row.storeReference) && row.month === month)) }) },
   { name: "Inspection invalid date", metric: "INSPECTION", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     inspectionRecords: data.inspectionRecords.map((row) => isB(row.storeReference) && row.dueDate?.startsWith(month) ? { ...row, dueDate: "2026-02-30" as IsoDate } : row) }) },
-  { name: "Inspection missing task", metric: "INSPECTION", reason: "SOURCE_MISSING", change: (data) => ({ ...data,
+  { name: "Inspection no scheduled records", metric: "INSPECTION", reason: "ACHIEVED", change: (data) => ({ ...data,
     inspectionRecords: data.inspectionRecords.filter((row) => !(isB(row.storeReference) && row.dueDate?.startsWith(month))) }) },
   { name: "Inspection malformed status", metric: "INSPECTION", reason: "SOURCE_INVALID", change: (data) => ({ ...data,
     inspectionRecords: data.inspectionRecords.map((row) => isB(row.storeReference) && row.dueDate?.startsWith(month) ? { ...row, status: 7 as unknown as string } : row) }) },
@@ -120,7 +120,7 @@ describe("Architecture Hardening V1", () => {
     expect(score(initial, storeA.trtid)).toBe(100);
     expect(score(changed, storeA.trtid)).toBe(100);
     expect(changed.contributions.find((row) => row.storeId === storeB.trtid && row.month === month && row.metricId === metric))
-      .toMatchObject({ earnedPoints: 0, availablePoints: 1, reason });
+      .toMatchObject({ earnedPoints: reason === "ACHIEVED" ? 1 : 0, availablePoints: 1, reason });
     expect(changed.contributions).toHaveLength(stores.length * base.supportedMonths.length * 12);
   });
 

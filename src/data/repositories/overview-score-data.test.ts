@@ -25,7 +25,6 @@ describe("Overview score data repository", () => {
       const rows = result.contributions.filter((row) => row.metricId === metricId);
       expect(rows.some((row) => row.reason === "ACHIEVED" && row.earnedPoints === 1)).toBe(true);
       expect(rows.some((row) => row.reason === "RULE_NOT_MET" && row.earnedPoints === 0)).toBe(true);
-      expect(rows.some((row) => row.reason === "SOURCE_MISSING" && row.earnedPoints === 0)).toBe(true);
       expect(rows.some((row) => row.reason === "SOURCE_INCOMPLETE" && row.earnedPoints === 0)).toBe(true);
       expect(rows.some((row) => row.reason === "SOURCE_INVALID" && row.earnedPoints === 0)).toBe(true);
       expect(rows.every((row) => row.reason !== "RULE_CONFIGURATION_MISSING")).toBe(true);
@@ -45,7 +44,7 @@ describe("Overview score data repository", () => {
     expect(certificateRows.every((row) => row.availablePoints === 1)).toBe(true);
   });
 
-  it("uses RULE_CONFIGURATION_MISSING only when the runtime required-set provider is absent", async () => {
+  it("does not require a task provider to score received Training and Inspection records", async () => {
     const dataset = createKpiMockData(referenceDate);
     const repository = createMockEhsRepository(referenceDate, {
       dataset,
@@ -56,8 +55,8 @@ describe("Overview score data repository", () => {
     const firstMonth = result.months[0];
     const rows = result.contributions.filter((row) => row.storeId === firstStore && row.month === firstMonth);
 
-    expect(rows.find((row) => row.metricId === "TRAINING")).toMatchObject({ earnedPoints: 0, availablePoints: 1, reason: "RULE_CONFIGURATION_MISSING" });
-    expect(rows.find((row) => row.metricId === "INSPECTION")).toMatchObject({ earnedPoints: 0, availablePoints: 1, reason: "RULE_CONFIGURATION_MISSING" });
+    expect(rows.find((row) => row.metricId === "TRAINING")).toMatchObject({ earnedPoints: 1, availablePoints: 1, reason: "ACHIEVED" });
+    expect(rows.find((row) => row.metricId === "INSPECTION")).toMatchObject({ earnedPoints: 1, availablePoints: 1, reason: "ACHIEVED" });
     expect(rows).toHaveLength(12);
     expect(rows.reduce((sum, row) => sum + row.availablePoints, 0)).toBe(12);
   });

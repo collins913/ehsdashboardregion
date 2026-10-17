@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 describe("persistent Dashboard composition", () => {
   it("owns Header inside the existing GlobalFilterProvider", () => {
     const shell = readFileSync("src/components/shared/dashboard-shell.tsx", "utf8");
-    expect(shell).toContain("getDashboardRoute(usePathname())");
+    expect(shell).toContain("getDashboardRoute(displayedPathname)");
     expect(shell.indexOf("<PageHeader")).toBeGreaterThan(shell.indexOf("<GlobalFilterProvider"));
     expect(shell).not.toMatch(/<PageHeader[^>]*key=/);
   });

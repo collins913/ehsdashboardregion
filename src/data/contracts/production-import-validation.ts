@@ -49,7 +49,7 @@ function nestedValue(parent: UnknownRecord, key: string, allowed: readonly strin
   return value;
 }
 const allowedFields: Partial<Record<ProductionDomain, readonly string[]>> = {
-  "store-master": ["region", "area", "storeNameCn", "storeNameEn", "trtid", "regionOwner", "regionOwnerEmail", "areaOwner", "areaOwnerEmail", "manager", "managerEmail", "ehsAmbassador", "ehsAmbassadorEmail"],
+  "store-master": ["region", "area", "storeNameCn", "storeNameEn", "trtid", "regionOwner", "regionOwnerEmail", "areaOwner", "areaOwnerEmail", "manager", "managerEmail", "ehsAmbassador", "ehsAmbassadorEmail", "extraFields"],
   training: ["storeReference", "month", "trainingName", "completionRate", "incompletePeople", "sourceReference"],
   drill: ["storeReference", "month", "drillName", "status", "sourceReference"],
   inspection: ["inspectionNumber", "storeReference", "inspectionName", "dueDate", "inspector", "status", "sourceReference"],

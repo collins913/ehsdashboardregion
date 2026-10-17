@@ -48,46 +48,33 @@
 
 ## 用户身份与访问资料
 
-用户资料随访问身份带入；左下角的姓名、邮箱、头像不读取权限管理中的姓名。邮箱用于服务端身份匹配，姓名和头像仅用于展示；没有姓名时显示“未提供姓名”，没有头像时使用现有占位图标。
-
-### 企业服务端身份（ProductionAccessPrincipal）
-
-企业 Identity Provider 验证身份后返回以下对象；这不是批量导入 API 的请求体。`verifiedEmail` 的类型允许 `null`，但正常授权访问需要可信、有效的邮箱；不能靠浏览器传入邮箱获得权限。
+访问时只对接以下三项用户资料。
 
 | 字段 | 含义 | 传递要求 | 类型／格式 | 公司来源 | 转换／验证 | 状态／证据 |
 |---|---|---|---|---|---|---|
-| `principalId` | 企业稳定身份标识 | 必传 | string | 待填写 | 由已验证的身份来源提供 | UNMAPPED |
-| `verifiedEmail` | 已验证邮箱 | 必传 | string 或 null | 待填写 | 与授权邮箱使用同一 canonical 规则；空值不能获得正常授权访问 | UNMAPPED |
-| `displayName` | 访问用户姓名 | 必传 | string 或 null | 待填写 | 如 San Zhang（张 三）；空白按未提供处理 | UNMAPPED |
-| `avatarUrl` | 访问用户头像地址 | 可选 | string 或 null | 待填写 | 提供可直接显示的头像地址 | UNMAPPED |
-| `attributes` | 服务端身份附加属性 | 必传 | string 值对象 | 待填写 | 无额外属性可传 {}；不整体透传到 UI | UNMAPPED |
+| `avatarUrl` | 用户头像 | 可选 | string 或 null | 待填写 | 可直接显示的头像 URL | UNMAPPED |
+| `name` | 用户姓名 | 可选 | string 或 null | 待填写 | 如 San Zhang（张 三）；无值可为 null | UNMAPPED |
+| `email` | 用户邮箱 | 必填 | 有效邮箱 string | 待填写 | 使用访问时带入的邮箱 | UNMAPPED |
 
-### 嵌入访问资料（GLIFE_CONTEXT）
+用户资料示例：
 
-使用 `postMessage` 传递 `{ type: "GLIFE_CONTEXT", payload: { … } }`。以下字段在消息格式中均可省略或为 `null`；要显示嵌入资料，`email` 必须与当前服务端验证账号一致。消息来源必须同时匹配配置的父页面 origin 与 `window.parent`。此消息不参与授权。
+```json
+{
+  "avatarUrl": "https://example.test/avatars/san-zhang.png",
+  "name": "San Zhang（张 三）",
+  "email": "san.zhang@example.test"
+}
+```
 
-| payload 字段 | 含义 | 类型 | 公司来源 | 转换／验证 | 状态／证据 |
-|---|---|---|---|---|---|
-| `name` | 用户姓名，映射 displayName | string 或 null | 待填写 | 空白按未提供；不会从手动授权姓名补齐 | UNMAPPED |
-| `email` | 访问用户邮箱 | string 或 null | 待填写 | 与服务端账号邮箱匹配后才显示该资料 | UNMAPPED |
-| `avatarUrl` | 用户头像地址 | string 或 null | 待填写 | 直接提供地址；不拼接访问 Token | UNMAPPED |
-| `userId` | 企业用户标识，映射 enterpriseUserId | string 或 null | 待填写 | 当前不在用户菜单展示 | UNMAPPED |
-| `teslaId` | 现有兼容字段，映射 employeeId | string 或 null | 待填写 | 当前不展示；接入不要求提供工号 | UNMAPPED |
-| `department` | 现有兼容部门字段 | string 或 null | 待填写 | 当前不展示 | UNMAPPED |
-| `title` | 现有兼容职位字段 | string 或 null | 待填写 | 当前不展示 | UNMAPPED |
-| `mobile` | 现有兼容手机号字段 | string 或 null | 待填写 | 当前解析后不保留、不展示 | UNMAPPED |
-| `nameLocked` | 现有兼容姓名锁定标记 | boolean 或 null | 待填写 | 当前不参与展示或授权 | UNMAPPED |
-| `publicMediaToken` | 现有兼容媒体令牌字段 | string 或 null | 无需提供 | 当前丢弃，不用于头像或授权；文档不记录真实值 | NOT_APPLICABLE |
-
-最小展示样例（虚构资料；邮箱需与实际验证账号对应）：
+嵌入访问的完整消息示例：
 
 ```json
 {
   "type": "GLIFE_CONTEXT",
   "payload": {
+    "avatarUrl": "https://example.test/avatars/san-zhang.png",
     "name": "San Zhang（张 三）",
-    "email": "san.zhang@example.test",
-    "avatarUrl": null
+    "email": "san.zhang@example.test"
   }
 }
 ```
@@ -432,7 +419,9 @@ Environment 使用现有嵌套 Contract；不得扁平化后丢失 0..N 合同�
 | `合同[].有效期起` | 有效期起 | 必传 | `YYYY-MM-DD` 或 null | 待填写 | 待填写 | 待填写 | UNMAPPED |
 | `合同[].有效期止` | 有效期止 | 必传 | `YYYY-MM-DD` 或 null | 待填写 | 待填写 | 待填写 | UNMAPPED |
 
-### Required Sets
+### Required Sets（旧接口兼容项，不参与当前评分，无需为培训／检查接入填写）
+
+培训／检查按已有记录评价，完整空范围达成并计满分。以下仅保留既有接口结构，不再作为必需数据或接入阻塞项。
 
 每条记录必须且只能包含 Training 或 Inspection 其中一种集合。集合非空、无空项、无重复；不能从实际完成记录反推。
 
@@ -440,8 +429,8 @@ Environment 使用现有嵌套 Contract；不得扁平化后丢失 0..N 合同�
 |---|---|---|---|---|---|---|---|
 | `storeReference` | 门店关联对象 | 必传 | 公共 Store Reference | 待填写 | 待填写 | 待填写 | UNMAPPED |
 | `month` | 业务月份 | 必传 | `YYYY-MM` | 待填写 | 待填写 | 待填写 | UNMAPPED |
-| `requiredTrainingItems` | 应完成培训项目集合 | 条件：二选一 | 非空、唯一 string[]；与 Inspection 二选一 | 待填写 | 待填写 | Authority 与稳定 item ID 待确认 | BLOCKED |
-| `expectedInspectionTasks` | 应完成检查任务集合 | 条件：二选一 | 非空、唯一 string[]；与 Training 二选一 | 待填写 | 待填写 | Authority 与稳定 task ID 待确认 | BLOCKED |
+| `requiredTrainingItems` | 应完成培训项目集合 | 条件：二选一 | 非空、唯一 string[]；与 Inspection 二选一 | 待填写 | 待填写 | 当前评分无需此项 | NOT_REQUIRED |
+| `expectedInspectionTasks` | 应完成检查任务集合 | 条件：二选一 | 非空、唯一 string[]；与 Training 二选一 | 待填写 | 待填写 | 当前评分无需此项 | NOT_REQUIRED |
 
 ## 枚举与原始状态映射
 
@@ -464,10 +453,10 @@ Environment 使用现有嵌套 Contract；不得扁平化后丢失 0..N 合同�
 
 | 事项 | 必须确认的内容 | 未确认影响 | 状态／证据 |
 |---|---|---|---|
-| 企业身份 | 已验证邮箱、principalId 的来源；父页面 origin；头像可访问方式 | 企业身份接入不能完成 | BLOCKED |
+| 用户资料 | 访问时头像、姓名、邮箱的实际来源字段 | 用户资料映射未完成 | UNMAPPED |
 | 物理来源 | 每个 Domain 的表／视图／列、类型、空值、更新时间 | 对应 Adapter 不能完成 | UNMAPPED |
 | 记录身份与历史 | 培训／演练／证件自然键、门店生命周期、快照替换与生效范围 | 重复与历史覆盖不可确认 | BLOCKED |
-| 必需集合 | authoritative 培训／检查清单来源、稳定项目／任务 ID、月份适用关系 | Required Sets 不能用于正式评价 | BLOCKED |
+| 旧必需集合接口 | 当前培训／检查不使用，无需对接 | 不影响当前评价或接入 | NOT_REQUIRED |
 | 年度汇总 | 人均提交数和参与率的权威值、授权范围聚合、参考月份、缺失原因 | 年度指标直读不能完成 | BLOCKED |
 | 环境单位 | 产能、涂料批复用量的单位及规范化方式 | 对应字段映射不能定案 | BLOCKED |
 | 完整性 | 独立来源证明、零记录证明与校验实现 | 批次不能正式发布 | BLOCKED |
@@ -500,7 +489,12 @@ Environment 使用现有嵌套 Contract；不得扁平化后丢失 0..N 合同�
 | Store Resolution | 待填写 | 待填写 | 待填写 | 待填写 |
 | 枚举和状态映射 | 待填写 | 待填写 | 待填写 | 待填写 |
 | Coverage / authoritative empty | 待填写 | 待填写 | 待填写 | 待填写 |
-| Required Sets | 待填写 | 待填写 | 待填写 | 待填写 |
+| Required Sets（兼容项） | 当前无需对接 | — | — | NOT_REQUIRED |
 | Take Charge annual source | 待填写 | 待填写 | 待填写 | 待填写 |
 
 任何必需映射仍为 `UNMAPPED` / `BLOCKED` 时，对应 Domain 不得进入 Production 发布。
+
+
+### 门店主数据扩展展示字段
+
+`store-master` 可选 `extraFields` 为对象；key 直接用于列显示名称，value 只使用 string、有限 number、boolean 或 null。服务端完成门店授权和规范化后返回字段定义，所有扩展字段自动加入门店的共享列显示菜单，默认隐藏，不改变原有五个可选列的默认勾选。扩展值同时可在门店详情查看。

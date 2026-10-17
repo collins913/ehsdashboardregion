@@ -43,10 +43,10 @@ describe("performance profile Repository behavior", () => {
     expect(new Set(result.hero.monthlyScoreHistory.map((point) => Math.round(point.score!))).size).toBeGreaterThanOrEqual(5);
     expect(result.hero.improvingRanking.areas.some((area) => area.delta! > 0)).toBe(true);
     expect(result.hero.decliningRanking.areas.some((area) => area.delta! < 0)).toBe(true);
-    // Required-set error examples remain reachable after the distribution change.
+    // Received-record errors remain reachable; unassigned items are not missing data.
     for (const metricId of ["TRAINING", "INSPECTION"] as const) {
       const reasons = new Set(data.contributions.filter((item) => item.metricId === metricId).map((item) => item.reason));
-      expect(reasons).toEqual(new Set(["ACHIEVED", "RULE_NOT_MET", "SOURCE_MISSING", "SOURCE_INVALID", "SOURCE_INCOMPLETE"]));
+      expect(reasons).toEqual(new Set(["ACHIEVED", "RULE_NOT_MET", "SOURCE_INVALID", "SOURCE_INCOMPLETE"]));
     }
   });
 

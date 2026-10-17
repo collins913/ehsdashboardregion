@@ -93,9 +93,9 @@ V1 KPI 为 Training、Drill、Actions、Inspections、Events。
 
 ### D-014 Training、Drill、Inspections 为达成型 KPI
 
-- Training Overview 月度 metric：当月 required Training set 中每项都有有效 source record 且 source `completionRate = 100` 才达成；任一项未完成、缺失、无效、格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续以 authoritative source/config 替换；不得从实际 Training records 推断。KPI 与 Overview 共用同一 required-set Domain Result，后者仅映射 points；缺失/非法/不完整保留 UNDETERMINED 与具体原因。
+- Training：培训与检查仅评价当前 Store × Period 实际收到的记录，不要求每月有记录、不检查项目或任务清单齐全，也不要求两类记录同时存在。培训所有已有记录 completionRate = 100、检查所有已有记录 status 规范化后精确为“已完成”则达成；任一有效记录未完成则进行中。整个范围经确认完整且零记录时视为无待办，达成并计满分。已有记录必要字段为空或格式错误、来源不可用或覆盖不完整仍为未确定，并保留具体诊断。
 - Drill：纳入 Period 的每个月必须有 Drill 记录，且当月所有记录均完成；缺月或存在未完成时未达成。
-- Inspection Overview 月度 metric：当月 formal required Inspection task set 全部存在且已完成才达成；任一未完成、缺记录、状态缺失/无效、source 格式错误或 required coverage 不完整均为未达成。Mock V1 set 由集中 provider 提供，Production 后续替换 authoritative source/config，不得从实际 Inspection records 推断。KPI 与 Overview 共用同一 required-set Domain Result，后者仅映射 points。
+- Inspection：与 Training 复用上述实际记录口径，不再依赖 required-set provider。
 
 不为这三项强行生成未经确认的百分比。
 
@@ -283,7 +283,7 @@ Production Integration TBD：Entra tenantId + objectId、Production Identity Pro
 - ScoreContribution 必须携带结果与诊断 reason。诊断至少区分 `ACHIEVED`、`RULE_NOT_MET`、`SOURCE_MISSING`、`SOURCE_INVALID`、`SOURCE_INCOMPLETE`；显式 N/A 另记录为 `NOT_APPLICABLE` 但仍计 0/1，缺少 required set/configuration 使用 `RULE_CONFIGURATION_MISSING`。原因只诊断数据/规则来源，不改变 points。
 - V1 scoring catalog 在 `metric-rules.md` 冻结。Environment 当前不计分；未来可通过 Environment Domain Result 生成同一 ScoreContribution，不改 Overview 聚合。
 - 每个 Store × Metric × Month 必须有一条贡献，包括全无数据的月份；source missing 使用 `0/1 + SOURCE_MISSING`。历史优先由 Domain historical records 按月末 referenceDate 重算，不可靠时后续采用 production snapshot；本决策不建立 snapshot。
-- Mock V1 Training required item catalog 与 Inspection expected task set 由单一 provider 提供，Standard / Performance 共用；Production authoritative provider 后续替换。运行时缺少集合时输出 0/1 `RULE_CONFIGURATION_MISSING`，不得从实际记录反推。ASTM V1 方向已确认：`NOT_OCCURRED` 达成 1/1，`OCCURRED` 未达成 0/1；missing / invalid / incomplete 保留对应诊断原因。
+- 培训／检查的旧 required-set 判定已由 D-052 替代，Mock 项目名称仅作数据样例。ASTM V1 方向已确认：`NOT_OCCURRED` 达成 1/1，`OCCURRED` 未达成 0/1；missing / invalid / incomplete 保留对应诊断原因。
 
 具体 TypeScript contract 见 `data-contract.md`，领域结果映射和目录见 `metric-rules.md`。本决策冻结计算边界；Phase 2 已实现 Mock V2 与正式 Overview 接线，未定义 API 或 snapshot。
 
@@ -342,3 +342,15 @@ Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`so
 权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
 
 左下角维持头像与两行布局：姓名在上、权限摘要在下。展开菜单顶部展示头像、姓名与邮箱，分隔线下按同级行展示全部授权范围（不加“权限范围”标题），再依次提供“提交建议”和“帮助”。提交建议维持尚未开放的提示，不新增提交或邮件接口。Mock 默认管理员使用明确的模拟入口资料；正式用户资料由企业登录或嵌入入口提供。
+
+
+### D-052 培训与检查按已有记录评价（2026-10-16）
+
+培训与检查仅评价当前 Store × Period 实际收到的记录，不要求每月有记录、不检查项目或任务清单齐全，也不要求两类记录同时存在。培训所有已有记录 completionRate = 100、检查所有已有记录 status 规范化后精确为“已完成”则达成；任一有效记录未完成则进行中。整个范围经确认完整且零记录时视为无待办，达成并计满分。已有记录必要字段为空或格式错误、来源不可用或覆盖不完整仍为未确定，并保留具体诊断。
+
+本决定替代 D-014、D-044 等旧决策中的培训／检查 required-set 与缺月判定；演练及其他指标保持原规则。前端仍只展示服务端结果。旧 required-sets 导入能力保留兼容，不作为接入或评分前提。
+
+
+### D-053 目标周期指标只统计已有记录（2026-10-16）
+
+Take Charge 提交总数、关闭率与记录表只统计服务端筛选周期内已有记录，不以 Mock 年份／月份覆盖范围判断完整性。历史、未来或跨覆盖范围均使用同一规则；零记录返回提交总数 0、关闭率 null（显示“-”）。只有实际记录异常才提示不完整；原授权、非法查询拒绝、关闭状态映射、关闭率公式、年度汇总口径保持不变。

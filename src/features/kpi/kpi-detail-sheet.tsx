@@ -27,7 +27,6 @@ import {
   formatBusinessDate,
   formatBusinessMonth,
 } from "@/lib/format-business-date-time";
-import { formatBusinessPeriod } from "@/lib/format-business-period";
 
 type QueryEnvelope = { referenceDateIso: string; query: KpiDetailQuery };
 
@@ -67,7 +66,7 @@ function SummaryResult(selection: KpiDetailSelection) {
   switch (selection.category) {
     case "training":
       return selection.row.training.availability === "INCOMPLETE" || selection.row.training.availability === "UNAVAILABLE"
-        ? <DataAvailabilityDisplay availability={selection.row.training.availability} />
+        ? <DataAvailabilityDisplay availability={selection.row.training.availability} description={selection.row.training.diagnostics?.join("；")} />
         : <StatusDisplay status={selection.row.training.result} />;
     case "drill":
       return selection.row.drill.availability === "INCOMPLETE" || selection.row.drill.availability === "UNAVAILABLE"
@@ -75,7 +74,7 @@ function SummaryResult(selection: KpiDetailSelection) {
         : <StatusDisplay status={selection.row.drill.result} />;
     case "inspections":
       return selection.row.inspections.availability === "INCOMPLETE" || selection.row.inspections.availability === "UNAVAILABLE"
-        ? <DataAvailabilityDisplay availability={selection.row.inspections.availability} />
+        ? <DataAvailabilityDisplay availability={selection.row.inspections.availability} description={selection.row.inspections.diagnostics?.join("；")} />
         : <StatusDisplay status={selection.row.inspections.result} />;
     case "astmEvents":
       return selection.row.astmEvents.availability === "INCOMPLETE" || selection.row.astmEvents.availability === "UNAVAILABLE"
@@ -104,7 +103,7 @@ function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
     <DetailRecordCard header={<CardTitle>{record.trainingName}</CardTitle>}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
-          <Field label="完成率" value={record.completionRate} />
+          <Field label="完成率" value={record.completionRate === null ? null : `${record.completionRate}%`} />
           <div className="col-span-2">
             <Field label="未完成人员" value={incompletePeople} />
           </div>
@@ -115,10 +114,9 @@ function TrainingCard({ record }: { record: KpiTrainingDetailRecord }) {
 
 function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle>{record.drillName}</CardTitle>}>
+    <DetailRecordCard header={<CardTitle>{record.drillName}</CardTitle>} action={<StatusDisplay status={record.completionResult} label={displayValue(record.status)} />}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <Field label="时间" value={formatBusinessMonth(record.month)} />
-          <Field label="状态" value={record.status} />
         </dl>
     </DetailRecordCard>
   );
@@ -126,16 +124,13 @@ function DrillCard({ record }: { record: KpiDrillDetailRecord }) {
 
 function InspectionCard({ record }: { record: KpiInspectionDetailRecord }) {
   return (
-    <DetailRecordCard header={<CardTitle>{record.inspectionName}</CardTitle>}>
+    <DetailRecordCard header={<CardTitle>{record.inspectionName}</CardTitle>} action={<StatusDisplay status={record.completionResult} label={displayValue(record.status)} />}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div className="col-span-2">
-            <Field label="检查编号" value={record.inspectionNumber} />
-          </div>
+          <Field label="检查编号" value={record.inspectionNumber} />
+          <Field label="截止日期" value={record.dueDate === null ? null : formatBusinessDate(record.dueDate)} />
           <div className="col-span-2">
             <Field label="检查人" value={record.inspector} />
           </div>
-          <Field label="截止日期" value={record.dueDate === null ? null : formatBusinessDate(record.dueDate)} />
-          <Field label="状态" value={record.status} />
         </dl>
     </DetailRecordCard>
   );
@@ -262,12 +257,6 @@ export function KpiDetailSheet({
         />
         {selection ? (
           <div className="space-y-4 px-4 pb-4">
-            <dl>
-              <Field
-                label={selection.category === "astmEvents" ? "统计周期" : "周期"}
-                value={formatBusinessPeriod(context.period)}
-              />
-            </dl>
             <section className="space-y-3" aria-label="记录明细">
               <h3 className="text-sm font-medium">记录</h3>
               {queryState.status === "LOADING" ? (

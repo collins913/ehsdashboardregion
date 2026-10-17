@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { type LinkProps } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House,
@@ -30,8 +30,17 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar({ account }: { account?: AccountSummary }) {
-  const pathname = usePathname();
+export function AppSidebar({ account, activePathname, onNavigate }: {
+  account?: AccountSummary;
+  activePathname?: string;
+  onNavigate?: (href: string) => void;
+}) {
+  const currentPathname = usePathname();
+  const pathname = activePathname ?? currentPathname;
+  const navigationHandler = (href: string): LinkProps["onNavigate"] => onNavigate ? (event) => {
+    event.preventDefault();
+    onNavigate(href);
+  } : undefined;
   const { isMobile, setOpenMobile } = useSidebar();
   const incomingProfile = useGLifeProfile();
   const profile = incomingProfile?.email?.trim().toLowerCase() === account?.email.trim().toLowerCase()
@@ -45,6 +54,7 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
       <SidebarHeader className="border-b">
         <Link
           href={routes.overview.href}
+          onNavigate={navigationHandler(routes.overview.href)}
           className="flex h-10 items-center gap-2 overflow-hidden rounded-md px-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <House className="size-4 shrink-0" aria-hidden="true" />
@@ -71,6 +81,7 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
                       >
                         <Link
                           href={item.href}
+                          onNavigate={navigationHandler(item.href)}
                           aria-current={isActive ? "page" : undefined}
                           onClick={() => setOpenMobile(false)}
                         >
@@ -94,7 +105,7 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
               const isActive = pathname.startsWith(item.href);
               return <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                  <Link href={item.href} onClick={() => setOpenMobile(false)}><item.icon aria-hidden="true" /><span>{item.title}</span></Link>
+                  <Link href={item.href} onNavigate={navigationHandler(item.href)} onClick={() => setOpenMobile(false)}><item.icon aria-hidden="true" /><span>{item.title}</span></Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>;
             })}
@@ -146,7 +157,7 @@ export function AppSidebar({ account }: { account?: AccountSummary }) {
                     <MessageSquare aria-hidden="true" />提交建议
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href={routes.help.href} onClick={() => setOpenMobile(false)}>
+                    <Link href={routes.help.href} onNavigate={navigationHandler(routes.help.href)} onClick={() => setOpenMobile(false)}>
                       <routes.help.icon aria-hidden="true" />{routes.help.title}
                     </Link>
                   </DropdownMenuItem>

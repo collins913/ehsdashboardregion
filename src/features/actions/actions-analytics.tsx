@@ -3,6 +3,7 @@ import { queryErrorMessage } from "@/data/contracts/query-result";
 import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useMemo } from "react";
+import { getActionStatusPresentation } from "@/features/actions/action-status-presentation";
 import { AnalyticsClosureRadial } from "@/components/shared/analytics-closure-radial";
 import { AnalyticsCountTrend } from "@/components/shared/analytics-count-trend";
 import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh-indicator";
@@ -87,12 +88,12 @@ export function ActionsAnalytics({
         <div className="h-full lg:col-span-4">
           <AnalyticsClosureRadial
             title="关闭情况"
-            numeratorCount={result.closure.closedOrCancelledCount}
-            otherCount={result.closure.otherCount}
             rate={result.closure.closureRate}
             rateLabel="关闭率"
-            numeratorLabel="已关闭或取消"
-            otherLabel="未关闭或未知"
+            statusCounts={result.byStatus.map(({ sourceStatus, count }) => ({
+              label: sourceStatus.kind === "KNOWN" ? getActionStatusPresentation(sourceStatus).label : sourceStatus.value,
+              count,
+            }))}
           />
         </div>
         <div className="h-full lg:col-span-8">

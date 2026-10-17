@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
+// Summary ends before the official 16px chevron and 1px trigger border.
+export const detailAccordionSummaryInsetClassName = "pl-px pr-[calc(1rem+1px)]";
+
 export function DetailAccordion({
   children,
   className,
@@ -47,14 +50,14 @@ export function DetailAccordionItem({
   return (
     <AccordionItem value={value} disabled={disabled}>
       <AccordionTrigger className="group hover:no-underline">
-        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-2">
+        <span className="flex min-w-0 flex-1 items-start justify-between gap-2">
+          <span className="flex min-w-0 items-start gap-2">
             <span className="break-words group-hover:underline">{title}</span>
             {count !== undefined ? <Badge variant="secondary">{count}</Badge> : null}
           </span>
           {summary}
           {attention ? (
-            <CircleAlert role="img" aria-label="需要关注" className="size-4 shrink-0" />
+            <CircleAlert role="img" aria-label="需要关注" className="size-4 shrink-0 text-destructive" />
           ) : null}
         </span>
       </AccordionTrigger>

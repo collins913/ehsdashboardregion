@@ -8,6 +8,11 @@ export function sourceStatusCompletion(status: string | null): SourceCompletionS
   return normalizedStatus === "已完成";
 }
 
+export function sourceStatusPerformanceResult(status: string | null): PerformanceResult {
+  const complete = sourceStatusCompletion(status);
+  return complete === null ? "UNDETERMINED" : complete ? "ACHIEVED" : "NOT_ACHIEVED";
+}
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }

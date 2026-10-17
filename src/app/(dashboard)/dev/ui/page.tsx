@@ -2,6 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { AnalyticsClosureRadial } from "@/components/shared/analytics-closure-radial";
+import { AnalyticsProgressItem } from "@/components/shared/analytics-progress-item";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
 import { AnimatedNumber } from "@/components/shared/animated-number";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -67,7 +69,7 @@ const numericSortRows = [
 ];
 const numericSortColumns: DataTableColumn<(typeof numericSortRows)[number]>[] = [
   { id: "label", title: "名称", value: (row) => row.label, sizeRole: "primary" },
-  { id: "value", title: "数值", value: (row) => row.value === null ? "—" : String(row.value), sortValue: (row) => row.value, sizeRole: "compact" },
+  { id: "value", title: "数值", value: (row) => row.value === null ? "—" : String(row.value), sortValue: (row) => row.value, sizeRole: "compact", align: "right" },
 ];
 
 const tokenSamples = [
@@ -160,12 +162,8 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
           <DetailAccordion>
             <DetailAccordionItem title="焊接作业证" value="welding" count={1} attention>
               <DetailRecordCard
-                header={
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-base font-medium">Yue SUN（孙悦）</p>
-                    <StatusDisplay status="ABNORMAL" />
-                  </div>
-                }
+                header={<p className="text-base font-medium">Yue SUN（孙悦）</p>}
+                action={<StatusDisplay status="ABNORMAL" />}
               >
                 <div className="space-y-4">
                   <DetailField label="岗位">可自然换行的岗位名称示例</DetailField>
@@ -366,6 +364,10 @@ export default function UiLabPage() {
                     <StatusDisplay status={status} />
                   </div>
                 ))}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">未关闭记录：时钟图标</span>
+                  <StatusDisplay status="OPEN" label="进行中" />
+                </div>
               </div>
             </DemoSurface>
             <DemoSurface
@@ -375,7 +377,7 @@ export default function UiLabPage() {
               <div className="flex flex-wrap gap-2">
                 <DataAvailabilityDisplay availability="AVAILABLE" />
                 <DataAvailabilityDisplay availability="CONFIRMED_EMPTY" />
-                <DataAvailabilityDisplay availability="INCOMPLETE" />
+                <DataAvailabilityDisplay availability="INCOMPLETE" description="2026-03：示例培训：完成率字段为空" />
                 <DataAvailabilityDisplay availability="UNAVAILABLE" />
               </div>
             </DemoSurface>
@@ -432,6 +434,15 @@ export default function UiLabPage() {
                   </Button>
                 ))}
               </div>
+            </DemoSurface>
+            <DemoSurface title="AnalyticsProgressItem" description="名称单行省略并复用溢出 Tooltip；下面用官方 Progress 展示服务端准备的进度，未设置要求时保留空底条及“数量 / 未设置”。">
+              <ul className="max-w-sm space-y-4">
+                <AnalyticsProgressItem label="安全生产管理人员安全生产培训合格证书-M" actualCount={468} requiredCount={500} progressValue={93.6} missingRequirementLabel="未设置" />
+                <AnalyticsProgressItem label="安全驾驶内驾证" actualCount={492} requiredCount={null} progressValue={null} missingRequirementLabel="未设置" />
+              </ul>
+            </DemoSurface>
+            <DemoSurface title="AnalyticsClosureRadial" description="关闭率浮层逐项显示源状态对应的名称和数量，中心文字位于 SVG 内。">
+              <AnalyticsClosureRadial title="关闭情况" rate={33} rateLabel="关闭率" statusCounts={[{ label: "已关闭", count: 2604 }, { label: "进行中", count: 3000 }, { label: "已分配", count: 2396 }]} />
             </DemoSurface>
             <DemoSurface
               title="AnalyticsMetricCard"

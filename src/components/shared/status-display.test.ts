@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  getStatusIcon,
   getStatusEmphasis,
   getStatusIntent,
   getStatusLabel,
@@ -24,6 +25,24 @@ const allStatuses: readonly BusinessStatus[] = [
 ];
 
 describe("StatusDisplay semantics", () => {
+  it("can use the shared pending icon without reclassifying lifecycle intent", () => {
+    const html = renderToStaticMarkup(createElement(StatusDisplay, { status: "OPEN", label: "进行中", icon: getStatusIcon("NOT_ACHIEVED") }));
+    expect(html).toContain("lucide-clock");
+    expect(html).toContain('data-intent="neutral"');
+    expect(html).toContain('data-emphasis="primary"');
+    expect(html).toContain("进行中");
+  });
+
+  it("uses shared lifecycle icons consistently without changing labels or emphasis", () => {
+    for (const [status, icon] of [["OPEN", "lucide-clock"], ["CLOSED", "lucide-circle-check"], ["UNKNOWN", "lucide-minus"], ["EXCLUDED", "lucide-minus"]] as const) {
+      const html = renderToStaticMarkup(createElement(StatusDisplay, { status }));
+      expect(html).toContain(icon);
+      expect(html).toContain(getStatusLabel(status));
+      expect(html).toContain('data-intent="neutral"');
+    }
+    expect(getStatusIcon("OPEN")).toBe(getStatusIcon("NOT_ACHIEVED"));
+  });
+
   it("maps every supported business status", () => {
     for (const status of allStatuses) {
       expect(getStatusLabel(status)).not.toBe("");

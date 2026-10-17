@@ -95,4 +95,26 @@ describe("Certificate Overview requirements and actual counts", () => {
     }).items;
     expect(result.find((item) => item.certificateType === firstAidType)?.requiredCount).toBe(6);
   });
+  it("prepares bounded progress on the server without changing actual quantities", () => {
+    const result = buildCertificateOverview(queryResult([
+      store("a", [record(safeHealthType, "a"), record(safeHealthType, "a"), record(firstAidType, "a")]),
+    ]));
+    expect(result.items.find((item) => item.certificateType === safeHealthType)).toMatchObject({ actualCount: 2, requiredCount: 1, progressValue: 100 });
+    expect(result.items.find((item) => item.certificateType === firstAidType)).toMatchObject({ actualCount: 1, requiredCount: 2, progressValue: 50 });
+    expect(result.items.find((item) => item.certificateType === unconfiguredType)?.progressValue).toBeNull();
+    expect(buildCertificateOverview(queryResult([])).items.every((item) => item.progressValue === null)).toBe(true);
+  });
+  it("includes a newly registered subtype without adding a short label or changing UI lists", () => {
+    const newType = "集中登记的新证件";
+    const result = buildCertificateOverview(queryResult([store("a", [record(newType, "a")])]), {
+      ...CERTIFICATE_REQUIREMENTS, [newType]: 2,
+    }, { ...CERTIFICATE_TYPE_CATEGORIES, [newType]: "安全健康" });
+    expect(result.items.find((item) => item.certificateType === newType)).toMatchObject({
+      fullLabel: newType, shortLabel: newType, certificateCategory: "安全健康", actualCount: 1, requiredCount: 2, progressValue: 50,
+    });
+    const group = result.groups.find((group) => group.certificateCategory === "安全健康")!;
+    expect(group.itemCount).toBe(5);
+    expect(result.items.slice(group.startIndex, group.startIndex + group.itemCount).map((item) => item.certificateType)).toContain(newType);
+  });
+
 });

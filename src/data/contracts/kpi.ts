@@ -96,6 +96,7 @@ export interface KpiActionClosureRateRecord {
 }
 
 export interface KpiDataSnapshot {
+  diagnostics?: readonly (import("./domain-result").KpiDomainDiagnostics & { storeId: StoreId })[];
   domainResults: readonly KpiDomainResult[];
   stores: readonly KpiStore[];
   training: DataSet<KpiTrainingRecord>;

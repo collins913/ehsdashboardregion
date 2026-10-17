@@ -133,13 +133,40 @@ describe("Take Charge Goals repository", () => {
     });
   });
 
-  it("keeps unsupported source coverage incomplete", async () => {
-    const summary = await createMockEhsRepository(referenceDate).getTakeChargeGoals({
-      context: context("2026-10", "2026-10"),
-    });
+  it("counts all supplied records when the end month is in the future", async () => {
+    const records = [takeCharge("CLOSED", "ClosedWithAction", "2026-09-10T09:00:00"), takeCharge("OPEN", "Submitted", "2026-09-11T09:00:00"), takeCharge("FUTURE-SUPPLIED", "Submitted", "2026-12-10T09:00:00")];
+    const repository = createMockEhsRepository(referenceDate, { takeChargeRecords: records });
+    const filters = context("2026-03", "2026-12");
+    const summary = await repository.getTakeChargeGoals({ context: filters });
+    const details = await repository.getTakeChargeRecords({ context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 10 });
+    expect(summary.period).toMatchObject({ availability: "AVAILABLE", submissionTotal: 3, closedCount: 1 });
+    expect(summary.period.closeRate.value).toBeCloseTo(100 / 3);
+    expect(details.availability).toBe("AVAILABLE");
+    expect(details.totalCount).toBe(3);
+  });
 
+  it.each([["2023-03", "2025-01"], ["2026-11", "2026-12"], ["2025-12", "2026-09"]] as const)("returns zero/no rate for empty %s to %s regardless of coverage years", async (start, end) => {
+    const repository = createMockEhsRepository(referenceDate, { takeChargeRecords: [] });
+    const filters = context(start, end);
+    const summary = await repository.getTakeChargeGoals({ context: filters });
+    const details = await repository.getTakeChargeRecords({ context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 7 });
+    expect(details).toMatchObject({ availability: "CONFIRMED_EMPTY", totalCount: 0, items: [] });
+    expect(summary.period).toMatchObject({ availability: "CONFIRMED_EMPTY", submissionTotal: 0, closedCount: 0, closeRate: { value: null } });
+  });
+
+  it("still diagnoses malformed records when the selected end is in the future", async () => {
+    const summary = await createMockEhsRepository(referenceDate, { takeChargeRecords: [takeCharge("BAD", "", "2026-09-10T09:00:00")] }).getTakeChargeGoals({ context: context("2026-03", "2026-12") });
     expect(summary.period.availability).toBe("INCOMPLETE");
     expect(summary.period.submissionTotal).toBeNull();
+  });
+
+  it("counts historical records outside the Mock coverage years", async () => {
+    const repository = createMockEhsRepository(referenceDate, { takeChargeRecords: [takeCharge("PAST-CLOSED", "ClosedWithAction", "2024-05-10T09:00:00"), takeCharge("PAST-OPEN", "Submitted", "2024-06-10T09:00:00")] });
+    const filters = context("2023-03", "2025-01");
+    const summary = await repository.getTakeChargeGoals({ context: filters });
+    const details = await repository.getTakeChargeRecords({ context: filters, viewMode: "ALL", pageIndex: 0, pageSize: 7 });
+    expect(summary.period).toMatchObject({ availability: "AVAILABLE", submissionTotal: 2, closedCount: 1, closeRate: { value: 50 } });
+    expect(details).toMatchObject({ availability: "AVAILABLE", totalCount: 2 });
   });
 
   it("keeps annual scope metrics independent from Global Period", async () => {
@@ -378,7 +405,7 @@ describe("Take Charge record query", () => {
     expect(result.items[0].extraFields).toEqual({ category: "安全" });
   });
 
-  it("marks unresolved TRTID and unsupported Period incomplete", async () => {
+  it("keeps unresolved TRTID incomplete but permits periods beyond Mock coverage", async () => {
     const unresolved = await createMockEhsRepository(referenceDate, {
       takeChargeRecords: [takeCharge("BAD", "Submitted", undefined, "MISSING")],
     }).getTakeChargeRecords({
@@ -388,14 +415,15 @@ describe("Take Charge record query", () => {
       pageSize: 7,
     });
     const unsupported = await createMockEhsRepository(referenceDate).getTakeChargeRecords({
-      context: context("2026-10", "2026-10"),
+      context: context("2025-12", "2026-01"),
       viewMode: "ALL",
       pageIndex: 0,
       pageSize: 7,
     });
 
     expect(unresolved.availability).toBe("INCOMPLETE");
-    expect(unsupported.availability).toBe("INCOMPLETE");
+    expect(unsupported.availability).toBe("AVAILABLE");
+    expect(unsupported.totalCount).toBeGreaterThan(0);
   });
 
   it("does not treat a missing status as a reliable close-rate input", async () => {

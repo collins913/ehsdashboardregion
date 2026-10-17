@@ -27,7 +27,7 @@
 |---|---|
 | 数据库 | 类型、网络入口、Approved Driver、凭据管理方式、事务与隔离能力 |
 | 字段映射 | 各 Domain 物理表/视图、字段、类型、稳定记录 ID、自然键、时间含义、完整性证明 |
-| Required Sets | Training required item catalog、Inspection expected task set、稳定 item/task ID、版本与生效范围 |
+| 培训／检查评价 | 仅评价已有记录；完整零记录达成并计满分，不要求任务清单或每月有记录 |
 | 身份 | SSO issuer/audience/session 验证方式、稳定 `principalId`、服务端验证邮箱 |
 | 初始管理员 | 唯一允许 Bootstrap 的稳定 `principalId`，以及对应已验证邮箱 |
 | 机器身份 | 调用方、Domain allowlist、操作 allowlist、凭据轮换与撤销方式 |
@@ -60,7 +60,7 @@ Take Charge 的逻辑字段与目标已经确认；公司直接读取并映射 `
 5. 选择一个不影响 Overview 的 Domain 做 Production Pilot；核对原始数量、规范化结果、覆盖证明和回滚。
 6. 逐个接入其他 Repository Domain；不得用 Mock 数据补齐缺失的 Production Domain。
 7. 验证部署平台日志和故障响应流程；应用不提供系统监控模块。
-8. 只有全部评分输入、authoritative required sets、来源 aggregate 和历史要求就绪后，才允许切换 Overview。
+8. 只有全部评分输入、来源 aggregate 和历史要求就绪后，才允许切换 Overview。
 9. UAT 通过后显式设置 `EHS_DATA_SOURCE=production`；再次执行 fail-closed、回滚和权限隔离验证。
 
 正式切换和回滚执行使用 [`production-cutover-rollback-runbook.md`](production-cutover-rollback-runbook.md)。
@@ -101,7 +101,7 @@ git diff --check
 - Production 使用 Mock identity、Mock Repository、内存 Access 或测试 Adapter。
 - Client 可覆盖服务端身份、授权 Scope 或上海时区 `referenceDate`。
 - 未验证来源完整性却发布批次，或把 `DECLARED_COMPLETE` 当作 `VERIFIED_COMPLETE`。
-- Store Master、字段映射、Required Sets 或 Take Charge aggregate 映射仍未确认。
+- Store Master、字段映射 或 Take Charge aggregate 映射仍未确认。
 - 权限检查发生在读取受保护数据之后，或缓存未按身份/Scope 隔离。
 - 没有持久化审计、回滚证据或 UAT 记录。
 - 密钥、Token、连接串或真实个人数据进入 Git、浏览器配置或日志。

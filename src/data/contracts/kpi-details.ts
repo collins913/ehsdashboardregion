@@ -1,5 +1,6 @@
 import type { EhsFilterContext, DataSet } from "@/data/contracts/kpi";
 import type { NormalizedEventRecord } from "@/data/contracts/event-record";
+import type { PerformanceResult } from "@/lib/rules/result-types";
 import type { IsoDate, Month, StoreId } from "@/types/ehs";
 
 export interface KpiDetailQuery {
@@ -18,6 +19,7 @@ export interface KpiDrillDetailRecord {
   drillName: string;
   month: Month;
   status: string | null;
+  completionResult: PerformanceResult;
 }
 
 export interface KpiInspectionDetailRecord {
@@ -26,6 +28,7 @@ export interface KpiInspectionDetailRecord {
   dueDate: IsoDate | null;
   inspector: string | null;
   status: string | null;
+  completionResult: PerformanceResult;
 }
 
 export type KpiDetailRecords<T> = DataSet<T>;

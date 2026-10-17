@@ -1,5 +1,7 @@
 "use client"
 
+import { dataTableColumnAlignmentClassNames } from "@/components/shared/data-table-layout"
+import { cn } from "@/lib/utils"
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip"
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,7 +34,7 @@ export function AttentionMatrix({ matrix, onSelect, comparisonLabel, selectedSco
                   <colgroup><col /><col className="w-20" /><col className="w-24" /></colgroup>
                   <TableHeader><TableRow><TableHead>名称</TableHead><TableHead className="text-right">得分率</TableHead><TableHead className="text-right">变化</TableHead></TableRow></TableHeader>
                   <TableBody>{members.map((member) => <TableRow key={member.id}>
-                    <TableCell className="py-2 pl-0">
+                    <TableCell className={cn("py-2", dataTableColumnAlignmentClassNames.left)}>
                       <div className="flex min-w-0 items-center gap-2">
                         <OverflowTooltip text={member.label} className="flex-1 font-medium" renderTrigger={(label) => (
                           <TableCellTrigger className="min-w-0 flex-1 justify-start text-left" aria-current={member.id === selectedScopeId ? "true" : undefined} aria-label={`查看${member.label}详情`} onClick={(event) => onSelect(member.id, event.currentTarget)}>{label}</TableCellTrigger>

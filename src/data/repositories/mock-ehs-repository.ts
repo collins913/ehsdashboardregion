@@ -1,3 +1,5 @@
+import { storeFieldDefinitions } from "@/data/contracts/store-fields";
+import { sourceStatusPerformanceResult } from "@/lib/rules/performance-rules";
 import { areaScopeId } from "@/data/contracts/kpi";
 import { toKpiStore } from "@/data/normalize-store-master";
 import {
@@ -109,6 +111,7 @@ function toNormalizedStoreRecord(
   store: StoreMasterData,
 ): NormalizedStoreRecord {
   return {
+    ...(store.extraFields ? { extraFields: store.extraFields } : {}),
     storeId: store.trtid,
     storeNameCn: store.storeNameCn,
     storeNameEn: store.storeNameEn,
@@ -557,9 +560,11 @@ export function createMockEhsRepository(
   }
   async function getKpiData(context: EhsFilterContext): Promise<KpiDataSnapshot> {
     const sources = kpiDomainInputs(context);
+    const diagnostics = sources.map(({ store }) => ({ storeId: store.storeId, training: [] as string[], inspections: [] as string[] }));
     return {
+      diagnostics,
       stores: sources.map((source) => source.store),
-      domainResults: sources.map((input) => evaluateKpiDomain(input, overviewRequiredSetProvider)),
+      domainResults: sources.map((input, index) => evaluateKpiDomain(input, overviewRequiredSetProvider, diagnostics[index])),
       training: mergeSources(sources.map((source) => source.training), kpiSources.training.unattributedIssueCountFor(context.period.includedMonths)),
       drills: mergeSources(sources.map((source) => source.drills), kpiSources.drills.unattributedIssueCountFor(context.period.includedMonths)),
       inspections: mergeSources(sources.map((source) => source.inspections), kpiSources.inspections.unattributedIssueCountFor(context.period.includedMonths)),
@@ -598,7 +603,7 @@ export function createMockEhsRepository(
     const source = kpiSources.drills.read(query.storeId, query.context.period.includedMonths,
       coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "drills"));
     const items: KpiDrillDetailRecord[] = source.items.map(({ drillName, month, status }) =>
-      ({ drillName, month, status })).sort((a, b) => b.month.localeCompare(a.month) || a.drillName.localeCompare(b.drillName));
+      ({ drillName, month, status, completionResult: sourceStatusPerformanceResult(status) })).sort((a, b) => b.month.localeCompare(a.month) || a.drillName.localeCompare(b.drillName));
     return source.reason || items.some((item) => item.status === null) ? incompleteDataSet(items) : completeDataSet(items);
   }
   async function getKpiInspectionDetails(query: KpiDetailQuery) {
@@ -607,7 +612,7 @@ export function createMockEhsRepository(
     const source = kpiSources.inspections.read(query.storeId, query.context.period.includedMonths,
       coverageForPeriod(query.context, scope.parsedPeriod)(query.storeId, "inspections"));
     const items: KpiInspectionDetailRecord[] = source.items.map(({ inspectionNumber, inspectionName, dueDate, inspector, status }) =>
-      ({ inspectionNumber, inspectionName, dueDate, inspector, status })).sort((a, b) =>
+      ({ inspectionNumber, inspectionName, dueDate, inspector, status, completionResult: sourceStatusPerformanceResult(status) })).sort((a, b) =>
         (b.dueDate ?? "").localeCompare(a.dueDate ?? "") || a.inspectionName.localeCompare(b.inspectionName));
     return source.reason ? incompleteDataSet(items) : completeDataSet(items);
   }
@@ -766,8 +771,9 @@ export function createMockEhsRepository(
   }
 
   const takeChargeMonthlyByKey = new Map(takeChargeMonthlyAggregates.map((row) => [`${row.storeId}\u0000${row.month}`, row]));
-  function takeChargePeriodSource(storeIds: readonly StoreId[], context: EhsFilterContext, covered: ReturnType<typeof coverageForPeriod>) {
-    const sourceSlices = storeIds.map((storeId) => takeChargeIndex.read(storeId, context.period.includedMonths, covered(storeId, "takeCharge")));
+  // Take Charge period metrics describe received records, independent of Mock year coverage.
+  function takeChargePeriodSource(storeIds: readonly StoreId[], context: EhsFilterContext) {
+    const sourceSlices = storeIds.map((storeId) => takeChargeIndex.read(storeId, context.period.includedMonths, true));
     const reason = mostSpecificReason(sourceSlices.map((source) => source.reason));
     let totalCount = 0, closedCount = 0;
     for (const storeId of storeIds) for (const month of context.period.includedMonths) {
@@ -783,7 +789,7 @@ export function createMockEhsRepository(
   }
   async function getTakeChargeGoals({ context }: TakeChargeGoalsQuery): Promise<TakeChargeGoalsSummary> {
     const storeIds = requestedStores(context, stores).map((store) => store.storeId);
-    const source = takeChargePeriodSource(storeIds, context, coverageForPeriod(context, parseKpiPeriod(context.period)));
+    const source = takeChargePeriodSource(storeIds, context);
     const queryReason = mostSpecificReason([
       source.reason,
       takeChargeIndex.unattributedIssueCountFor(context.period.includedMonths) > 0 ? "SOURCE_INCOMPLETE" : undefined,
@@ -799,10 +805,9 @@ export function createMockEhsRepository(
     };
   }
   async function getStoreGoalDomainResults(context: EhsFilterContext, referenceDay: string) {
-    const covered = coverageForPeriod(context, parseKpiPeriod(context.period));
     const referenceMonth = referenceDay.slice(0, 7) as Month;
     return requestedStores(context, stores).map(({ storeId }) => {
-      const source = takeChargePeriodSource([storeId], context, covered);
+      const source = takeChargePeriodSource([storeId], context);
       const annual = annualGoalResult([storeId], referenceMonth);
       return { storeId, closeRate: evaluateTakeChargePeriod(source.totalCount, source.closedCount, source.availability, source.reason),
         submissionsPerCapitaYtd: annual.submissionsPerCapitaYtd, participationRateYtd: annual.participationRateYtd };
@@ -865,14 +870,8 @@ export function createMockEhsRepository(
                 a.tchId.localeCompare(b.tchId)
               );
             });
-    const sourceCovered =
-      isSourceCovered(
-        context,
-        selectedStoreIdList,
-        parsedPeriod,
-        mockData.coverage,
-        "takeCharge",
-      ) &&
+    const recordsValid =
+      parsedPeriod !== null &&
       takeChargeIndex.unattributedIssueCountFor(context.period.includedMonths) === 0 &&
       selectedStoreIdList.every((storeId) => takeChargeIndex.read(storeId, context.period.includedMonths, true).reason === undefined);
     const pageIndex = pageIndexForResult(
@@ -883,7 +882,7 @@ export function createMockEhsRepository(
     const start = pageIndex * pageSize;
 
     return {
-      availability: sourceCovered
+      availability: recordsValid
         ? records.length === 0
           ? "CONFIRMED_EMPTY"
           : "AVAILABLE"
@@ -897,9 +896,8 @@ export function createMockEhsRepository(
   }
 
   async function getStores({ context }: StoresQuery): Promise<StoresQueryResult> {
-    return completeDataSet(
-      scopedStoreMaster(context, stores).map(toNormalizedStoreRecord),
-    );
+    const records = scopedStoreMaster(context, stores).map(toNormalizedStoreRecord);
+    return { ...completeDataSet(records), fieldDefinitions: storeFieldDefinitions(records) };
   }
 
   async function getEnvironment({ context }: EnvironmentQuery): Promise<EnvironmentQueryResult> {

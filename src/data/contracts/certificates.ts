@@ -41,6 +41,7 @@ export interface CertificateOverviewItem {
   fullLabel: string;
   requiredCount: number | null;
   actualCount: number;
+  progressValue: number | null;
 }
 
 export interface CertificateOverviewGroup {

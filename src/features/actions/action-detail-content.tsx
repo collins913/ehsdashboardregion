@@ -30,21 +30,13 @@ export function ActionDetailContent({
             {formatBusinessDateTime(record.closedDate)}
           </DetailField>
         </div>
-      </dl>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">问题</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+        <DetailField label="问题" className="sm:col-span-2">
           {record.problem}
-        </p>
-      </section>
-
-      <section className="space-y-2">
-        <h3 className="font-medium">行动项</h3>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+        </DetailField>
+        <DetailField label="行动项" className="sm:col-span-2">
           {record.action}
-        </p>
-      </section>
+        </DetailField>
+      </dl>
     </div>
   );
 }

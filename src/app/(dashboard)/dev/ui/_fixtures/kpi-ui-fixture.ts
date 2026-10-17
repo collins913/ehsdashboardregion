@@ -115,8 +115,8 @@ export const queryDemoKpiDetails: KpiDetailQueries = {
   drill: async () => ({
     availability: "AVAILABLE",
     items: [
-      { drillName: "消防疏散演练", month: "2026-09", status: "已完成" },
-      { drillName: "应急响应演练", month: "2026-08", status: "待确认" },
+      { drillName: "消防疏散演练", month: "2026-09", status: "已完成", completionResult: "ACHIEVED" },
+      { drillName: "应急响应演练", month: "2026-08", status: "待确认", completionResult: "NOT_ACHIEVED" },
     ],
   }),
   inspections: async () => ({
@@ -127,7 +127,7 @@ export const queryDemoKpiDetails: KpiDetailQueries = {
         inspectionName: "月度安全检查",
         dueDate: "2026-09-20",
         inspector: "陈晨",
-        status: "已完成",
+        status: "已完成", completionResult: "ACHIEVED",
       },
     ],
   }),

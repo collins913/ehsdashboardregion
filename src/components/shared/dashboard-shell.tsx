@@ -1,7 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
+import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { getDashboardRoute } from "@/config/navigation";
 import { AppSidebar } from "@/components/shared/app-sidebar";
@@ -30,13 +32,29 @@ export function DashboardShell({
   referenceMonth,
   account,
 }: DashboardShellProps) {
-  const route = getDashboardRoute(usePathname());
+  const pathname = usePathname();
+  const router = useRouter();
+  const [pendingPathname, setPendingPathname] = useState<string | null>(null);
+  const [isNavigating, startNavigation] = useTransition();
+  const navigationRequested = useRef(false);
+  useEffect(() => {
+    if (!isNavigating) navigationRequested.current = false;
+  }, [isNavigating]);
+  const displayedPathname = isNavigating && pendingPathname ? pendingPathname : pathname;
+  const route = getDashboardRoute(displayedPathname);
+  function navigate(href: string) {
+    if (href === pathname && !isNavigating && !navigationRequested.current) return;
+    // Track the intent synchronously, including clicks before React renders pending state.
+    navigationRequested.current = true;
+    setPendingPathname(href);
+    startNavigation(() => router.push(href));
+  }
   return (
     <GLifeContextProvider>
       <SidebarProvider>
-        <AppSidebar account={account} />
+        <AppSidebar account={account} activePathname={displayedPathname} onNavigate={navigate} />
         <SidebarInset className="min-w-0">
-          <GlobalFilterProvider stores={stores} initialState={initialFilterState} nowIso={nowIso} referenceMonth={referenceMonth}>
+          <GlobalFilterProvider userEmail={account?.email} stores={stores} initialState={initialFilterState} nowIso={nowIso} referenceMonth={referenceMonth}>
             {route && route.showDashboardHeader !== false ? (
               <PageHeader
                 title={route.title}
@@ -48,7 +66,9 @@ export function DashboardShell({
                   : [{ label: route.title }]}
               />
             ) : null}
-            {children}
+            {isNavigating ? (
+              <PageContainer><AsyncQueryFeedback status="LOADING" /></PageContainer>
+            ) : children}
           </GlobalFilterProvider>
         </SidebarInset>
       </SidebarProvider>

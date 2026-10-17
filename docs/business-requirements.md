@@ -131,7 +131,7 @@ Training、Drill、Inspections 与 ASTM 事件的结果单元格可打开门店�
 
 明细筛选、排序、Source Status 完成判定及 KPI 评价由 Repository / 集中业务逻辑执行。React 仅渲染查询结果，不重算 KPI、不解释状态、不对业务记录排序。
 
-Training 和 Inspection 当前 source contract 不含必修 / 必检标记或对应 requirement 集合。不得从完成率、人员、名称、截止日期或状态推断 requirement membership；对应 KPI 规则标记 `BUSINESS_RULE_TBD`，在正式规则确认前返回未确定。
+培训与检查仅评价当前 Store × Period 实际收到的记录，不要求每月有记录、不检查项目或任务清单齐全，也不要求两类记录同时存在。培训所有已有记录 completionRate = 100、检查所有已有记录 status 规范化后精确为“已完成”则达成；任一有效记录未完成则进行中。整个范围经确认完整且零记录时视为无待办，达成并计满分。已有记录必要字段为空或格式错误、来源不可用或覆盖不完整仍为未确定，并保留具体诊断。
 
 ## 5. Performance → Goals
 
@@ -309,9 +309,9 @@ Stores 仅用于查看和核对 Store Master Data，不展示或计算 Performan
 
 ### 10.2 默认显示字段
 
-Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表。Store Name EN 在 Store Detail 中展示。
+Stores 列表默认勾选并显示六列：Store Name CN、Region、Area、TRTID、Manager、EHS&S 代表。冻结门店列不可隐藏；列显示菜单默认勾选其余五列。Store Name EN、区域负责人、小区负责人及四类联系人邮箱均作为默认隐藏的可选列。
 
-未来允许增加其它门店主数据字段；新增字段是否默认显示：TBD。
+新增门店主数据展示字段通过 `extraFields` 提供，由服务端按已授权门店范围返回字段定义和字段值；自动进入共享列显示菜单，默认不勾选，不需修改页面列列表。字段 key 作为显示名称；支持文本、有限数值、布尔值和 null。
 
 ### 10.3 列表与详情
 

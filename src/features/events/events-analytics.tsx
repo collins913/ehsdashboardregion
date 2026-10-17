@@ -3,7 +3,7 @@ import { queryErrorMessage } from "@/data/contracts/query-result";
 import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Cell, Pie, PieChart } from "recharts";
+import { Cell, Label, Pie, PieChart, Text } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -27,10 +27,6 @@ type QueryAction = (input: {
   query: EventAnalyticsQuery;
 }) => Promise<QueryOutcome<EventAnalyticsResult>>;
 
-const chartConfig = {
-  eventCount: { label: "事件数量", color: "var(--analytics-primary)" },
-} satisfies ChartConfig;
-
 const EVENT_TYPE_COLORS = [
   "var(--analytics-series-1)",
   "var(--analytics-series-2)",
@@ -42,31 +38,60 @@ const EVENT_TYPE_COLORS = [
 
 function EventTypeDonut({ result }: { result: EventAnalyticsResult }) {
   const chartAnimationEnabled = useAnalyticsChartAnimationEnabled();
+  const typeConfig = Object.fromEntries(result.byType.map((item, index) => [
+    `type${index}`,
+    { label: item.eventType, color: EVENT_TYPE_COLORS[index % EVENT_TYPE_COLORS.length] },
+  ])) satisfies ChartConfig;
+  const typeData = result.byType.map((item, index) => ({
+    ...item,
+    legendKey: `type${index}`,
+    fill: EVENT_TYPE_COLORS[index % EVENT_TYPE_COLORS.length],
+  }));
   return (
     <Card className={`${ANALYTICS_CARD_HEIGHT_CLASS_NAME} flex flex-col gap-3 py-4`}>
       <CardHeader className="items-center px-4 pb-0">
         <CardTitle>类型分布</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-1 items-center justify-center px-4">
-        <div className="relative mx-auto size-48">
-          <ChartContainer config={chartConfig} className="size-full aspect-square">
-            <PieChart>
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="eventType" />} />
-              <Pie data={result.byType} dataKey="count" nameKey="eventType" innerRadius={60} strokeWidth={5} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out">
-                {result.byType.map((item, index) => (
-                  <Cell
-                    key={`${item.eventType}-${index}`}
-                    fill={EVENT_TYPE_COLORS[index] ?? EVENT_TYPE_COLORS[index % EVENT_TYPE_COLORS.length]}
-                  />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center" role="img" aria-label={`${result.totalCount.toLocaleString()} 个事件`}>
-            <span className="text-3xl font-bold leading-none text-foreground"><AnimatedNumber value={result.totalCount} /></span>
-            <span className="text-sm leading-6 text-muted-foreground">事件</span>
-          </div>
-        </div>
+      <CardContent className="flex min-h-0 flex-1 items-center justify-center px-4">
+        <ChartContainer config={typeConfig} className="mx-auto h-full w-full max-w-xl aspect-auto">
+          <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel nameKey="legendKey" />} />
+            <Pie data={typeData} dataKey="count" nameKey="legendKey" innerRadius="55%" outerRadius="74%" labelLine={false} label={({ cx, cy, midAngle, outerRadius, index }) => {
+              if (cx == null || cy == null || midAngle == null || outerRadius == null) return null;
+              const angle = -midAngle * Math.PI / 180;
+              const cosine = Math.cos(angle);
+              const sine = Math.sin(angle);
+              const labelX = cx + (outerRadius + 8) * cosine;
+              const labelY = cy + (outerRadius + 8) * sine;
+              const nearVertical = Math.abs(cosine) < 0.3;
+              const textAnchor = nearVertical ? "middle" : cosine > 0 ? "start" : "end";
+              const verticalAnchor = nearVertical ? sine < 0 ? "end" : "start" : "middle";
+              const labelWidth = Math.max(24, nearVertical
+                ? 2 * Math.min(labelX, 2 * cx - labelX) - 16
+                : (cosine > 0 ? 2 * cx - labelX : labelX) - 8);
+              const name = typeData[index]?.eventType ?? "";
+              return (
+                <g className="pointer-events-none">
+                  <title>{name}</title>
+                  <Text x={labelX} y={labelY} width={labelWidth} maxLines={2} textAnchor={textAnchor} verticalAnchor={verticalAnchor} className="fill-foreground text-xs">{name}</Text>
+                </g>
+              );
+            }} strokeWidth={5} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out">
+              {typeData.map((item) => <Cell key={item.legendKey} fill={item.fill} />)}
+              <Label content={({ viewBox }) => {
+                if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) return null;
+                return (
+                  <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle" aria-label={`${result.totalCount.toLocaleString()} 个事件`}>
+                    <tspan x={viewBox.cx} className="fill-foreground text-2xl font-bold">
+                      <AnimatedNumber value={result.totalCount} />
+                    </tspan>
+                    <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 24} className="fill-muted-foreground text-sm">事件数量</tspan>
+                  </text>
+                );
+              }} />
+            </Pie>
+          </PieChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

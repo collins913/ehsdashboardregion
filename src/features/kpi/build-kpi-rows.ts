@@ -3,12 +3,13 @@ import type { KpiPageResult, KpiRow } from "./types";
 
 /** Presentation only: all business conclusions already belong to Domain Results. */
 export function buildKpiRows(_context: EhsFilterContext, snapshot: KpiDataSnapshot): readonly KpiRow[] {
+  const diagnostics = new Map(snapshot.diagnostics?.map((item) => [item.storeId, item]));
   return snapshot.domainResults.map(({ store, training, drill, actions, inspections, astmEvents }) => ({
     store,
-    training: { availability: training.availability, result: training.result },
+    training: { availability: training.availability, result: training.result, ...(diagnostics.get(store.storeId)?.training.length ? { diagnostics: diagnostics.get(store.storeId)!.training } : {}) },
     drill: { availability: drill.availability, result: drill.result },
     actions: { availability: actions.availability, result: actions.result, value: actions.value },
-    inspections: { availability: inspections.availability, result: inspections.result },
+    inspections: { availability: inspections.availability, result: inspections.result, ...(diagnostics.get(store.storeId)?.inspections.length ? { diagnostics: diagnostics.get(store.storeId)!.inspections } : {}) },
     astmEvents: { availability: astmEvents.availability, result: astmEvents.result },
   }));
 }

@@ -97,7 +97,7 @@ export function MonthPicker({
           <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72">
+      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) min-w-36">
         <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
           <SelectTrigger className="w-full" aria-label="年份">
             <SelectValue />

@@ -37,6 +37,7 @@ import {
 import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
+  dataTableColumnAlignmentClassNames,
   dataTableClassName,
   dataTableFrameClassName,
   dataTableRowClassName,
@@ -91,7 +92,6 @@ import {
 } from "@/hooks/use-adaptive-table-page-size";
 import { useLatestAsyncQuery } from "@/hooks/use-latest-async-query";
 import { formatActionClosureRate } from "@/lib/format-action-closure-rate";
-import { formatBusinessPeriod } from "@/lib/format-business-period";
 import type {
   OccurrenceResult,
   PerformanceResult,
@@ -152,7 +152,7 @@ function ResultCell({
   return (
     <TableCellTrigger onClick={onOpen} aria-label={label}>
       {value.availability === "INCOMPLETE" || value.availability === "UNAVAILABLE" ? (
-        <DataAvailabilityDisplay availability={value.availability} />
+        <DataAvailabilityDisplay availability={value.availability} description={value.diagnostics?.join("；")} />
       ) : (
         <StatusDisplay status={value.result} interactive />
       )}
@@ -290,15 +290,8 @@ function ActionsSheet({
               : <StatusDisplay status={row.actions.result} />
             : undefined}
         />
-        <div className="space-y-6 px-4 pb-4">
-          {row ? (
-            <dl className="space-y-4">
-              <div>
-                <dt className="text-xs text-muted-foreground">统计周期</dt>
-                <dd className="mt-1">{formatBusinessPeriod(context.period)}</dd>
-              </div>
-            </dl>
-          ) : null}
+        <section className="space-y-3 px-4 pb-4" aria-label="未关闭行动项明细">
+          <h3 className="text-sm font-medium">行动项（未关闭）</h3>
           {queryState.status === "LOADING" ? (
             <AsyncQueryFeedback status="LOADING" />
           ) : queryState.status === "ERROR" ? (
@@ -323,7 +316,7 @@ function ActionsSheet({
               ))}
             </div>
           )}
-        </div>
+        </section>
       </SheetContent>
     </Sheet>
   );
@@ -506,7 +499,7 @@ export function KpiDataTable({
           {
             id: "training",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title={columnLabels.training} />
+              <DataTableColumnHeader column={column} title={columnLabels.training} align="center" />
             ),
             cell: ({ row }) => (
               <ResultCell
@@ -526,7 +519,7 @@ export function KpiDataTable({
           {
             id: "drill",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title={columnLabels.drill} />
+              <DataTableColumnHeader column={column} title={columnLabels.drill} align="center" />
             ),
             cell: ({ row }) => (
               <ResultCell
@@ -544,7 +537,7 @@ export function KpiDataTable({
         columnHelper.accessor((row) => row.actions.value ?? undefined, {
           id: "actions",
           header: ({ column }) => (
-            <DataTableColumnHeader column={column} title={columnLabels.actions} />
+            <DataTableColumnHeader column={column} title={columnLabels.actions} align="center" />
           ),
           cell: ({ row }) => (
             <ActionsCell
@@ -564,7 +557,7 @@ export function KpiDataTable({
           {
             id: "inspections",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title={columnLabels.inspections} />
+              <DataTableColumnHeader column={column} title={columnLabels.inspections} align="center" />
             ),
             cell: ({ row }) => (
               <ResultCell
@@ -584,7 +577,7 @@ export function KpiDataTable({
           {
             id: "astmEvents",
             header: ({ column }) => (
-              <DataTableColumnHeader column={column} title={columnLabels.astmEvents} />
+              <DataTableColumnHeader column={column} title={columnLabels.astmEvents} align="center" />
             ),
             cell: ({ row }) => (
               <AstmResultCell
@@ -628,6 +621,7 @@ export function KpiDataTable({
     id: column.id,
     className: cn(
       kpiColumnSizeClassName(column.id),
+      dataTableColumnAlignmentClassNames[column.id === "store" ? "left" : "center"],
       column.id === "store" && stickyStoreCellClassName,
     ),
   }));
@@ -669,6 +663,7 @@ export function KpiDataTable({
                     key={header.id} aria-sort={getColumnAriaSort(header.column)}
                     className={cn(
                       kpiColumnSizeClassName(header.column.id),
+                      dataTableColumnAlignmentClassNames[header.column.id === "store" ? "left" : "center"],
                       header.column.id === "store" &&
                         stickyStoreHeaderClassName,
                     )}
@@ -714,6 +709,7 @@ export function KpiDataTable({
                       key={cell.id}
                       className={cn(
                         kpiColumnSizeClassName(cell.column.id),
+                        dataTableColumnAlignmentClassNames[cell.column.id === "store" ? "left" : "center"],
                         cell.column.id === "store" &&
                           stickyStoreCellClassName,
                       )}

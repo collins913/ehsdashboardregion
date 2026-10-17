@@ -66,7 +66,7 @@ const statusDefinitions: Record<BusinessStatus, StatusDefinition> = {
     label: "未关闭",
     intent: "NEUTRAL",
     emphasis: "PRIMARY",
-    icon: Minus,
+    icon: Clock3,
   },
   CLOSED: {
     label: "已关闭",
@@ -120,6 +120,10 @@ const interactiveClassNames: Record<StatusEmphasis, string> = {
     "group-hover/table-cell-trigger:bg-muted group-hover/table-cell-trigger:text-muted-foreground",
 };
 
+export function getStatusIcon(status: BusinessStatus): LucideIcon {
+  return statusDefinitions[status].icon;
+}
+
 export function getStatusIntent(status: BusinessStatus): StatusIntent {
   return statusDefinitions[status].intent;
 }
@@ -136,6 +140,7 @@ type StatusDisplayProps = {
   status: BusinessStatus;
   label?: ReactNode;
   showIcon?: boolean;
+  icon?: LucideIcon;
   interactive?: boolean;
   className?: string;
 };
@@ -144,11 +149,12 @@ export function StatusDisplay({
   status,
   label,
   showIcon = true,
+  icon,
   interactive = false,
   className,
 }: StatusDisplayProps) {
   const definition = statusDefinitions[status];
-  const Icon = definition.icon;
+  const Icon = icon ?? definition.icon;
 
   return (
     <Badge

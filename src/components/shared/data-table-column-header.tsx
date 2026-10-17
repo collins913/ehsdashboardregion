@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { DataTableColumnAlignment } from "./data-table-layout";
 import { cn } from "@/lib/utils";
 
 type SortableColumn = {
@@ -12,6 +13,7 @@ type DataTableColumnHeaderProps = {
   column: SortableColumn;
   title: string;
   className?: string;
+  align?: DataTableColumnAlignment;
 };
 
 export function getColumnAriaSort(column: Pick<SortableColumn, "getIsSorted">) {
@@ -23,6 +25,7 @@ export function DataTableColumnHeader({
   column,
   title,
   className,
+  align = "left",
 }: DataTableColumnHeaderProps) {
   if (!column.getCanSort()) {
     return <span className={className}>{title}</span>;
@@ -40,7 +43,7 @@ export function DataTableColumnHeader({
     <Button
       variant="ghost"
       size="sm"
-      className={cn("-ml-2", className)}
+      className={cn(align === "left" ? "-ml-2.5" : align === "right" ? "-mr-2.5" : undefined, className)}
       onClick={() => column.toggleSorting(direction === "asc")}
       aria-label={`${title}: ${
         direction === "asc"

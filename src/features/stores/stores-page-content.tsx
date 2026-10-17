@@ -55,6 +55,7 @@ export function StoresPageContent({
           ) : null}
           <StoresDataTable
             rows={result?.items ?? []}
+            fieldDefinitions={result?.fieldDefinitions}
             queryKey={queryKey ?? ""}
             queryStatus={
               state.status === "SUCCESS" ? "READY" : state.status

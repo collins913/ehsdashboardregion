@@ -1,12 +1,15 @@
 "use client"
 
+import { cn } from "@/lib/utils"
 import { useId } from "react"
 import { Info } from "lucide-react"
-import { DetailAccordion, DetailAccordionItem } from "@/components/shared/detail-accordion"
+import { DetailAccordion, DetailAccordionItem, detailAccordionSummaryInsetClassName } from "@/components/shared/detail-accordion"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { OverviewDimensionScore, OverviewDimensionItemScore, OverviewMetricId } from "@/data/contracts/overview"
 import { formatOverviewScore, ScoreChange } from "./score-change"
+
+const numericColumnsClassName = "grid shrink-0 whitespace-nowrap grid-cols-[var(--dimension-score-width)_7rem] gap-2 text-center"
 
 const dimensionLabels = { PERFORMANCE: "KPI", TAKE_CHARGE: "目标", CERTIFICATES: "证件", ENVIRONMENT: "环境" }
 const itemLabels: Record<OverviewMetricId, string> = {
@@ -45,7 +48,7 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
   const titleId = useId()
   const Heading = headingLevel === 3 ? "h3" : "h2"
   return (
-      <section aria-labelledby={titleId} className={headingLevel === 2 ? "@container/dimension-score flex min-h-0 flex-1 flex-col" : "@container/dimension-score"}>
+      <section aria-labelledby={titleId} className={headingLevel === 2 ? "@container/dimension-score [--dimension-score-width:4rem] flex min-h-0 flex-1 flex-col" : "@container/dimension-score [--dimension-score-width:4rem]"}>
         <Heading id={titleId} className={headingLevel === 3 ? "mb-4 text-sm font-medium tracking-tight" : "mb-6 text-lg font-semibold tracking-tight"}>
           {showAverage ? <HoverCard openDelay={125} closeDelay={100}>
             <HoverCardTrigger asChild>
@@ -60,21 +63,22 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
             </HoverCardContent>
           </HoverCard> : "维度得分"}
         </Heading>
-        <div className="flex shrink-0 items-center justify-between gap-2 pr-8 text-xs text-muted-foreground">
-          <span>维度</span><span className="grid shrink-0 whitespace-nowrap grid-cols-[4rem_7rem] @min-[320px]/dimension-score:grid-cols-[5rem_7rem] gap-2 text-center"><span>{showAverage ? "每店均分" : "当前得分"}</span><span>得分变化（分）</span></span>
+        <div className={headingLevel === 2 ? "min-h-0 flex-1 overflow-y-auto @min-[320px]/dimension-score:[--dimension-score-width:5rem]" : "@min-[320px]/dimension-score:[--dimension-score-width:5rem]"}>
+        <div className={cn("sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 bg-background text-xs text-muted-foreground", detailAccordionSummaryInsetClassName)}>
+          <span>维度</span><span className={numericColumnsClassName}><span>{showAverage ? "每店均分" : "当前得分"}</span><span>得分变化（分）</span></span>
         </div>
-        <DetailAccordion key={identity} className={headingLevel === 2 ? "min-h-0 flex-1 overflow-y-auto" : undefined}>
+        <DetailAccordion key={identity}>
           {scores.filter((dimension) => dimension.id !== "ENVIRONMENT").map((dimension) => <DetailAccordionItem key={dimension.id} value={dimension.id} title={dimensionLabels[dimension.id]}
             disabled={dimension.items.length === 0}
-            summary={<span className="grid shrink-0 whitespace-nowrap grid-cols-[4rem_7rem] @min-[320px]/dimension-score:grid-cols-[5rem_7rem] gap-2 text-center"><span className="tabular-nums">{currentPoints(dimension, showAverage)}</span><ScoreChange value={dimension.delta} suffix="" /></span>}
+            summary={<span className={numericColumnsClassName}><span className="tabular-nums">{currentPoints(dimension, showAverage)}</span><ScoreChange value={dimension.delta} suffix="" /></span>}
           >
-            <div className="pr-8">
+            <div className={detailAccordionSummaryInsetClassName}>
             <Table className="table-fixed" aria-label={`${dimensionLabels[dimension.id]}小维度得分`}>
               <colgroup>
                 <col />
-                {/* Match the summary score column plus its gap at either container width. */}
-                <col className="w-18 @min-[320px]/dimension-score:w-22" />
-                <col className="w-16 @min-[320px]/dimension-score:w-20" />
+                {/* The score cell includes the same 8px gap as the summary grid. */}
+                <col className="w-[calc(var(--dimension-score-width)+0.5rem)]" />
+                <col className="w-28" />
               </colgroup>
               <TableHeader className="sr-only"><TableRow><TableHead>指标</TableHead><TableHead className="text-center">{showAverage ? "每店均分" : "当前得分"}</TableHead><TableHead className="text-center">得分变化（分）</TableHead></TableRow></TableHeader>
               <TableBody>{dimension.items.map((item) => <TableRow key={item.id}>
@@ -86,6 +90,7 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
             </div>
           </DetailAccordionItem>)}
         </DetailAccordion>
+        </div>
         {scores.some((dimension) => dimension.id === "ENVIRONMENT") ? <p className="mt-4 text-xs text-muted-foreground">环境未纳入评分</p> : null}
       </section>
   )

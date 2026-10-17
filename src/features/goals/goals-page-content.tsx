@@ -62,7 +62,7 @@ export function SummaryCards({
         title="关闭率"
         subtitle={selectedPeriod}
         value={periodUnavailable ? null : summary.period.closeRate.value}
-        emptyLabel="无"
+        emptyLabel="-"
         valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
         formatter={(value) => `${formatMetricNumber(value)}%`}
         info={

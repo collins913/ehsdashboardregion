@@ -1,3 +1,6 @@
+import { getStatusIcon } from "@/components/shared/status-display";
+import type { RecordState } from "@/lib/rules/result-types";
+
 // Display translations only. Lifecycle and close-rate rules remain in the data/rule layer.
 const sourceStatusLabels: Readonly<Record<string, string>> = {
   ClosedWithAction: "已关闭（有行动项）",
@@ -10,4 +13,9 @@ const sourceStatusLabels: Readonly<Record<string, string>> = {
 
 export function getTakeChargeSourceStatusLabel(sourceStatus: string): string {
   return sourceStatusLabels[sourceStatus] ?? sourceStatus;
+}
+
+// Presentation only: reuse the shared lifecycle icon.
+export function getTakeChargeStatusIcon(state: RecordState) {
+  return getStatusIcon(state);
 }

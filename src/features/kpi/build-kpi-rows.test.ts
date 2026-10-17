@@ -252,7 +252,7 @@ describe("KPI assembly", () => {
     }
   });
 
-  it("does not infer the Training requirement KPI from source fields", () => {
+  it("maps the result of received Training records without requiring a task catalog", () => {
     const training: KpiTrainingRecord = {
       storeId: "STORE-1",
       month: "2026-01",
@@ -267,16 +267,16 @@ describe("KPI assembly", () => {
 
     expect(row.training).toEqual({
       availability: "AVAILABLE",
-      result: "UNDETERMINED",
+      result: "ACHIEVED",
     });
   });
 
-  it("keeps requirement-dependent Training and Inspection results undetermined", () => {
+  it("treats covered empty Training and Inspection as no pending work", () => {
     const row = buildKpiRows(q1Context, snapshot())[0];
 
     expect(row.training).toEqual({
       availability: "CONFIRMED_EMPTY",
-      result: "UNDETERMINED",
+      result: "ACHIEVED",
     });
     expect(row.drill).toEqual({
       availability: "CONFIRMED_EMPTY",
@@ -284,7 +284,7 @@ describe("KPI assembly", () => {
     });
     expect(row.inspections).toEqual({
       availability: "CONFIRMED_EMPTY",
-      result: "UNDETERMINED",
+      result: "ACHIEVED",
     });
   });
 

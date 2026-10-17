@@ -24,7 +24,7 @@ export function createMockInspectionRecordsForStores(
       return MOCK_V1_EXPECTED_INSPECTION_TASKS.flatMap((inspectionName, taskIndex) => {
         if (scenario === 2 && taskIndex === 1) return [];
         sequence += 1;
-        const status = scenario === 1 && taskIndex === 1 ? "未完成"
+        const status = scenario === 1 && taskIndex === 1 ? "进行中"
           : scenario === 3 && taskIndex === 1 ? 42 as unknown as string
             : scenario === 4 && taskIndex === 1 ? null
               : "已完成";

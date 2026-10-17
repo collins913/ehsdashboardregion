@@ -24,9 +24,11 @@ const availabilityDescriptions: Record<DataAvailability, string> = {
 export function DataAvailabilityDisplay({
   availability,
   label,
+  description,
 }: {
   availability: DataAvailability;
   label?: ReactNode;
+  description?: ReactNode;
 }) {
   return (
     <Tooltip>
@@ -39,7 +41,7 @@ export function DataAvailabilityDisplay({
           {label ?? availabilityLabels[availability]}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent>{availabilityDescriptions[availability]}</TooltipContent>
+      <TooltipContent>{description ?? availabilityDescriptions[availability]}</TooltipContent>
     </Tooltip>
   );
 }

@@ -127,7 +127,7 @@ Client 传入 Server Action 的查询 DTO 仅包含 typed Store scope 或完整 
 | EHS Ambassador | 门店 EHS Ambassador；用户可见标签为“EHS&S 代表” | 人员标识方式 TBD |
 | EHS Ambassador Email | EHS&S 代表邮箱 | 允许 null |
 
-Stores Repository 按 Global Region / Area / canonical Store scope 返回上述字段，并忽略 Period。列表默认列与 Detail 字段范围见 `business-requirements.md`。允许未来增加其它主数据字段；新增字段是否进入列表或详情仍为 TBD。
+Stores Repository 按 Global Region / Area / canonical Store scope 返回上述字段，并忽略 Period。列表默认列与 Detail 字段范围见 `business-requirements.md`。额外展示字段通过可选 `extraFields: Record<string, string | number | boolean | null>` 提供，字段名直接作显示名。Stores query 在服务端已授权的范围内生成 `fieldDefinitions`，包含已接入标准字段及当前范围实际存在的扩展字段；内部 canonical storeId 不作为可选列。UI 动态生成列，除原有默认字段外均默认隐藏；详情保留这些扩展字段，空值显示 `—`。
 
 ## 3A. Access Management 逻辑契约
 
@@ -147,7 +147,7 @@ Source grain：一行 = 门店 × Training Item × Month。
 
 Source fields：TRTID、English Store Name（optional fallback）、`trainingName`、`month`（`YYYY-MM`）、`completionRate`、`incompletePeople`。其中 `completionRate` 与 `incompletePeople` 是 source-provided；Dashboard 不按人数计算完成率，也不从人员明细重建未完成人员。
 
-Source 不包含 `isRequired`、`isFullyCompleted` 或等价必修 / 全员完成标志。Required item set 不得由 `completionRate` 或人员列表推断。当前 Mock V1 使用集中 provider `src/data/mock/overview-required-sets.ts` 声明合成 item identity；Standard / Performance 共用。Production 必须以 authoritative Store × Month source/config 替换 provider；Overview / ScoreContribution contract 不依赖名单。运行时配置缺失时仍输出 0/1 `RULE_CONFIGURATION_MISSING`。Source coverage 单独表达。Store identity 使用通用 TRTID primary / English Store Name optional fallback。
+Source 不包含 `isRequired` 或等价必检标记，也不需要补充必检任务清单。培训与检查仅评价当前 Store × Period 实际收到的记录，不要求每月有记录、不检查项目或任务清单齐全，也不要求两类记录同时存在。培训所有已有记录 completionRate = 100、检查所有已有记录 status 规范化后精确为“已完成”则达成；任一有效记录未完成则进行中。整个范围经确认完整且零记录时视为无待办，达成并计满分。已有记录必要字段为空或格式错误、来源不可用或覆盖不完整仍为未确定，并保留具体诊断。Source coverage 单独表达。Store identity 使用通用 TRTID primary / English Store Name optional fallback。
 
 ### 4.2 Drill Record
 
@@ -197,9 +197,11 @@ Source grain：一行 = 一家门店 × 一个 Inspection Item × 一次具有 d
 
 Source fields：`inspectionNumber`、TRTID、English Store Name（optional fallback）、`inspectionName`、`dueDate`（date-only `YYYY-MM-DD` 或 null）、`inspector`（string 或 null）、`status`（开放文本或 null）。Inspection source 不提供 `month`；Repository 使用严格校验后的 date-only `dueDate`，按 Asia/Shanghai 业务日派生月份并应用 Global Period。缺失或无效日期无法确定 Period membership，相关数据标记为 `INCOMPLETE`。`inspectionNumber` 由 source 提供，在 Inspection domain 内唯一；mock 使用确定性 `INP-XXXXX`。Production Dashboard 不生成编号。
 
-Source 不包含 `isRequired` 或等价必检标记。Dashboard 不根据实际记录推断必检资格。Status 为开放文本；保留原文，仅精确规范化为 `已完成` 才表示完成；status 可空。当前 Mock V1 使用集中 provider `src/data/mock/overview-required-sets.ts` 声明合成 expected task identity；Standard / Performance 共用。Production 必须以 authoritative Store × Month task source/config 替换 provider，并与 source record identity 对齐；Overview / ScoreContribution contract 不依赖任务名单。运行时配置缺失时仍输出 0/1 `RULE_CONFIGURATION_MISSING`。
+Source 不包含 `isRequired` 或等价必检标记，也不需要补充必检任务清单。培训与检查仅评价当前 Store × Period 实际收到的记录，不要求每月有记录、不检查项目或任务清单齐全，也不要求两类记录同时存在。培训所有已有记录 completionRate = 100、检查所有已有记录 status 规范化后精确为“已完成”则达成；任一有效记录未完成则进行中。整个范围经确认完整且零记录时视为无待办，达成并计满分。已有记录必要字段为空或格式错误、来源不可用或覆盖不完整仍为未确定，并保留具体诊断。
 
-Mock V1 的 KPI 与 Overview 共用 required-set Domain Result；KPI 按纳入月份评价，月度 contribution 直接映射该月结果。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
+Mock V1 的 KPI 与 Overview 共用 required-set Domain Result；KPI 按所选范围已有记录评价，月度 contribution 直接映射该月已有记录结果；完整空月份为达成。重复编号是 data-quality issue；明细必须全量保留，禁止静默去重、合并或折叠。
+
+演练与检查详情 DTO 增加内部派生字段 `completionResult: PerformanceResult`，由服务端 Repository 复用既有 source-status completion 规则生成（已完成 → ACHIEVED，其他非空 → NOT_ACHIEVED，空 → UNDETERMINED）。UI 只消费该字段选择共享状态样式，标签仍保留源 `status` 原文；此字段不要求上游填写，也不改变 KPI 汇总口径。
 
 ### 4.5 ASTM Incident 输入
 
@@ -314,7 +316,7 @@ Actions scoped Repository query 复用 `EhsFilterContext`，以 Submitted Date �
 
 Actions query 还接收 sorting、`pageIndex`、`pageSize`，Repository 对完整 scoped result 先应用 Period、view mode 与排序，再返回当前页、`totalCount` 和 DataAvailability。
 
-Actions Analytics 使用独立的 context-only Repository query，不接收表格 view mode、sorting 或 pagination。`ActionAnalyticsResult` 返回 `closedOrCancelledCount`、`otherCount`、`closureRate`，以及覆盖 `EhsFilterContext.period.includedMonths` 的逐月 `actionCount`。分母为当前 Global Filter scope 内全部 normalized Action 记录；`Closed` 与 `Cancelled` 计入分子，OPEN 与 UNKNOWN 计入其余数量。关闭率为 `(Closed + Cancelled) / 全部记录 * 100`，无记录时为 null。此 Analytics 口径不改变 `Cancelled → EXCLUDED` 状态映射，也不修改 Performance → KPI 的 source-provided Action Closure Rate。月度数量按 Submitted Date 的 Asia/Shanghai 月份归属，缺失月份补 0 并按月份升序；筛选、状态计数、关闭率与月度聚合由 Repository / Rule 完成。
+Actions Analytics 使用独立的 context-only Repository query，不接收表格 view mode、sorting 或 pagination。`ActionAnalyticsResult` 返回 `closedOrCancelledCount`、`otherCount`、`closureRate`，逐项保留源 `sourceStatus` 及数量的 `byStatus`（仅包含实际收到的状态，不合并、不创造状态；服务端将 Cancelled、Closed 依次排在末尾，其余状态保持原有顺序），以及覆盖 `EhsFilterContext.period.includedMonths` 的逐月 `actionCount`。分母为当前 Global Filter scope 内全部 normalized Action 记录；`Closed` 与 `Cancelled` 计入分子，OPEN 与 UNKNOWN 计入其余数量。关闭率为 `(Closed + Cancelled) / 全部记录 * 100`，无记录时为 null。此 Analytics 口径不改变 `Cancelled → EXCLUDED` 状态映射，也不修改 Performance → KPI 的 source-provided Action Closure Rate。月度数量按 Submitted Date 的 Asia/Shanghai 月份归属，缺失月份补 0 并按月份升序；筛选、状态计数、关闭率与月度聚合由 Repository / Rule 完成。
 
 ## 8. Risk & Compliance → Certificates
 
@@ -329,6 +331,8 @@ Actions Analytics 使用独立的 context-only Repository query，不接收表�
 Category 为安全健康、急救员、特种作业、安全驾驶；未知 Type 的 Category 为 null，保留完整 normalized record，独立于四类别汇总输出，不参与其评价。Type exact mapping 见业务需求与集中规则；不使用别名或人员岗位推断。
 
 单证状态仅 NORMAL / ABNORMAL；Reason 为 NORMAL、EXPIRED、MISSING_EXPIRY_DATE、INVALID_EXPIRY_DATE。日期无效或缺失时天数为 null，状态异常。天数使用 Dashboard referenceDate 的 Asia/Shanghai 业务日期做自然日差。
+
+证件概览 `CertificateOverviewResult` 提供动态 `groups` 和 `items`；每项含分类、证件全名、`actualCount`、可空的 `requiredCount`，及服务端准备的 `progressValue`（0–100 或 null）。未设置要求和零分母不生成进度值；实际数量不因超过目标而截断。UI 按分类展示全部返回项，不固定小类数量，不计算比例。新增正式小类须在集中 Type → Category 映射中登记，不猜测未知源类型的归属。
 
 每个 scoped Store 的结果包含四类别 summary（类别、状态、normalized records），即使无证件也保留门店及空类别。类别无记录或任一单证异常则 ABNORMAL，否则 NORMAL。
 
@@ -503,6 +507,7 @@ Historical data from 2026-01 through the current business month produces one con
 ## 12. Hardening V1 normalized boundaries
 
 - `DomainSource<T>` 表达单个 Store × Period 的 normalized records、availability 与可选 source reason；不能用全 Dataset 的坏数据覆盖其它 Store 的贡献。
+- `KpiDataSnapshot.diagnostics` 是服务端可选的 Store-scoped 培训／检查说明，按记录月份列出项目与字段空值、格式错误或来源覆盖问题；不再将未安排记录的月份或项目视为缺记录；它由现有校验分支附带输出，不参与结果或得分计算。KPI Builder 透传到行 DTO，前端只交给共享 DataAvailabilityDisplay 悬停展示。
 - `KpiDataSnapshot.domainResults` 是 KPI / ScoreContribution 的共同真源；KPI Builder 不评价业务。`KpiInspectionRecord.month` 是 Adapter 派生值，Raw Inspection 仍不提供 month。
 - `TakeChargeAnnualSource` 仅含 `submissionsPerCapitaYtd`、`participationRateYtd` 两个 source-provided normalized values 及独立原因，不规定 Production numerator/denominator schema。Goals 使用 reference year/month；Global Period 不参与 YTD 查询。Mock fixture adapter 保留 pooled source numerator/denominator 口径，不平均 Store 百分比。
 - `TakeChargeMetricValue` 与 `CertificateCategorySummary` 保留领域 reason；12 个 scoring producer 消费真实领域诊断。非法 NaN 不得降为通用 SOURCE_INCOMPLETE。
@@ -534,3 +539,5 @@ Current implementation status is explicitly not equivalent to production service
 权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
 
 系统监控模块已移除，含页面、错误上报 API、事件捕获、通知、任务监控与相关持久化端口。安全错误码、错误重试界面、领域 DataAvailability、Access / Import 审计仍保留。Environment 的环境监测数据不受影响。
+
+Take Charge Period 查询：服务端直接统计完整筛选周期内已有记录，不按 Mock 年份／月份覆盖范围判断完整性。零记录时提交总数为 0、关闭率为 null（显示“-”）；已有记录的必要字段缺失、格式错误、非法日期或门店无法关联仍保留诊断。授权、周期合法性校验和年度指标保持原规则。

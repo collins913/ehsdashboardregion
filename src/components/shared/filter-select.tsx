@@ -1,6 +1,7 @@
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -38,15 +39,17 @@ export function FilterSelect<Value extends string>({
         if (selectedOption) onValueChange(selectedOption.value);
       }}
     >
-      <SelectTrigger className={className ?? "w-24"} aria-label={ariaLabel}>
+      <SelectTrigger className={className ?? "w-36"} aria-label={ariaLabel}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );

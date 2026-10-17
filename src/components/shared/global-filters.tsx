@@ -97,6 +97,7 @@ function FilterField({ label, children }: FilterFieldProps) {
 }
 
 export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: boolean }) {
+  const filterGridClassName = `grid max-w-5xl min-w-0 grid-cols-1 gap-2 md:grid-cols-2 ${showPeriodFilter ? "lg:grid-cols-4" : "lg:grid-cols-3"}`;
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
   const [storeKeyword, setStoreKeyword] = useState("");
   const {
@@ -151,7 +152,7 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
             <span>全局筛选</span>
           </div>
 
-          <div className={`grid max-w-5xl min-w-0 grid-cols-1 gap-2 md:grid-cols-2 ${showPeriodFilter ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+          <div className={filterGridClassName}>
             <FilterField label={globalFilterLabels.region}>
               <Select
                 value={singleScopeValue(state.region)}
@@ -284,7 +285,7 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
         </div>
 
         {showPeriodFilter && state.period.mode === "CUSTOM" ? (
-          <div className="mt-1.5 grid max-w-xl grid-cols-1 gap-2 border-t pt-1.5 md:grid-cols-2">
+          <div className={`${filterGridClassName} mt-1.5 pt-1.5`}>
             <FilterField label="开始月份">
               <MonthPicker
                 aria-label="开始月份"
@@ -300,7 +301,7 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
               />
             </FilterField>
             {readiness === "INVALID_PERIOD" ? (
-              <p className="text-xs text-destructive md:col-span-2">
+              <p className="col-span-full text-xs text-destructive">
                 请选择有效的月份范围，开始月份不能晚于结束月份。
               </p>
             ) : null}

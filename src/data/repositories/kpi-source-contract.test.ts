@@ -1,3 +1,5 @@
+import { createMockInspectionRecordsForStores } from "@/data/mock/inspections";
+import { sourceStatusCompletion } from "@/lib/rules/performance-rules";
 import { describe, expect, it } from "vitest";
 import { createKpiMockData } from "@/data/mock/kpi-mock-factory";
 import { createMockEhsRepository } from "@/data/repositories/mock-ehs-repository";
@@ -17,6 +19,27 @@ const context: EhsFilterContext = {
 };
 
 describe("KPI source contracts", () => {
+  it("uses consistent open-text Inspection labels while retaining unfinished records", () => {
+    const textualStatuses = sourceDataset.inspectionRecords
+      .map((record) => record.status)
+      .filter((status) => typeof status === "string");
+    expect(new Set(textualStatuses)).toEqual(new Set(["进行中", "已完成"]));
+  });
+
+  it.each([0, 1, 2, 3, 4, 5, 6])("preserves the original completion outcome for Inspection Mock scenario %s", (scenario) => {
+    const records = createMockInspectionRecordsForStores([targetStore], ["2026-01"], () => scenario);
+    if (scenario === 2) expect(records).toHaveLength(1);
+    else expect(records).toHaveLength(2);
+    expect(sourceStatusCompletion(records[0].status)).toBe(true);
+    if (scenario === 1) {
+      expect(records[1].status).toBe("进行中");
+      expect(sourceStatusCompletion(records[1].status)).toBe(sourceStatusCompletion("未完成"));
+      expect(sourceStatusCompletion(records[1].status)).toBe(false);
+    } else if (scenario === 3) expect(records[1].status).toBe(42);
+    else if (scenario === 4) expect(records[1].status).toBeNull();
+    else if (scenario !== 2) expect(sourceStatusCompletion(records[1].status)).toBe(true);
+  });
+
   it("uses the shared TRTID-primary / English-name-fallback resolver for Training, Drill, and Inspection", async () => {
     const training = sourceDataset.trainingRecords[0]!;
     const drill = sourceDataset.drillRecords[0]!;
