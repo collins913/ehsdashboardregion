@@ -57,9 +57,9 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
               </button>
             </HoverCardTrigger>
             <HoverCardContent align="start" className="space-y-2">
-              <p>每店均分 = 当前范围总得分 ÷ 门店数，分母为每店指标数量。当前范围共 {storeCount} 家门店。得分和变化保留一位小数，整数不补零；得分率显示整数百分比。缺失、无效或不完整数据计 0 分，仍保留其指标数量；环境未纳入评分。</p>
-              <div>{scores.map((dimension) => <p key={dimension.id}>{dimensionLabels[dimension.id]}：{dimension.id === "ENVIRONMENT" ? "未纳入评分" : `总分 ${currentPoints(dimension)}`}</p>)}</div>
-              <p>变化为每店实际得分差，单位为分；当前期为当前业务月，与上一个自然月比较（当前得分 − 上月得分）。</p>
+              <p>每店均分 = 当前范围总得分 ÷ 门店数；“/”后的数值为每店指标数量。当前范围共 {storeCount} 家门店。缺失、无效或不完整数据计 0 分，仍计入指标数量。</p>
+              <div>{scores.filter((dimension) => dimension.id !== "ENVIRONMENT").map((dimension) => <p key={dimension.id}>{dimensionLabels[dimension.id]}：总分 {currentPoints(dimension)}</p>)}</div>
+              <p>变化 = 本月每店均分 − 上月每店均分，单位为分。</p>
             </HoverCardContent>
           </HoverCard> : "维度得分"}
         </Heading>

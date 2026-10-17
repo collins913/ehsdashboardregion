@@ -18,7 +18,7 @@ export function OverviewScoreRateSummary({ scoreRate, monthlyDelta, history, hea
   fillHeight?: boolean
 }) {
   return <>
-    <OverviewSectionHeader headingLevel={headingLevel} title="综合得分率" description={`${headingLevel === 2 ? "本月得分率，不随周期筛选变化。" : "所选周期得分率。"}综合得分率 = 当前获得得分 ÷ 总指标数量 × 100%。所有正式评分指标等权；缺失、无效或不完整数据按 0/1 计分。`} className={headingLevel === 3 ? "px-0" : undefined} />
+    <OverviewSectionHeader headingLevel={headingLevel} title="综合得分率" description={<><p>综合得分率 = 当前范围总得分 ÷ 总指标数量 × 100%。</p><p>所有正式评分指标均计 1 分；缺失、无效或不完整数据计 0 分，仍计入总指标数量。</p></>} className={headingLevel === 3 ? "px-0" : undefined} />
     <CardContent className={headingLevel === 3 ? "min-w-0 px-0" : fillHeight ? "flex min-h-0 min-w-0 flex-1 flex-col justify-start" : "min-w-0"}>
       <div className="shrink-0 space-y-2" data-testid="score-rate-summary">
         <strong className={headingLevel === 3 ? "block text-2xl font-semibold tracking-tight tabular-nums" : "block text-4xl font-semibold tracking-tight tabular-nums"}><AnimatedNumber value={scoreRate} formatter={(value) => `${formatOverviewRate(value)}%`} /></strong>
@@ -29,7 +29,7 @@ export function OverviewScoreRateSummary({ scoreRate, monthlyDelta, history, hea
   </>
 }
 
-export function ManagementSummary({ hero, comparisonLabel, onSelect, scoreDetail, comparison }: { hero: OverviewResult["hero"]; comparisonLabel: string; onSelect?: (id: string) => void; scoreDetail?: ReactNode; comparison?: ReactNode }) {
+export function ManagementSummary({ hero, onSelect, scoreDetail, comparison }: { hero: OverviewResult["hero"]; comparisonLabel: string; onSelect?: (id: string) => void; scoreDetail?: ReactNode; comparison?: ReactNode }) {
   return (
     <div className="@container/overview-summary">
     <div className="grid min-w-0 gap-6 @min-[60rem]/overview-summary:grid-cols-3" data-testid="management-summary">
@@ -37,11 +37,11 @@ export function ManagementSummary({ hero, comparisonLabel, onSelect, scoreDetail
         <OverviewScoreRateSummary scoreRate={hero.overallScore} monthlyDelta={hero.monthlyDelta} history={hero.monthlyScoreHistory} fillHeight />
       </Card>
       {([
-        ["小区变化排名", hero.improvingRanking.areas, hero.decliningRanking.areas],
-        ["门店变化排名", hero.improvingRanking.stores, hero.decliningRanking.stores],
-      ] as const).map(([title, improving, declining]) => (
+        ["小区变化排名", "变化 = 本月得分率 − 上月得分率，以 % 显示，属于差值非相对增长率。", hero.improvingRanking.areas, hero.decliningRanking.areas],
+        ["门店变化排名", "得分变化率 = 本月得分率 − 上月得分率，以 % 显示，属于差值非相对增长率。", hero.improvingRanking.stores, hero.decliningRanking.stores],
+      ] as const).map(([title, description, improving, declining]) => (
         <Card key={title} className="min-w-0">
-          <OverviewSectionHeader title={title} description={`${comparisonLabel}，按得分率变化排序。变化 = 当前得分率 − 上一个自然月得分率，使用 % 标记，属于差值而非相对增长率。提升包含增加或持平，退步包含下降或持平；同一对象不重复出现，持平时优先进入提升。`} />
+          <OverviewSectionHeader title={title} description={description} />
           <CardContent className="min-w-0">
             <ChangeRankingList improving={improving} declining={declining} onSelect={onSelect} />
           </CardContent>

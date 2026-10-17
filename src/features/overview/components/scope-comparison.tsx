@@ -27,7 +27,7 @@ export function ScopeComparison({ comparisons, onSelect, semanticKey, comparison
       render: (row) => <ScoreChange value={row.pointDelta} suffix="" /> },
   ], [onSelect])
   return <Card>
-    <OverviewSectionHeader title="门店得分清单" description={`当前筛选范围全部门店的得分率、得分率变化、总得分/总指标数量与得分变化。所有 12 项指标均进入分母；缺失、无效或不完整数据计 0 分。${comparisonLabel}；得分率变化 = 当前得分率 − 上一个自然月得分率，使用 % 标记且不是相对增长率；得分变化为总得分差值。`} />
+    <OverviewSectionHeader title="门店得分清单" description={<><p>展示当前门店范围内各门店本月的得分率、得分率变化、总得分／总指标数量及得分变化。每店 12 项指标均计入分母；缺失、无效或不完整数据计 0 分。{comparisonLabel}。</p><p>得分率变化 = 本月得分率 − 上月得分率，以 % 显示，非相对增长率。</p><p>得分变化 = 本月总得分 − 上月总得分，单位为分。</p></>} />
     <CardContent>
       <DataTable rows={comparisons} columns={columns} semanticKey={semanticKey} stickyFirstColumn compactPrimaryColumn emptyMessage="当前筛选范围没有门店。"
         onRowClick={(row, trigger) => onSelect(row.id, trigger)} rowAriaLabel={(row) => `查看${row.label}得分详情`} />

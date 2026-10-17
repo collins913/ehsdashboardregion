@@ -51,12 +51,7 @@ export function SummaryCards({
         subtitle={selectedPeriod}
         value={periodUnavailable ? null : summary.period.submissionTotal ?? 0}
         valueFallback={periodUnavailable ? <DataAvailabilityDisplay availability={summary.period.availability} /> : undefined}
-        info={
-          <div className="space-y-1.5">
-            <p>当前筛选时间范围内的 Take Charge 提交总量。</p>
-            <p className="text-muted-foreground">当前不设达标阈值，仅用于展示提交活动量。</p>
-          </div>
-        }
+        info="Take Charge 提交总数量。"
       />
       <AnalyticsMetricCard
         title="关闭率"
@@ -67,7 +62,7 @@ export function SummaryCards({
         formatter={(value) => `${formatMetricNumber(value)}%`}
         info={
           <div className="space-y-1.5">
-            <p>已进入终态的 Take Charge 数量占全部 Take Charge 的比例。</p>
+            <p>状态为已关闭（有行动项）、已关闭（无行动项）及已取消的记录占比。提交总数为 0 时显示“-”。</p>
             <p className="text-muted-foreground">目标：≥ 90%</p>
           </div>
         }
@@ -81,8 +76,8 @@ export function SummaryCards({
         formatter={(value) => formatMetricNumber(value, 1)}
         info={
           <div className="space-y-1.5">
-            <p>本年度截至当前统计周期的平均 Take Charge 提交数量。</p>
-            <p className="text-muted-foreground">目标：≥ 4</p>
+            <p>今年截至当前的人均 Take Charge 提交数量，即Take Charge提交总数量与在职员工人数之比。</p>
+            <p className="text-muted-foreground">目标：≥ 4（Service团队）</p>
           </div>
         }
       />
@@ -95,7 +90,7 @@ export function SummaryCards({
         formatter={(value) => `${formatMetricNumber(value)}%`}
         info={
           <div className="space-y-1.5">
-            <p>本年度截至当前统计周期的 Take Charge 参与率。</p>
+            <p>今年截至当前的 Take Charge 参与率，即已提交过 Take Charge 的人员与在职员工总人数之比。</p>
             <p className="text-muted-foreground">目标：≥ 50%</p>
           </div>
         }

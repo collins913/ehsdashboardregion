@@ -86,7 +86,7 @@ describe("Goals summary cards", () => {
       createElement(SummaryCards, { summary: summary(null) }),
     );
 
-    expect(markup).toContain(">无<");
+    expect(markup).toContain(">-<");
     expect(markup).not.toContain('data-slot="badge"');
   });
 });

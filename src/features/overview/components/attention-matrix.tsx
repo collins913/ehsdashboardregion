@@ -12,7 +12,7 @@ import { OverviewSectionHeader } from "./overview-section-header"
 import { OverviewAttentionChart } from "./overview-charts"
 import { formatOverviewScore, ScoreChange } from "./score-change"
 
-export function AttentionMatrix({ matrix, onSelect, comparisonLabel, selectedScopeId }: {
+export function AttentionMatrix({ matrix, onSelect, selectedScopeId }: {
   matrix: OverviewResult["attentionMatrix"]
   onSelect: (id: string, trigger?: HTMLElement | null) => void
   comparisonLabel: string
@@ -23,7 +23,7 @@ export function AttentionMatrix({ matrix, onSelect, comparisonLabel, selectedSco
   return (
     <Card className="h-full min-h-0 min-w-0" data-testid="attention-matrix">
       <Tabs defaultValue="matrix" className="min-h-0 flex-1 gap-4">
-        <OverviewSectionHeader title="同级得分与变化" subtitle={`同级平均得分率 ${matrix.averageScore === null ? "—" : `${formatOverviewScore(matrix.averageScore)}%`}`} description={`横轴为当前得分率（%），纵轴为当前得分率减去上一个自然月得分率，使用 % 标记且不是相对增长率；${comparisonLabel}。参考线表示同级平均得分率和 0%。同坐标对象合并显示，点击可查看所有成员；明细保留每个对象。`}
+        <OverviewSectionHeader title="同级得分与变化" subtitle={`同级平均得分率 ${matrix.averageScore === null ? "—" : `${formatOverviewScore(matrix.averageScore)}%`}`} description="横轴为当前得分率（%），纵轴为得分变化率（%）。参考线表示同级平均得分率和 0%。"
           action={members.length > 0 ? <TabsList aria-label="同级比较显示方式"><TabsTrigger value="matrix">矩阵</TabsTrigger><TabsTrigger value="list">明细</TabsTrigger></TabsList> : null} />
         <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
           {members.length === 0 ? <p className="flex h-60 items-center justify-center text-sm text-muted-foreground">无可比较数据</p> : <>

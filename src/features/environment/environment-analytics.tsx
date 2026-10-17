@@ -65,7 +65,7 @@ export function EnvironmentAnalytics({
           title="危险废物合同持有率"
           value={result?.hazardousWasteContractHolding.rate ?? null}
           subtitle="当前筛选范围"
-          info="当前筛选范围内，至少有一份当前有效危险废物处置合同的门店占全部门店的比例。"
+          info="至少有一份有效的危险废物处置合同的门店占全部门店的比例。"
           formatter={(value) => `${Math.round(value)}%`}
           loading={initialLoading}
         />
@@ -73,7 +73,7 @@ export function EnvironmentAnalytics({
           title="固体废物合同持有率"
           value={result?.solidWasteContractHolding.rate ?? null}
           subtitle="当前筛选范围"
-          info="当前筛选范围内，至少有一份当前有效一般工业固体废物处置合同的门店占全部门店的比例。"
+          info="至少有一份有效的一般工业固体废物处置合同的门店占全部门店的比例。"
           formatter={(value) => `${Math.round(value)}%`}
           loading={initialLoading}
         />
@@ -81,7 +81,7 @@ export function EnvironmentAnalytics({
           title="到期合同数量"
           value={expiringCount}
           subtitle={formatPeriod(displayedMonths)}
-          info="截止日期位于当前筛选周期内的危险废物和一般工业固体废物合同数量。"
+          info="本月内到期的危险废物和一般工业固体废物合同数量。"
           loading={initialLoading}
         />
       </div>
