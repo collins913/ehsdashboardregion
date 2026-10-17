@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { usePathname, useRouter } from "next/navigation";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
+import { ANALYTICS_PAGE_CONTAINER_CLASS_NAME } from "@/components/shared/analytics-layout";
 import { PageHeader } from "@/components/shared/page-header";
 import { getDashboardRoute } from "@/config/navigation";
 import { AppSidebar } from "@/components/shared/app-sidebar";
@@ -67,7 +68,7 @@ export function DashboardShell({
               />
             ) : null}
             {isNavigating ? (
-              <PageContainer><AsyncQueryFeedback status="LOADING" /></PageContainer>
+              <PageContainer className={route?.showGlobalFilters === false ? undefined : ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="LOADING" /></PageContainer>
             ) : children}
           </GlobalFilterProvider>
         </SidebarInset>

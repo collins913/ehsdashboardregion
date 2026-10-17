@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { DataAvailabilityNotice } from "@/components/shared/data-availability-notice";
 import { PageContainer } from "@/components/shared/page-container";
+import { ANALYTICS_PAGE_CONTAINER_CLASS_NAME } from "@/components/shared/analytics-layout";
 import type { EhsFilterContext } from "@/data/contracts/kpi";
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider";
 import type { KpiActionDrilldownQuery } from "@/features/kpi/kpi-action-drilldown";
@@ -55,7 +56,7 @@ export function KpiPageContent({
       : null;
 
   return (
-    <PageContainer>
+    <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}>
       {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成 KPI 数据，请调整筛选条件。

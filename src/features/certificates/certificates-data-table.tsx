@@ -56,6 +56,7 @@ export function CertificatesDetailContent({ detail }: { detail: CertificatesDeta
             disabled={group.disabled}
             attention={group.hasAbnormalRecords}
             contentClassName="space-y-3"
+            cardContent
           >
               {group.records.map((record, index) => (
                 <DetailRecordCard

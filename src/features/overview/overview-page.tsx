@@ -2,8 +2,10 @@
 import type { QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback"
 import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh-indicator"
+import { ANALYTICS_PAGE_CONTAINER_CLASS_NAME } from "@/components/shared/analytics-layout"
 import { PageContainer } from "@/components/shared/page-container"
 import type { OverviewQuery, OverviewResult } from "@/data/contracts/overview"
 import { useGlobalFilters } from "@/features/global-filters/global-filter-provider"
@@ -26,8 +28,12 @@ export function getOverviewPresentation(state: AsyncQueryState<OverviewResult>) 
   return null
 }
 
-export function OverviewContent({ result, semanticKey = "", requestedKey = semanticKey, refreshing = false }: {
-  result: OverviewResult; semanticKey?: string; requestedKey?: string; refreshing?: boolean
+export function OverviewScopeSummary({ result }: { result: OverviewResult }) {
+  return <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>当前期：{result.currentPeriodLabel}</span><span>· 比较期：{result.previousPeriodLabel}</span></div>
+}
+
+export function OverviewContent({ result, semanticKey = "", requestedKey = semanticKey, refreshing = false, summaryTarget = null }: {
+  result: OverviewResult; semanticKey?: string; requestedKey?: string; refreshing?: boolean; summaryTarget?: HTMLDivElement | null
 }) {
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const [selectedScope, setSelectedScope] = useState<{ id: string; key: string } | null>(null)
@@ -43,15 +49,12 @@ export function OverviewContent({ result, semanticKey = "", requestedKey = seman
   const comparisonLabel = result.previousPeriodLabel === "无可比较历史" ? result.previousPeriodLabel : `比较期：${result.previousPeriodLabel}`
   return (
     <>
-      <PageContainer className="py-5 lg:py-6">
-        <div className="relative space-y-6" aria-busy={refreshing || undefined}>
+      {summaryTarget && !refreshing && requestedKey === semanticKey ? createPortal(<OverviewScopeSummary result={result} />, summaryTarget) : null}
+      <PageContainer className={`${ANALYTICS_PAGE_CONTAINER_CLASS_NAME} pb-5 lg:pb-6`}>
+        <div className="relative" aria-busy={refreshing || undefined}>
           <AnalyticsRefreshIndicator refreshing={refreshing} />
           <div inert={refreshing || undefined} className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>{result.scopeLabel}</span>{result.scopeLabel !== `已选 ${result.storeCount} 家门店` ? <span>· {result.storeCount} 家门店</span> : null}<span>· 当前期：{result.currentPeriodLabel}</span><span>· 比较期：{result.previousPeriodLabel}</span></div>
-          <p className="text-xs text-muted-foreground">{result.scoreRuleVersion}</p>
-          </div>
-          {!result.periodNotice.startsWith("分析周期：") ? <p className="text-xs text-muted-foreground">{result.periodNotice}</p> : null}
+          {result.periodNotice && !result.periodNotice.startsWith("分析周期：") ? <p className="text-xs text-muted-foreground">{result.periodNotice}</p> : null}
 
         <ManagementSummary hero={result.hero} comparisonLabel={comparisonLabel} onSelect={openScope}
           scoreDetail={<DimensionAnalysis scores={result.dimensionScores} storeCount={result.storeCount} identity={semanticKey} />}
@@ -68,15 +71,15 @@ export function OverviewContent({ result, semanticKey = "", requestedKey = seman
 }
 
 export function OverviewPage({ queryOverview }: { queryOverview: OverviewQueryAction }) {
-  const { storeScope, referenceDateIso } = useGlobalFilters()
+  const { storeScope, referenceDateIso, summaryTarget } = useGlobalFilters()
   const queryKey = storeScope ? JSON.stringify([referenceDateIso, storeScopeQueryKey(storeScope)]) : null
   const load = useCallback(() => queryOverview({ referenceDateIso, query: { context: storeScope! } }),
   [storeScope, queryOverview, referenceDateIso])
   const query = useLatestAsyncQuery(queryKey, storeScope ? load : null)
 
-  if (query.status === "IDLE") return <PageContainer><div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">当前筛选条件尚不能生成 Overview 数据。</div></PageContainer>
-  if (query.status === "ERROR") return <PageContainer><AsyncQueryFeedback status="ERROR" errorCode={query.errorCode} /></PageContainer>
+  if (query.status === "IDLE") return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">当前筛选条件尚不能生成 Overview 数据。</div></PageContainer>
+  if (query.status === "ERROR") return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="ERROR" errorCode={query.errorCode} /></PageContainer>
   const presentation = getOverviewPresentation(query)
-  if (presentation === null) return <PageContainer><AsyncQueryFeedback status="LOADING" /></PageContainer>
-  return <OverviewContent result={presentation.result} semanticKey={presentation.semanticKey} requestedKey={queryKey!} refreshing={presentation.refreshing} />
+  if (presentation === null) return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="LOADING" /></PageContainer>
+  return <OverviewContent result={presentation.result} semanticKey={presentation.semanticKey} requestedKey={queryKey!} refreshing={presentation.refreshing} summaryTarget={summaryTarget} />
 }

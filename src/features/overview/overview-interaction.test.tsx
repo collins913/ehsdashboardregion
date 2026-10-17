@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { isValidElement, type ReactElement } from "react"
+import { createElement, isValidElement, type ReactElement } from "react"
 import type { OverviewAttentionGroup, OverviewResult } from "@/data/contracts/overview"
-import { OverviewContent } from "./overview-page"
+import { OverviewContent, OverviewScopeSummary } from "./overview-page"
 import { ManagementSummary } from "./components/management-summary"
 import { ScopeDetailSheet } from "./components/scope-detail-sheet"
 import { AttentionPointGroup } from "./components/overview-charts"
@@ -11,6 +11,10 @@ import { AnalyticsRefreshIndicator } from "@/components/shared/analytics-refresh
 
 // Reuse the project's controlled-hook testing approach; real DOM keyboard behavior is checked in the browser.
 const runtime = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, effects: [] as (() => void)[] }))
+vi.mock("react-dom", async (original) => ({
+  ...await original<typeof import("react-dom")>(),
+  createPortal: (children: import("react").ReactNode) => createElement("div", { "data-summary-portal": true }, children),
+}))
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useCallback: (callback: unknown) => callback,
@@ -68,6 +72,18 @@ function selectScope(tree: ReactElement, id = "a") { (props(tree, ManagementSumm
 function sheetDetail(tree: ReactElement) { return props(tree, ScopeDetailSheet).detail }
 
 describe("Overview detail and refresh lifecycle", () => {
+  it("renders only the matching resolved summary in the shared header slot", () => {
+    const summaryTarget = {} as HTMLDivElement
+    const current = render(() => OverviewContent({ result, semanticKey: "A", summaryTarget }))
+    expect(props(current, OverviewScopeSummary).result).toBe(result)
+    for (const state of [{ requestedKey: "B" }, { refreshing: true }, { summaryTarget: null }]) {
+      const tree = render(() => OverviewContent({ result, semanticKey: "A", summaryTarget, ...state }))
+      expect(nodes(tree).some((node) => node.type === OverviewScopeSummary)).toBe(false)
+    }
+    const next = { ...result, scopeLabel: "乙门店" }
+    const resolved = render(() => OverviewContent({ result: next, semanticKey: "B", requestedKey: "B", summaryTarget }))
+    expect(props(resolved, OverviewScopeSummary).result).toBe(next)
+  })
   it.each(["scope", "period"])("closes the old detail synchronously on a requested %s change, before the new response", (change) => {
     let requestedKey = "A", semanticKey = "A", refreshing = false
     const view = () => OverviewContent({ result, requestedKey, semanticKey, refreshing })

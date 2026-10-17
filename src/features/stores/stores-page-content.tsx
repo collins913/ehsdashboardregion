@@ -5,6 +5,7 @@ import type { QueryOutcome } from "@/data/contracts/query-result";
 import { useCallback } from "react";
 import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
+import { ANALYTICS_PAGE_CONTAINER_CLASS_NAME } from "@/components/shared/analytics-layout";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
 import type { StoresQueryResult } from "@/data/contracts/stores";
 import { storeScopeQueryKey } from "@/features/global-filters/global-filter-state";
@@ -43,7 +44,7 @@ export function StoresPageContent({
     state.status === "SUCCESS" ? state.data : state.resolved?.data ?? null;
 
   return (
-    <PageContainer>
+    <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}>
       {state.status === "IDLE" ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
           当前筛选条件尚不能生成门店数据，请调整筛选条件。

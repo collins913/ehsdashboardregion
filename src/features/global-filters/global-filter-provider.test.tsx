@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const harness = vi.hoisted(() => ({ snapshot: undefined as unknown, effects: [] as (() => void)[], value: undefined as unknown, mounts: 0, effectIndex: 0, dependencies: [] as (readonly unknown[])[] }));
+const harness = vi.hoisted(() => ({ summaryTarget: null as unknown, snapshot: undefined as unknown, effects: [] as (() => void)[], value: undefined as unknown, mounts: 0, effectIndex: 0, dependencies: [] as (readonly unknown[])[] }));
 vi.mock("react", async (importOriginal) => ({
   ...await importOriginal<typeof import("react")>(),
   useEffect: (effect: () => void, dependencies: readonly unknown[]) => {
@@ -14,6 +14,7 @@ vi.mock("react", async (importOriginal) => ({
     }
   },
   useState: (initial: unknown) => {
+    if (initial === null) return [harness.summaryTarget, (target: unknown) => { harness.summaryTarget = target; }];
     if (harness.snapshot === undefined) harness.snapshot = initial;
     return [harness.snapshot, (update: unknown) => { harness.snapshot = typeof update === "function" ? update(harness.snapshot) : update; }];
   },
@@ -45,6 +46,7 @@ function flush() { harness.effects.splice(0).forEach((effect) => effect()); }
 function value() { return harness.value as ReturnType<typeof useGlobalFilters>; }
 
 beforeEach(() => {
+  harness.summaryTarget = null;
   harness.snapshot = undefined; harness.effects = []; harness.mounts = 0; harness.value = undefined; harness.dependencies = []; harness.effectIndex = 0;
   storage = new Map();
   setItem = vi.fn((key: string, item: string) => storage.set(key, item));

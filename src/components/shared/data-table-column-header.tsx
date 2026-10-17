@@ -43,7 +43,7 @@ export function DataTableColumnHeader({
     <Button
       variant="ghost"
       size="sm"
-      className={cn(align === "left" ? "-ml-2.5" : align === "right" ? "-mr-2.5" : undefined, className)}
+      className={cn(align === "left" ? "-ml-2.5" : align === "right" ? "-mr-2" : undefined, className)}
       onClick={() => column.toggleSorting(direction === "asc")}
       aria-label={`${title}: ${
         direction === "asc"

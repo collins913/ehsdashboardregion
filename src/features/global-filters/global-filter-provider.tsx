@@ -34,6 +34,8 @@ import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { PageContainer } from "@/components/shared/page-container";
 
 type GlobalFiltersProviderValue = {
+  summaryTarget: HTMLDivElement | null;
+  setSummaryTarget: (target: HTMLDivElement | null) => void;
   state: GlobalFilterState;
   filterContext: EhsFilterContext | null;
   storeScope: EhsStoreScope | null;
@@ -69,6 +71,7 @@ export function GlobalFilterProvider({
   userEmail,
 }: GlobalFilterProviderProps) {
   const storageKey = globalFilterStorageKey(userEmail);
+  const [summaryTarget, setSummaryTarget] = useState<HTMLDivElement | null>(null);
   const initialStateRef = useRef(initialState);
   const [snapshot, setSnapshot] = useState({ key: storageKey, stores, state: initialState, restored: storageKey === null });
   const state = snapshot.state;
@@ -159,6 +162,8 @@ export function GlobalFilterProvider({
 
   const value = useMemo<GlobalFiltersProviderValue>(
     () => ({
+      summaryTarget,
+      setSummaryTarget,
       state,
       filterContext,
       storeScope,
@@ -173,6 +178,7 @@ export function GlobalFilterProvider({
       setCustomEndMonth,
     }),
     [
+      summaryTarget,
       filterContext,
       storeScope,
       nowIso,

@@ -101,6 +101,7 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
   const [storePopoverOpen, setStorePopoverOpen] = useState(false);
   const [storeKeyword, setStoreKeyword] = useState("");
   const {
+    setSummaryTarget,
     state,
     readiness,
     options,
@@ -147,9 +148,12 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
     <section aria-label="全局筛选">
       <PageContainer className="pt-3 pb-0 lg:pt-3 lg:pb-0">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            <span>全局筛选</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="flex shrink-0 items-center gap-2 text-sm font-medium">
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              <span>全局筛选</span>
+            </div>
+            <div ref={setSummaryTarget} className="min-w-0" />
           </div>
 
           <div className={filterGridClassName}>

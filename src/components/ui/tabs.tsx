@@ -5,12 +5,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
+const TabsMotionContext = React.createContext({ animated: false, value: undefined as string | undefined, switched: false })
+
 function Tabs({
   className,
   orientation = "horizontal",
+  animated = false,
+  value,
+  defaultValue,
+  onValueChange,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+}: React.ComponentProps<typeof TabsPrimitive.Root> & { animated?: boolean }) {
+  const [selectedValue, setSelectedValue] = React.useState(defaultValue)
+  const [switched, setSwitched] = React.useState(false)
   return (
+    <TabsMotionContext.Provider value={{ animated: animated && orientation === "horizontal", value: value ?? selectedValue, switched }}>
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
@@ -18,8 +27,15 @@ function Tabs({
         "group/tabs flex gap-2 data-horizontal:flex-col",
         className
       )}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={(next) => {
+        if (animated) { setSelectedValue(next); setSwitched(true) }
+        onValueChange?.(next)
+      }}
       {...props}
     />
+    </TabsMotionContext.Provider>
   )
 }
 
@@ -75,15 +91,29 @@ function TabsTrigger({
 
 function TabsContent({
   className,
+  value,
+  style,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  const motion = React.useContext(TabsMotionContext)
+  const inactive = motion.animated && motion.value !== value
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      value={value}
+      className={cn("flex-1 text-sm outline-none", className, motion.animated && "absolute inset-0 h-full w-full min-w-0 flex-none overflow-hidden motion-reduce:filter-none! motion-reduce:transition-none", motion.animated && motion.switched && "transition-[opacity,filter] duration-200 ease-in-out")}
+      style={motion.animated ? { ...style, opacity: inactive ? 0 : 1, filter: inactive ? "blur(2px)" : "blur(0px)", zIndex: inactive ? 0 : 1 } : style}
       {...props}
+      forceMount={motion.animated ? true : props.forceMount}
+      inert={motion.animated ? inactive : props.inert}
+      aria-hidden={motion.animated ? inactive : props["aria-hidden"]}
     />
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }
+function TabsContents({ className, children, ...props }: React.ComponentProps<"div">) {
+  const motion = React.useContext(TabsMotionContext)
+  return <div data-slot="tabs-contents" className={cn("relative min-h-0 flex-1", motion.animated && "overflow-hidden", className)} {...props}>{children}</div>
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent, TabsContents, tabsListVariants }

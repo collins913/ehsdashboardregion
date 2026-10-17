@@ -13,7 +13,7 @@ import { ScopeSheet } from "./components/scope-detail-sheet"
 import { ScoreChange } from "./components/score-change"
 import { Sheet } from "@/components/ui/sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { getOverviewPresentation, OverviewContent } from "./overview-page"
+import { getOverviewPresentation, OverviewContent, OverviewScopeSummary } from "./overview-page"
 import { ChangeRankingList } from "./components/change-ranking-list"
 import { OVERVIEW_SCORE_DOMAIN, OVERVIEW_SCORE_TICKS, OverviewMonthlyTrendChart } from "./components/overview-charts"
 
@@ -178,6 +178,12 @@ describe("Overview UX semantics", () => {
     expect(text).toContain("—")
     expect(text).not.toContain(">0%</span>")
     expect(text).not.toContain("第3名详情")
+    const buttons = text.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? []
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0]).toContain("乙门店")
+    expect(buttons[0]).toContain("80%")
+    expect(buttons[0]).toContain("+5.4%")
+    expect(buttons[0]).not.toContain("hover:underline")
   })
 
   it("defaults to the matrix even for a small set of overlapping peers", () => {
@@ -221,10 +227,16 @@ describe("Overview UX semantics", () => {
     expect(prepare(all, [stores[0]], "2026-01", "2026-01", (store) => store.storeId !== "a").hero.overallScore).toBe(0)
   })
 
-  it("shows selected periods only in the scope bar and keeps detail captions free of repetition", () => {
+  it("moves scope captions into the filter header summary and removes the old scope bar and V1 text", () => {
     const page = markup(createElement(OverviewContent, { result }))
-    expect(page.match(/当前期：/g)).toHaveLength(1)
-    expect(page.match(/比较期：2026-03/g)).toHaveLength(1)
+    expect(page).not.toContain("当前期：")
+    expect(page).not.toContain("V1")
+    expect(page).not.toContain('<p class="text-xs text-muted-foreground"></p>')
+    const summary = markup(createElement(OverviewScopeSummary, { result }))
+    expect(summary).not.toContain(result.scopeLabel)
+    expect(summary).not.toContain("家门店")
+    expect(summary.match(/当前期：/g)).toHaveLength(1)
+    expect(summary.match(/比较期：2026-03/g)).toHaveLength(1)
     const detail = markup(createElement(Sheet, null, createElement(ScopeSheet, { detail: result.scopeDetails[0] })))
     expect(detail).not.toContain("当前期：")
     expect(detail).not.toContain("比较期：")

@@ -63,7 +63,7 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
             </HoverCardContent>
           </HoverCard> : "维度得分"}
         </Heading>
-        <div className={headingLevel === 2 ? "min-h-0 flex-1 overflow-y-auto @min-[320px]/dimension-score:[--dimension-score-width:5rem]" : "@min-[320px]/dimension-score:[--dimension-score-width:5rem]"}>
+        <div className={headingLevel === 2 ? "min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] @min-[320px]/dimension-score:[--dimension-score-width:5rem]" : "min-w-0 @min-[320px]/dimension-score:[--dimension-score-width:5rem]"}>
         <div className={cn("sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 bg-background text-xs text-muted-foreground", detailAccordionSummaryInsetClassName)}>
           <span>维度</span><span className={numericColumnsClassName}><span>{showAverage ? "每店均分" : "当前得分"}</span><span>得分变化（分）</span></span>
         </div>
@@ -72,7 +72,7 @@ export function DimensionScoreAccordion({ scores, storeCount, showAverage, ident
             disabled={dimension.items.length === 0}
             summary={<span className={numericColumnsClassName}><span className="tabular-nums">{currentPoints(dimension, showAverage)}</span><ScoreChange value={dimension.delta} suffix="" /></span>}
           >
-            <div className={detailAccordionSummaryInsetClassName}>
+            <div className={cn(detailAccordionSummaryInsetClassName, "min-w-0 [&>[data-slot=table-container]]:overflow-x-clip")}>
             <Table className="table-fixed" aria-label={`${dimensionLabels[dimension.id]}小维度得分`}>
               <colgroup>
                 <col />

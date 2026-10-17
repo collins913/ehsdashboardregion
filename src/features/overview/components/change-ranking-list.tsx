@@ -1,9 +1,8 @@
 "use client"
 
-import { dataTableColumnAlignmentClassNames } from "@/components/shared/data-table-layout"
-import { cn } from "@/lib/utils"
+import type { ReactNode } from "react"
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip"
-import { TableCellTrigger } from "@/components/shared/table-cell-trigger"
+import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { OverviewRankedScope } from "@/data/contracts/overview"
 import { formatOverviewRate, ScoreChange } from "./score-change"
@@ -19,16 +18,23 @@ export function ChangeRankingList({ improving, declining, onSelect }: {
         <Table className="table-fixed" aria-label={`${label}排名`}>
           <colgroup><col className="w-6" /><col /><col className="w-14" /><col className="w-20" /></colgroup>
           <TableHeader className="sr-only"><TableRow><TableHead>名次</TableHead><TableHead>名称</TableHead><TableHead>得分率</TableHead><TableHead>变化</TableHead></TableRow></TableHeader>
-          <TableBody>{entries.map((item, index) => <TableRow key={item.scopeId} className="h-8">
-            <TableCell className="px-0 py-0 text-sm tabular-nums text-muted-foreground">{index + 1}</TableCell>
-            <TableCell className={cn("min-w-0 px-0 py-0", dataTableColumnAlignmentClassNames.left)}>
-              <OverflowTooltip text={item.label} className="flex-1 font-medium" renderTrigger={(name) => (
-                <TableCellTrigger disabled={!onSelect} className="w-full justify-start text-left" aria-label={`查看${item.label}${label}第${index + 1}名详情`} onClick={() => onSelect?.(item.scopeId)}>{name}</TableCellTrigger>
-              )} />
-            </TableCell>
-            <TableCell className="px-0 py-0 text-left text-sm tabular-nums text-muted-foreground">{item.score === null ? "—" : `${formatOverviewRate(item.score)}%`}</TableCell>
-            <TableCell className="px-0 py-0 text-left text-sm font-medium"><ScoreChange value={item.delta} /></TableCell>
-          </TableRow>)}
+          <TableBody>{entries.map((item, index) => {
+            const content = (name: ReactNode) => <>
+              <span className="text-sm tabular-nums text-muted-foreground">{index + 1}</span>
+              {name}
+              <span className="text-left text-sm tabular-nums text-muted-foreground">{item.score === null ? "—" : `${formatOverviewRate(item.score)}%`}</span>
+              <span className="text-left text-sm font-medium"><ScoreChange value={item.delta} /></span>
+            </>
+            return <TableRow key={item.scopeId} className="h-8 hover:bg-transparent">
+              <TableCell colSpan={4} className="px-0 py-0">
+                <OverflowTooltip text={item.label} className="font-medium text-left" renderTrigger={(name) => onSelect ? <Button type="button" variant="ghost" size="sm"
+                  className="grid w-full min-w-0 cursor-pointer grid-cols-[1.5rem_minmax(0,1fr)_3.5rem_5rem] gap-0 px-0 text-left font-normal"
+                  aria-label={`查看${item.label}${label}第${index + 1}名详情`}
+                  onClick={() => onSelect(item.scopeId)}
+                >{content(name)}</Button> : <div className="grid h-7 grid-cols-[1.5rem_minmax(0,1fr)_3.5rem_5rem] items-center">{content(name)}</div>} />
+              </TableCell>
+            </TableRow>
+          })}
           {Array.from({ length: Math.max(0, 3 - entries.length) }, (_, index) => <TableRow key={`empty-${index}`} className="h-8 hover:bg-transparent" aria-label={`${label}第${entries.length + index + 1}位暂无对象`}>
             <TableCell className="px-0 py-0 tabular-nums text-muted-foreground">{entries.length + index + 1}</TableCell>
             <TableCell className="px-0 py-0 text-muted-foreground">{improving.length === 0 && declining.length === 0 && label === "提升" && index === 0 ? "无可比较数据" : "—"}</TableCell>

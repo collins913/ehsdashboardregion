@@ -18,6 +18,7 @@ export function WasteContractsDetail({ groups, defaultOpenValues }: {
           count={group.count}
           disabled={group.disabled}
           contentClassName="space-y-3"
+          cardContent
         >
           {group.records.length === 0 ? (
             <p className="text-sm text-muted-foreground">当前暂无合同记录</p>

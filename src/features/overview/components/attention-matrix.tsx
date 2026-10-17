@@ -6,7 +6,7 @@ import { OverflowTooltip } from "@/components/shared/overflow-tooltip"
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsContents, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { OverviewResult } from "@/data/contracts/overview"
 import { OverviewSectionHeader } from "./overview-section-header"
 import { OverviewAttentionChart } from "./overview-charts"
@@ -22,12 +22,16 @@ export function AttentionMatrix({ matrix, onSelect, selectedScopeId }: {
   const hasSelectedPeer = selectedScopeId && members.length > 1 && members.some((member) => member.id === selectedScopeId)
   return (
     <Card className="h-full min-h-0 min-w-0" data-testid="attention-matrix">
-      <Tabs defaultValue="matrix" className="min-h-0 flex-1 gap-4">
+      <Tabs animated defaultValue="matrix" className="min-h-0 flex-1 gap-4">
         <OverviewSectionHeader title="同级得分与变化" subtitle={`同级平均得分率 ${matrix.averageScore === null ? "—" : `${formatOverviewScore(matrix.averageScore)}%`}`} description="横轴为当前得分率（%），纵轴为得分变化率（%）。参考线表示同级平均得分率和 0%。"
           action={members.length > 0 ? <TabsList aria-label="同级比较显示方式"><TabsTrigger value="matrix">矩阵</TabsTrigger><TabsTrigger value="list">明细</TabsTrigger></TabsList> : null} />
         <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
           {members.length === 0 ? <p className="flex h-60 items-center justify-center text-sm text-muted-foreground">无可比较数据</p> : <>
             {hasSelectedPeer ? <p className="mb-3 shrink-0 text-xs text-muted-foreground">摘要为当前门店；此处比较范围包含同级门店。</p> : null}
+            <TabsContents className="min-h-60">
+            <TabsContent value="matrix" className="min-h-60 flex-1">
+              <div className="h-full min-h-0" data-detail-trigger="matrix"><OverviewAttentionChart groups={matrix.groups} xDomain={matrix.xDomain} yDomain={matrix.yDomain} averageScore={matrix.averageScore} onSelect={onSelect} /></div>
+            </TabsContent>
             <TabsContent value="list" className="min-h-60 flex-1 overflow-hidden">
               <div className="h-full overflow-y-auto">
                 <Table className="table-fixed" aria-label="同级得分与变化明细">
@@ -48,9 +52,7 @@ export function AttentionMatrix({ matrix, onSelect, selectedScopeId }: {
                 </Table>
               </div>
             </TabsContent>
-            <TabsContent value="matrix" className="min-h-60 flex-1">
-              <div className="h-full min-h-0" data-detail-trigger="matrix"><OverviewAttentionChart groups={matrix.groups} xDomain={matrix.xDomain} yDomain={matrix.yDomain} averageScore={matrix.averageScore} onSelect={onSelect} /></div>
-            </TabsContent>
+            </TabsContents>
           </>}
         </CardContent>
       </Tabs>

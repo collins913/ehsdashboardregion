@@ -34,6 +34,7 @@ import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
@@ -160,7 +161,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
         />
         <div className="space-y-4 px-4 pb-4">
           <DetailAccordion>
-            <DetailAccordionItem title="焊接作业证" value="welding" count={1} attention>
+            <DetailAccordionItem title="焊接作业证" value="welding" count={1} attention cardContent>
               <DetailRecordCard
                 header="Yue SUN（孙悦）"
                 action={<StatusDisplay status="ABNORMAL" />}
@@ -176,7 +177,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
               <p className="text-sm text-muted-foreground">无记录</p>
             </DetailAccordionItem>
             <DetailAccordionItem title="带摘要的信息组" value="summary" summary={<span className="tabular-nums">3/5</span>}>
-              <p className="text-sm text-muted-foreground">摘要由调用方提供，展开内容沿用共享 Accordion。</p>
+              <p className="text-sm text-muted-foreground">摘要由调用方提供；共享 Accordion 使用 200ms ease-in-out 展开／折叠与箭头旋转，并为卡片悬停保留空间，保持左右对齐。</p>
             </DetailAccordionItem>
           </DetailAccordion>
         </div>
@@ -438,6 +439,15 @@ export default function UiLabPage() {
                 <AnalyticsProgressItem label="安全生产管理人员安全生产培训合格证书-M" actualCount={468} requiredCount={500} progressValue={93.6} missingRequirementLabel="未设置" />
                 <AnalyticsProgressItem label="安全驾驶内驾证" actualCount={492} requiredCount={null} progressValue={null} missingRequirementLabel="未设置" />
               </ul>
+            </DemoSurface>
+            <DemoSurface title="Tabs 动画" description="原位置 200ms 轻微模糊与淡入淡出，不横向移动；保留键盘操作，非活动面板不可交互，尊重减少动态效果设置。">
+              <Tabs animated defaultValue="matrix">
+                <TabsList aria-label="动画切换示例"><TabsTrigger value="matrix">矩阵</TabsTrigger><TabsTrigger value="list">明细</TabsTrigger></TabsList>
+                <TabsContents className="min-h-24">
+                  <TabsContent value="matrix"><p>矩阵内容示例</p></TabsContent>
+                  <TabsContent value="list"><p>明细内容示例</p></TabsContent>
+                </TabsContents>
+              </Tabs>
             </DemoSurface>
             <DemoSurface title="AnalyticsClosureRadial" description="关闭率浮层逐项显示源状态对应的名称和数量，中心文字位于 SVG 内。">
               <AnalyticsClosureRadial title="关闭情况" rate={33} rateLabel="关闭率" statusCounts={[{ label: "已关闭", count: 2604 }, { label: "进行中", count: 3000 }, { label: "已分配", count: 2396 }]} />
