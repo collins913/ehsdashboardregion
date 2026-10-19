@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { authorizeBusinessScope, createManualGrant, deleteManualGrant, getAccountSummary, getAuthorizedFilterStores, listManualGrants, queryAuditLog, requireAdmin, updateManualGrant } from "@/lib/access/access-service.server";
+import { authorizeBusinessScope, createManualGrant, deleteManualGrant, getAccessCatalog, getAccountSummary, getAuthorizedFilterStores, listManualGrants, queryAuditLog, requireAdmin, updateManualGrant } from "@/lib/access/access-service.server";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
 import * as identityProvider from "@/data/server/identity-provider.server";
 const all: EhsStoreScope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
@@ -33,12 +33,16 @@ describe("Access server service", () => {
     vi.stubEnv("EHS_MOCK_USER_AVATAR_URL", "");
     expect(await getAccountSummary()).toMatchObject({ displayName: null, avatarUrl: null });
   });
-  it("blocks non-admin reads and mutations", async () => {
-    vi.stubEnv("EHS_MOCK_USER_EMAIL", "global.user@example.test");
+  it.each(["global.user@example.test", "area.manual@example.test", "manager.1@example.test", "unknown@example.test"])("blocks non-admin reads and mutations for %s", async (email) => {
+    vi.stubEnv("EHS_MOCK_USER_EMAIL", email);
+    expect((await getAccountSummary()).canManageAccess).toBe(false);
+    await expect(getAccessCatalog()).rejects.toThrow("NOT_AUTHORIZED");
     await expect(requireAdmin()).rejects.toThrow("NOT_AUTHORIZED");
     await expect(listManualGrants()).rejects.toThrow("NOT_AUTHORIZED");
     await expect(queryAuditLog()).rejects.toThrow("NOT_AUTHORIZED");
-    expect((await createManualGrant({ email: "x@example.test", accessType: "STORE", scopeId: "TEST-001", note: null })).ok).toBe(false);
+    expect(await createManualGrant({ email: "x@example.test", accessType: "STORE", scopeId: "TEST-001", note: null })).toMatchObject({ ok: false, code: "NOT_AUTHORIZED" });
+    expect(await updateManualGrant("grant-admin", { accessType: "GLOBAL_USER", scopeId: null, note: null })).toMatchObject({ ok: false, code: "NOT_AUTHORIZED" });
+    expect(await deleteManualGrant("grant-admin")).toMatchObject({ ok: false, code: "NOT_AUTHORIZED" });
   });
   it("limits filter options and business query scope before return", async () => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", "manager.1@example.test");

@@ -19,6 +19,7 @@ import {
   dataTableColumnContentClassNames,
   dataTableColumnSizeClassNames,
   dataTableFrameClassName,
+  dataTableRowClassName,
   stickyStoreCellClassName,
   stickyStoreHeaderClassName,
 } from "@/components/shared/data-table-layout";
@@ -30,10 +31,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PageErrorState } from "@/components/shared/page-error-state";
 import {
   StatusDisplay,
-  type BusinessStatus,
 } from "@/components/shared/status-display";
 import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +52,11 @@ import {
 } from "@/components/ui/table";
 import { GlobalFilterProvider } from "@/features/global-filters/global-filter-provider";
 import { KpiDataTable } from "@/features/kpi/kpi-data-table";
-import type { Month } from "@/types/ehs";
+import { KpiStatusDisplay } from "@/features/kpi/kpi-status-display";
+import { ActionStatusDisplay } from "@/features/actions/action-status-display";
+import { getTakeChargeSourceStatusLabel, getTakeChargeStatusIcon } from "@/features/goals/take-charge-status-presentation";
+import { CERTIFICATE_CATEGORIES, CERTIFICATE_TYPE_CATEGORIES } from "@/lib/rules/certificate-types";
+import type { KnownActionStatus, Month } from "@/types/ehs";
 import {
   globalFilterUiState,
   globalFilterUiStores,
@@ -87,19 +90,19 @@ const tokenSamples = [
   { name: "ring", className: "bg-ring" },
 ] as const;
 
-const businessStatuses: readonly BusinessStatus[] = [
-  "ACHIEVED",
-  "NOT_ACHIEVED",
-  "UNDETERMINED",
-  "OCCURRED",
-  "NOT_OCCURRED",
-  "OPEN",
-  "CLOSED",
-  "EXCLUDED",
-  "UNKNOWN",
-  "NORMAL",
-  "ABNORMAL",
-];
+const actionStatusSamples = [
+  "Assigned", "In Progress", "In Review", "Sign Off", "Cancelled", "Closed",
+] as const satisfies readonly KnownActionStatus[];
+
+// Prepared display examples; lifecycle classification stays in the server/rule layer.
+const takeChargeStatusSamples = [
+  { sourceStatus: "Submitted", recordState: "OPEN" },
+  { sourceStatus: "InProgress", recordState: "OPEN" },
+  { sourceStatus: "PendingReview", recordState: "OPEN" },
+  { sourceStatus: "Declined", recordState: "CLOSED" },
+  { sourceStatus: "ClosedWithAction", recordState: "CLOSED" },
+  { sourceStatus: "ClosedWithoutAction", recordState: "CLOSED" },
+] as const;
 
 const badgeVariants = [
   { value: "default", label: "默认" },
@@ -136,7 +139,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
           title="特种作业"
           subtitle="示例星河店"
           resultLabel="当前结果"
-          result={<StatusDisplay status="NORMAL" />}
+          result={<StatusDisplay status="ABNORMAL" />}
         />
         <div className="space-y-4 px-4 pb-4">
           <DetailAccordion>
@@ -147,7 +150,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
               >
                 <DetailFields className="grid-cols-2">
                   <DetailField label="岗位" className="col-span-2">可自然换行的岗位名称示例</DetailField>
-                  <DetailField label="到期日期">2026-09-21</DetailField>
+                  <DetailField label="到期日期">2026-09-06</DetailField>
                   <DetailField label="距离到期">-5 天</DetailField>
                 </DetailFields>
               </DetailRecordCard>
@@ -188,7 +191,7 @@ function ColumnSizingRolePreview() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
+          <TableRow className={dataTableRowClassName}>
             <TableCell
               className={`${dataTableColumnSizeClassNames.primary} ${stickyStoreCellClassName}`}
             >
@@ -239,19 +242,17 @@ export default function UiLabPage() {
   }
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="gap-6 py-6">
-      <PageContainer className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight">组件预览</h1>
-          <ThemeToggle />
+    <Tabs value={tab} onValueChange={setTab} className="gap-0">
+      <PageContainer className="pb-0 lg:pb-0">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <TabsList aria-label="组件分类">
+            <TabsTrigger value="basics">基础</TabsTrigger>
+            <TabsTrigger value="states">状态</TabsTrigger>
+            <TabsTrigger value="charts">图表</TabsTrigger>
+            <TabsTrigger value="tables">表格</TabsTrigger>
+            <TabsTrigger value="details">筛选与详情</TabsTrigger>
+          </TabsList>
         </div>
-        <TabsList aria-label="组件分类">
-          <TabsTrigger value="basics">基础</TabsTrigger>
-          <TabsTrigger value="states">状态</TabsTrigger>
-          <TabsTrigger value="charts">图表</TabsTrigger>
-          <TabsTrigger value="tables">表格</TabsTrigger>
-          <TabsTrigger value="details">筛选与详情</TabsTrigger>
-        </TabsList>
       </PageContainer>
 
       <TabsContent value="basics">
@@ -259,7 +260,7 @@ export default function UiLabPage() {
           <DemoSurface title="文字层级">
             <div className="space-y-3">
               <p className="text-2xl font-semibold tracking-tight">页面标题</p>
-              <p className="text-base font-medium">卡片标题</p>
+              <CardTitle>卡片标题</CardTitle>
               <p className="text-base">正文内容</p>
               <p className="text-sm text-muted-foreground">辅助文字</p>
               <p className="text-xs text-muted-foreground">元数据</p>
@@ -318,21 +319,80 @@ export default function UiLabPage() {
 
       <TabsContent value="states">
         <PageContainer className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <DemoSurface title="业务状态">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {businessStatuses.map((status) => (
-                  <div key={status} className="flex items-center justify-between gap-3">
-                    <code className="text-xs text-muted-foreground">{status}</code>
-                    <StatusDisplay status={status} />
+          <section aria-label="业务状态分类" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {["培训", "演练", "检查"].map((title) => (
+              <DemoSurface key={title} title={title}>
+                <dl className="space-y-3">
+                  <div>
+                    <dt className="mb-2 text-xs text-muted-foreground">汇总结果</dt>
+                    <dd className="flex flex-wrap gap-2">
+                      <KpiStatusDisplay status="ACHIEVED" />
+                      <KpiStatusDisplay status="NOT_ACHIEVED" />
+                      <DataAvailabilityDisplay availability="INCOMPLETE" />
+                      <DataAvailabilityDisplay availability="UNAVAILABLE" />
+                    </dd>
                   </div>
-                ))}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">未关闭记录</span>
-                  <StatusDisplay status="OPEN" label="进行中" />
-                </div>
+                  <div>
+                    <dt className="mb-2 text-xs text-muted-foreground">{title === "培训" ? "记录状态" : "记录状态示例（保留源文字）"}</dt>
+                    <dd className="flex flex-wrap gap-2">
+                      <KpiStatusDisplay status="ACHIEVED" label={title === "培训" ? undefined : "已完成"} />
+                      <KpiStatusDisplay status="NOT_ACHIEVED" label={title === "培训" ? undefined : "进行中"} />
+                      {title === "培训" ? <KpiStatusDisplay status="UNDETERMINED" /> : <KpiStatusDisplay status="UNDETERMINED" label="—" />}
+                    </dd>
+                  </div>
+                </dl>
+              </DemoSurface>
+            ))}
+            <DemoSurface title="行动项">
+              <div className="flex flex-wrap gap-2">
+                {actionStatusSamples.map((value) => <ActionStatusDisplay key={value} status={{ kind: "KNOWN", value }} />)}
+                <ActionStatusDisplay status={{ kind: "UNKNOWN", value: "" }} />
               </div>
             </DemoSurface>
+            <DemoSurface title="事件">
+              <dl className="space-y-3">
+                <div>
+                  <dt className="mb-2 text-xs text-muted-foreground">事件记录</dt>
+                  <dd className="flex flex-wrap gap-2">
+                    <StatusDisplay status="OPEN" />
+                    <StatusDisplay status="CLOSED" />
+                    <StatusDisplay status="UNKNOWN" />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="mb-2 text-xs text-muted-foreground">ASTM 发生情况</dt>
+                  <dd className="flex flex-wrap gap-2">
+                    <StatusDisplay status="OCCURRED" />
+                    <StatusDisplay status="NOT_OCCURRED" />
+                  </dd>
+                </div>
+              </dl>
+            </DemoSurface>
+            <DemoSurface title="Take Charge">
+              <div className="flex flex-wrap gap-2">
+                {takeChargeStatusSamples.map(({ sourceStatus, recordState }) => (
+                  <StatusDisplay key={sourceStatus} status={recordState} label={getTakeChargeSourceStatusLabel(sourceStatus)} icon={getTakeChargeStatusIcon(recordState)} />
+                ))}
+                <StatusDisplay status="UNKNOWN" icon={getTakeChargeStatusIcon("UNKNOWN")} />
+              </div>
+            </DemoSurface>
+            {CERTIFICATE_CATEGORIES.map((category) => (
+              <DemoSurface key={category} title={`证件 · ${category}`}>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <StatusDisplay status="NORMAL" />
+                    <StatusDisplay status="ABNORMAL" />
+                  </div>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
+                    {Object.entries(CERTIFICATE_TYPE_CATEGORIES).filter(([, group]) => group === category).map(([type]) => (
+                      <li key={type}><OverflowTooltip text={type} /></li>
+                    ))}
+                  </ul>
+                </div>
+              </DemoSurface>
+            ))}
+          </section>
+          <div className="grid gap-4 lg:grid-cols-2">
             <DemoSurface title="数据可用性">
               <div className="flex flex-wrap gap-2">
                 <DataAvailabilityDisplay availability="AVAILABLE" />

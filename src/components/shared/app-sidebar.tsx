@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { applicationName, navigationGroups, navigationLabels, routes } from "@/config/navigation";
+import { applicationName, navigationGroups, routes, systemManagementNavigation } from "@/config/navigation";
 import type { AccountSummary } from "@/data/contracts/access";
 import { useGLifeProfile } from "@/features/enterprise/glife-context-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -45,6 +45,7 @@ export function AppSidebar({ account, activePathname, onNavigate }: {
   const incomingProfile = useGLifeProfile();
   const profile = incomingProfile?.email?.trim().toLowerCase() === account?.email.trim().toLowerCase()
     ? incomingProfile : null;
+  const systemItems = account?.scopes.length ? systemManagementNavigation.items.filter((item) => account.canManageAccess || item.href === routes.devDataLogic.href) : [];
   const accountName = profile?.displayName || account?.displayName?.trim() || "未提供姓名";
   const accountEmail = profile?.email || account?.email || "";
   const avatarUrl = profile?.avatarUrl || account?.avatarUrl;
@@ -97,15 +98,15 @@ export function AppSidebar({ account, activePathname, onNavigate }: {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      {account?.canManageAccess ? (
+      {systemItems.length ? (
         <SidebarGroup>
-          <SidebarGroupLabel>{navigationLabels.systemManagement}</SidebarGroupLabel>
+          <SidebarGroupLabel>{systemManagementNavigation.label}</SidebarGroupLabel>
           <SidebarGroupContent><SidebarMenu>
-            {[routes.accessManagement].map((item) => {
+            {systemItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                  <Link href={item.href} onNavigate={navigationHandler(item.href)} onClick={() => setOpenMobile(false)}><item.icon aria-hidden="true" /><span>{item.title}</span></Link>
+                  <Link href={item.href} onNavigate={navigationHandler(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setOpenMobile(false)}><item.icon aria-hidden="true" /><span>{item.title}</span></Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>;
             })}

@@ -28,8 +28,10 @@ describe("developer route authorization", () => {
     ["no-access user", "unknown@example.test"],
   ])("denies %s direct access to dev routes", async (_label, email) => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", email);
-    const page = createElement("div", { "data-route": "/dev/ui" });
-    await expect(DevLayout({ children: page })).rejects.toThrow("REDIRECT:/no-access");
-    expect(redirect).toHaveBeenCalledWith("/no-access");
+    for (const path of ["/dev/ui", "/dev/overview"]) {
+      const page = createElement("div", { "data-route": path });
+      await expect(DevLayout({ children: page })).rejects.toThrow("REDIRECT:/no-access");
+      expect(redirect).toHaveBeenCalledWith("/no-access");
+    }
   });
 });

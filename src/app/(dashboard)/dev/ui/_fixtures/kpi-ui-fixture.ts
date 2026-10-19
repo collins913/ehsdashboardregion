@@ -3,9 +3,11 @@ import type { DataAvailability, EhsFilterContext } from "@/data/contracts/kpi";
 import type { KpiDetailQueries } from "@/features/kpi/kpi-detail-sheet";
 import type {
   ActionKpiValue,
+  AstmKpiValue,
   KpiRow,
   PerformanceKpiValue,
 } from "@/features/kpi/types";
+import type { KpiDetailRecords, KpiTrainingDetailRecord, KpiDrillDetailRecord, KpiInspectionDetailRecord, KpiAstmDetailRecord } from "@/data/contracts/kpi-details";
 import type { NormalizedActionRecord } from "@/data/contracts/action-record";
 import type { PerformanceResult } from "@/lib/rules/result-types";
 
@@ -94,44 +96,50 @@ export async function queryDemoKpiActions({
   };
 }
 
-export const queryDemoKpiDetails: KpiDetailQueries = {
-  training: async () => ({
-    availability: "AVAILABLE",
-    items: [
-      {
-        trainingName: "门店安全基础培训",
-        month: "2026-09",
-        completionRate: 92, completionResult: "NOT_ACHIEVED",
-        incompletePeople: ["张晓雨"],
-      },
-      {
-        trainingName: "应急处置培训",
-        month: "2026-08",
-        completionRate: 100, completionResult: "ACHIEVED",
-        incompletePeople: [],
-      },
-    ],
-  }),
-  drill: async () => ({
-    availability: "AVAILABLE",
-    items: [
-      { drillName: "消防疏散演练", month: "2026-09", status: "已完成", completionResult: "ACHIEVED" },
-      { drillName: "应急响应演练", month: "2026-08", status: "待确认", completionResult: "NOT_ACHIEVED" },
-    ],
-  }),
-  inspections: async () => ({
-    availability: "AVAILABLE",
-    items: [
-      {
-        inspectionNumber: "INP-00001",
-        inspectionName: "月度安全检查",
-        dueDate: "2026-09-20",
-        inspector: "陈晨",
-        status: "已完成", completionResult: "ACHIEVED",
-      },
-    ],
-  }),
-  astmEvents: async () => ({ availability: "CONFIRMED_EMPTY", items: [] }),
+// Precomputed scenarios, shared by the list and detail stubs. No production rule evaluation here.
+function scenario<T>(result: PerformanceResult, details: KpiDetailRecords<T>) {
+  return { summary: performance(result, details.availability), details };
+}
+
+const completedTraining: readonly [KpiTrainingDetailRecord, KpiTrainingDetailRecord] = [
+  { trainingName: "门店安全基础培训", month: "2026-09", completionRate: 100, completionResult: "ACHIEVED", incompletePeople: [] },
+  { trainingName: "应急处置培训", month: "2026-08", completionRate: 100, completionResult: "ACHIEVED", incompletePeople: [] },
+];
+const trainingExamples = {
+  completed: scenario<KpiTrainingDetailRecord>("ACHIEVED", { availability: "AVAILABLE", items: completedTraining }),
+  pending: scenario<KpiTrainingDetailRecord>("NOT_ACHIEVED", { availability: "AVAILABLE", items: [
+    { ...completedTraining[0], completionRate: 92, completionResult: "NOT_ACHIEVED", incompletePeople: ["张晓雨"] },
+    completedTraining[1],
+  ] }),
+  incomplete: scenario<KpiTrainingDetailRecord>("UNDETERMINED", { availability: "INCOMPLETE", items: [
+    { ...completedTraining[0], completionRate: null, completionResult: "UNDETERMINED", incompletePeople: null },
+  ] }),
+};
+
+const completedDrills: readonly [KpiDrillDetailRecord, KpiDrillDetailRecord, KpiDrillDetailRecord] = [
+  { drillName: "月度应急演练", month: "2026-07", status: "已完成", completionResult: "ACHIEVED" },
+  { drillName: "月度应急演练", month: "2026-08", status: "已完成", completionResult: "ACHIEVED" },
+  { drillName: "月度应急演练", month: "2026-09", status: "已完成", completionResult: "ACHIEVED" },
+];
+const drillExamples = {
+  completed: scenario<KpiDrillDetailRecord>("ACHIEVED", { availability: "AVAILABLE", items: completedDrills }),
+  pending: scenario<KpiDrillDetailRecord>("NOT_ACHIEVED", { availability: "AVAILABLE", items: [
+    completedDrills[0], completedDrills[1],
+    { ...completedDrills[2], status: "进行中", completionResult: "NOT_ACHIEVED" },
+  ] }),
+  unavailable: scenario<KpiDrillDetailRecord>("UNDETERMINED", { availability: "UNAVAILABLE", items: [] }),
+};
+
+const completedInspection: KpiInspectionDetailRecord = {
+  inspectionNumber: "INP-00001", inspectionName: "月度安全检查", dueDate: "2026-09-20",
+  inspector: "陈晨", status: "已完成", completionResult: "ACHIEVED",
+};
+const inspectionExamples = {
+  completed: scenario<KpiInspectionDetailRecord>("ACHIEVED", { availability: "AVAILABLE", items: [completedInspection] }),
+  pending: scenario<KpiInspectionDetailRecord>("NOT_ACHIEVED", { availability: "AVAILABLE", items: [
+    { ...completedInspection, status: "进行中", completionResult: "NOT_ACHIEVED" },
+  ] }),
+  empty: scenario<KpiInspectionDetailRecord>("ACHIEVED", { availability: "CONFIRMED_EMPTY", items: [] }),
 };
 
 function actions(index: number): ActionKpiValue {
@@ -174,33 +182,50 @@ function actions(index: number): ActionKpiValue {
   };
 }
 
-export const demoKpiRows: readonly KpiRow[] = storeNames.map((displayName, index) => {
-  const hasNegativeResult = index % 3 === 1;
-  const hasOccurredEvent = index === 4 || index === 10;
+const demoKpiFixtures = storeNames.map((displayName, index) => {
+  const storeId = `DEMO-${String(index + 1).padStart(3, "0")}`;
+  const training = index === 6 ? trainingExamples.incomplete
+    : index % 3 === 1 ? trainingExamples.pending : trainingExamples.completed;
+  const drill = index === 7 ? drillExamples.unavailable
+    : index % 4 === 2 ? drillExamples.pending : drillExamples.completed;
+  const inspections = index % 5 === 3 ? inspectionExamples.empty
+    : index % 5 === 1 ? inspectionExamples.pending : inspectionExamples.completed;
+  const astm: { summary: AstmKpiValue; details: KpiDetailRecords<KpiAstmDetailRecord> } = index === 4 || index === 10 ? {
+    summary: { availability: "AVAILABLE", result: "OCCURRED" },
+    details: { availability: "AVAILABLE", items: [{
+      storeId, storeDisplayName: displayName, eventId: `EVT-DEMO-${index + 1}`,
+      eventType: "Injury/Illness", submittedBy: "王敏", eventDate: "2026-09-05T10:00:00+08:00",
+      description: "门店员工受伤事件示例", sourceStatus: "Closed", recordState: "CLOSED", astmInjuryIllness: "Yes",
+    }] },
+  } : {
+    summary: { availability: "CONFIRMED_EMPTY", result: "NOT_OCCURRED" },
+    details: { availability: "CONFIRMED_EMPTY", items: [] },
+  };
 
-  return {
-    store: {
-      storeId: `DEMO-${String(index + 1).padStart(3, "0")}`,
-      displayName,
-      region: "示例区域",
-      area: "示例片区",
-    },
-    training:
-      index === 6
-        ? performance("UNDETERMINED", "INCOMPLETE")
-        : performance(hasNegativeResult ? "NOT_ACHIEVED" : "ACHIEVED"),
-    drill:
-      index === 7
-        ? performance("UNDETERMINED", "UNAVAILABLE")
-        : performance(index % 4 === 2 ? "NOT_ACHIEVED" : "ACHIEVED"),
+  const row: KpiRow = {
+    store: { storeId, displayName, region: "示例区域", area: "示例片区" },
+    training: training.summary,
+    drill: drill.summary,
     actions: actions(index),
-    inspections: performance(
-      index % 5 === 3 ? "NOT_ACHIEVED" : "ACHIEVED",
-      index % 5 === 3 ? "CONFIRMED_EMPTY" : "AVAILABLE",
-    ),
-    astmEvents: {
-      availability: "AVAILABLE",
-      result: hasOccurredEvent ? "OCCURRED" : "NOT_OCCURRED",
-    },
+    inspections: inspections.summary,
+    astmEvents: astm.summary,
+  };
+  return {
+    row,
+    training: training.details,
+    drill: drill.details,
+    inspections: inspections.details,
+    astmEvents: astm.details,
   };
 });
+
+export const demoKpiRows: readonly KpiRow[] = demoKpiFixtures.map(({ row }) => row);
+const demoKpiDetailsByStore = new Map(demoKpiFixtures.map((fixture) => [fixture.row.store.storeId, fixture]));
+const unavailableDetails = { availability: "UNAVAILABLE", items: [] } as const;
+
+export const queryDemoKpiDetails: KpiDetailQueries = {
+  training: async ({ query }) => demoKpiDetailsByStore.get(query.storeId)?.training ?? unavailableDetails,
+  drill: async ({ query }) => demoKpiDetailsByStore.get(query.storeId)?.drill ?? unavailableDetails,
+  inspections: async ({ query }) => demoKpiDetailsByStore.get(query.storeId)?.inspections ?? unavailableDetails,
+  astmEvents: async ({ query }) => demoKpiDetailsByStore.get(query.storeId)?.astmEvents ?? unavailableDetails,
+};

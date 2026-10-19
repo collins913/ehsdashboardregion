@@ -91,7 +91,8 @@ export const routes = {
     icon: LayoutDashboard,
     description: "EHS 管理表现与洞察",
   },
-  devUi: { title: "UI Lab", href: "/dev/ui", icon: LayoutDashboard, showDashboardHeader: false },
+  devUi: { title: "组件预览", href: "/dev/ui", icon: LayoutDashboard, section: navigationLabels.systemManagement, showGlobalFilters: false, showPeriodFilter: false },
+  devDataLogic: { title: "数据逻辑", href: "/dev/data-logic", icon: ListChecks, section: navigationLabels.systemManagement, showGlobalFilters: false, showPeriodFilter: false },
 } satisfies Record<string, NavigationItem>;
 
 export function getDashboardRoute(pathname: string): NavigationItem | undefined {
@@ -120,3 +121,9 @@ export const navigationGroups: NavigationGroup[] = [
   },
   { items: [routes.stores] },
 ];
+
+/** Sidebar filters administrator-only entries using the server-provided account capability. */
+export const systemManagementNavigation: NavigationGroup = {
+  label: navigationLabels.systemManagement,
+  items: [routes.accessManagement, routes.devUi, routes.devDataLogic],
+};
