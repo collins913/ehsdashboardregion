@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "events",
+  "batchId": "example-events-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "businessPeriod": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "businessPeriod": {
+      "startInclusive": "2026-10-01T00:00:00+08:00",
+      "endExclusive": "2026-11-01T00:00:00+08:00"
+    },
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-events-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-events-202610-001",
+  "records": [
+    {
+      "eventId": "EVT-001",
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "eventType": "Agency",
+      "submittedBy": "San Zhang（张 三）",
+      "eventDate": "2026-10-12T10:00:00+08:00",
+      "EventDetail": {
+        "Description": "示例事件描述"
+      },
+      "Status": "Open",
+      "ASTMInjuryIllness": "No",
+      "sourceReference": {
+        "sourceSystem": "example-ehs",
+        "sourceRecordId": "EVT-001",
+        "sourceUrl": "https://example.test/records/EVT-001"
+      }
+    }
+  ]
+}

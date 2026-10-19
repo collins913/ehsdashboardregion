@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "actions",
+  "batchId": "example-actions-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "businessPeriod": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "businessPeriod": {
+      "startInclusive": "2026-10-01T00:00:00+08:00",
+      "endExclusive": "2026-11-01T00:00:00+08:00"
+    },
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-actions-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-actions-202610-001",
+  "records": [
+    {
+      "actionId": "ACT-001",
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "problem": "示例问题描述",
+      "action": "示例整改措施",
+      "submittedBy": "Rui Huang（黄 睿）",
+      "owner": "San Zhang（张 三）",
+      "submittedDate": "2026-10-12T10:00:00+08:00",
+      "dueDate": "2026-10-25T18:00:00+08:00",
+      "closedDate": null,
+      "Status": "In Progress",
+      "sourceReference": {
+        "sourceSystem": "example-ehs",
+        "sourceRecordId": "ACT-001",
+        "sourceUrl": "https://example.test/records/ACT-001"
+      }
+    }
+  ]
+}

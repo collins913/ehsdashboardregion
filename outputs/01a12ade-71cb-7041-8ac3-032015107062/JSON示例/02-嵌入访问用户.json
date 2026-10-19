@@ -1,0 +1,8 @@
+{
+  "type": "GLIFE_CONTEXT",
+  "payload": {
+    "avatarUrl": "https://example.test/avatars/san-zhang.png",
+    "name": "San Zhang（张 三）",
+    "email": "san.zhang@example.test"
+  }
+}

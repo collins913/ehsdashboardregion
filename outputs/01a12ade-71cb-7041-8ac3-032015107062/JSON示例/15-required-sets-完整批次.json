@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "required-sets",
+  "batchId": "example-required-sets-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "effectiveTime": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-required-sets-202610",
+      "controlRecordCount": 2
+    }
+  },
+  "expectedRecordCount": 2,
+  "idempotencyKey": "example-required-sets-202610-001",
+  "records": [
+    {
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "month": "2026-10",
+      "requiredTrainingItems": [
+        "示例月度安全培训"
+      ]
+    },
+    {
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "month": "2026-10",
+      "expectedInspectionTasks": [
+        "示例月度安全检查"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "store-master",
+  "batchId": "example-store-master-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "effectiveTime": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-store-master-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-store-master-202610-001",
+  "records": [
+    {
+      "region": "示例大区",
+      "area": "示例小区",
+      "storeNameCn": "示例服务中心",
+      "storeNameEn": "Example Service Center",
+      "trtid": "S-001",
+      "regionOwner": "Rui Huang（黄 睿）",
+      "regionOwnerEmail": "rui.huang@example.test",
+      "areaOwner": "Ming Li（李 明）",
+      "areaOwnerEmail": "ming.li@example.test",
+      "manager": "San Zhang（张 三）",
+      "managerEmail": "san.zhang@example.test",
+      "ehsAmbassador": "Zi Yang（杨 子）",
+      "ehsAmbassadorEmail": "zi.yang@example.test"
+    }
+  ]
+}

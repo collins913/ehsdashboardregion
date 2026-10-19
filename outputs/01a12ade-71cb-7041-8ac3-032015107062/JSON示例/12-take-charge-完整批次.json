@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "take-charge",
+  "batchId": "example-take-charge-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "businessPeriod": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "businessPeriod": {
+      "startInclusive": "2026-10-01T00:00:00+08:00",
+      "endExclusive": "2026-11-01T00:00:00+08:00"
+    },
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-take-charge-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-take-charge-202610-001",
+  "records": [
+    {
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "tchId": "TCH-001",
+      "submittedBy": "San Zhang（张 三）",
+      "submittedAt": "2026-10-12T10:00:00+08:00",
+      "summary": "示例改善建议",
+      "Status": "Open",
+      "extraFields": {},
+      "sourceReference": {
+        "sourceSystem": "example-ehs",
+        "sourceRecordId": "TCH-001",
+        "sourceUrl": "https://example.test/records/TCH-001"
+      }
+    }
+  ]
+}

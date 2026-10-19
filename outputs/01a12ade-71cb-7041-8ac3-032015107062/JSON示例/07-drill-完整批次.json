@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "drill",
+  "batchId": "example-drill-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "businessPeriod": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "businessPeriod": {
+      "startInclusive": "2026-10-01T00:00:00+08:00",
+      "endExclusive": "2026-11-01T00:00:00+08:00"
+    },
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-drill-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-drill-202610-001",
+  "records": [
+    {
+      "storeReference": {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      },
+      "month": "2026-10",
+      "drillName": "示例消防演练",
+      "status": "已完成",
+      "sourceReference": {
+        "sourceSystem": "example-ehs",
+        "sourceRecordId": "DRILL-001",
+        "sourceUrl": "https://example.test/records/DRILL-001"
+      }
+    }
+  ]
+}

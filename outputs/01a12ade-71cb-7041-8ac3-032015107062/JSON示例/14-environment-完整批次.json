@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "environment",
+  "batchId": "example-environment-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "effectiveTime": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-environment-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-environment-202610-001",
+  "records": [
+    {
+      "TRTID": "S-001",
+      "English Store Name": "Example Service Center",
+      "环境影响评价": {
+        "环境影响评价": "示例评价记录",
+        "总量要求": {
+          "气-颗粒物": 0.12,
+          "气-VOCs": 0.08,
+          "水-氨氮": 0.02,
+          "水-总氮": 0.04,
+          "水-总磷": 0.01,
+          "水-CODcr": 0.3
+        }
+      },
+      "排污许可": {
+        "排污许可": "示例排污许可记录",
+        "执行报告": "示例执行报告",
+        "编号": "EXAMPLE-POLLUTION-001",
+        "有效期起": "2026-01-01",
+        "有效期止": "2027-12-31",
+        "总量要求": {
+          "产能": null,
+          "涂料批复用量": null
+        },
+        "备注": null
+      },
+      "排水许可": {
+        "洗车": "示例来源原文",
+        "排水许可": "示例排水许可记录",
+        "有效期起": "2026-01-01",
+        "有效期止": "2027-12-31",
+        "备注": null
+      },
+      "环境预案": {
+        "突发环境事件应急预案备案情况": "示例备案记录",
+        "备案编号": "EXAMPLE-PLAN-001",
+        "有效期起": "2026-01-01",
+        "有效期止": "2028-12-31",
+        "备注": null
+      },
+      "监测": "有",
+      "废弃物合同": {
+        "危险废物处置合同": [
+          {
+            "供应商名称": "示例危险废物处置单位",
+            "种类": "示例合同种类",
+            "有效期起": "2026-01-01",
+            "有效期止": "2027-12-31"
+          },
+          {
+            "供应商名称": "另一示例处置单位",
+            "种类": "另一示例合同种类",
+            "有效期起": "2026-06-01",
+            "有效期止": "2027-05-31"
+          }
+        ],
+        "一般工业固体废物处置合同": [
+          {
+            "供应商名称": "示例一般固废处置单位",
+            "种类": "示例合同种类",
+            "有效期起": "2026-01-01",
+            "有效期止": "2027-12-31"
+          }
+        ]
+      }
+    }
+  ]
+}

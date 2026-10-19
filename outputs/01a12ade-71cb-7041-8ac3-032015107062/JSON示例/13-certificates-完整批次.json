@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "v1",
+  "sourceSystem": "example-ehs",
+  "sourceVersion": "example-source-v1",
+  "configurationVersion": "example-mapping-v1",
+  "domain": "certificates",
+  "batchId": "example-certificates-202610-001",
+  "extractionTime": "2026-10-16T10:00:00+08:00",
+  "effectiveTime": {
+    "startInclusive": "2026-10-01T00:00:00+08:00",
+    "endExclusive": "2026-11-01T00:00:00+08:00"
+  },
+  "coverage": {
+    "completeness": "COMPLETE",
+    "stores": [
+      {
+        "trtid": "S-001",
+        "storeNameEn": "Example Service Center"
+      }
+    ],
+    "proof": {
+      "kind": "SOURCE_CONTROL_TOTAL",
+      "reference": "example-control-certificates-202610",
+      "controlRecordCount": 1
+    }
+  },
+  "expectedRecordCount": 1,
+  "idempotencyKey": "example-certificates-202610-001",
+  "records": [
+    {
+      "TRTID": "S-001",
+      "English Store Name": "Example Service Center",
+      "Certificate Type": "急救员证",
+      "Expiry Date": "2027-10-31",
+      "Person": "San Zhang（张 三）",
+      "Person Email": "san.zhang@example.test",
+      "Business Title": "示例岗位"
+    }
+  ]
+}
