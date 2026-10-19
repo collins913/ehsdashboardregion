@@ -1,8 +1,7 @@
 "use client"
 
-import { memo, useRef, useState } from "react"
-import { useAnalyticsChartAnimationEnabled } from "@/components/shared/use-analytics-motion"
-import { ANALYTICS_CHART_ANIMATION_DURATION } from "@/components/shared/analytics-layout"
+import { memo, useMemo, useRef, useState } from "react"
+import { usePrefersReducedMotion } from "@/components/shared/use-analytics-motion"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatOverviewRate, formatOverviewScore, ScoreChange } from "./score-change"
 import {
@@ -54,9 +53,9 @@ export const OVERVIEW_SCORE_DOMAIN = [0, 100] as const
 export const OVERVIEW_SCORE_TICKS = [0, 25, 50, 75, 100] as const
 
 export function OverviewMonthlyTrendChart({ history, showAsRate = false, fillHeight = false }: { history: readonly OverviewHistoryPoint[]; showAsRate?: boolean; fillHeight?: boolean }) {
-  const chartAnimationEnabled = useAnalyticsChartAnimationEnabled()
+  const chartAnimationEnabled = !usePrefersReducedMotion()
   const label = showAsRate ? "综合得分率" : "综合得分"
-  const data = history.map((point) => ({ ...point, scoreRate: point.score }))
+  const data = useMemo(() => history.map((point) => ({ ...point, scoreRate: point.score })), [history])
   const config = showAsRate ? { scoreRate: { label, color: "var(--chart-1)" } } : monthlyTrendConfig
   if (history.length === 0) return null
   return <div data-testid="monthly-score-trend" className={fillHeight ? "mt-2 flex min-h-0 flex-1 flex-col" : "mt-3"}>
@@ -66,7 +65,7 @@ export function OverviewMonthlyTrendChart({ history, showAsRate = false, fillHei
       <XAxis dataKey="periodLabel" interval="preserveStartEnd" minTickGap={8} tick={{ fontSize: 10 }} tickFormatter={(value: string) => `${Number(value.slice(5))}月`} axisLine={false} tickLine={false} tickMargin={8} />
       <YAxis domain={OVERVIEW_SCORE_DOMAIN} ticks={OVERVIEW_SCORE_TICKS} allowDataOverflow tick={{ fontSize: 10 }} tickFormatter={(value: number) => `${formatOverviewRate(value)}%`} axisLine={false} tickLine={false} width={38} />
       <ChartTooltip cursor={false} content={<ChartTooltipContent labelFormatter={(month) => String(month ?? "")} formatter={(value) => <div className="flex flex-1 justify-between gap-3"><span>{label}</span><span className="font-mono font-medium tabular-nums">{typeof value !== "number" ? "—" : `${showAsRate ? formatOverviewRate(value) : formatOverviewScore(value)}${showAsRate ? "%" : " 分"}`}</span></div>} />} />
-      <Line name={label} type="monotone" dataKey={showAsRate ? "scoreRate" : "score"} stroke={showAsRate ? "var(--color-scoreRate)" : "var(--color-score)"} strokeWidth={2} dot={{ r: 3, fill: showAsRate ? "var(--color-scoreRate)" : "var(--color-score)" }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={chartAnimationEnabled} animationDuration={ANALYTICS_CHART_ANIMATION_DURATION} animationEasing="ease-out" />
+      <Line key={chartAnimationEnabled ? "animated-trend" : "static-trend"} name={label} type="monotone" dataKey={showAsRate ? "scoreRate" : "score"} stroke={showAsRate ? "var(--color-scoreRate)" : "var(--color-score)"} strokeWidth={2} dot={{ r: 3, fill: showAsRate ? "var(--color-scoreRate)" : "var(--color-score)" }} activeDot={{ r: 6 }} connectNulls={false} isAnimationActive={chartAnimationEnabled} animationDuration={550} animationEasing="ease-out" />
     </LineChart></ChartContainer></div>
   </div>
 }

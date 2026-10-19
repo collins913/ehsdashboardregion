@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+vi.mock("server-only", () => ({}))
 import { createElement, isValidElement, type ReactElement } from "react"
 import type { OverviewAttentionGroup, OverviewResult } from "@/data/contracts/overview"
 import { OverviewContent, OverviewScopeSummary } from "./overview-page"

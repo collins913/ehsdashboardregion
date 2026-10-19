@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type KeyboardEvent, type MouseEvent, type ReactNode, type SetStateAction } from "react";
 import { columnVisibilityFeature, createColumnHelper, createPaginatedRowModel, createSortedRowModel, rowPaginationFeature, rowSortingFeature, sortFn_basic, sortFn_text, tableFeatures as defineTableFeatures, useTable, type PaginationState, type SortingState } from "@tanstack/react-table";
 import { DataTableColumnHeader, getColumnAriaSort } from "@/components/shared/data-table-column-header";
-import { dataTableColumnAlignmentClassNames, type DataTableColumnAlignment, dataTableClassName, dataTableCompactPrimaryClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
+import { dataTableColumnContentClassNames, dataTableColumnAlignmentClassNames, type DataTableColumnAlignment, dataTableClassName, dataTableCompactPrimaryClassName, dataTableColumnSizeClassNames, dataTableFrameClassName, dataTableRowClassName, stickyStoreCellClassName, stickyStoreHeaderClassName, type DataTableColumnSizeRole } from "@/components/shared/data-table-layout";
 import { DataTablePlaceholderRows } from "@/components/shared/data-table-placeholder-rows";
 import { DataTableLoadingCellContent, DataTablePendingValue, useResolvedDataTableSnapshot } from "@/components/shared/data-table-loading";
+import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clampTablePageIndex, clampAdaptivePagination, resizeAdaptivePagination, updateAdaptivePagination, useAdaptiveTablePageSize, type AdaptivePagination, type AdaptiveTablePageSize } from "@/hooks/use-adaptive-table-page-size";
@@ -57,7 +58,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyMessag
     return helper.columns(columns.map((item) => helper.accessor((row) => item.sortValue ? item.sortValue(row) ?? undefined : item.value(row), {
       id: item.id,
       header: ({ column }) => <DataTableColumnHeader column={column} title={item.title} align={item.align} />,
-      cell: ({ row }) => item.render ? item.render(row.original) : item.value(row.original),
+      cell: ({ row }) => item.render ? item.render(row.original) : <OverflowTooltip text={item.value(row.original)} className={dataTableColumnContentClassNames[item.sizeRole]} />,
       enableSorting: item.sortable !== false,
       sortFn: item.sortValue ? "numeric" : "text",
       ...(item.sortValue ? { sortUndefined: "last" as const } : {}),

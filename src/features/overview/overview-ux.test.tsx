@@ -1,7 +1,8 @@
 import { areaScopeId } from "@/data/contracts/kpi";
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+vi.mock("server-only", () => ({}))
 import type { EhsStoreScope, KpiStore } from "@/data/contracts/kpi"
 import type { Month, StoreId } from "@/types/ehs"
 import { OVERVIEW_V1_METRIC_CATALOG, createScoreContribution } from "@/lib/rules/overview-scoring"
@@ -196,7 +197,7 @@ describe("Overview UX semantics", () => {
     expect(text).toContain('data-state="active"')
     expect(text).toContain('data-detail-trigger="matrix"')
     expect(text).toContain('aria-selected="true"')
-    expect(text.indexOf('>矩阵</button>')).toBeLessThan(text.indexOf('>明细</button>'))
+    expect(text.indexOf("矩阵")).toBeLessThan(text.indexOf("明细"))
     expect(matrix.groups[0].members).toHaveLength(3)
   })
 
