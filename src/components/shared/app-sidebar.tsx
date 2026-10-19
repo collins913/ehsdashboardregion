@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { applicationName, navigationGroups, routes, systemManagementNavigation } from "@/config/navigation";
 import type { AccountSummary } from "@/data/contracts/access";
 import { useGLifeProfile } from "@/features/enterprise/glife-context-provider";
+import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -127,7 +128,7 @@ export function AppSidebar({ account, activePathname, onNavigate }: {
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                      <span className="truncate text-sm font-medium">{accountName}</span>
+                      <OverflowTooltip text={accountName} className="text-sm font-medium" focusable={false} />
                       <span className="truncate text-xs text-muted-foreground">{account.summary}</span>
                     </div>
                     <EllipsisVertical aria-hidden="true" className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />

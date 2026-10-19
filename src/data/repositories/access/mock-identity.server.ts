@@ -8,7 +8,7 @@ export function getCurrentIdentity(): Identity {
   const email = canonicalEmail(process.env.EHS_MOCK_USER_EMAIL?.trim() || MOCK_GLOBAL_ADMIN_EMAIL);
   return {
     email,
-    displayName: process.env.EHS_MOCK_USER_NAME?.trim() || (email === MOCK_GLOBAL_ADMIN_EMAIL ? "San Zhang（张 三）" : null),
+    displayName: process.env.EHS_MOCK_USER_NAME?.trim() || (email === MOCK_GLOBAL_ADMIN_EMAIL ? "Waner Shangguan（上官婉儿）" : null),
     avatarUrl: process.env.EHS_MOCK_USER_AVATAR_URL?.trim() || null,
   };
 }

@@ -9,7 +9,8 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe("Access server service", () => {
   it("defaults to the mock Global Admin identity", async () => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", "");
-    expect((await getAccountSummary()).summary).toBe("全局管理员");
+    vi.stubEnv("EHS_MOCK_USER_NAME", "");
+    expect(await getAccountSummary()).toMatchObject({ summary: "全局管理员", displayName: "Waner Shangguan（上官婉儿）" });
     expect(await requireAdmin()).toBeDefined();
   });
   it("returns explicit profile fields without exposing identity attributes or widening access", async () => {
@@ -26,6 +27,23 @@ describe("Access server service", () => {
     });
     expect(JSON.stringify(account)).not.toContain("must-stay-server-only");
     expect(await getAuthorizedFilterStores()).toHaveLength(1);
+  });
+  it.each([
+    { displayName: null, avatarUrl: null },
+    { displayName: "Waner Shangguan（上官婉儿）", avatarUrl: null },
+    { displayName: null, avatarUrl: "https://example.test/avatar.png" },
+    { displayName: "  ", avatarUrl: "  " },
+  ])("keeps scoped access unchanged with profile $displayName / $avatarUrl", async (profile) => {
+    vi.spyOn(identityProvider, "requireVerifiedServerPrincipal").mockResolvedValue({
+      principalId: "profile-fallback-test", verifiedEmail: "manager.1@example.test", attributes: {}, ...profile,
+    });
+    expect(await getAccountSummary()).toMatchObject({
+      email: "manager.1@example.test", canManageAccess: false,
+      displayName: profile.displayName?.trim() || null,
+      avatarUrl: profile.avatarUrl?.trim() || null,
+    });
+    expect((await getAuthorizedFilterStores()).map((store) => store.storeId)).toEqual(["TEST-001"]);
+    await expect(requireAdmin()).rejects.toThrow("NOT_AUTHORIZED");
   });
   it("keeps missing profile fields empty instead of inventing a name from email", async () => {
     vi.stubEnv("EHS_MOCK_USER_EMAIL", "no.access@example.test");
