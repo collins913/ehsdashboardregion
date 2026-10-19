@@ -1,5 +1,6 @@
 "use server";
-import { queryFailure, type QueryOutcome } from "@/data/contracts/query-result";
+import { logQueryFailure } from "./error-diagnostics.server";
+import { type QueryOutcome } from "@/data/contracts/query-result";
 import type { AccessQuery, AccessType, GrantInput, GrantUpdate, MutationResult } from "@/data/contracts/access";
 import { createManualGrant, deleteManualGrant, getAccessCatalog, listManualGrants, queryAuditLog, updateManualGrant } from "@/lib/access/access-service.server";
 import { isValidEmail } from "@/lib/access/access-domain";
@@ -47,7 +48,7 @@ function parseMutationId(value: unknown): string | null {
 export async function loadAccessCatalog() { return withAccessQueryOutcome(() => getAccessCatalog()); }
 async function withAccessQueryOutcome<T>(action: () => Promise<T>): Promise<QueryOutcome<T>> {
   try { return await action(); }
-  catch (error) { return queryFailure(error); }
+  catch (error) { return logQueryFailure(error, "access-query"); }
 }
 export async function loadManualGrants(query: AccessQuery & { accessType?: string }) {
   return withAccessQueryOutcome(async () => {

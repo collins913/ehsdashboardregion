@@ -161,7 +161,7 @@ export function EventsAnalytics({
   }, [result, selectedTrendKey]);
 
   if (state.status === "ERROR") {
-    return state.resolved ? <EventsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />;
+    return state.resolved ? <EventsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode, state.diagnostics)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} />;
   }
   if (result === null) return <EventsAnalyticsPlaceholder loading />;
   if (result.availability === "UNAVAILABLE") {

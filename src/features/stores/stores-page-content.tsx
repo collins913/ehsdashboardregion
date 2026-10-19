@@ -52,7 +52,7 @@ export function StoresPageContent({
       ) : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} />
           ) : null}
           <StoresDataTable
             rows={result?.items ?? []}

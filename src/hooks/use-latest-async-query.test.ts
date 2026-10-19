@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createLatestRequestGuard } from "./use-latest-async-query";
+
+vi.mock("@/data/server/error-diagnostics-actions", () => ({ reportPageError: vi.fn() }));
 
 describe("latest async query guard", () => {
   it("prevents an older response from replacing the latest request", () => {
@@ -28,7 +30,7 @@ describe("latest async query guard", () => {
 
     expect(hookSource).toContain("loadRef.current = load");
     expect(hookSource).toContain("const execute = loadRef.current");
-    expect(hookSource).toContain("void execute().then(");
+    expect(hookSource).toContain("void execute().then(unwrapQueryOutcome).then(");
     expect(hookSource).toContain("}, [hasLoad, queryKey]);");
     expect(hookSource).not.toContain("}, [load, queryKey]);");
   });

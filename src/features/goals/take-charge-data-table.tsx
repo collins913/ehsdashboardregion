@@ -594,7 +594,7 @@ export function TakeChargeDataTable({
 
       {availability && !["AVAILABLE", "CONFIRMED_EMPTY"].includes(availability) ? (
         <div className="flex items-center gap-3"><DataAvailabilityDisplay availability={availability} />
-        {queryState.status === "ERROR" ? <span className="text-sm text-muted-foreground">{queryErrorMessage(queryState.errorCode)}</span> : null}</div>
+        {queryState.status === "ERROR" ? <span className="text-sm text-muted-foreground">{queryErrorMessage(queryState.errorCode, queryState.diagnostics)}</span> : null}</div>
       ) : null}
 
       <div

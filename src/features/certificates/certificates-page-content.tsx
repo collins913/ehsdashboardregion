@@ -35,9 +35,9 @@ export function CertificatesPageContent({ queryCertificates }: { queryCertificat
           <p className="text-sm text-muted-foreground">当前筛选条件尚不能生成证件数据，请调整筛选条件。</p>
         ) : (
           <>
-            {state.status === "ERROR" && !state.resolved ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
+            {state.status === "ERROR" && !state.resolved ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} /> : null}
             {state.status === "LOADING" && overviewResult === null ? <CertificateOverviewPlaceholder loading /> : null}
-            {state.status === "ERROR" && state.resolved ? <CertificateOverviewPlaceholder message={queryErrorMessage(state.errorCode)} /> : null}
+            {state.status === "ERROR" && state.resolved ? <CertificateOverviewPlaceholder message={queryErrorMessage(state.errorCode, state.diagnostics)} /> : null}
             {overviewResult ? <CertificateOverview availability={overviewResult.availability} overview={overviewResult.overview} refreshing={state.status === "LOADING"} /> : null}
             <CertificatesDataTable rows={rows} queryKey={queryKey ?? ""} queryStatus={state.status === "SUCCESS" ? "READY" : state.status} />
           </>

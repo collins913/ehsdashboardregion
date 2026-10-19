@@ -41,6 +41,7 @@ function actionInput(query: unknown, referenceDateIso = "2026-09-22T00:00:00.000
 }
 
 beforeEach(() => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
   vi.clearAllMocks();
 });
 
@@ -54,26 +55,26 @@ describe("read-only Server Action input validation", () => {
     ["non-integer pagination", { ...validActionQuery, pageSize: 1.5 }],
     ["illegal view enum", { ...validActionQuery, viewMode: "CANCELLED" }],
   ])("rejects %s before authorization or repository access", async (_label, query) => {
-    await expect(queryActions(actionInput(query))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+    await expect(queryActions(actionInput(query))).resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(authorize).not.toHaveBeenCalled();
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
   it("rejects malformed reference dates before constructing a Repository", async () => {
     await expect(queryActions(actionInput(validActionQuery, "2026-02-30T00:00:00Z")))
-      .resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+      .resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
   it("rejects malformed envelope and nested Event sorting inputs", async () => {
-    await expect(queryActions(null as never)).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+    await expect(queryActions(null as never)).resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
     await expect(queryEvents(actionInput({
       context: validContext,
       viewMode: "ALL",
       sorting: { key: "certificateType", direction: "asc" },
       pageIndex: 0,
       pageSize: 5,
-    }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+    }))).resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
@@ -92,7 +93,7 @@ describe("read-only Server Action input validation", () => {
 
   it("does not initialize the business Repository when scope authorization fails", async () => {
     authorize.mockRejectedValueOnce(new QueryError("ACCESS_DENIED"));
-    await expect(queryActions(actionInput(validActionQuery))).resolves.toEqual({ queryError: { code: "ACCESS_DENIED" } });
+    await expect(queryActions(actionInput(validActionQuery))).resolves.toMatchObject({ queryError: { code: "ACCESS_DENIED" } });
     expect(repositoryFactory).not.toHaveBeenCalled();
   });
 
@@ -111,7 +112,7 @@ describe("read-only Server Action input validation", () => {
     const scope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
     await queryOverview(actionInput({ context: scope }));
     expect(getOverviewScoreData).toHaveBeenCalledWith({ scope, attentionScope: scope });
-    await expect(queryOverview(actionInput({ context: validContext }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+    await expect(queryOverview(actionInput({ context: validContext }))).resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
   });
 
   it("Environment Analytics derives the reference month and rejects client Period", async () => {
@@ -122,6 +123,6 @@ describe("read-only Server Action input validation", () => {
       endExclusive: "2026-10-01T00:00:00+08:00",
       includedMonths: ["2026-09"],
     } });
-    await expect(queryEnvironmentAnalytics(actionInput({ context: scope, period: validContext.period }))).resolves.toEqual({ queryError: { code: "INVALID_QUERY_INPUT" } });
+    await expect(queryEnvironmentAnalytics(actionInput({ context: scope, period: validContext.period }))).resolves.toMatchObject({ queryError: { code: "INVALID_QUERY_INPUT" } });
   });
 });

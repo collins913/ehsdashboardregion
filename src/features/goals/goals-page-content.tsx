@@ -163,7 +163,7 @@ export function GoalsPageContent({
       ) : filterContext === null ? null : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} />
           ) : null}
           <div className="relative" aria-busy={state.status === "LOADING" || undefined}>
             <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && summary !== null} />

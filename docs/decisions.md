@@ -252,7 +252,7 @@ Risk & Compliance → Events 按 Global Region / Area / Store 及底层 `Event D
 
 ### D-041 Mock Profile 只切换 server-only Dataset
 
-`EHS_MOCK_PROFILE` 未设置、空值或 `standard` 时固定选择 Standard；`performance` 选择 deterministic Performance Dataset，其他非空值立即失败。两种 Profile 只在 Mock Source / Dataset 层不同，共用同一个 Mock Repository、Adapter、Store Resolution、availability、筛选、排序、分页及业务规则。Feature、UI、Server Action DTO 与 Repository public contract 不感知 Profile。Production 是未来独立 Repository implementation，不是第三个 Mock Profile。
+`EHS_MOCK_PROFILE` 未设置、空值或 `performance` 时选择 deterministic Performance Dataset；`standard` 显式选择 Standard，其他非空值立即失败。两种 Profile 只在 Mock Source / Dataset 层不同，共用同一个 Mock Repository、Adapter、Store Resolution、availability、筛选、排序、分页及业务规则。Feature、UI、Server Action DTO 与 Repository public contract 不感知 Profile。Production 是未来独立 Repository implementation，不是第三个 Mock Profile。
 
 ## 9. 明确未决事项
 
@@ -354,3 +354,8 @@ Import audit 的 principal ID 只能来自可信 Machine Identity Provider；`so
 ### D-053 目标周期指标只统计已有记录（2026-10-16）
 
 Take Charge 提交总数、关闭率与记录表只统计服务端筛选周期内已有记录，不以 Mock 年份／月份覆盖范围判断完整性。历史、未来或跨覆盖范围均使用同一规则；零记录返回提交总数 0、关闭率 null（显示“-”）。只有实际记录异常才提示不完整；原授权、非法查询拒绝、关闭状态映射、关闭率公式、年度汇总口径保持不变。
+
+
+### D-054 有限错误诊断与日志关联（2026-10-19）
+
+用户明确要求统一错误页、提供真实原因／错误代码／处理建议，并使请求编号关联服务端日志。新增仅用于错误定位的查询诊断元数据、Next 异常日志钩子和页面错误上报 Server Action；该范围取代 D-049 / D-050 对错误上报与异常捕获的全面撤销。旧 Monitoring 页面、Incident、Outbox、通知、Watchdog 和持久化监控端口不恢复。已确认错误按稳定代码解释，未知原因保留待排查；不通过异常文本猜测，不在浏览器暴露内部异常。编号必须由记录日志的服务端生成，原始查询编号与上报编号明确区分；详细链路见 data-architecture.md。

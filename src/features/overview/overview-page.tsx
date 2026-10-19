@@ -78,7 +78,7 @@ export function OverviewPage({ queryOverview }: { queryOverview: OverviewQueryAc
   const query = useLatestAsyncQuery(queryKey, storeScope ? load : null)
 
   if (query.status === "IDLE") return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">当前筛选条件尚不能生成 Overview 数据。</div></PageContainer>
-  if (query.status === "ERROR") return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="ERROR" errorCode={query.errorCode} /></PageContainer>
+  if (query.status === "ERROR") return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="ERROR" errorCode={query.errorCode} diagnostics={query.diagnostics} /></PageContainer>
   const presentation = getOverviewPresentation(query)
   if (presentation === null) return <PageContainer className={ANALYTICS_PAGE_CONTAINER_CLASS_NAME}><AsyncQueryFeedback status="LOADING" /></PageContainer>
   return <OverviewContent result={presentation.result} semanticKey={presentation.semanticKey} requestedKey={queryKey!} refreshing={presentation.refreshing} summaryTarget={summaryTarget} />

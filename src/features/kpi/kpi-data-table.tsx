@@ -291,7 +291,7 @@ function ActionsSheet({
           {queryState.status === "LOADING" ? (
             <AsyncQueryFeedback status="LOADING" />
           ) : queryState.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} />
+            <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} diagnostics={queryState.diagnostics} />
           ) : !actions || actions.availability === "UNAVAILABLE" ? (
             <p className="text-sm text-muted-foreground">行动项明细不可用。</p>
           ) : actions.availability === "INCOMPLETE" ? (

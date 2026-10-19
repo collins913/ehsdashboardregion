@@ -543,3 +543,8 @@ Current implementation status is explicitly not equivalent to production service
 系统监控模块已移除，含页面、错误上报 API、事件捕获、通知、任务监控与相关持久化端口。安全错误码、错误重试界面、领域 DataAvailability、Access / Import 审计仍保留。Environment 的环境监测数据不受影响。
 
 Take Charge Period 查询：服务端直接统计完整筛选周期内已有记录，不按 Mock 年份／月份覆盖范围判断完整性。零记录时提交总数为 0、关闭率为 null（显示“-”）；已有记录的必要字段缺失、格式错误、非法日期或门店无法关联仍保留诊断。授权、周期合法性校验和年度指标保持原规则。
+
+
+### 内部错误诊断元数据（2026-10-19）
+
+只读 `QueryFailure.queryError` 保留既有 `code`，新增可选 `diagnostics`：`requestId: string`（服务端 UUID）、`occurredAt: string`（服务端 UTC 时间）、`origin: SERVER_QUERY | CLIENT_REPORT`。此元数据属于内部故障定位，不是业务源数据字段；不影响 KPI、授权、availability 或导入契约。未知请求失败沿用 `SERVICE_UNAVAILABLE` 兼容码，但说明明确为原因待排查。页面级诊断另有 `UNKNOWN_ERROR` 和浏览器当前离线观察 `BROWSER_OFFLINE`，均不据此猜测底层原因。

@@ -64,7 +64,7 @@ export function KpiPageContent({
       ) : (
         <>
           {state.status === "ERROR" ? (
-            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />
+            <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} />
           ) : null}
           {result ? <DataAvailabilityNotice availability={result.availability} subject="KPI " /> : null}
           <KpiDataTable

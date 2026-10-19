@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { authorizeBusinessScope, createManualGrant, deleteManualGrant, getAccountSummary, getAuthorizedFilterStores, listManualGrants, queryAuditLog, requireAdmin, updateManualGrant } from "@/lib/access/access-service.server";
 import type { EhsStoreScope } from "@/data/contracts/kpi";
 import * as identityProvider from "@/data/server/identity-provider.server";
 const all: EhsStoreScope = { region: { kind: "ALL" }, area: { kind: "ALL" }, store: { kind: "ALL" } };
+beforeEach(() => vi.stubEnv("EHS_MOCK_PROFILE", "standard"));
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe("Access server service", () => {
   it("defaults to the mock Global Admin identity", async () => {

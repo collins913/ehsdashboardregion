@@ -26,6 +26,7 @@ import { MonthPicker } from "@/components/shared/month-picker";
 import { OverflowTooltip } from "@/components/shared/overflow-tooltip";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageErrorState } from "@/components/shared/page-error-state";
 import {
   StatusDisplay,
   type BusinessStatus,
@@ -238,11 +239,16 @@ function ColumnSizingRolePreview() {
 }
 
 export default function UiLabPage() {
+  const [errorPreview, setErrorPreview] = useState<"page" | "system" | null>(null);
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
   const [selectedSampleRow, setSelectedSampleRow] = useState<string | null>(null);
   const [filterPreview, setFilterPreview] = useState("ALL");
   const [animatedNumberPreview, setAnimatedNumberPreview] = useState(52);
+
+  if (errorPreview) {
+    return <PageErrorState preview system={errorPreview === "system"} reset={() => setErrorPreview(null)} />;
+  }
 
   return (
     <>
@@ -251,6 +257,11 @@ export default function UiLabPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           集中验证项目已采用的 Shared UI 与跨业务 Pattern。
         </p>
+        <section id="error-preview" aria-label="错误页面预览" className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setErrorPreview("page")}>预览页面错误</Button>
+          <Button variant="outline" onClick={() => setErrorPreview("system")}>预览系统错误</Button>
+          <p className="w-full text-xs text-muted-foreground">预览中的“重新加载”返回此处。</p>
+        </section>
       </PageContainer>
 
       <PageContainer className="space-y-8 py-4 lg:py-4">

@@ -36,7 +36,7 @@ export function EnvironmentPageContent({ queryEnvironment, queryEnvironmentAnaly
             referenceDateIso={referenceDateIso}
             queryEnvironmentAnalytics={queryEnvironmentAnalytics}
           />
-          {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
+          {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} /> : null}
           <EnvironmentDataTable rows={result?.items ?? []} queryKey={queryKey ?? ""} queryStatus={state.status === "SUCCESS" ? "READY" : state.status} />
         </div>
       )}

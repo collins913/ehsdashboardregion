@@ -1,6 +1,7 @@
 "use server";
+import { logQueryFailure } from "./error-diagnostics.server";
 import { areaScopeId } from "@/data/contracts/kpi";
-import { QueryError, queryFailure, type QueryOutcome } from "@/data/contracts/query-result";
+import { QueryError, type QueryOutcome } from "@/data/contracts/query-result";
 
 import type { ActionsQuery, ActionsQueryResult } from "@/data/contracts/actions";
 import type { EventsQuery, EventsQueryResult } from "@/data/contracts/events";
@@ -209,24 +210,24 @@ async function queryCertificatesCore(input: { referenceDateIso: string; query: E
   return { ...certificates, overview: buildCertificateOverview(certificates) };
 }
 
-async function withQueryOutcome<T>(action: () => Promise<T>): Promise<QueryOutcome<T>> {
+async function withQueryOutcome<T>(operation: string, action: () => Promise<T>): Promise<QueryOutcome<T>> {
   try { return await action(); }
-  catch (error) { return queryFailure(error); }
+  catch (error) { return logQueryFailure(error, operation); }
 }
 
-export async function queryKpiRows(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<KpiPageResult>> { return withQueryOutcome(() => queryKpiRowsCore(input)); }
-export async function queryOverview(input: { referenceDateIso: string; query: OverviewQuery }): Promise<QueryOutcome<OverviewResult>> { return withQueryOutcome(() => queryOverviewCore(input)); }
-export async function queryKpiTrainingDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiTrainingDetailRecord>>> { return withQueryOutcome(() => queryKpiTrainingDetailsCore(input)); }
-export async function queryKpiDrillDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiDrillDetailRecord>>> { return withQueryOutcome(() => queryKpiDrillDetailsCore(input)); }
-export async function queryKpiInspectionDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiInspectionDetailRecord>>> { return withQueryOutcome(() => queryKpiInspectionDetailsCore(input)); }
-export async function queryKpiAstmDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiAstmDetailRecord>>> { return withQueryOutcome(() => queryKpiAstmDetailsCore(input)); }
-export async function queryActions(input: { referenceDateIso: string; query: ActionsQuery }): Promise<QueryOutcome<ActionsQueryResult>> { return withQueryOutcome(() => queryActionsCore(input)); }
-export async function queryActionsAnalytics(input: { referenceDateIso: string; query: ActionAnalyticsQuery }): Promise<QueryOutcome<ActionAnalyticsResult>> { return withQueryOutcome(() => queryActionsAnalyticsCore(input)); }
-export async function queryEvents(input: { referenceDateIso: string; query: EventsQuery }): Promise<QueryOutcome<EventsQueryResult>> { return withQueryOutcome(() => queryEventsCore(input)); }
-export async function queryEventsAnalytics(input: { referenceDateIso: string; query: EventAnalyticsQuery }): Promise<QueryOutcome<EventAnalyticsResult>> { return withQueryOutcome(() => queryEventsAnalyticsCore(input)); }
-export async function queryTakeChargeGoals(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<TakeChargeGoalsSummary>> { return withQueryOutcome(() => queryTakeChargeGoalsCore(input)); }
-export async function queryTakeChargeRecords(input: { referenceDateIso: string; query: TakeChargeRecordsQuery }): Promise<QueryOutcome<TakeChargeRecordsResult>> { return withQueryOutcome(() => queryTakeChargeRecordsCore(input)); }
-export async function queryStores(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<StoresQueryResult>> { return withQueryOutcome(() => queryStoresCore(input)); }
-export async function queryEnvironment(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<EnvironmentQueryResult>> { return withQueryOutcome(() => queryEnvironmentCore(input)); }
-export async function queryEnvironmentAnalytics(input: { referenceDateIso: string; query: EnvironmentAnalyticsQuery }): Promise<QueryOutcome<EnvironmentAnalyticsResult>> { return withQueryOutcome(() => queryEnvironmentAnalyticsCore(input)); }
-export async function queryCertificates(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<CertificatesPageQueryResult>> { return withQueryOutcome(() => queryCertificatesCore(input)); }
+export async function queryKpiRows(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<KpiPageResult>> { return withQueryOutcome("queryKpiRows", () => queryKpiRowsCore(input)); }
+export async function queryOverview(input: { referenceDateIso: string; query: OverviewQuery }): Promise<QueryOutcome<OverviewResult>> { return withQueryOutcome("queryOverview", () => queryOverviewCore(input)); }
+export async function queryKpiTrainingDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiTrainingDetailRecord>>> { return withQueryOutcome("queryKpiTrainingDetails", () => queryKpiTrainingDetailsCore(input)); }
+export async function queryKpiDrillDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiDrillDetailRecord>>> { return withQueryOutcome("queryKpiDrillDetails", () => queryKpiDrillDetailsCore(input)); }
+export async function queryKpiInspectionDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiInspectionDetailRecord>>> { return withQueryOutcome("queryKpiInspectionDetails", () => queryKpiInspectionDetailsCore(input)); }
+export async function queryKpiAstmDetails(input: { referenceDateIso: string; query: KpiDetailQuery }): Promise<QueryOutcome<KpiDetailRecords<KpiAstmDetailRecord>>> { return withQueryOutcome("queryKpiAstmDetails", () => queryKpiAstmDetailsCore(input)); }
+export async function queryActions(input: { referenceDateIso: string; query: ActionsQuery }): Promise<QueryOutcome<ActionsQueryResult>> { return withQueryOutcome("queryActions", () => queryActionsCore(input)); }
+export async function queryActionsAnalytics(input: { referenceDateIso: string; query: ActionAnalyticsQuery }): Promise<QueryOutcome<ActionAnalyticsResult>> { return withQueryOutcome("queryActionsAnalytics", () => queryActionsAnalyticsCore(input)); }
+export async function queryEvents(input: { referenceDateIso: string; query: EventsQuery }): Promise<QueryOutcome<EventsQueryResult>> { return withQueryOutcome("queryEvents", () => queryEventsCore(input)); }
+export async function queryEventsAnalytics(input: { referenceDateIso: string; query: EventAnalyticsQuery }): Promise<QueryOutcome<EventAnalyticsResult>> { return withQueryOutcome("queryEventsAnalytics", () => queryEventsAnalyticsCore(input)); }
+export async function queryTakeChargeGoals(input: { referenceDateIso: string; query: EhsFilterContext }): Promise<QueryOutcome<TakeChargeGoalsSummary>> { return withQueryOutcome("queryTakeChargeGoals", () => queryTakeChargeGoalsCore(input)); }
+export async function queryTakeChargeRecords(input: { referenceDateIso: string; query: TakeChargeRecordsQuery }): Promise<QueryOutcome<TakeChargeRecordsResult>> { return withQueryOutcome("queryTakeChargeRecords", () => queryTakeChargeRecordsCore(input)); }
+export async function queryStores(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<StoresQueryResult>> { return withQueryOutcome("queryStores", () => queryStoresCore(input)); }
+export async function queryEnvironment(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<EnvironmentQueryResult>> { return withQueryOutcome("queryEnvironment", () => queryEnvironmentCore(input)); }
+export async function queryEnvironmentAnalytics(input: { referenceDateIso: string; query: EnvironmentAnalyticsQuery }): Promise<QueryOutcome<EnvironmentAnalyticsResult>> { return withQueryOutcome("queryEnvironmentAnalytics", () => queryEnvironmentAnalyticsCore(input)); }
+export async function queryCertificates(input: { referenceDateIso: string; query: EhsStoreScope }): Promise<QueryOutcome<CertificatesPageQueryResult>> { return withQueryOutcome("queryCertificates", () => queryCertificatesCore(input)); }

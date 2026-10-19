@@ -254,7 +254,7 @@ export function KpiDetailSheet({
               {queryState.status === "LOADING" ? (
                 <AsyncQueryFeedback status="LOADING" />
               ) : queryState.status === "ERROR" ? (
-                <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} />
+                <AsyncQueryFeedback status="ERROR" errorCode={queryState.errorCode} diagnostics={queryState.diagnostics} />
               ) : queryState.status === "SUCCESS" && queryState.data ? (
                 <DetailRecords data={queryState.data} />
               ) : null}

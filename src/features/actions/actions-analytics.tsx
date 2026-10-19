@@ -73,7 +73,7 @@ export function ActionsAnalytics({
     [result],
   );
   if (state.status === "ERROR") {
-    return state.resolved ? <ActionsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} />;
+    return state.resolved ? <ActionsAnalyticsPlaceholder message={queryErrorMessage(state.errorCode, state.diagnostics)} /> : <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} />;
   }
   if (result === null) return <ActionsAnalyticsPlaceholder loading />;
 

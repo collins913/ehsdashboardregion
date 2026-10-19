@@ -49,6 +49,8 @@ const queries = [
 
 beforeEach(() => {
   vi.clearAllMocks(); reads.length = 0;
+  vi.stubEnv("EHS_MOCK_PROFILE", "standard");
+  vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubEnv("EHS_DATA_SOURCE", "mock"); vi.stubEnv("EHS_IDENTITY_MODE", "mock");
   vi.stubEnv("EHS_MOCK_USER_EMAIL", "manager.1@example.test");
 });
@@ -60,12 +62,12 @@ describe("every EHS Server Action authorization boundary", () => {
   });
   it.each(queries)("$name rejects forged scope before repository initialization", async ({ run }) => {
     await expect(run({ ...all, store: { kind: "INCLUDE", values: ["TEST-002"] } }))
-      .resolves.toEqual({ queryError: { code: "ACCESS_DENIED" } });
+      .resolves.toMatchObject({ queryError: { code: "ACCESS_DENIED" } });
     expect(createEhsRepository).not.toHaveBeenCalled();
   });
   it.each(queries)("$name rejects missing identity before repository initialization", async ({ run }) => {
     vi.spyOn(identity, "requireVerifiedServerPrincipal").mockRejectedValueOnce(new QueryError("AUTHENTICATION_REQUIRED"));
-    await expect(run(all)).resolves.toEqual({ queryError: { code: "AUTHENTICATION_REQUIRED" } });
+    await expect(run(all)).resolves.toMatchObject({ queryError: { code: "AUTHENTICATION_REQUIRED" } });
     expect(createEhsRepository).not.toHaveBeenCalled();
   });
   it.each(queries)("$name scopes lists, counts, analytics and options with real access rules", async ({ run, name }) => {
@@ -91,7 +93,7 @@ describe("every EHS Server Action authorization boundary", () => {
   });
   it.each([actions.queryKpiTrainingDetails, actions.queryKpiDrillDetails, actions.queryKpiInspectionDetails, actions.queryKpiAstmDetails])
     ("rejects a forged detail Store ID inside an otherwise authorized context", async (run) => {
-      await expect(run(envelope(detail(all, "TEST-002")))).resolves.toEqual({ queryError: { code: "ACCESS_DENIED" } });
+      await expect(run(envelope(detail(all, "TEST-002")))).resolves.toMatchObject({ queryError: { code: "ACCESS_DENIED" } });
       expect(createEhsRepository).not.toHaveBeenCalled();
     });
 });

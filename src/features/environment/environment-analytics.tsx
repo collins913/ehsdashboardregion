@@ -56,7 +56,7 @@ export function EnvironmentAnalytics({
       className="relative space-y-3"
     >
       <AnalyticsRefreshIndicator refreshing={state.status === "LOADING" && result !== null} />
-      {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} /> : null}
+      {state.status === "ERROR" ? <AsyncQueryFeedback status="ERROR" errorCode={state.errorCode} diagnostics={state.diagnostics} /> : null}
       {result && result.availability !== "AVAILABLE" && result.availability !== "CONFIRMED_EMPTY" ? (
         <div className="flex"><DataAvailabilityDisplay availability={result.availability} /></div>
       ) : null}

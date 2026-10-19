@@ -15,8 +15,8 @@ afterEach(() => {
 
 describe("mock profile selection", () => {
   it.each([
-    [undefined, "standard"],
-    ["", "standard"],
+    [undefined, "performance"],
+    ["", "performance"],
     ["standard", "standard"],
     ["performance", "performance"],
   ] as const)("maps %s to %s", (value, expected) => {

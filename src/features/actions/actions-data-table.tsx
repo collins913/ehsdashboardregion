@@ -549,7 +549,7 @@ export function ActionsDataTable({
         <DataTableColumnVisibility table={table} labels={columnLabels} />
       </div>
 
-      <DataAvailabilityNotice availability={availability} subject="行动项" queryErrorCode={queryState.status === "ERROR" ? queryState.errorCode : undefined} />
+      <DataAvailabilityNotice availability={availability} subject="行动项" queryErrorCode={queryState.status === "ERROR" ? queryState.errorCode : undefined} diagnostics={queryState.status === "ERROR" ? queryState.diagnostics : undefined} />
 
       <div
         ref={tableFrameRef}

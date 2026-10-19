@@ -78,6 +78,12 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 | DataTable loading helpers | Retain resolved rows and metadata; repository page/sort pending preserves visible inert content with fixed-width footer feedback, semantic scope pending masks content and only unknown footer digits |
 | DataTable layout helpers | Shared body row geometry, fixed table layout, minimum width, horizontal overflow, sticky hover/selected state and `primary` / `content` / `standard` / `compact` sizing roles; Features explicitly assign roles and use shared left / center / right alignment classes independently of sizing; left-aligned cell triggers compensate official Button padding so their text aligns with plain text |
 
+### 页面错误反馈
+
+`PageErrorState` 统一 Root、Global 与 Dashboard 三个错误边界，复用 Card、Button、Lucide 图标和主题 token。共享 error presentation 按正式错误码展示原因与处理建议，未知原因不按异常文本猜测；浏览器离线仅作为当前观察，不能认定是本次故障原因。页面展示并支持复制请求编号、框架 digest、pathname（不含查询参数或 hash）、页面显示时间（UTC）和上报状态；不展示内部 message / stack。原始查询编号直接关联查询日志；页面上报编号关联上报日志，并通过 digest 继续查原始服务端异常。上报失败明确显示未取得编号；错误对象切换时立即隐藏旧编号，避免与新错误混配。系统级边界独立加载样式。UI Lab 预览不记录真实故障、不生成编号，重试返回 Lab。
+
+`AsyncQueryFeedback` 与 `DataAvailabilityNotice` 复用安全查询错误码和服务端 diagnostics；共享异步 hook 保留原始请求编号并透传到各调用方。无服务端回执的客户端查询异常可尝试记录客户端观察；记录失败不伪造回执。
+
 ## Shared utilities
 
 | Utility | Responsibility |

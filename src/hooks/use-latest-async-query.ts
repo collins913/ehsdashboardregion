@@ -1,7 +1,8 @@
 "use client";
-import { unwrapQueryOutcome, queryErrorCode, type QueryErrorCode, type QueryOutcome } from "@/data/contracts/query-result";
+import { unwrapQueryOutcome, queryErrorCode, queryErrorDigest, QueryError, type ErrorDiagnostics, type QueryErrorCode, type QueryOutcome } from "@/data/contracts/query-result";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { reportPageError } from "@/data/server/error-diagnostics-actions";
 
 export type ResolvedAsyncQuery<T> = {
   key: string;
@@ -12,7 +13,7 @@ export type AsyncQueryState<T> =
   | { status: "IDLE"; resolved: null }
   | { status: "LOADING"; resolved: ResolvedAsyncQuery<T> | null }
   | { status: "SUCCESS"; data: T; resolved: ResolvedAsyncQuery<T> }
-  | { status: "ERROR"; errorCode?: QueryErrorCode; resolved: ResolvedAsyncQuery<T> | null };
+  | { status: "ERROR"; errorCode?: QueryErrorCode; digest?: string; diagnostics?: ErrorDiagnostics; resolved: ResolvedAsyncQuery<T> | null };
 
 type StoredAsyncQueryState<T> = {
   key: string | null;
@@ -97,7 +98,7 @@ export function useLatestAsyncQuery<T>(
         setStored((current) => {
           const errorCode = queryErrorCode(error);
           const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;
-          return { key: queryKey, state: { status: "ERROR", errorCode, resolved }, resolved };
+          return { key: queryKey, state: { status: "ERROR", errorCode, digest: queryErrorDigest(error), diagnostics: error instanceof QueryError ? error.diagnostics : undefined, resolved }, resolved };
         });
       }
     };
@@ -155,12 +156,27 @@ export function useLatestAsyncQuery<T>(
         setStored((current) => {
           const errorCode = queryErrorCode(error);
           const resolved = errorCode === "ACCESS_DENIED" || errorCode === "AUTHENTICATION_REQUIRED" ? null : current.resolved;
-          return { key: queryKey, state: { status: "ERROR", errorCode, resolved }, resolved };
+          return { key: queryKey, state: { status: "ERROR", errorCode, digest: queryErrorDigest(error), diagnostics: error instanceof QueryError ? error.diagnostics : undefined, resolved }, resolved };
         });
       }
       throw error;
     }
   }, [queryKey]);
+
+  const failure = stored.state.status === "ERROR" ? stored.state : null;
+  useEffect(() => {
+    if (!failure || failure.diagnostics) return;
+    let active = true;
+    void Promise.resolve().then(() => reportPageError({ path: window.location.pathname, code: failure.errorCode ?? "SERVICE_UNAVAILABLE", digest: failure.digest })).then(
+      (diagnostics) => {
+        if (!active) return;
+        setStored((current) => current.key === stored.key && current.state === failure
+          ? { ...current, state: { ...failure, diagnostics } } : current);
+      },
+      () => { /* No confirmed server receipt: retain the error without inventing an ID. */ },
+    );
+    return () => { active = false; };
+  }, [failure, stored.key]);
 
   if (queryKey === null || !hasLoad) {
     return { status: "IDLE", resolved: null, reload };

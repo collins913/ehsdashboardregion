@@ -16,12 +16,17 @@ afterEach(() => {
 });
 
 describe("server Repository factory mock profile", () => {
-  it("uses the Standard dataset when EHS_MOCK_PROFILE is unset", async () => {
+  it("uses the Performance dataset when EHS_MOCK_PROFILE is unset", async () => {
     delete process.env.EHS_MOCK_PROFILE;
 
     expect(await createEhsRepository(referenceDate).getFilterStores()).toHaveLength(
-      50,
+      500,
     );
+  });
+
+  it("allows explicitly selecting Standard data", async () => {
+    process.env.EHS_MOCK_PROFILE = "standard";
+    expect(await createEhsRepository(referenceDate).getFilterStores()).toHaveLength(50);
   });
 
   it("routes Performance data through the same public Repository", async () => {

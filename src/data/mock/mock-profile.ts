@@ -1,11 +1,11 @@
 export type MockProfile = "standard" | "performance";
 
 export function parseMockProfile(value: string | undefined): MockProfile {
-  if (value === undefined || value === "" || value === "standard") {
+  if (value === "standard") {
     return "standard";
   }
 
-  if (value === "performance") {
+  if (value === undefined || value === "" || value === "performance") {
     return "performance";
   }
 

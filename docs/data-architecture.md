@@ -56,9 +56,9 @@ Standard Dataset ─────┐
 Performance Dataset ──┘
 ```
 
-`EHS_MOCK_PROFILE` 未设置或为空时固定使用 Standard；`standard` 与 `performance` 之外的非空值立即失败。Profile 只决定 server-only raw dataset，不进入 Repository public contract、Server Action query、Feature 或 UI。Performance dataset 按 reference month 延迟生成并在 server process 内复用；Standard dataset 行为保持不变。Production 是未来独立 Repository implementation，不属于 Mock Profile。
+`EHS_MOCK_PROFILE` 未设置或为空时固定使用 Performance；`standard` 与 `performance` 之外的非空值立即失败。Profile 只决定 server-only raw dataset，不进入 Repository public contract、Server Action query、Feature 或 UI。Performance dataset 按 reference month 延迟生成并在 server process 内复用；Standard dataset 行为保持不变。Production 是未来独立 Repository implementation，不属于 Mock Profile。
 
-Performance Dataset 在相同 reference month 下保持 deterministic，用于独立规模测试与人工验收；日常单元测试默认使用 Standard。规模测试验证当前 Mock 链路，不代表 Production 容量或响应时间承诺。
+Performance Dataset 在相同 reference month 下保持 deterministic，用于独立规模测试与人工验收；依赖固定 Standard 夹具的单元测试显式选择 `standard`；未配置 Profile 的运行默认使用 Performance。规模测试验证当前 Mock 链路，不代表 Production 容量或响应时间承诺。
 
 ## V1 领域边界
 
@@ -283,3 +283,16 @@ Period 不参与 Store Master Data 的筛选、判断或计算。字段类型、
 权限管理保留可选姓名 `name`，可不填写；邮箱必填且必须有效。权限表中组织联系人姓名继续按邮箱取门店主数据，其他用户可手动维护姓名；该字段与访问时的用户显示名独立。同一邮箱多条手动授权的姓名 mutation 仍须同步并保留审计。缺失显示名不从邮箱推断。Mock 使用 `EHS_MOCK_USER_NAME` / `EHS_MOCK_USER_AVATAR_URL` 模拟入口资料。
 
 系统监控模块已移除，含页面、错误上报 API、事件捕获、通知、任务监控与相关持久化端口。安全错误码、错误重试界面、领域 DataAvailability、Access / Import 审计仍保留。Environment 的环境监测数据不受影响。
+
+
+## 错误排查链路（2026-10-19）
+
+按本轮用户要求新增有限的错误诊断，不恢复旧 Monitoring / Incident / Outbox / 通知系统。
+
+- 只读业务与 Access 查询失败由 server-only `logQueryFailure` 生成 UUID，记录 operation、错误码、服务端时间和真实异常；DTO 只传安全错误码和 `diagnostics: { requestId, occurredAt, origin: SERVER_QUERY }`。JSON 传输、QueryError、共享查询 hook 和提示组件保留同一编号；授权和计算不变。
+- Next `onRequestError` 捕获未处理的 render / action / route / proxy 异常，记录 `server_request_error`、服务端请求编号、框架 digest、路由及真实异常。不记录请求 headers / body / 查询参数。
+- 错误页仅在尚无原始查询编号时，通过具有 Next 同源保护的 Server Action 提交白名单 code、pathname 和可选 digest；不读取任何业务源或权限数据。服务端生成上报请求编号，写入 `client_error_report`，并标记客户端观察来源。该编号是上报请求编号，不冒充原始失败请求编号；digest 是关联原始服务端异常的桥梁，可能对应多次同类异常，应结合时间和路由筛选。
+- 未知错误不从 message、TypeError 或“Failed to fetch”猜测根因。查询传输层若收到有效框架 digest，共享 hook 也保留并随上报提交。没有 digest 的客户端异常只保证能检索上报记录，不能声称已定位服务端根因；上报失败不显示“已记录”或虚构编号。页面时间标记为显示时间，服务端时间单独保留。
+- 日志进入服务端标准错误输出；本地 Next 开发日志在 `.next/dev/logs/next-development.log`。正式部署应保留部署平台的进程日志；本变更不引入外部监控服务、日志数据库或自动通知。
+
+管理员：按页面请求编号检索 `query_failure`；若标注“上报请求编号”，先查 `client_error_report`，再用其中 digest、路径和时间查 `server_request_error`。异常详情仅在受控服务端日志查看，禁止返回给浏览器。UI Lab 预览不触发真实故障上报。

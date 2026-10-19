@@ -549,7 +549,7 @@ export function EventsDataTable({
         </div>
       </div>
 
-      <DataAvailabilityNotice availability={availability} subject="事件" queryErrorCode={queryState.status === "ERROR" ? queryState.errorCode : undefined} />
+      <DataAvailabilityNotice availability={availability} subject="事件" queryErrorCode={queryState.status === "ERROR" ? queryState.errorCode : undefined} diagnostics={queryState.status === "ERROR" ? queryState.diagnostics : undefined} />
 
       <div
         ref={tableFrameRef}
