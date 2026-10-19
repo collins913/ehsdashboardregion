@@ -34,6 +34,8 @@
 - 使用 Tailwind 4px 间距体系；常用间距为 `2`、`3`、`4`、`6`、`8`。
 - 页面水平边距由 `--page-padding` 控制：移动端 16px、平板 24px、1440px 起 32px。
 - 内容最大宽度为 1600px，由 `PageContainer` 统一执行。
+- Dashboard 页头底部分隔线到首行全局筛选、Tabs 或说明统一为 24px，复用 PageContainer 默认顶部间距，不分移动端与桌面。
+- 页面级 Tabs 到正文区块使用 24px 间距；卡片内部 Tabs、表格工具栏和表单字段保留各组件原有内部间距。
 - Dashboard Global Filters 与页面首个内容区之间为 24px；Analytics 与表格工具栏之间沿用 24px section gap。GlobalFilters 不承担页面外部间距。
 - Desktop First：重点检查 1440px 与 1920px；平板保留完整操作，移动端保证基本可用。
 

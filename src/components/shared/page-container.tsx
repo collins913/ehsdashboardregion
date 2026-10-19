@@ -5,7 +5,7 @@ export function PageContainer({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-content px-(--page-padding) py-6 lg:py-8",
+        "mx-auto w-full max-w-content px-(--page-padding) py-6 lg:pb-8",
         className,
       )}
       {...props}

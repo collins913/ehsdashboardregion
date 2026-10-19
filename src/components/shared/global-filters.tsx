@@ -146,7 +146,7 @@ export function GlobalFilters({ showPeriodFilter = true }: { showPeriodFilter?: 
 
   return (
     <section aria-label="全局筛选">
-      <PageContainer className="pt-3 pb-0 lg:pt-3 lg:pb-0">
+      <PageContainer className="pb-0 lg:pb-0">
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <div className="flex shrink-0 items-center gap-2 text-sm font-medium">

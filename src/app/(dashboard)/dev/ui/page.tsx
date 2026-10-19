@@ -245,7 +245,7 @@ export default function UiLabPage() {
     <Tabs animated value={tab} onValueChange={setTab} className="gap-0">
       <PageContainer className="pb-0 lg:pb-0">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <TabsList aria-label="组件分类">
+          <TabsList variant="line" aria-label="组件分类">
             <TabsTrigger value="basics">基础</TabsTrigger>
             <TabsTrigger value="states">状态</TabsTrigger>
             <TabsTrigger value="charts">图表</TabsTrigger>
