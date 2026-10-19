@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { AsyncQueryFeedback } from "@/components/shared/async-query-feedback";
 import { AnalyticsClosureRadial } from "@/components/shared/analytics-closure-radial";
 import { AnalyticsProgressItem } from "@/components/shared/analytics-progress-item";
 import { AnalyticsMetricCard } from "@/components/shared/analytics-metric-card";
@@ -35,6 +36,7 @@ import { TableCellTrigger } from "@/components/shared/table-cell-trigger";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContents, TabsContent } from "@/components/ui/tabs";
 import {
   Sheet,
@@ -100,50 +102,26 @@ const businessStatuses: readonly BusinessStatus[] = [
 ];
 
 const badgeVariants = [
-  "default",
-  "secondary",
-  "destructive",
-  "outline",
-  "ghost",
+  { value: "default", label: "默认" },
+  { value: "secondary", label: "次要" },
+  { value: "destructive", label: "警示" },
+  { value: "outline", label: "描边" },
+  { value: "ghost", label: "透明" },
 ] as const;
 
-function LabArea({
-  title,
-  description,
-  children,
-}: {
+function DemoSurface({ title, description, children }: {
   title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  const id = `area-${title.toLowerCase().replaceAll(" ", "-")}`;
-
-  return (
-    <section aria-labelledby={id}>
-      <h2 id={id} className="text-lg font-semibold tracking-tight">
-        {title}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
-function DemoSurface({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border p-4">
-      <h3 className="text-sm font-medium">{title}</h3>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-      <div className="mt-3">{children}</div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {description ? <CardDescription>{description}</CardDescription> : null}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
   );
 }
 
@@ -151,7 +129,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline">{mobileWidth === "full" ? "查看手机全宽详情" : "查看详情示例"}</Button>
+        <Button variant="outline">{mobileWidth === "full" ? "手机全宽" : "标准宽度"}</Button>
       </SheetTrigger>
       <SheetContent mobileWidth={mobileWidth} className="overflow-y-auto">
         <DetailHeader
@@ -178,7 +156,7 @@ function DetailSheetDemo({ mobileWidth = "default" }: { mobileWidth?: "default" 
               <p className="text-sm text-muted-foreground">无记录</p>
             </DetailAccordionItem>
             <DetailAccordionItem title="带摘要的信息组" value="summary" summary={<span className="tabular-nums">3/5</span>}>
-              <p className="text-sm text-muted-foreground">摘要由调用方提供；共享 Accordion 使用 200ms ease-in-out 展开／折叠与箭头旋转，并为卡片悬停保留空间，保持左右对齐。</p>
+              <p className="text-sm text-muted-foreground">折叠摘要示例。</p>
             </DetailAccordionItem>
           </DetailAccordion>
         </div>
@@ -196,16 +174,16 @@ function ColumnSizingRolePreview() {
             <TableHead
               className={`${dataTableColumnSizeClassNames.primary} ${stickyStoreHeaderClassName}`}
             >
-              Primary
+              主要字段
             </TableHead>
             <TableHead className={dataTableColumnSizeClassNames.content}>
-              Content
+              正文
             </TableHead>
             <TableHead className={dataTableColumnSizeClassNames.standard}>
-              Standard
+              姓名
             </TableHead>
             <TableHead className={dataTableColumnSizeClassNames.compact}>
-              Compact
+              编号
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -221,7 +199,7 @@ function ColumnSizingRolePreview() {
             </TableCell>
             <TableCell className={dataTableColumnSizeClassNames.content}>
               <OverflowTooltip
-                text="这是用于观察正文列适度扩展并在合理阅读宽度停止增长的长文本。"
+                text="长文本示例：空间不足时省略，悬停可查看完整内容。"
                 className={dataTableColumnContentClassNames.content}
               />
             </TableCell>
@@ -239,6 +217,7 @@ function ColumnSizingRolePreview() {
 }
 
 export default function UiLabPage() {
+  const [tab, setTab] = useState("basics");
   const [errorPreview, setErrorPreview] = useState<"page" | "system" | null>(null);
   const [month, setMonth] = useState<Month>("2026-09");
   const [showTableLoading, setShowTableLoading] = useState(false);
@@ -246,128 +225,102 @@ export default function UiLabPage() {
   const [filterPreview, setFilterPreview] = useState("ALL");
   const [animatedNumberPreview, setAnimatedNumberPreview] = useState(52);
 
+  useEffect(() => {
+    const openLinkedPreview = () => {
+      if (window.location.hash === "#error-preview") setTab("states");
+    };
+    openLinkedPreview();
+    window.addEventListener("hashchange", openLinkedPreview);
+    return () => window.removeEventListener("hashchange", openLinkedPreview);
+  }, []);
+
   if (errorPreview) {
     return <PageErrorState preview system={errorPreview === "system"} reset={() => setErrorPreview(null)} />;
   }
 
   return (
-    <>
-      <PageContainer className="py-6 lg:py-6">
-        <h1 className="text-2xl font-semibold tracking-tight">UI Lab</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          集中验证项目已采用的 Shared UI 与跨业务 Pattern。
-        </p>
-        <section id="error-preview" aria-label="错误页面预览" className="mt-4 flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setErrorPreview("page")}>预览页面错误</Button>
-          <Button variant="outline" onClick={() => setErrorPreview("system")}>预览系统错误</Button>
-          <p className="w-full text-xs text-muted-foreground">预览中的“重新加载”返回此处。</p>
-        </section>
+    <Tabs value={tab} onValueChange={setTab} className="gap-6 py-6">
+      <PageContainer className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-semibold tracking-tight">组件预览</h1>
+          <ThemeToggle />
+        </div>
+        <TabsList aria-label="组件分类">
+          <TabsTrigger value="basics">基础</TabsTrigger>
+          <TabsTrigger value="states">状态</TabsTrigger>
+          <TabsTrigger value="charts">图表</TabsTrigger>
+          <TabsTrigger value="tables">表格</TabsTrigger>
+          <TabsTrigger value="details">筛选与详情</TabsTrigger>
+        </TabsList>
       </PageContainer>
 
-      <PageContainer className="space-y-8 py-4 lg:py-4">
-        <LabArea
-          title="Foundations"
-          description="项目级主题、排版层级与语义令牌。"
-        >
-          <div className="grid gap-4 lg:grid-cols-3">
-            <DemoSurface
-              title="主题"
-              description="切换浅色、深色或跟随系统，整页同步验证。"
-            >
-              <ThemeToggle />
-            </DemoSurface>
-            <DemoSurface
-              title="排版"
-              description="仅保留项目正式使用的文字层级。"
-            >
-              <div className="space-y-2">
-                <p className="text-2xl font-semibold tracking-tight">页面标题</p>
-                <p className="text-lg font-semibold tracking-tight">区块标题</p>
-                <p className="text-sm text-muted-foreground">辅助文字与元数据</p>
-              </div>
-            </DemoSurface>
-            <DemoSurface
-              title="语义令牌"
-              description="组件只消费主题语义，不维护独立深色样式。"
-            >
-              <div className="grid grid-cols-2 gap-2">
-                {tokenSamples.map((token) => (
-                  <div key={token.name} className="flex items-center gap-2">
-                    <span
-                      className={`size-5 shrink-0 rounded border ${token.className}`}
-                    />
-                    <code className="text-xs">{token.name}</code>
-                  </div>
-                ))}
-              </div>
-            </DemoSurface>
-          </div>
-        </LabArea>
-
-        <LabArea
-          title="PageHeader"
-          description="正式共享标题组件；说明文字通过标题的悬停或键盘焦点查看。"
-        >
-          <GlobalFilterProvider
-            stores={globalFilterUiStores}
-            initialState={globalFilterUiState}
-            nowIso="2026-09-11T00:00:00.000Z"
-            referenceMonth="2026-09"
-          >
-            <div className="space-y-4">
-              <PageHeader
-                title="页面标题示例"
-                description="说明内容仅在悬停标题或键盘聚焦标题时显示。"
-                breadcrumbs={[{ label: "带说明" }]}
-              />
-              <PageHeader
-                title="无说明页面"
-                breadcrumbs={[{ label: "无说明" }]}
-              />
+      <TabsContent value="basics">
+        <PageContainer className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <DemoSurface title="文字层级">
+            <div className="space-y-3">
+              <p className="text-2xl font-semibold tracking-tight">页面标题</p>
+              <p className="text-base font-medium">卡片标题</p>
+              <p className="text-base">正文内容</p>
+              <p className="text-sm text-muted-foreground">辅助文字</p>
+              <p className="text-xs text-muted-foreground">元数据</p>
             </div>
-          </GlobalFilterProvider>
-        </LabArea>
-
-        <LabArea
-          title="Semantic UI"
-          description="状态与数据可用性只有一套共享 presentation。"
-        >
-          <DemoSurface
-            title="Badge"
-            description="直接展示项目共享 Badge primitive 的 variants 与图标排布。"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              {badgeVariants.map((variant) => (
-                <Badge key={variant} variant={variant}>
-                  {variant}
-                </Badge>
+          </DemoSurface>
+          <DemoSurface title="主题色">
+            <div className="grid grid-cols-2 gap-3">
+              {tokenSamples.map((token) => (
+                <div key={token.name} className="flex items-center gap-2">
+                  <span aria-hidden="true" className={`size-5 shrink-0 rounded border ${token.className}`} />
+                  <code className="text-xs">{token.name}</code>
+                </div>
               ))}
-              <Badge variant="outline">
-                <CheckCircle2 aria-hidden="true" />
-                图标示例
-              </Badge>
             </div>
           </DemoSurface>
-          <DemoSurface
-            title="FilterSelect"
-            description="共享少量互斥筛选；使用 shadcn Select 的触发器、选中标记与键盘交互。"
-          >
-            <FilterSelect
-              ariaLabel="筛选组件预览"
-              value={filterPreview}
-              options={[
-                { value: "ALL", label: "全部" },
-                { value: "OPEN_ONLY", label: "未关闭" },
-              ]}
-              onValueChange={setFilterPreview}
-            />
+          <DemoSurface title="选择器">
+            <div className="space-y-4">
+              <FilterSelect
+                ariaLabel="单选筛选"
+                value={filterPreview}
+                options={[{ value: "ALL", label: "全部" }, { value: "OPEN_ONLY", label: "未关闭" }]}
+                onValueChange={setFilterPreview}
+              />
+              <MonthPicker value={month} onValueChange={setMonth} aria-label="选择月份" />
+            </div>
           </DemoSurface>
-          <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-            <DemoSurface
-              title="StatusDisplay"
-              description="覆盖全部业务状态；统一描边标签、加载图标和绿色勾选。标签按内容自适应宽度，沿用官方 Badge 间距。"
-            >
-              <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+          <DemoSurface title="文本溢出" description="悬停或聚焦查看全文。">
+            <div className="space-y-3">
+              <div className="w-48 max-w-full">
+                <OverflowTooltip text="短门店名" className="w-full" />
+              </div>
+              <div className="w-48 max-w-full">
+                <OverflowTooltip text="用于查看文本省略效果的超长门店名称示例" className="w-full" />
+              </div>
+              {["短按钮文本", "用于查看按钮内省略效果的超长门店名称示例"].map((text) => (
+                <OverflowTooltip key={text} text={text} className="w-full" renderTrigger={(label) => (
+                  <Button variant="outline" className="w-48 max-w-full justify-start" aria-label={text}>{label}</Button>
+                )} />
+              ))}
+            </div>
+          </DemoSurface>
+          <DemoSurface title="页签动画">
+            <Tabs animated defaultValue="matrix">
+              <TabsList aria-label="动画示例">
+                <TabsTrigger value="matrix">矩阵</TabsTrigger>
+                <TabsTrigger value="list">明细</TabsTrigger>
+              </TabsList>
+              <TabsContents className="min-h-24">
+                <TabsContent value="matrix"><p>矩阵内容</p></TabsContent>
+                <TabsContent value="list"><p>明细内容</p></TabsContent>
+              </TabsContents>
+            </Tabs>
+          </DemoSurface>
+        </PageContainer>
+      </TabsContent>
+
+      <TabsContent value="states">
+        <PageContainer className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DemoSurface title="业务状态">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {businessStatuses.map((status) => (
                   <div key={status} className="flex items-center justify-between gap-3">
                     <code className="text-xs text-muted-foreground">{status}</code>
@@ -375,15 +328,12 @@ export default function UiLabPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">未关闭记录：加载图标</span>
+                  <span className="text-xs text-muted-foreground">未关闭记录</span>
                   <StatusDisplay status="OPEN" label="进行中" />
                 </div>
               </div>
             </DemoSurface>
-            <DemoSurface
-              title="DataAvailabilityDisplay"
-              description="区分可用、确认空、数据不完整和不可用。"
-            >
+            <DemoSurface title="数据可用性">
               <div className="flex flex-wrap gap-2">
                 <DataAvailabilityDisplay availability="AVAILABLE" />
                 <DataAvailabilityDisplay availability="CONFIRMED_EMPTY" />
@@ -391,202 +341,112 @@ export default function UiLabPage() {
                 <DataAvailabilityDisplay availability="UNAVAILABLE" />
               </div>
             </DemoSurface>
+            <DemoSurface title="基础标签">
+              <div className="flex flex-wrap items-center gap-2">
+                {badgeVariants.map(({ value, label }) => (
+                  <Badge key={value} variant={value}>{label}</Badge>
+                ))}
+                <Badge variant="outline"><CheckCircle2 aria-hidden="true" />带图标</Badge>
+              </div>
+            </DemoSurface>
+            <section id="error-preview" aria-labelledby="error-preview-title" className="space-y-3">
+              <h2 id="error-preview-title" className="text-base font-medium">错误页</h2>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setErrorPreview("page")}>页面错误</Button>
+                <Button variant="outline" onClick={() => setErrorPreview("system")}>系统错误</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">仅预览，不记录故障。</p>
+            </section>
           </div>
-        </LabArea>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section aria-label="加载反馈"><AsyncQueryFeedback status="LOADING" /></section>
+            <section aria-label="错误反馈"><AsyncQueryFeedback status="ERROR" errorCode="INVALID_QUERY_INPUT" /></section>
+          </div>
+        </PageContainer>
+      </TabsContent>
 
-        <LabArea
-          title="Shared Components"
-          description="只展示需要独立检查边界或交互的共享组件。"
-        >
+      <TabsContent value="charts">
+        <PageContainer className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <AnalyticsMetricCard title="提交总数" subtitle="2026-07 至 2026-09" value={animatedNumberPreview} info={<p>提交总数示例。</p>} />
+            <AnalyticsMetricCard title="平均提交数" subtitle="2026 年" value={5.9} formatter={(value) => value.toFixed(1)} info={<p>保留一位小数。</p>} />
+          </div>
           <div className="grid gap-4 lg:grid-cols-3">
-            <DemoSurface
-              title="OverflowTooltip"
-              description="短文本不启用 Tooltip；真实溢出时支持悬停或键盘聚焦，按钮内不增加 Tab 停靠点。"
-            >
-              <div className="space-y-3">
-                <div className="w-48 rounded-md border px-3 py-2 text-sm">
-                  <OverflowTooltip text="短门店名" className="w-full" />
-                </div>
-                <div className="w-48 rounded-md border px-3 py-2 text-sm">
-                  <OverflowTooltip
-                    text="用于验证真实溢出后才显示完整内容的超长门店名称"
-                    className="w-full"
-                  />
-                </div>
-                {["短按钮文本", "用于验证按钮聚焦时可见完整内容的超长门店名称"].map((text) => (
-                  <OverflowTooltip key={text} text={text} className="w-full" renderTrigger={(label) => (
-                    <Button variant="outline" className="w-48 justify-start" aria-label={text}>{label}</Button>
-                  )} />
-                ))}
-              </div>
-            </DemoSurface>
-            <DemoSurface
-              title="MonthPicker"
-              description="统一选择一个自然月份，不承担 Period 计算。"
-            >
-              <MonthPicker
-                value={month}
-                onValueChange={setMonth}
-                aria-label="月份示例"
-              />
-            </DemoSurface>
-            <DemoSurface
-              title="AnimatedNumber"
-              description="仅演示 resolved 数值更新插值，并尊重系统减少动态效果设置。"
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="min-w-16 text-2xl font-semibold tabular-nums">
-                  <AnimatedNumber value={animatedNumberPreview} />
-                </span>
-                {[31, 67].map((value) => (
-                  <Button key={value} variant="outline" size="sm" onClick={() => setAnimatedNumberPreview(value)}>
-                    显示 {value}
-                  </Button>
-                ))}
-              </div>
-            </DemoSurface>
-            <DemoSurface title="AnalyticsProgressItem" description="名称单行省略并复用溢出 Tooltip；下面用官方 Progress 展示服务端准备的进度，未设置要求时保留空底条及“数量 / 未设置”。">
-              <ul className="max-w-sm space-y-4">
+            <AnalyticsClosureRadial title="关闭情况" rate={33} rateLabel="关闭率" statusCounts={[{ label: "进行中", count: 3000 }, { label: "已分配", count: 2396 }, { label: "已关闭", count: 2604 }]} />
+            <DemoSurface title="证件数量进度">
+              <ul className="space-y-4">
                 <AnalyticsProgressItem label="安全生产管理人员安全生产培训合格证书-M" actualCount={468} requiredCount={500} progressValue={93.6} missingRequirementLabel="未设置" />
                 <AnalyticsProgressItem label="安全驾驶内驾证" actualCount={492} requiredCount={null} progressValue={null} missingRequirementLabel="未设置" />
               </ul>
             </DemoSurface>
-            <DemoSurface title="Tabs 动画" description="原位置 200ms 轻微模糊与淡入淡出，不横向移动；保留键盘操作，非活动面板不可交互，尊重减少动态效果设置。">
-              <Tabs animated defaultValue="matrix">
-                <TabsList aria-label="动画切换示例"><TabsTrigger value="matrix">矩阵</TabsTrigger><TabsTrigger value="list">明细</TabsTrigger></TabsList>
-                <TabsContents className="min-h-24">
-                  <TabsContent value="matrix"><p>矩阵内容示例</p></TabsContent>
-                  <TabsContent value="list"><p>明细内容示例</p></TabsContent>
-                </TabsContents>
-              </Tabs>
-            </DemoSurface>
-            <DemoSurface title="AnalyticsClosureRadial" description="关闭率浮层逐项显示源状态对应的名称和数量，中心文字位于 SVG 内。">
-              <AnalyticsClosureRadial title="关闭情况" rate={33} rateLabel="关闭率" statusCounts={[{ label: "已关闭", count: 2604 }, { label: "进行中", count: 3000 }, { label: "已分配", count: 2396 }]} />
-            </DemoSurface>
-            <DemoSurface
-              title="AnalyticsMetricCard"
-              description="数字型 Dashboard 卡片共用标题、说明、Info 和数值的 presentation，并用调用方 formatter 展示数值。"
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <AnalyticsMetricCard
-                  title="提交总数"
-                  subtitle="2026-07 至 2026-09"
-                  value={animatedNumberPreview}
-                  info={<p>已预计算的整数值，展示统一的指标卡样式。</p>}
-                />
-                <AnalyticsMetricCard
-                  title="平均提交数"
-                  subtitle="2026 年"
-                  value={5.9}
-                  formatter={(value) => value.toFixed(1)}
-                  info={<p>已预计算的一位小数值。</p>}
-                />
-              </div>
-            </DemoSurface>
-            <DemoSurface
-              title="TableCellTrigger"
-              description="复用官方 link / sm Button；文字、数字和“查看”默认悬停下划线，标签不加下划线或额外背景，保留键盘、焦点和按压行为。"
-            >
-              <div className="flex flex-wrap gap-2">
-                <TableCellTrigger variant="link" aria-label="77% 纯数字可点击示例">77%</TableCellTrigger>
-                <TableCellTrigger variant="link" aria-label="ASTM 事件可点击示例">无</TableCellTrigger>
-                <TableCellTrigger aria-label="92% 可点击示例">
-                  <StatusDisplay
-                    status="ACHIEVED"
-                    label="92%"
-                    showIcon={false}
-                    interactive
-                  />
-                </TableCellTrigger>
-                <TableCellTrigger aria-label="68% 可点击示例">
-                  <StatusDisplay
-                    status="NOT_ACHIEVED"
-                    label="68%"
-                    showIcon={false}
-                    interactive
-                  />
-                </TableCellTrigger>
+            <DemoSurface title="数字动画">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="min-w-16 text-2xl font-semibold tabular-nums"><AnimatedNumber value={animatedNumberPreview} /></span>
+                {[31, 67].map((value) => (
+                  <Button key={value} variant="outline" size="sm" onClick={() => setAnimatedNumberPreview(value)}>{value}</Button>
+                ))}
               </div>
             </DemoSurface>
           </div>
-        </LabArea>
-      </PageContainer>
-
-      <section aria-labelledby="area-adopted-patterns">
-        <PageContainer className="pb-3 pt-4 lg:pb-3 lg:pt-4">
-          <h2
-            id="area-adopted-patterns"
-            className="text-lg font-semibold tracking-tight"
-          >
-            Adopted Patterns
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            使用正式组件验证筛选、表格和详情面板组合。
-          </p>
-          <h3 className="mt-4 text-sm font-medium">Global Filters</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            唯一的可控 fixture 实例；门店搜索复用 InputGroup 与 Checkbox，勾选状态对应真实选择。
-          </p>
         </PageContainer>
+      </TabsContent>
 
-        <GlobalFilterProvider
-          stores={globalFilterUiStores}
-          initialState={globalFilterUiState}
-          nowIso="2026-09-11T00:00:00.000Z"
-          referenceMonth="2026-09"
-        >
+      <TabsContent value="tables">
+        <PageContainer className="space-y-6">
+          <section aria-label="列宽示例" className="space-y-3">
+            <h2 className="text-base font-medium">列宽与文本省略</h2>
+            <ColumnSizingRolePreview />
+          </section>
+          <section aria-label="表格单元格交互" className="space-y-3">
+            <h2 className="text-base font-medium">单元格交互</h2>
+            <div className="flex flex-wrap gap-2">
+              <TableCellTrigger variant="link" aria-label="查看 77%">77%</TableCellTrigger>
+              <TableCellTrigger variant="link" aria-label="查看 ASTM 事件">无</TableCellTrigger>
+              <TableCellTrigger aria-label="查看已完成"><StatusDisplay status="ACHIEVED" label="已完成" interactive /></TableCellTrigger>
+              <TableCellTrigger aria-label="查看进行中"><StatusDisplay status="OPEN" label="进行中" interactive /></TableCellTrigger>
+              <TableCellTrigger aria-label="查看不完整数据"><DataAvailabilityDisplay availability="INCOMPLETE" /></TableCellTrigger>
+            </div>
+          </section>
+          <section aria-label="数值排序与整行点击" className="space-y-3">
+            <h2 className="text-base font-medium">数值排序与整行点击</h2>
+            <p className="text-xs text-muted-foreground" aria-live="polite">{selectedSampleRow ? `已选择：${selectedSampleRow}` : "点击或用键盘选择一行。"}</p>
+            <DataTable rows={numericSortRows} columns={numericSortColumns} stickyFirstColumn compactPrimaryColumn emptyMessage="无样例数据"
+              onRowClick={(row) => setSelectedSampleRow(row.label)} rowAriaLabel={(row) => `选择${row.label}`} />
+          </section>
+          <section aria-label="KPI 表格预览" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-base font-medium">KPI 表格</h2>
+              <Button variant="outline" size="sm" aria-pressed={showTableLoading} onClick={() => setShowTableLoading((current) => !current)}>
+                {showTableLoading ? "显示示例数据" : "显示加载状态"}
+              </Button>
+            </div>
+            <KpiDataTable rows={demoKpiRows} context={demoKpiContext} referenceDateIso="2026-09-11T00:00:00+08:00"
+              queryActions={queryDemoKpiActions} queryKpiDetails={queryDemoKpiDetails} queryStatus={showTableLoading ? "LOADING" : "READY"} />
+          </section>
+        </PageContainer>
+      </TabsContent>
+
+      <TabsContent value="details" className="space-y-6">
+        <GlobalFilterProvider stores={globalFilterUiStores} initialState={globalFilterUiState} nowIso="2026-09-11T00:00:00.000Z" referenceMonth="2026-09">
+          <PageHeader title="页面标题示例" description="悬停或聚焦标题查看说明。" breadcrumbs={[{ label: "标题示例" }]} />
           <GlobalFilters />
         </GlobalFilterProvider>
-
-        <PageContainer className="space-y-6 py-6 lg:py-6">
-          <section aria-label="详情卡片动画与 Item 标题">
-            <h3 className="mb-3 text-sm font-medium">详情记录卡片</h3>
-            <DetailRecordCard header="月度应急演练 10" description="2026 年 10 月" action={<StatusDisplay status="ACHIEVED" label="已完成" />} />
-            <p className="mt-3 text-xs text-muted-foreground">统一复用官方 Item / ItemContent / ItemTitle，标题与简短说明间距 4px，标题说明组与字段区间距 12px；字段名与值 4px，字段行之间 12px，状态位于右上角。鼠标悬停时倾斜、轻微放大并增加轻阴影；移出复位，触屏或减少动态效果时关闭动画。</p>
-          </section>
-          <div>
-            <h3 className="text-sm font-medium">Representative Data Table</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              先验证 primary、content、standard、compact 四种共享列宽角色，再通过正式 KpiDataTable 验证排序、列显示、Sticky Store、状态、可用性、点击单元格和 5 / 7 / 10 自适应分页。
-            </p>
-            <div className="mt-3 space-y-4">
-              <ColumnSizingRolePreview />
-              <section aria-label="共享表格数值排序">
-                <h4 className="mb-2 text-sm font-medium">共享表格数值排序与固定首列</h4>
-                <p className="mb-2 text-xs text-muted-foreground" aria-live="polite">{selectedSampleRow ? `已选择：${selectedSampleRow}` : "支持可选整行点击；键盘聚焦后按 Enter 或空格打开。"}</p>
-                <DataTable rows={numericSortRows} columns={numericSortColumns} stickyFirstColumn compactPrimaryColumn emptyMessage="无样例数据"
-                  onRowClick={(row) => setSelectedSampleRow(row.label)} rowAriaLabel={(row) => `选择${row.label}`} />
-              </section>
-              <Button
-                variant="outline"
-                size="sm"
-                aria-pressed={showTableLoading}
-                onClick={() => setShowTableLoading((current) => !current)}
-              >
-                {showTableLoading ? "显示正式数据" : "验证加载占位"}
-              </Button>
-              <KpiDataTable
-                rows={demoKpiRows}
-                context={demoKpiContext}
-                referenceDateIso="2026-09-11T00:00:00+08:00"
-                queryActions={queryDemoKpiActions}
-                queryKpiDetails={queryDemoKpiDetails}
-                queryStatus={showTableLoading ? "LOADING" : "READY"}
-              />
+        <PageContainer className="space-y-6">
+          <section aria-label="详情卡片" className="space-y-3">
+            <h2 className="text-base font-medium">详情卡片</h2>
+            <div className="max-w-xl">
+              <DetailRecordCard header="月度应急演练 10" description="2026 年 10 月" action={<StatusDisplay status="ACHIEVED" label="已完成" />} />
             </div>
-          </div>
-
-          <DemoSurface
-            title="Detail Sheet"
-            description="最小验证 trigger、Header、字段排布、长文本与空值。"
-          >
+          </section>
+          <section aria-label="详情面板" className="space-y-3">
+            <h2 className="text-base font-medium">详情面板</h2>
             <div className="flex flex-wrap gap-2">
               <DetailSheetDemo />
               <DetailSheetDemo mobileWidth="full" />
             </div>
-          </DemoSurface>
+          </section>
         </PageContainer>
-      </section>
-    </>
+      </TabsContent>
+    </Tabs>
   );
 }

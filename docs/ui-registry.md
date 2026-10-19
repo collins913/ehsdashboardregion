@@ -147,3 +147,8 @@ Primitive baseline: current `radix-nova / neutral / lucide` registry (2026-10-10
 AccessManagementPage adds a 姓名 column and an optional name field to the existing create/edit Dialog; email remains required. Prepared catalog users supply contact names and `nameFromStore`; those names remain read-only. Other names can be maintained manually. Successful mutations refresh the list, catalog and server layout without making manual names the source of the visiting user profile. Audit snapshots include 姓名. Automatic grants remain derived from Store Master and are not added to the manual-grant table.
 
 Global scrollbar tracks and corners are transparent and borderless in both themes; visible thumbs use muted-foreground. Native scrolling, widths and existing no-scrollbar policies are retained.
+
+
+## UI Lab
+
+`/dev/ui` 使用共享 Tabs，按“基础 / 状态 / 图表 / 表格 / 筛选与详情”浏览；主题切换常驻页头，示例说明仅保留必要操作提示。预览容器复用 shadcn Card，已有 Card 直接展示，避免嵌套装饰。保留表格排序、列显示、加载切换、详情面板及动画示例；只挂载当前页签。`#error-preview` 自动定位到“状态”页签，错误预览不生成日志或请求编号。
