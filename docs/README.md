@@ -54,6 +54,9 @@ EHS Dashboard 用于统一查看门店 EHS 绩效、风险与合规记录及主�
 | [`integration/deployment-readiness-checklist.md`](integration/deployment-readiness-checklist.md) | 提供公司接入执行入口、验收证据和禁止上线条件，不替代详细契约。 |
 | [`integration/uat-acceptance-matrix.md`](integration/uat-acceptance-matrix.md) | 记录 Production Integration UAT 测试项、通过标准、证据和最终签字。 |
 | [`integration/source-field-mapping-template.md`](integration/source-field-mapping-template.md) | 按接入类别列出字段含义、传递要求、类型与空值；公司填写来源、转换和证据，附待确认项及可复制请求样例。 |
+| [`integration/EHS字段对接.xlsx`](integration/EHS字段对接.xlsx) | 字段对接工作簿，供接入核对使用；正式契约以当前规范文档为准。 |
+| [`integration/examples/00-示例目录.json`](integration/examples/00-示例目录.json) | JSON 对接示例目录；示例数据为虚构数据。 |
+| [`integration/EHS完整JSON示例.zip`](integration/EHS完整JSON示例.zip) | JSON 对接示例的打包下载文件。 |
 | [`integration/production-cutover-rollback-runbook.md`](integration/production-cutover-rollback-runbook.md) | 规定 Production 切换检查点、立即停止条件、应用及数据指针回滚和证据归档。 |
 
 ### 历史归档
